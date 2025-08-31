@@ -121,36 +121,36 @@ export default function AdmissionsPage() {
         
         const feesToAdd: Fee[] = [];
 
-        // Registration Fee
+        // Registration Fee (One-time)
         feesToAdd.push({
-            id: `FEE${String(++lastFeeId).padStart(2, '0')}`,
+            id: `FEE${String(++lastFeeId).padStart(3, '0')}`,
             familyId: familyId,
             amount: registrationFee,
-            month: 'Registration',
+            month: 'Registration', // This indicates it's a one-time registration fee
             year: new Date().getFullYear(),
             status: 'Unpaid',
             paymentDate: ''
         });
 
-        // Monthly Fee
+        // First Month's Tuition Fee
         feesToAdd.push({
-            id: `FEE${String(++lastFeeId).padStart(2, '0')}`,
+            id: `FEE${String(++lastFeeId).padStart(3, '0')}`,
             familyId: familyId,
             amount: monthlyFee,
-            month: new Date().toLocaleString('default', { month: 'long' }),
+            month: new Date().toLocaleString('default', { month: 'long' }), // Fee for the current month
             year: new Date().getFullYear(),
             status: 'Unpaid',
             paymentDate: ''
         });
 
-        // Custom Fees
+        // Custom Fees (One-time at admission)
         customFees.forEach(fee => {
             if (fee.name && fee.amount > 0) {
                  feesToAdd.push({
-                    id: `FEE${String(++lastFeeId).padStart(2, '0')}`,
+                    id: `FEE${String(++lastFeeId).padStart(3, '0')}`,
                     familyId: familyId,
                     amount: fee.amount,
-                    month: fee.name, // Use the custom fee name as the description
+                    month: fee.name, // Use the custom fee name as the one-time charge description
                     year: new Date().getFullYear(),
                     status: 'Unpaid',
                     paymentDate: ''
