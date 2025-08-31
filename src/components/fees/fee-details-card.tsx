@@ -46,16 +46,19 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
     }, [totalDues]);
 
 
+    const handlePrint = useReactToPrint({
+        content: () => printRef.current,
+        onAfterPrint: () => {
+            setIsPrinting(false);
+            setReceiptDataForPrint(null); // Clean up after printing
+        },
+    });
+
     useEffect(() => {
         if (isPrinting && receiptDataForPrint) {
             handlePrint();
         }
-    }, [isPrinting, receiptDataForPrint]);
-
-    const handlePrint = useReactToPrint({
-        content: () => printRef.current,
-        onAfterPrint: () => setIsPrinting(false),
-    });
+    }, [isPrinting, receiptDataForPrint, handlePrint]);
 
     const remainingDues = totalDues - paidAmount;
 
@@ -137,7 +140,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
     return (
         <>
             <div style={{ display: 'none' }}>
-                {isPrinting && receiptDataForPrint && (
+                {receiptDataForPrint && (
                     <div ref={printRef}>
                         <FeeReceipt
                             family={family}
