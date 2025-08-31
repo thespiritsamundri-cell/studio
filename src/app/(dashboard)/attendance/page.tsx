@@ -36,7 +36,9 @@ export default function AttendancePage() {
   
   useEffect(() => {
     if (isPrinting && reportDate) {
-      handlePrint();
+       setTimeout(() => {
+        handlePrint();
+      }, 0);
     }
   }, [isPrinting, reportDate, handlePrint]);
 
@@ -121,7 +123,7 @@ export default function AttendancePage() {
   return (
     <div className="space-y-6">
        <div style={{ display: 'none' }}>
-          {isPrinting && reportDate && (
+          {reportDate && (
             <div ref={printRef}>
                 <AttendancePrintReport
                   className={selectedClass || ''}

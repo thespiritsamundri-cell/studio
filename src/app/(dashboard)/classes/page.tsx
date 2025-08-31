@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -42,20 +42,11 @@ export default function ClassesPage() {
   const [reportDate, setReportDate] = useState<Date | null>(null);
   const [studentsForReport, setStudentsForReport] = useState<Student[]>([]);
 
-  // State for class management
-  const [openClassDialog, setOpenClassDialog] = useState(false);
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [isEditingClass, setIsEditingClass] = useState(false);
-  const [selectedClassData, setSelectedClassData] = useState<Class | null>(null);
-  const [newClassName, setNewClassName] = useState('');
-  
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
     documentTitle: "All Students Report",
     onAfterPrint: () => {
         setIsPrinting(false);
-        setStudentsForReport([]);
-        setReportDate(null);
     },
   });
 
@@ -198,6 +189,13 @@ export default function ClassesPage() {
       setSelectedClassData(null);
     }
   };
+
+  // State for class management dialog
+  const [openClassDialog, setOpenClassDialog] = useState(false);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [isEditingClass, setIsEditingClass] = useState(false);
+  const [selectedClassData, setSelectedClassData] = useState<Class | null>(null);
+  const [newClassName, setNewClassName] = useState('');
 
   return (
     <div className="space-y-6">
