@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -16,10 +17,10 @@ export default function RootLayout({
 }>) {
   return (
     <SettingsProvider>
-        <FontWrapper>
+      <FontWrapper>
           {children}
           <Toaster />
-        </FontWrapper>
+      </FontWrapper>
     </SettingsProvider>
   );
 }

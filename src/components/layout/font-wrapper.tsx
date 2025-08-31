@@ -24,23 +24,23 @@ const poppins = Poppins({
   variable: '--font-poppins',
 });
 
+const fontMap = {
+  inter,
+  roboto,
+  'open-sans': openSans,
+  lato,
+  montserrat,
+  poppins,
+};
+
 export function FontWrapper({ children }: { children: ReactNode }) {
   const { settings } = useSettings();
   
-  const fontVariables: {[key: string]: string} = {
-    inter: inter.variable,
-    roboto: roboto.variable,
-    'open-sans': openSans.variable,
-    lato: lato.variable,
-    montserrat: montserrat.variable,
-    poppins: poppins.variable,
-  }
-
-  const selectedFontVariable = fontVariables[settings.font] || inter.variable;
+  const selectedFont = fontMap[settings.font] || inter;
 
   return (
     <html lang="en" suppressHydrationWarning className={`${inter.variable} ${roboto.variable} ${openSans.variable} ${lato.variable} ${montserrat.variable} ${poppins.variable}`}>
-      <body className={`font-body antialiased ${selectedFontVariable}`} suppressHydrationWarning>
+      <body className={`antialiased ${selectedFont.variable}`} suppressHydrationWarning>
         {children}
       </body>
     </html>

@@ -1,3 +1,4 @@
+
 import type {Config} from 'tailwindcss';
 
 export default {
@@ -10,14 +11,14 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['var(--font-inter)'],
+        body: ['var(--font-inter)'], // Default body font
         inter: ['var(--font-inter)'],
         roboto: ['var(--font-roboto)'],
         'open-sans': ['var(--font-open-sans)'],
         lato: ['var(--font-lato)'],
         montserrat: ['var(--font-montserrat)'],
         poppins: ['var(--font-poppins)'],
-        headline: ['var(--font-inter)'],
+        headline: ['var(--font-inter)'], // Default headline font, can be customized too
         code: ['monospace'],
       },
       colors: {
