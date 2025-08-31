@@ -15,10 +15,9 @@ export default function StudentDetailsPage({ params }: { params: { id: string } 
   const router = useRouter();
   const [student, setStudent] = useState<Student | undefined>(undefined);
   const [family, setFamily] = useState<Family | undefined>(undefined);
-  const { id } = params;
 
   useEffect(() => {
-    const studentData = students.find((s) => s.id === id);
+    const studentData = students.find((s) => s.id === params.id);
     if (studentData) {
       setStudent(studentData);
       const familyData = families.find((f) => f.id === studentData.familyId);
@@ -26,7 +25,7 @@ export default function StudentDetailsPage({ params }: { params: { id: string } 
     } else {
       notFound();
     }
-  }, [id]);
+  }, [params.id]);
 
   if (!student) {
     return <div>Loading...</div>;
