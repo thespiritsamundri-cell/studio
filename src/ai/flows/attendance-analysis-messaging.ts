@@ -11,7 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { sendWhatsAppMessage } from '@/services/whatsapp-service';
+import { sendWhatsAppMessage } from '../../services/whatsapp-service';
 
 const AttendanceAnalysisInputSchema = z.object({
   studentId: z.string().describe('The unique identifier for the student.'),
