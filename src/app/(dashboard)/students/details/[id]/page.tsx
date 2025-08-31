@@ -4,7 +4,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { students, families } from '@/lib/data';
-import { notFound, useRouter } from 'next/navigation';
+import { notFound, useRouter, useParams } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import type { Student, Family } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
@@ -13,8 +13,9 @@ import { ArrowLeft, Printer } from 'lucide-react';
 import { StudentDetailsPrint } from '@/components/reports/student-details-report';
 
 
-export default function StudentDetailsPage({ params }: { params: { id: string } }) {
+export default function StudentDetailsPage() {
   const router = useRouter();
+  const params = useParams();
   const [student, setStudent] = useState<Student | undefined>(undefined);
   const [family, setFamily] = useState<Family | undefined>(undefined);
   const printRef = useRef<HTMLDivElement>(null);

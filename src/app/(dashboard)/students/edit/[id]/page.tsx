@@ -7,15 +7,16 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { students } from '@/lib/data';
-import { notFound, useRouter } from 'next/navigation';
+import { notFound, useRouter, useParams } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
 import type { Student } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 
-export default function EditStudentPage({ params }: { params: { id: string } }) {
+export default function EditStudentPage() {
   const router = useRouter();
+  const params = useParams();
   const { toast } = useToast();
   const [student, setStudent] = useState<Student | undefined>(undefined);
 
