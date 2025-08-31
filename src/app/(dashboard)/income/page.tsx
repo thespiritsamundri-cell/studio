@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useData } from '@/context/data-context';
@@ -15,6 +15,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { IncomePrintReport } from '@/components/reports/income-report';
 import type { Fee } from '@/lib/types';
+import { useReactToPrint } from 'react-to-print';
 
 
 export default function IncomePage() {
@@ -22,6 +23,7 @@ export default function IncomePage() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [familyIdFilter, setFamilyIdFilter] = useState('');
   const printRef = useRef<HTMLDivElement>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   const paidFees = useMemo(() => {
     return allFees
@@ -58,9 +60,20 @@ export default function IncomePage() {
   const totalIncome = useMemo(() => {
       return filteredFees.reduce((acc, fee) => acc + fee.amount, 0);
   }, [filteredFees]);
+
+  const handlePrint = useReactToPrint({
+    content: () => printRef.current,
+    onAfterPrint: () => setIsPrinting(false),
+  });
+
+  useEffect(() => {
+    if (isPrinting && printRef.current) {
+      handlePrint();
+    }
+  }, [isPrinting, handlePrint]);
   
-  const handlePrint = () => {
-    window.print();
+  const triggerPrint = () => {
+    setIsPrinting(true);
   };
 
   const handleExportCsv = () => {
@@ -95,6 +108,13 @@ export default function IncomePage() {
 
   return (
     <div className="space-y-6">
+      <div style={{ display: 'none' }}>
+        {isPrinting && (
+            <div ref={printRef}>
+              <IncomePrintReport fees={filteredFees} totalIncome={totalIncome} dateRange={dateRange} />
+            </div>
+        )}
+      </div>
       <div className="print:hidden">
         <h1 className="text-3xl font-bold font-headline">Income</h1>
 
@@ -151,8 +171,8 @@ export default function IncomePage() {
                   <Button variant="ghost" onClick={() => { setDateRange(undefined); setFamilyIdFilter(''); }}>Clear Filters</Button>
               </div>
               <div className="flex items-center gap-2">
-                  <Button variant="outline" onClick={handlePrint}><Printer className="mr-2 h-4 w-4" />Print</Button>
-                  <Button variant="outline" onClick={handlePrint}><FileDown className="mr-2 h-4 w-4" />PDF Export</Button>
+                  <Button variant="outline" onClick={triggerPrint}><Printer className="mr-2 h-4 w-4" />Print</Button>
+                  <Button variant="outline" onClick={triggerPrint}><FileDown className="mr-2 h-4 w-4" />PDF Export</Button>
                   <Button variant="outline" onClick={handleExportCsv}><FileSpreadsheet className="mr-2 h-4 w-4" />Excel Export</Button>
               </div>
             </div>
@@ -188,9 +208,6 @@ export default function IncomePage() {
             </Table>
           </CardContent>
         </Card>
-      </div>
-      <div className="hidden print:block">
-        <IncomePrintReport ref={printRef} fees={filteredFees} totalIncome={totalIncome} dateRange={dateRange} />
       </div>
     </div>
   );

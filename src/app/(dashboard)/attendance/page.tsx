@@ -16,7 +16,7 @@ import { Send, Printer } from 'lucide-react';
 import { AttendancePrintReport } from '@/components/reports/attendance-report';
 import { useReactToPrint } from 'react-to-print';
 
-const classes = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th'];
+const classes = ['Nursery', 'KG', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th'];
 
 type AttendanceStatus = 'Present' | 'Absent' | 'Leave';
 
@@ -37,7 +37,7 @@ export default function AttendancePage() {
   });
   
   useEffect(() => {
-    if (isPrinting && reportDate) {
+    if (isPrinting && reportDate && printRef.current) {
       handlePrint();
     }
   }, [isPrinting, reportDate, handlePrint]);
@@ -123,7 +123,7 @@ export default function AttendancePage() {
   return (
     <div className="space-y-6">
        <div style={{ display: 'none' }}>
-          {reportDate && isPrinting && (
+          {isPrinting && reportDate && (
             <div ref={printRef}>
                 <AttendancePrintReport
                   className={selectedClass || ''}

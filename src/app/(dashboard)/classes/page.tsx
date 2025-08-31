@@ -14,18 +14,32 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Printer, FileDown, FileSpreadsheet } from 'lucide-react';
 import { AllStudentsPrintReport } from '@/components/reports/all-students-report';
+import { useReactToPrint } from 'react-to-print';
 
 export default function ClassesPage() {
   const { students: allStudents } = useData();
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const printRef = useRef<HTMLDivElement>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
   const [reportDate, setReportDate] = useState<Date | null>(null);
   
+  const handlePrint = useReactToPrint({
+    content: () => printRef.current,
+    onAfterPrint: () => setIsPrinting(false),
+  });
+
   useEffect(() => {
     // Set the date on the client side only to avoid hydration errors
+    if (isPrinting && reportDate && printRef.current) {
+        handlePrint();
+    }
+  }, [isPrinting, reportDate, handlePrint]);
+  
+  const triggerPrint = () => {
     setReportDate(new Date());
-  }, []);
+    setIsPrinting(true);
+  }
 
   const classes = useMemo(() => {
     return ['all', ...Array.from(new Set(allStudents.map(s => s.class)))];
@@ -61,10 +75,6 @@ export default function ClassesPage() {
   
   const isAllSelected = selectedStudents.length > 0 && selectedStudents.length === studentsInClass.length;
 
-
-  const handlePrint = () => {
-    window.print();
-  };
   
   const handleExportCsv = () => {
     if (studentsToExport.length === 0) return;
@@ -103,15 +113,23 @@ export default function ClassesPage() {
 
   return (
     <div className="space-y-6">
+      <div style={{ display: 'none' }}>
+        {isPrinting && reportDate && (
+          <div ref={printRef}>
+            <AllStudentsPrintReport students={studentsToExport} date={reportDate} />
+          </div>
+        )}
+      </div>
+
       <div className="print:hidden">
         <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold font-headline">Classes</h1>
             {selectedClass && selectedClass !== 'all' && (
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={handlePrint} disabled={studentsToExport.length === 0}>
+                    <Button variant="outline" onClick={triggerPrint} disabled={studentsToExport.length === 0}>
                         <Printer className="mr-2 h-4 w-4" /> Print Selected
                     </Button>
-                    <Button variant="outline" onClick={handlePrint} disabled={studentsToExport.length === 0}>
+                    <Button variant="outline" onClick={triggerPrint} disabled={studentsToExport.length === 0}>
                         <FileDown className="mr-2 h-4 w-4" /> PDF Export
                     </Button>
                     <Button variant="outline" onClick={handleExportCsv} disabled={studentsToExport.length === 0}>
@@ -217,10 +235,6 @@ export default function ClassesPage() {
 
             </CardContent>
         </Card>
-      </div>
-
-      <div className="hidden print:block">
-        {reportDate && <AllStudentsPrintReport ref={printRef} students={studentsToExport} date={reportDate} />}
       </div>
     </div>
   );

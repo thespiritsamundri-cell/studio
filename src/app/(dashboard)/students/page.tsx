@@ -58,7 +58,7 @@ export default function StudentsPage() {
   });
 
   useEffect(() => {
-    if (isPrinting && reportDate) {
+    if (isPrinting && reportDate && printRef.current) {
       handlePrint();
     }
   }, [isPrinting, reportDate, handlePrint]);
@@ -105,7 +105,7 @@ export default function StudentsPage() {
   return (
     <div className="space-y-6">
       <div style={{ display: 'none' }}>
-        {reportDate && isPrinting && (
+        {isPrinting && reportDate && (
             <div ref={printRef}>
             <AllStudentsPrintReport students={filteredStudents} date={reportDate} />
             </div>
