@@ -54,8 +54,8 @@ export default function ClassesPage() {
     documentTitle: "All Students Report",
     onAfterPrint: () => {
         setIsPrinting(false);
-        setReportDate(null);
         setStudentsForReport([]);
+        setReportDate(null);
     },
   });
 
@@ -82,12 +82,12 @@ export default function ClassesPage() {
 
   useEffect(() => {
     if (isPrinting && reportDate && printRef.current) {
-        // Use timeout to ensure the component is mounted before printing
         setTimeout(() => {
             handlePrint?.();
         }, 0);
     }
   }, [isPrinting, reportDate, handlePrint]);
+
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -201,10 +201,9 @@ export default function ClassesPage() {
 
   return (
     <div className="space-y-6">
-       <div style={{ display: 'none' }}>
+      <div style={{ display: 'none' }}>
         <AllStudentsPrintReport ref={printRef} students={studentsForReport} date={reportDate || new Date()} />
       </div>
-
       <div className="print:hidden">
         <h1 className="text-3xl font-bold font-headline">Classes</h1>
         
@@ -402,5 +401,3 @@ export default function ClassesPage() {
     </div>
   );
 }
-
-    
