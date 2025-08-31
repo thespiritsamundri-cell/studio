@@ -11,19 +11,18 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, QrCode, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, Settings as SettingsIcon } from 'lucide-react';
+import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, Settings as SettingsIcon, Info } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import { useState } from 'react';
 import { generateQrCode } from '@/ai/flows/generate-qr-code';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function SettingsPage() {
   const { settings, setSettings } = useSettings();
   const { students, families, fees, loadData } = useData();
   const { toast } = useToast();
-  const [qrCodeUri, setQrCodeUri] = useState<string | null>(null);
-  const [isGeneratingQr, setIsGeneratingQr] = useState(false);
   const [message, setMessage] = useState('');
 
   const handleSave = () => {
@@ -121,23 +120,6 @@ export default function SettingsPage() {
     event.target.value = ''; 
   };
   
-  const handleGenerateQr = async () => {
-    setIsGeneratingQr(true);
-    try {
-        const result = await generateQrCode({ content: `https://wa.me/123456789?text=connect` });
-        setQrCodeUri(result.qrCodeDataUri);
-    } catch (error) {
-        console.error("Failed to generate QR code", error);
-        toast({
-            title: 'QR Generation Failed',
-            description: 'Could not generate a new QR code. Please try again.',
-            variant: 'destructive'
-        })
-    } finally {
-        setIsGeneratingQr(false);
-    }
-  };
-
   const handleTemplateClick = (template: string) => {
     setMessage(template);
   };
@@ -197,7 +179,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="schoolLogo">School Logo</Label>
-                        <Input id="schoolLogo" type="file" accept="image/*" onChange={handleLogoChange} className="file:text-primary file:font-medium" />
+                        <Input id="schoolLogoInput" name="schoolLogo" type="file" accept="image/*" onChange={handleLogoChange} className="file:text-primary file:font-medium" />
                     </div>
                 </div>
                  {settings.schoolLogo && (
@@ -216,6 +198,14 @@ export default function SettingsPage() {
             </Card>
         </TabsContent>
         <TabsContent value="whatsapp" className="mt-6 space-y-6">
+             <Alert>
+              <Info className="h-4 w-4" />
+              <AlertTitle>Connecting to WhatsApp</AlertTitle>
+              <AlertDescription>
+                To send messages, you need to connect to a WhatsApp API provider (e.g., UltraMSG, Twilio). 
+                Log in to your provider's dashboard, get your API credentials (URL and Key/Token), and enter them below.
+              </AlertDescription>
+            </Alert>
             <Card>
                 <CardHeader>
                     <CardTitle>API Configuration</CardTitle>
@@ -228,8 +218,8 @@ export default function SettingsPage() {
                             <Input id="apiUrl" placeholder="Enter WhatsApp API URL" />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="apiKey">API Key</Label>
-                            <Input id="apiKey" placeholder="Enter WhatsApp API Key" />
+                            <Label htmlFor="apiKey">API Key / Token</Label>
+                            <Input id="apiKey" placeholder="Enter WhatsApp API Key or Token" />
                         </div>
                          <div className="space-y-2">
                             <Label htmlFor="delay">Message Delay (seconds)</Label>
@@ -244,17 +234,8 @@ export default function SettingsPage() {
                     </div>
                      <div className="flex justify-end items-center gap-2 pt-4">
                         <Button variant="default"><KeyRound className="mr-2"/>Save WhatsApp Settings</Button>
-                        <Button variant="secondary" onClick={handleGenerateQr} disabled={isGeneratingQr}>
-                            {isGeneratingQr ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Generating...</> : <><QrCode className="mr-2" />Generate QR Code</>}
-                        </Button>
                         <Button variant="outline"><TestTubeDiagonal className="mr-2"/>Test Connection</Button>
                     </div>
-                    {qrCodeUri && (
-                        <div className="flex flex-col items-center justify-center pt-4">
-                            <p className="mb-2 text-sm text-muted-foreground">Scan this with your linked device.</p>
-                             <Image src={qrCodeUri} alt="WhatsApp QR Code" width={200} height={200} className="rounded-md border p-2" data-ai-hint="qr code" />
-                        </div>
-                    )}
                 </CardContent>
             </Card>
             <Card className="bg-green-500/5">
@@ -339,3 +320,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
