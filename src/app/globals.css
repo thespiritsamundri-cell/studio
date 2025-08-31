@@ -25,8 +25,8 @@ body {
     --accent-foreground: 250 60% 30%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
+    --border: 220 10% 85%;
+    --input: 220 10% 85%;
     --ring: 250 60% 55%;
 
     --chart-1: 250 60% 55%; /* primary */
@@ -63,8 +63,8 @@ body {
     --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
+    --border: 217.2 32.6% 25%;
+    --input: 217.2 32.6% 25%;
     --ring: 250 60% 55%;
     
     --sidebar-background: 224 71% 4%;
