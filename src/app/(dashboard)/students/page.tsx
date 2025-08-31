@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -26,6 +26,12 @@ import type { Student } from '@/lib/types';
 export default function StudentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const printRef = useRef<HTMLDivElement>(null);
+  const [reportDate, setReportDate] = useState<Date | null>(null);
+
+  useEffect(() => {
+    // Set the date only on the client side to avoid hydration mismatch
+    setReportDate(new Date());
+  }, []);
 
   const filteredStudents = useMemo(() => {
     if (!searchQuery) {
@@ -79,7 +85,9 @@ export default function StudentsPage() {
     <div className="space-y-6">
       <div style={{ display: 'none' }}>
         <div ref={printRef}>
-          <AllStudentsPrintReport students={filteredStudents} />
+          {reportDate && (
+            <AllStudentsPrintReport students={filteredStudents} date={reportDate} />
+          )}
         </div>
       </div>
 

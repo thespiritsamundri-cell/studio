@@ -6,10 +6,10 @@ import { School } from 'lucide-react';
 
 interface AllStudentsPrintReportProps {
   students: Student[];
+  date: Date;
 }
 
-export const AllStudentsPrintReport: React.FC<AllStudentsPrintReportProps> = ({ students }) => {
-  const date = new Date();
+export const AllStudentsPrintReport: React.FC<AllStudentsPrintReportProps> = ({ students, date }) => {
 
   return (
     <div className="p-8 font-sans bg-white text-black">
