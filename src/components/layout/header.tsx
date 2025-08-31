@@ -1,3 +1,4 @@
+
 'use client';
 
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -19,14 +20,14 @@ export function Header() {
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
       <SidebarTrigger className="md:hidden" />
-      <div className="w-full flex-1">
-        {/* Can add breadcrumbs or page title here */}
-      </div>
+       <div className="w-full flex-1">
+          <h1 className="text-xl font-semibold hidden md:block">Dashboard</h1>
+        </div>
       <div className="relative flex-1 md:grow-0">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           type="search"
-          placeholder="Search..."
+          placeholder="Search students or families..."
           className="w-full rounded-lg bg-card pl-8 md:w-[200px] lg:w-[336px]"
         />
       </div>

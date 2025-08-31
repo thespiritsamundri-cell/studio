@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -31,7 +32,6 @@ const navItems = [
   { href: '/fees', icon: Wallet, label: 'Fee Collection' },
   { href: '/attendance', icon: CalendarCheck, label: 'Attendance' },
   { href: '/reports', icon: FileText, label: 'Reports' },
-  { href: '/settings', icon: Settings, label: 'Settings' },
 ];
 
 export function SidebarNav() {
@@ -40,11 +40,14 @@ export function SidebarNav() {
   return (
     <>
       <SidebarHeader>
-        <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <School className="w-6 h-6 text-primary" />
+        <div className="flex items-center gap-2.5 p-2">
+           <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary-foreground/10">
+            <School className="w-6 h-6 text-primary-foreground" />
           </div>
-          <span className="text-xl font-semibold font-headline">EduCentral</span>
+          <div className="flex flex-col">
+            <span className="text-lg font-bold text-primary-foreground font-headline">EduCentral</span>
+            <span className="text-xs text-primary-foreground/70">2024-2025</span>
+          </div>
         </div>
       </SidebarHeader>
       <SidebarContent className="p-2">
@@ -67,6 +70,18 @@ export function SidebarNav() {
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
+          <SidebarMenuItem>
+             <SidebarMenuButton
+                asChild
+                isActive={pathname.startsWith('/settings')}
+                tooltip="Settings"
+              >
+                <Link href="/settings">
+                  <Settings />
+                  <span>Settings</span>
+                </Link>
+              </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild tooltip="Logout">
               <Link href="/">
