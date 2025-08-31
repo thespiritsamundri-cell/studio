@@ -11,15 +11,16 @@ export default function AdmissionsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Student Information</CardTitle>
-          <CardDescription>Fill out the form to admit a new student.</CardDescription>
+          <CardDescription>Fill out the form to admit a new student and set their fee structure.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <div className="space-y-2">
+          <form className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            {/* Student Information */}
+            <div className="space-y-2 md:col-span-1">
               <Label htmlFor="student-name">Student Name</Label>
               <Input id="student-name" placeholder="Enter full name" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 md:col-span-1">
               <Label htmlFor="father-name">Father's Name</Label>
               <Input id="father-name" placeholder="Enter father's name" />
             </div>
@@ -48,15 +49,41 @@ export default function AdmissionsPage() {
               <Label htmlFor="phone">Phone Number</Label>
               <Input id="phone" type="tel" placeholder="Enter contact number" />
             </div>
-            <div className="space-y-2 md:col-span-2">
+            <div className="space-y-2 md:col-span-3">
               <Label htmlFor="address">Address</Label>
               <Input id="address" placeholder="Enter residential address" />
             </div>
-            <div className="space-y-2">
+             <div className="space-y-2">
               <Label htmlFor="photo">Student Photo</Label>
               <Input id="photo" type="file" />
             </div>
-            <div className="flex justify-end md:col-span-2">
+
+            {/* Fee Structure */}
+            <div className="md:col-span-3">
+                 <h3 className="text-lg font-medium border-t pt-6 mt-6">Fee Structure</h3>
+            </div>
+
+             <div className="space-y-2">
+              <Label htmlFor="registration-fee">Registration Fee (PKR)</Label>
+              <Input id="registration-fee" type="number" placeholder="e.g., 5000" required />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="monthly-fee">Monthly Tution Fee (PKR)</Label>
+              <Input id="monthly-fee" type="number" placeholder="e.g., 2500" required />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="annual-charges">Annual Charges (PKR)</Label>
+              <Input id="annual-charges" type="number" placeholder="e.g., 3000" />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="summer-peak-fee">Summer Peak Fee (PKR)</Label>
+              <Input id="summer-peak-fee" type="number" placeholder="e.g., 1500" />
+            </div>
+           
+            <div className="flex justify-end md:col-span-3">
               <Button>Admit Student</Button>
             </div>
           </form>
