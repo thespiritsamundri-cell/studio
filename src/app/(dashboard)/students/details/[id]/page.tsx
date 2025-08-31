@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { useData } from '@/context/data-context';
 import { notFound, useRouter, useParams } from 'next/navigation';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import type { Student, Family } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
