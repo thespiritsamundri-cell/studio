@@ -52,8 +52,8 @@ export const StudentDetailsPrint: React.FC<StudentDetailsPrintProps> = ({
                 <p><span className='font-semibold'>Student ID:</span> {student.id}</p>
                 <p><span className='font-semibold'>Class:</span> {student.class}</p>
                 <p><span className='font-semibold'>Status:</span> <span className={`font-bold ${student.status === 'Active' ? 'text-green-600' : 'text-red-600'}`}>{student.status}</span></p>
-                <p><span className='font-semibold'>Admission:</span> {student.admissionDate}</p>
-                <p><span className='font-semibold'>D.O.B:</span> {student.dob}</p>
+                <p><span className='font-semibold'>Admission Date:</span> {student.admissionDate}</p>
+                <p><span className='font-semibold'>Date of Birth:</span> {student.dob}</p>
             </div>
           </div>
         </section>
