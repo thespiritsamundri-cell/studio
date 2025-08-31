@@ -2,8 +2,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { Student, Family, Fee, Teacher, TeacherAttendance } from '@/lib/types';
-import { students as initialStudents, families as initialFamilies, fees as initialFees, teachers as initialTeachers, teacherAttendances as initialTeacherAttendances } from '@/lib/data';
+import type { Student, Family, Fee, Teacher, TeacherAttendance, Class } from '@/lib/types';
+import { students as initialStudents, families as initialFamilies, fees as initialFees, teachers as initialTeachers, teacherAttendances as initialTeacherAttendances, classes as initialClasses } from '@/lib/data';
 
 interface DataContextType {
   students: Student[];
@@ -11,6 +11,7 @@ interface DataContextType {
   fees: Fee[];
   teachers: Teacher[];
   teacherAttendances: TeacherAttendance[];
+  classes: Class[];
   addStudent: (student: Student) => void;
   updateStudent: (id: string, student: Student) => void;
   deleteStudent: (id: string) => void;
@@ -23,7 +24,10 @@ interface DataContextType {
   updateTeacher: (id: string, teacher: Teacher) => void;
   deleteTeacher: (id: string) => void;
   saveTeacherAttendance: (attendances: TeacherAttendance[]) => void;
-  loadData: (data: { students: Student[], families: Family[], fees: Fee[], teachers: Teacher[], teacherAttendances: TeacherAttendance[] }) => void;
+  addClass: (newClass: Class) => void;
+  updateClass: (id: string, updatedClass: Class) => void;
+  deleteClass: (id: string) => void;
+  loadData: (data: { students: Student[], families: Family[], fees: Fee[], teachers: Teacher[], teacherAttendances: TeacherAttendance[], classes: Class[] }) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -34,6 +38,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [fees, setFees] = useState<Fee[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [teacherAttendances, setTeacherAttendances] = useState<TeacherAttendance[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -44,12 +49,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const savedFees = window.localStorage.getItem('schoolFees');
       const savedTeachers = window.localStorage.getItem('schoolTeachers');
       const savedTeacherAttendances = window.localStorage.getItem('schoolTeacherAttendances');
+      const savedClasses = window.localStorage.getItem('schoolClasses');
       
       setStudents(savedStudents ? JSON.parse(savedStudents) : initialStudents);
       setFamilies(savedFamilies ? JSON.parse(savedFamilies) : initialFamilies);
       setFees(savedFees ? JSON.parse(savedFees) : initialFees);
       setTeachers(savedTeachers ? JSON.parse(savedTeachers) : initialTeachers);
       setTeacherAttendances(savedTeacherAttendances ? JSON.parse(savedTeacherAttendances) : initialTeacherAttendances);
+      setClasses(savedClasses ? JSON.parse(savedClasses) : initialClasses);
 
     } catch (error) {
       console.error('Error reading from localStorage', error);
@@ -59,6 +66,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setFees(initialFees);
       setTeachers(initialTeachers);
       setTeacherAttendances(initialTeacherAttendances);
+      setClasses(initialClasses);
     }
   }, []);
 
@@ -70,11 +78,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
         window.localStorage.setItem('schoolFees', JSON.stringify(fees));
         window.localStorage.setItem('schoolTeachers', JSON.stringify(teachers));
         window.localStorage.setItem('schoolTeacherAttendances', JSON.stringify(teacherAttendances));
+        window.localStorage.setItem('schoolClasses', JSON.stringify(classes));
       } catch (error) {
         console.error('Error writing to localStorage', error);
       }
     }
-  }, [students, families, fees, teachers, teacherAttendances, isClient]);
+  }, [students, families, fees, teachers, teacherAttendances, classes, isClient]);
 
   const addStudent = (student: Student) => setStudents(prev => [...prev, student]);
   const updateStudent = (id: string, updatedStudent: Student) => setStudents(prev => prev.map(s => s.id === id ? updatedStudent : s));
@@ -105,12 +114,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
   }
 
-  const loadData = (data: { students: Student[], families: Family[], fees: Fee[], teachers: Teacher[], teacherAttendances: TeacherAttendance[] }) => {
+  const addClass = (newClass: Class) => setClasses(prev => [...prev, newClass]);
+  const updateClass = (id: string, updatedClass: Class) => setClasses(prev => prev.map(c => c.id === id ? updatedClass : c));
+  const deleteClass = (id: string) => setClasses(prev => prev.filter(c => c.id !== id));
+
+  const loadData = (data: { students: Student[], families: Family[], fees: Fee[], teachers: Teacher[], teacherAttendances: TeacherAttendance[], classes: Class[] }) => {
     setStudents(data.students || []);
     setFamilies(data.families || []);
     setFees(data.fees || []);
     setTeachers(data.teachers || []);
     setTeacherAttendances(data.teacherAttendances || []);
+    setClasses(data.classes || []);
   };
 
   const contextValue = React.useMemo(() => ({ 
@@ -118,7 +132,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       families, 
       fees,
       teachers,
-      teacherAttendances, 
+      teacherAttendances,
+      classes,
       addStudent,
       updateStudent, 
       deleteStudent,
@@ -131,8 +146,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       updateTeacher,
       deleteTeacher,
       saveTeacherAttendance,
+      addClass,
+      updateClass,
+      deleteClass,
       loadData 
-    }), [students, families, fees, teachers, teacherAttendances]);
+    }), [students, families, fees, teachers, teacherAttendances, classes]);
 
 
   return (

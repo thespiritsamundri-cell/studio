@@ -16,12 +16,10 @@ import { Send, Printer } from 'lucide-react';
 import { AttendancePrintReport } from '@/components/reports/attendance-report';
 import { useReactToPrint } from 'react-to-print';
 
-const classes = ['Nursery', 'KG', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th'];
-
 type AttendanceStatus = 'Present' | 'Absent' | 'Leave';
 
 export default function AttendancePage() {
-  const { students: allStudents, families } = useData();
+  const { students: allStudents, families, classes } = useData();
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
@@ -164,8 +162,8 @@ export default function AttendancePage() {
               </SelectTrigger>
               <SelectContent>
                 {classes.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c} Class
+                  <SelectItem key={c.id} value={c.name}>
+                    {c.name}
                   </SelectItem>
                 ))}
               </SelectContent>

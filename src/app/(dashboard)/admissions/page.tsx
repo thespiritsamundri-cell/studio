@@ -24,7 +24,7 @@ interface CustomFee {
 
 export default function AdmissionsPage() {
     const { toast } = useToast();
-    const { families, students, fees, addStudent, addFee } = useData();
+    const { families, students, fees, addStudent, addFee, classes } = useData();
     const [familyId, setFamilyId] = useState('');
     const [familyExists, setFamilyExists] = useState(false);
     const [foundFamily, setFoundFamily] = useState<Family | null>(null);
@@ -322,10 +322,8 @@ export default function AdmissionsPage() {
                     <SelectValue placeholder="Select class" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Nursery">Nursery</SelectItem>
-                    <SelectItem value="KG">KG</SelectItem>
-                    {[...Array(10)].map((_, i) => (
-                      <SelectItem key={i + 1} value={`${i + 1}th`}>{`${i + 1}th Class`}</SelectItem>
+                    {classes.map((c) => (
+                      <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

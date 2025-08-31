@@ -17,7 +17,7 @@ import Image from 'next/image';
 export default function EditStudentPage() {
   const router = useRouter();
   const params = useParams();
-  const { students, updateStudent } = useData();
+  const { students, updateStudent, classes } = useData();
   const { toast } = useToast();
   const [student, setStudent] = useState<Student | undefined>(undefined);
 
@@ -100,8 +100,8 @@ export default function EditStudentPage() {
                   <SelectValue placeholder="Select class" />
                 </SelectTrigger>
                 <SelectContent>
-                  {[...Array(10)].map((_, i) => (
-                    <SelectItem key={i + 1} value={`${i + 1}th`}>{`${i + 1}th Class`}</SelectItem>
+                  {classes.map((c) => (
+                    <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

@@ -16,7 +16,7 @@ export interface Student {
 }
 
 export interface Family {
-  id: string;
+  id:string;
   fatherName: string;
   phone: string;
   address: string;
@@ -54,4 +54,9 @@ export interface Fee {
   year: number;
   paymentDate: string;
   status: 'Paid' | 'Unpaid';
+}
+
+export interface Class {
+    id: string;
+    name: string;
 }

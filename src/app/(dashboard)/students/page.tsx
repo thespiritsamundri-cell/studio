@@ -26,7 +26,7 @@ import { useSearchParams } from 'next/navigation';
 
 
 export default function StudentsPage() {
-  const { students: allStudents } = useData();
+  const { students: allStudents, classes } = useData();
   const searchParams = useSearchParams();
   const familyIdFromQuery = searchParams.get('familyId');
 
@@ -35,8 +35,6 @@ export default function StudentsPage() {
   const printRef = useRef<HTMLDivElement>(null);
   const [isPrinting, setIsPrinting] = useState(false);
   const [reportDate, setReportDate] = useState<Date | null>(null);
-
-  const classes = useMemo(() => ['all', ...Array.from(new Set(allStudents.map(s => s.class)))], [allStudents]);
 
   const filteredStudents = useMemo(() => {
     let students = allStudents;
@@ -139,8 +137,8 @@ export default function StudentsPage() {
             </SelectTrigger>
             <SelectContent>
                 <SelectItem value="all">All Classes</SelectItem>
-                {classes.filter(c => c !== 'all').sort().map(c => (
-                    <SelectItem key={c} value={c}>{c} Class</SelectItem>
+                {classes.map(c => (
+                    <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
                 ))}
             </SelectContent>
           </Select>
@@ -237,5 +235,3 @@ export default function StudentsPage() {
     </div>
   );
 }
-
-    

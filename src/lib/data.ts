@@ -1,5 +1,5 @@
 
-import type { Student, Family, Fee, Teacher, TeacherAttendance } from './types';
+import type { Student, Family, Fee, Teacher, TeacherAttendance, Class } from './types';
 
 export const students: Student[] = [
   { id: 'S001', name: 'Ali Khan', fatherName: 'Ahmed Khan', class: '5th', admissionDate: '2023-03-15', familyId: '1', status: 'Active', phone: '03001234567', address: '123, Main St, Lahore', dob: '2013-05-20', photoUrl: 'https://picsum.photos/seed/S001/100/100', cnic: '35202-1111111-1' },
@@ -10,10 +10,25 @@ export const students: Student[] = [
 ];
 
 export const families: Family[] = [
-    { id: '1', fatherName: 'Ahmed Khan', phone: '03001234567', address: '123, Main St, Lahore', cnic: '35202-0000001-1' },
-    { id: '2', fatherName: 'Zubair Ahmed', phone: '03217654321', address: '456, Park Ave, Karachi', cnic: '42101-0000002-1' },
-    { id: '3', fatherName: 'Imran Malik', phone: '03339876543', address: '789, Gulberg, Lahore', cnic: '35202-0000003-1' },
-    { id: '4', fatherName: 'Tariq Ali', phone: '03451122334', address: 'G-10, Islamabad', cnic: '17301-0000004-1' },
+    { id: '1', fatherName: 'Ahmed Khan', profession: 'Engineer', phone: '03001234567', address: '123, Main St, Lahore', cnic: '35202-0000001-1' },
+    { id: '2', fatherName: 'Zubair Ahmed', profession: 'Doctor', phone: '03217654321', address: '456, Park Ave, Karachi', cnic: '42101-0000002-1' },
+    { id: '3', fatherName: 'Imran Malik', profession: 'Businessman', phone: '03339876543', address: '789, Gulberg, Lahore', cnic: '35202-0000003-1' },
+    { id: '4', fatherName: 'Tariq Ali', profession: 'Teacher', phone: '03451122334', address: 'G-10, Islamabad', cnic: '17301-0000004-1' },
+];
+
+export const classes: Class[] = [
+    { id: 'C01', name: 'Nursery' },
+    { id: 'C02', name: 'KG' },
+    { id: 'C03', name: '1st' },
+    { id: 'C04', name: '2nd' },
+    { id: 'C05', name: '3rd' },
+    { id: 'C06', name: '4th' },
+    { id: 'C07', name: '5th' },
+    { id: 'C08', name: '6th' },
+    { id: 'C09', name: '7th' },
+    { id: 'C10', name: '8th' },
+    { id: 'C11', name: '9th' },
+    { id: 'C12', name: '10th' },
 ];
 
 export const teachers: Teacher[] = [
