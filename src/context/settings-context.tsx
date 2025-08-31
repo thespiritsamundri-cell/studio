@@ -46,6 +46,7 @@ interface SchoolSettings {
   whatsappActive: boolean;
   messageDelay: number;
   themeColors?: Partial<ThemeColors>;
+  font: 'inter' | 'roboto' | 'open-sans' | 'lato' | 'montserrat' | 'poppins';
 }
 
 interface SettingsContextType {
@@ -64,6 +65,7 @@ const defaultSettings: SchoolSettings = {
   whatsappActive: false,
   messageDelay: 2,
   themeColors: {},
+  font: 'inter',
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);

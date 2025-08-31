@@ -1,11 +1,58 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
+import { SettingsProvider, useSettings } from '@/context/settings-context';
+import { ReactNode } from 'react';
+import { Inter, Roboto, Open_Sans, Lato, Montserrat, Poppins } from 'next/font/google';
 
 export const metadata: Metadata = {
   title: 'EduCentral',
   description: 'Modern School Management System',
 };
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const roboto = Roboto({
+  subsets: ['latin'],
+  weight: ['400', '500', '700'],
+  variable: '--font-roboto',
+});
+const openSans = Open_Sans({ subsets: ['latin'], variable: '--font-open-sans' });
+const lato = Lato({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  variable: '--font-lato',
+});
+const montserrat = Montserrat({ subsets: ['latin'], variable: '--font-montserrat' });
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-poppins',
+});
+
+function FontWrapper({ children }: { children: ReactNode }) {
+  const { settings } = useSettings();
+  
+  const fontVariables: {[key: string]: string} = {
+    inter: inter.variable,
+    roboto: roboto.variable,
+    'open-sans': openSans.variable,
+    lato: lato.variable,
+    montserrat: montserrat.variable,
+    poppins: poppins.variable,
+  }
+
+  const selectedFontVariable = fontVariables[settings.font] || inter.variable;
+
+  return (
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${roboto.variable} ${openSans.variable} ${lato.variable} ${montserrat.variable} ${poppins.variable}`}>
+      <body className={`font-body antialiased ${selectedFontVariable}`} suppressHydrationWarning>
+        {children}
+        <Toaster />
+      </body>
+    </html>
+  );
+}
+
 
 export default function RootLayout({
   children,
@@ -13,19 +60,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body className="font-body antialiased" suppressHydrationWarning>
-        {children}
-        <Toaster />
-      </body>
-    </html>
+    <SettingsProvider>
+        <FontWrapper>{children}</FontWrapper>
+    </SettingsProvider>
   );
 }

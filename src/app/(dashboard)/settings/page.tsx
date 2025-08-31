@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette } from 'lucide-react';
+import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import { useState, useMemo } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -340,6 +340,25 @@ export default function SettingsPage() {
                     <CardDescription>Customize the look and feel of the application to match your school's branding.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                    <div className="p-4 border rounded-lg space-y-4">
+                        <h3 className="font-medium text-lg">Fonts</h3>
+                         <div className="space-y-2">
+                            <Label htmlFor="font">Application Font</Label>
+                            <Select value={settings.font} onValueChange={handleSelectChange('font')}>
+                                <SelectTrigger id="font">
+                                <SelectValue placeholder="Select a font" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="inter">Inter (Default)</SelectItem>
+                                    <SelectItem value="roboto">Roboto</SelectItem>
+                                    <SelectItem value="open-sans">Open Sans</SelectItem>
+                                    <SelectItem value="lato">Lato</SelectItem>
+                                    <SelectItem value="montserrat">Montserrat</SelectItem>
+                                    <SelectItem value="poppins">Poppins</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
                     <div className="p-4 border rounded-lg space-y-4">
                         <h3 className="font-medium text-lg">Main Theme</h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

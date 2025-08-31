@@ -10,8 +10,14 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Inter', 'sans-serif'],
+        body: ['var(--font-inter)'],
+        inter: ['var(--font-inter)'],
+        roboto: ['var(--font-roboto)'],
+        'open-sans': ['var(--font-open-sans)'],
+        lato: ['var(--font-lato)'],
+        montserrat: ['var(--font-montserrat)'],
+        poppins: ['var(--font-poppins)'],
+        headline: ['var(--font-inter)'],
         code: ['monospace'],
       },
       colors: {
