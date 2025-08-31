@@ -65,15 +65,11 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
                       <TableCell className="text-right">{fee.amount.toLocaleString()}</TableCell>
                   </TableRow>
                   ))}
-                  {/* Example for other charges - you can make this dynamic */}
-                   <TableRow>
-                      <TableCell className="font-medium">Annual Charges</TableCell>
-                      <TableCell className="text-right">0</TableCell>
-                  </TableRow>
-                   <TableRow>
-                      <TableCell className="font-medium">Summer Peak Fee</TableCell>
-                      <TableCell className="text-right">0</TableCell>
-                  </TableRow>
+                  {fees.length === 0 && (
+                    <TableRow>
+                        <TableCell colSpan={2} className="text-center">No fees being paid with this transaction.</TableCell>
+                    </TableRow>
+                  )}
               </TableBody>
           </Table>
         </div>

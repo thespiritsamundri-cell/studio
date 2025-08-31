@@ -45,69 +45,68 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
         onAfterPrint: () => setIsPrinting(false),
     });
 
-     useEffect(() => {
-        if (isPrinting && printRef.current) {
-            if (paidAmount <= 0) {
-                toast({
-                    title: 'Invalid Amount',
-                    description: 'Paid amount must be greater than zero.',
-                    variant: 'destructive',
-                });
-                setIsPrinting(false);
-                return;
-            }
-            if (paidAmount > totalDues) {
-                toast({
-                    title: 'Invalid Amount',
-                    description: 'Paid amount cannot be greater than total dues.',
-                    variant: 'destructive',
-                });
-                setIsPrinting(false);
-                return;
-            }
-
-            // This is a mock update. In a real app, you'd send this to an API.
-            const now = new Date();
-            let amountToSettle = paidAmount;
-
-            const updatedFees = fees.map(fee => {
-                if (fee.status === 'Unpaid' && amountToSettle > 0) {
-                    const settleAmount = Math.min(amountToSettle, fee.amount);
-                    // For simplicity, we mark the whole challan as paid if any amount is paid.
-                    // A real app might handle partial payments.
-                    if(paidAmount >= fee.amount) {
-                         amountToSettle -= settleAmount;
-                        return { ...fee, status: 'Paid' as 'Paid', paymentDate: now.toISOString().split('T')[0] };
-                    }
-                }
-                return fee;
-            });
-            
-            // This is where we would typically update a global state or database
-            // For now, we update the local component state to reflect the change
-            setFees(updatedFees);
-            
-            // Also updating the global mock data for persistence across navigation
-            unpaidFees.forEach(fee => {
-                if(paidAmount >= fee.amount) {
-                    const feeInGlobalData = allFees.find(f => f.id === fee.id);
-                    if (feeInGlobalData) {
-                        feeInGlobalData.status = 'Paid';
-                        feeInGlobalData.paymentDate = new Date().toISOString().split('T')[0];
-                    }
-                }
-            });
-
-
+    useEffect(() => {
+        if (isPrinting) {
             handlePrint();
-            toast({
-                title: 'Fee Collected',
-                description: `PKR ${paidAmount.toLocaleString()} collected for Family ${family.id}.`,
-            });
         }
-    }, [isPrinting, handlePrint, paidAmount, totalDues, family.id, toast, fees]);
+    }, [isPrinting, handlePrint]);
 
     const triggerPrint = () => {
+        if (paidAmount <= 0) {
+            toast({
+                title: 'Invalid Amount',
+                description: 'Paid amount must be greater than zero.',
+                variant: 'destructive',
+            });
+            return;
+        }
+        if (paidAmount > totalDues) {
+            toast({
+                title: 'Invalid Amount',
+                description: 'Paid amount cannot be greater than total dues.',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        // This is a mock update. In a real app, you'd send this to an API.
+        const now = new Date();
+        let amountToSettle = paidAmount;
+
+        const updatedFees = fees.map(fee => {
+            if (fee.status === 'Unpaid' && amountToSettle > 0) {
+                const settleAmount = Math.min(amountToSettle, fee.amount);
+                // For simplicity, we mark the whole challan as paid if any amount is paid.
+                // A real app might handle partial payments.
+                if(paidAmount >= fee.amount) {
+                        amountToSettle -= settleAmount;
+                    return { ...fee, status: 'Paid' as 'Paid', paymentDate: now.toISOString().split('T')[0] };
+                }
+            }
+            return fee;
+        });
+        
+        // This is where we would typically update a global state or database
+        // For now, we update the local component state to reflect the change
+        setFees(updatedFees);
+        
+        // Also updating the global mock data for persistence across navigation
+        unpaidFees.forEach(fee => {
+            if(paidAmount >= fee.amount) {
+                const feeInGlobalData = allFees.find(f => f.id === fee.id);
+                if (feeInGlobalData) {
+                    feeInGlobalData.status = 'Paid';
+                    feeInGlobalData.paymentDate = new Date().toISOString().split('T')[0];
+                }
+            }
+        });
+
+
+        toast({
+            title: 'Fee Collected',
+            description: `PKR ${paidAmount.toLocaleString()} collected for Family ${family.id}.`,
+        });
+
         setIsPrinting(true);
     }
 
@@ -120,7 +119,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
                         <FeeReceipt
                             family={family}
                             students={students}
-                            fees={unpaidFees}
+                            fees={unpaidFees.filter(fee => paidAmount >= fee.amount)}
                             totalDues={totalDues}
                             paidAmount={paidAmount}
                             remainingDues={remainingDues}
