@@ -13,17 +13,26 @@ import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, Settings as SettingsIcon, Info } from 'lucide-react';
 import { useData } from '@/context/data-context';
-import { useState } from 'react';
-import { generateQrCode } from '@/ai/flows/generate-qr-code';
+import { useState, useMemo } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { sendWhatsAppMessage } from '@/services/whatsapp-service';
 
 export default function SettingsPage() {
   const { settings, setSettings } = useSettings();
   const { students, families, fees, loadData } = useData();
   const { toast } = useToast();
+  
+  // Custom Messaging State
   const [message, setMessage] = useState('');
+  const [sendTarget, setSendTarget] = useState('all');
+  const [targetClass, setTargetClass] = useState('');
+  const [targetFamilyId, setTargetFamilyId] = useState('');
+  const [customNumbers, setCustomNumbers] = useState('');
+  const [isSending, setIsSending] = useState(false);
+
+  const classes = useMemo(() => [...Array.from(new Set(students.map(s => s.class)))], [students]);
 
   const handleSave = () => {
     toast({
@@ -132,6 +141,101 @@ export default function SettingsPage() {
     holiday: `Dear Parents,\nThe school will remain closed on account of...`
   };
 
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+  const handleSendMessage = async () => {
+    if (!message) {
+      toast({ title: 'Message is empty', description: 'Please write a message to send.', variant: 'destructive' });
+      return;
+    }
+    setIsSending(true);
+
+    let recipients: { phone: string, context: Record<string, string> }[] = [];
+
+    switch (sendTarget) {
+        case 'all':
+            recipients = families.map(f => ({ phone: f.phone, context: { '{father_name}': f.fatherName, '{school_name}': settings.schoolName } }));
+            break;
+        case 'class':
+            if (!targetClass) {
+                 toast({ title: 'No class selected', description: 'Please select a class to send messages to.', variant: 'destructive' });
+                 setIsSending(false);
+                 return;
+            }
+            const studentsInClass = students.filter(s => s.class === targetClass);
+            const familyIds = [...new Set(studentsInClass.map(s => s.familyId))];
+            recipients = families
+                .filter(f => familyIds.includes(f.id))
+                .map(f => ({ 
+                    phone: f.phone, 
+                    context: { 
+                        '{father_name}': f.fatherName, 
+                        '{student_name}': students.find(s => s.familyId === f.id)?.name || '',
+                        '{class}': targetClass,
+                        '{school_name}': settings.schoolName
+                    } 
+                }));
+            break;
+        case 'family':
+             if (!targetFamilyId) {
+                 toast({ title: 'No family ID entered', description: 'Please enter a family ID.', variant: 'destructive' });
+                 setIsSending(false);
+                 return;
+            }
+            const family = families.find(f => f.id === targetFamilyId);
+            if (!family) {
+                 toast({ title: 'Family not found', description: `Family with ID ${targetFamilyId} does not exist.`, variant: 'destructive' });
+                 setIsSending(false);
+                 return;
+            }
+            recipients = [{ 
+                phone: family.phone, 
+                context: { 
+                    '{father_name}': family.fatherName, 
+                    '{student_name}': students.find(s => s.familyId === family.id)?.name || '',
+                    '{class}': students.find(s => s.familyId === family.id)?.class || '',
+                    '{school_name}': settings.schoolName
+                } 
+            }];
+            break;
+        case 'custom':
+            if (!customNumbers) {
+                 toast({ title: 'No numbers entered', description: 'Please enter phone numbers.', variant: 'destructive' });
+                 setIsSending(false);
+                 return;
+            }
+            recipients = customNumbers.split(',').map(num => ({ phone: num.trim(), context: {'{school_name}': settings.schoolName} }));
+            break;
+    }
+
+    if (recipients.length === 0) {
+      toast({ title: 'No Recipients', description: 'No recipients found for the selected criteria.', variant: 'destructive' });
+      setIsSending(false);
+      return;
+    }
+
+    toast({ title: 'Sending Messages', description: `Preparing to send messages to ${recipients.length} recipient(s).` });
+    
+    let successCount = 0;
+    for (const recipient of recipients) {
+        let personalizedMessage = message;
+        for (const key in recipient.context) {
+            personalizedMessage = personalizedMessage.replace(new RegExp(key, 'g'), recipient.context[key]);
+        }
+        
+        try {
+            await sendWhatsAppMessage(recipient.phone, personalizedMessage);
+            successCount++;
+            await sleep(Number(settings.academicYear) * 1000 || 2000); // Using academic year as placeholder for delay
+        } catch (error) {
+            console.error(`Failed to send message to ${recipient.phone}`, error);
+        }
+    }
+
+    toast({ title: 'Process Complete', description: `Successfully sent messages to ${successCount} out of ${recipients.length} recipients.` });
+    setIsSending(false);
+  };
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><SettingsIcon className="w-8 h-8" />Settings</h1>
@@ -223,7 +327,7 @@ export default function SettingsPage() {
                         </div>
                          <div className="space-y-2">
                             <Label htmlFor="delay">Message Delay (seconds)</Label>
-                            <Input id="delay" type="number" defaultValue="25" />
+                            <Input id="delay" type="number" defaultValue="2" />
                         </div>
                         <div className="flex items-end space-x-2">
                             <div className="flex items-center space-x-2 h-10">
@@ -261,17 +365,46 @@ export default function SettingsPage() {
                         <div className="p-4 bg-background/70 rounded-lg space-y-4">
                             <div className="space-y-2">
                                 <Label>Send To:</Label>
-                                <RadioGroup defaultValue="all" className="flex flex-wrap gap-4">
+                                <RadioGroup value={sendTarget} onValueChange={setSendTarget} className="flex flex-wrap gap-4">
                                     <div className="flex items-center space-x-2"><RadioGroupItem value="all" id="r1" /><Label htmlFor="r1">All Families</Label></div>
                                     <div className="flex items-center space-x-2"><RadioGroupItem value="class" id="r2" /><Label htmlFor="r2">Specific Class</Label></div>
                                     <div className="flex items-center space-x-2"><RadioGroupItem value="family" id="r3" /><Label htmlFor="r3">Specific Family</Label></div>
                                     <div className="flex items-center space-x-2"><RadioGroupItem value="custom" id="r4" /><Label htmlFor="r4">Custom Numbers</Label></div>
                                 </RadioGroup>
                             </div>
+
+                            {sendTarget === 'class' && (
+                                <div className="space-y-2">
+                                    <Label htmlFor="target-class">Select Class</Label>
+                                    <Select value={targetClass} onValueChange={setTargetClass}>
+                                        <SelectTrigger id="target-class">
+                                            <SelectValue placeholder="Select a class" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {classes.map(c => <SelectItem key={c} value={c}>{c} Class</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
+
+                             {sendTarget === 'family' && (
+                                <div className="space-y-2">
+                                    <Label htmlFor="target-family">Family ID</Label>
+                                    <Input id="target-family" value={targetFamilyId} onChange={e => setTargetFamilyId(e.target.value)} placeholder="Enter Family ID" />
+                                </div>
+                            )}
+
+                            {sendTarget === 'custom' && (
+                                <div className="space-y-2">
+                                    <Label htmlFor="custom-numbers">Custom Numbers</Label>
+                                    <Textarea id="custom-numbers" value={customNumbers} onChange={e => setCustomNumbers(e.target.value)} placeholder="Enter comma-separated phone numbers" />
+                                </div>
+                            )}
+
                              <div className="space-y-2">
                                 <Label htmlFor="message">Message:</Label>
                                 <Textarea id="message" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Type your message here..." rows={5} />
-                                <p className="text-xs text-muted-foreground">Available variables: {'{student_name}, {father_name}, {class}, {family_number}, {school_name}'}</p>
+                                <p className="text-xs text-muted-foreground">Available variables: {'{student_name}, {father_name}, {class}, {school_name}'}</p>
                             </div>
                              <div className="space-y-2">
                                 <Label>Quick Templates</Label>
@@ -284,7 +417,10 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                             <div className="flex justify-end items-center gap-2 pt-4">
-                                <Button variant="secondary" className="bg-green-600 text-white hover:bg-green-700"><Send className="mr-2"/>Send Message</Button>
+                                <Button variant="secondary" className="bg-green-600 text-white hover:bg-green-700" onClick={handleSendMessage} disabled={isSending}>
+                                  {isSending ? <Loader2 className="mr-2 animate-spin"/> : <Send className="mr-2"/>}
+                                  {isSending ? 'Sending...' : 'Send Message'}
+                                </Button>
                                 <Button variant="ghost"><Eye className="mr-2"/>Preview</Button>
                             </div>
                         </div>
@@ -319,6 +455,5 @@ export default function SettingsPage() {
       </Tabs>
     </div>
   );
-}
 
     
