@@ -20,8 +20,7 @@ export default function StudentDetailsPage({ params }: { params: { id: string } 
   const printRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
-    const { id } = params;
-    const studentData = students.find((s) => s.id === id);
+    const studentData = students.find((s) => s.id === params.id);
     if (studentData) {
       setStudent(studentData);
       const familyData = families.find((f) => f.id === studentData.familyId);
@@ -29,7 +28,7 @@ export default function StudentDetailsPage({ params }: { params: { id: string } 
     } else {
       notFound();
     }
-  }, [params]);
+  }, [params.id]);
   
   const handlePrint = () => {
     alert("Printing is temporarily disabled.");
