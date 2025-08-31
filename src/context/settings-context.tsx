@@ -27,31 +27,36 @@ const defaultSettings: SchoolSettings = {
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState<SchoolSettings>(() => {
-    // Lazy initialization from localStorage
-    if (typeof window === 'undefined') {
-      return defaultSettings;
-    }
-    try {
-      const savedSettings = window.localStorage.getItem('schoolSettings');
-      return savedSettings ? JSON.parse(savedSettings) : defaultSettings;
-    } catch (error) {
-      console.error('Error reading from localStorage', error);
-      return defaultSettings;
-    }
-  });
+  const [settings, setSettings] = useState<SchoolSettings>(defaultSettings);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    // Persist to localStorage whenever settings change
+    setIsClient(true);
     try {
-      window.localStorage.setItem('schoolSettings', JSON.stringify(settings));
+      const savedSettings = window.localStorage.getItem('schoolSettings');
+      if (savedSettings) {
+        setSettings(JSON.parse(savedSettings));
+      }
     } catch (error) {
-      console.error('Error writing to localStorage', error);
+      console.error('Error reading from localStorage', error);
     }
-  }, [settings]);
+  }, []);
+
+  useEffect(() => {
+    if (isClient) {
+      try {
+        window.localStorage.setItem('schoolSettings', JSON.stringify(settings));
+      } catch (error) {
+        console.error('Error writing to localStorage', error);
+      }
+    }
+  }, [settings, isClient]);
+
+  const contextValue = React.useMemo(() => ({ settings, setSettings }), [settings, setSettings]);
+
 
   return (
-    <SettingsContext.Provider value={{ settings, setSettings }}>
+    <SettingsContext.Provider value={contextValue}>
       {children}
     </SettingsContext.Provider>
   );
