@@ -45,12 +45,6 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
         onAfterPrint: () => setIsPrinting(false),
     });
 
-    useEffect(() => {
-        if (isPrinting) {
-            handlePrint();
-        }
-    }, [isPrinting, handlePrint]);
-
     const triggerPrint = () => {
         if (paidAmount <= 0) {
             toast({
@@ -109,6 +103,12 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
 
         setIsPrinting(true);
     }
+    
+    useEffect(() => {
+        if (isPrinting) {
+            handlePrint();
+        }
+    }, [isPrinting, handlePrint]);
 
 
     return (
