@@ -171,9 +171,9 @@ export default function IncomePage() {
                 <Button variant="ghost" onClick={() => { setDateRange(undefined); setFamilyIdFilter(''); }}>Clear Filters</Button>
             </div>
             <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={triggerPrint}><Printer className="mr-2" />Print</Button>
-                <Button variant="outline" onClick={triggerPrint}><FileDown className="mr-2" />PDF Export</Button>
-                <Button variant="outline" onClick={handleExportCsv}><FileSpreadsheet className="mr-2" />Excel Export</Button>
+                <Button variant="outline" onClick={triggerPrint}><Printer className="mr-2 h-4 w-4" />Print</Button>
+                <Button variant="outline" onClick={triggerPrint}><FileDown className="mr-2 h-4 w-4" />PDF Export</Button>
+                <Button variant="outline" onClick={handleExportCsv}><FileSpreadsheet className="mr-2 h-4 w-4" />Excel Export</Button>
             </div>
           </div>
 
