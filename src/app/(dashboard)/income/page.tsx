@@ -67,7 +67,7 @@ export default function IncomePage() {
   });
 
   useEffect(() => {
-    if (isPrinting && printRef.current) {
+    if (isPrinting) {
       handlePrint();
     }
   }, [isPrinting, handlePrint]);
