@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileDown, BookOpenCheck, DollarSign, Users, CalendarIcon, Loader2 } from 'lucide-react';
@@ -25,7 +25,6 @@ export default function ReportsPage() {
   const [reportType, setReportType] = useState<string | null>(null);
   const [reportData, setReportData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState<string | null>(null);
-  const [isPrinting, setIsPrinting] = useState(false);
 
   // States for Attendance Report
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
@@ -36,15 +35,8 @@ export default function ReportsPage() {
     onAfterPrint: () => {
       setReportData(null);
       setReportType(null);
-      setIsPrinting(false);
     },
   });
-
-  useEffect(() => {
-    if (isPrinting && reportData) {
-      handlePrint();
-    }
-  }, [isPrinting, reportData, handlePrint]);
 
   const generateReport = async (type: string) => {
     setIsLoading(type);
@@ -88,7 +80,12 @@ export default function ReportsPage() {
     setReportData(data);
     setReportType(type);
     setIsLoading(null);
-    setIsPrinting(true);
+    
+    // A small delay to ensure the state has been updated and the component re-rendered
+    // before the print dialog is triggered.
+    setTimeout(() => {
+        handlePrint();
+    }, 100);
   };
 
   return (
