@@ -8,6 +8,7 @@ interface SchoolSettings {
   schoolAddress: string;
   schoolPhone: string;
   schoolLogo: string;
+  academicYear: string;
 }
 
 interface SettingsContextType {
@@ -20,6 +21,7 @@ const defaultSettings: SchoolSettings = {
   schoolAddress: '123 Education Lane, Knowledge City, Pakistan',
   schoolPhone: '+92 300 1234567',
   schoolLogo: '',
+  academicYear: '2024-2025',
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
