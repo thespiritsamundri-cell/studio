@@ -13,7 +13,7 @@ import { CalendarIcon, Printer, FileDown, FileSpreadsheet } from 'lucide-react';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { useReactToPrint } from 'react-to-print';
+import ReactToPrint, { PrintContextConsumer } from 'react-to-print';
 import { IncomePrintReport } from '@/components/reports/income-report';
 import type { Fee } from '@/lib/types';
 
@@ -22,10 +22,6 @@ export default function IncomePage() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [familyIdFilter, setFamilyIdFilter] = useState('');
   const printRef = useRef<HTMLDivElement>(null);
-
-  const handlePrint = useReactToPrint({
-    content: () => printRef.current,
-  });
 
   const paidFees = useMemo(() => {
     return allFees
@@ -95,11 +91,6 @@ export default function IncomePage() {
 
   return (
     <div className="space-y-6">
-       <div className="hidden">
-          <div ref={printRef}>
-            <IncomePrintReport fees={filteredFees} totalIncome={totalIncome} dateRange={dateRange} />
-          </div>
-      </div>
       <h1 className="text-3xl font-bold font-headline">Income</h1>
 
       <Card>
@@ -155,8 +146,18 @@ export default function IncomePage() {
                 <Button variant="ghost" onClick={() => { setDateRange(undefined); setFamilyIdFilter(''); }}>Clear Filters</Button>
             </div>
             <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={handlePrint}><Printer className="mr-2 h-4 w-4" />Print</Button>
-                <Button variant="outline" onClick={handlePrint}><FileDown className="mr-2 h-4 w-4" />PDF Export</Button>
+                <ReactToPrint
+                    content={() => printRef.current}
+                >
+                    <PrintContextConsumer>
+                        {({ handlePrint }) => (
+                            <>
+                                <Button variant="outline" onClick={handlePrint}><Printer className="mr-2 h-4 w-4" />Print</Button>
+                                <Button variant="outline" onClick={handlePrint}><FileDown className="mr-2 h-4 w-4" />PDF Export</Button>
+                            </>
+                        )}
+                    </PrintContextConsumer>
+                </ReactToPrint>
                 <Button variant="outline" onClick={handleExportCsv}><FileSpreadsheet className="mr-2 h-4 w-4" />Excel Export</Button>
             </div>
           </div>
@@ -192,6 +193,11 @@ export default function IncomePage() {
           </Table>
         </CardContent>
       </Card>
+      <div className="hidden">
+          <div ref={printRef}>
+            <IncomePrintReport fees={filteredFees} totalIncome={totalIncome} dateRange={dateRange} />
+          </div>
+      </div>
     </div>
   );
 }
