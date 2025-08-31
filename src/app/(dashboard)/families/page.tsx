@@ -36,15 +36,13 @@ export default function FamiliesPage() {
   const handleAddFamily = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const newFamily: Family = {
-      id: formData.get('familyId') as string,
-      fatherName: formData.get('fatherName') as string,
-      phone: formData.get('phone') as string,
-      address: formData.get('address') as string,
-    };
     
+    const fatherName = formData.get('fatherName') as string;
+    const phone = formData.get('phone') as string;
+    const address = formData.get('address') as string;
+
     // Basic validation
-    if(!newFamily.id || !newFamily.fatherName || !newFamily.phone || !newFamily.address) {
+    if(!fatherName || !phone || !address) {
         toast({
             title: "Missing Information",
             description: "Please fill out all fields to add a new family.",
@@ -52,6 +50,20 @@ export default function FamiliesPage() {
         });
         return;
     }
+    
+    // Auto-generate ID
+    const lastIdNumber = families.reduce((maxId, family) => {
+        const currentId = parseInt(family.id.replace('F', ''));
+        return currentId > maxId ? currentId : maxId;
+    }, 0);
+    const newId = `F${(lastIdNumber + 1).toString().padStart(3, '0')}`;
+
+    const newFamily: Family = {
+      id: newId,
+      fatherName,
+      phone,
+      address,
+    };
 
     setFamilies(prev => [...prev, newFamily]);
     toast({
@@ -59,6 +71,7 @@ export default function FamiliesPage() {
         description: `Family #${newFamily.id} for ${newFamily.fatherName} has been successfully created.`,
     });
     setOpen(false);
+    e.currentTarget.reset();
   };
 
   return (
@@ -75,15 +88,11 @@ export default function FamiliesPage() {
             <DialogHeader>
               <DialogTitle>Add New Family</DialogTitle>
               <DialogDescription>
-                Enter the details for the new family. Click save when you're done.
+                Enter the details for the new family. The Family ID will be generated automatically. Click save when you're done.
               </DialogDescription>
             </DialogHeader>
             <form id="add-family-form" onSubmit={handleAddFamily}>
               <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="familyId" className="text-right">Family ID</Label>
-                  <Input id="familyId" name="familyId" placeholder='e.g. F005' className="col-span-3" />
-                </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="fatherName" className="text-right">Father's Name</Label>
                   <Input id="fatherName" name="fatherName" className="col-span-3" />
