@@ -29,10 +29,12 @@ import type { Family } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 export default function FamiliesPage() {
-  const { families: allFamilies, addFamily } = useData();
+  const { families: allFamilies, addFamily, updateFamily } = useData();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredFamilies, setFilteredFamilies] = useState<Family[]>(allFamilies);
-  const [open, setOpen] = useState(false);
+  const [openAddDialog, setOpenAddDialog] = useState(false);
+  const [openEditDialog, setOpenEditDialog] = useState(false);
+  const [selectedFamily, setSelectedFamily] = useState<Family | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -96,17 +98,42 @@ export default function FamiliesPage() {
         title: "Family Added",
         description: `Family #${newFamily.id} for ${newFamily.fatherName} has been successfully created.`,
     });
-    setOpen(false);
+    setOpenAddDialog(false);
     e.currentTarget.reset();
     setSearchQuery(''); 
   };
   
+  const handleEditFamily = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedFamily) return;
+
+    const formData = new FormData(e.currentTarget);
+    const updatedFamily: Family = {
+      ...selectedFamily,
+      fatherName: formData.get('editFatherName') as string,
+      phone: formData.get('editPhone') as string,
+      address: formData.get('editAddress') as string,
+    };
+
+    updateFamily(selectedFamily.id, updatedFamily);
+    toast({
+      title: "Family Updated",
+      description: `Family #${selectedFamily.id} has been successfully updated.`,
+    });
+    setOpenEditDialog(false);
+    setSelectedFamily(null);
+  };
+
+  const handleEditClick = (family: Family) => {
+    setSelectedFamily(family);
+    setOpenEditDialog(true);
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold font-headline">Families</h1>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={openAddDialog} onOpenChange={setOpenAddDialog}>
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="w-4 h-4 mr-2" /> Add New Family
@@ -190,7 +217,7 @@ export default function FamiliesPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEditClick(family)}>Edit</DropdownMenuItem>
                         <DropdownMenuItem>View Students</DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
                       </DropdownMenuContent>
@@ -202,6 +229,38 @@ export default function FamiliesPage() {
           </Table>
         </CardContent>
       </Card>
+      
+      {/* Edit Family Dialog */}
+      <Dialog open={openEditDialog} onOpenChange={setOpenEditDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Family: {selectedFamily?.id}</DialogTitle>
+            <DialogDescription>
+              Update the details for this family. Click save when you're done.
+            </DialogDescription>
+          </DialogHeader>
+          <form id="edit-family-form" onSubmit={handleEditFamily}>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="editFatherName" className="text-right">Father's Name</Label>
+                <Input id="editFatherName" name="editFatherName" className="col-span-3" defaultValue={selectedFamily?.fatherName} required />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="editPhone" className="text-right">Phone</Label>
+                <Input id="editPhone" name="editPhone" type="tel" className="col-span-3" defaultValue={selectedFamily?.phone} required />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="editAddress" className="text-right">Address</Label>
+                <Input id="editAddress" name="editAddress" className="col-span-3" defaultValue={selectedFamily?.address} required />
+              </div>
+            </div>
+             <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setOpenEditDialog(false)}>Cancel</Button>
+              <Button type="submit" form="edit-family-form">Save Changes</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

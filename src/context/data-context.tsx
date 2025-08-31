@@ -12,6 +12,7 @@ interface DataContextType {
   addStudent: (student: Student) => void;
   updateStudent: (id: string, student: Student) => void;
   addFamily: (family: Family) => void;
+  updateFamily: (id: string, family: Family) => void;
   addFee: (fee: Fee) => void;
   updateFee: (id: string, fee: Fee) => void;
   loadData: (data: { students: Student[], families: Family[], fees: Fee[] }) => void;
@@ -63,6 +64,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addFamily = (family: Family) => {
     setFamilies(prev => [...prev, family]);
   };
+
+  const updateFamily = (id: string, updatedFamily: Family) => {
+    setFamilies(prev => prev.map(f => f.id === id ? updatedFamily : f));
+  };
   
   const addFee = (fee: Fee) => {
     setFees(prev => [...prev, fee]);
@@ -84,7 +89,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       fees, 
       addStudent,
       updateStudent, 
-      addFamily, 
+      addFamily,
+      updateFamily, 
       addFee,
       updateFee,
       loadData 
