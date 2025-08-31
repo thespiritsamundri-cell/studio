@@ -1,3 +1,4 @@
+
 'use client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -5,9 +6,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
 import { School } from 'lucide-react';
+import { SettingsProvider, useSettings } from '@/context/settings-context';
+import { useEffect, useState } from 'react';
 
-export default function LoginPage() {
+function LoginComponent() {
   const router = useRouter();
+  const { settings } = useSettings();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,7 +32,7 @@ export default function LoginPage() {
               <School className="w-8 h-8 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold font-headline">EduCentral</CardTitle>
+          <CardTitle className="text-2xl font-bold font-headline">{isClient ? settings.schoolName : 'EduCentral'}</CardTitle>
           <CardDescription>Welcome back! Please login to your account.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -44,4 +53,12 @@ export default function LoginPage() {
       </Card>
     </div>
   );
+}
+
+export default function LoginPage() {
+    return (
+        <SettingsProvider>
+            <LoginComponent />
+        </SettingsProvider>
+    )
 }

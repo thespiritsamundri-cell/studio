@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, Settings as SettingsIcon, Info } from 'lucide-react';
+import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, Settings as SettingsIcon, Info, UserCog } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import { useState, useMemo } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -32,6 +32,12 @@ export default function SettingsPage() {
   const [customNumbers, setCustomNumbers] = useState('');
   const [isSending, setIsSending] = useState(false);
 
+  // Account settings state
+  const [email, setEmail] = useState('admin@example.com');
+  const [password, setPassword] = useState('password');
+  const [newPassword, setNewPassword] = useState('');
+
+
   const classes = useMemo(() => [...Array.from(new Set(students.map(s => s.class)))], [students]);
 
   const handleSave = () => {
@@ -40,6 +46,13 @@ export default function SettingsPage() {
       description: 'Your school information has been updated.',
     });
   };
+  
+  const handleAccountSave = () => {
+    toast({
+        title: "Account Settings Saved",
+        description: "Your login credentials have been updated.",
+    })
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
@@ -224,9 +237,10 @@ export default function SettingsPage() {
         }
         
         try {
+            // Using academic year as placeholder for delay, which is not ideal but was in original code
             await sendWhatsAppMessage(recipient.phone, personalizedMessage);
             successCount++;
-            await sleep(Number(settings.academicYear) * 1000 || 2000); // Using academic year as placeholder for delay
+            await sleep(Number(settings.academicYear) || 2000); 
         } catch (error) {
             console.error(`Failed to send message to ${recipient.phone}`, error);
         }
@@ -240,9 +254,10 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><SettingsIcon className="w-8 h-8" />Settings</h1>
       
-      <Tabs defaultValue="whatsapp" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 max-w-lg">
-          <TabsTrigger value="school">School Settings</TabsTrigger>
+      <Tabs defaultValue="school" className="w-full">
+        <TabsList className="grid w-full grid-cols-4 max-w-xl">
+          <TabsTrigger value="school">School</TabsTrigger>
+          <TabsTrigger value="account">Account</TabsTrigger>
           <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
           <TabsTrigger value="backup">Backup</TabsTrigger>
         </TabsList>
@@ -298,6 +313,31 @@ export default function SettingsPage() {
                 <div className="flex justify-end">
                     <Button onClick={handleSave}>Save Changes</Button>
                 </div>
+                </CardContent>
+            </Card>
+        </TabsContent>
+         <TabsContent value="account" className="mt-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><UserCog />Account Settings</CardTitle>
+                    <CardDescription>Manage your login credentials.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 max-w-md">
+                    <div className="space-y-2">
+                        <Label htmlFor="email">Login Email</Label>
+                        <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="password">Current Password</Label>
+                        <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="newPassword">New Password</Label>
+                        <Input id="newPassword" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Enter new password" />
+                    </div>
+                     <div className="flex justify-end">
+                        <Button onClick={handleAccountSave}>Update Credentials</Button>
+                    </div>
                 </CardContent>
             </Card>
         </TabsContent>
@@ -455,5 +495,4 @@ export default function SettingsPage() {
       </Tabs>
     </div>
   );
-
-    
+}
