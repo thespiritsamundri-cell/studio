@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,7 +11,9 @@ import { students as allStudents, families } from '@/lib/data';
 import type { Student } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { analyzeAttendanceAndSendMessage } from '@/ai/flows/attendance-analysis-messaging';
-import { Send } from 'lucide-react';
+import { Send, Printer } from 'lucide-react';
+import { useReactToPrint } from 'react-to-print';
+import { AttendancePrintReport } from '@/components/reports/attendance-report';
 
 const classes = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th'];
 
@@ -23,6 +25,7 @@ export default function AttendancePage() {
   const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
   const { toast } = useToast();
   const [isSending, setIsSending] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
 
   const handleClassChange = (classValue: string) => {
     setSelectedClass(classValue);
@@ -46,6 +49,11 @@ export default function AttendancePage() {
       description: `Attendance for class ${selectedClass} has been successfully saved.`,
     });
   };
+
+  const handlePrint = useReactToPrint({
+    content: () => printRef.current,
+    documentTitle: `Attendance-Report-${selectedClass}-${new Date().toLocaleDateString()}`,
+  });
 
   const handleSendWhatsapp = async () => {
     const absentStudents = students.filter((student) => attendance[student.id] === 'Absent');
@@ -97,12 +105,25 @@ export default function AttendancePage() {
 
   return (
     <div className="space-y-6">
+       <div style={{ display: 'none' }}>
+        <div ref={printRef}>
+          <AttendancePrintReport
+            className={selectedClass || ''}
+            date={new Date()}
+            students={students}
+            attendance={attendance}
+          />
+        </div>
+      </div>
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold font-headline">Attendance</h1>
         <div className="flex items-center gap-4">
           {selectedClass && (
             <>
               <Button onClick={saveAttendance}>Save Attendance</Button>
+               <Button variant="outline" onClick={handlePrint}>
+                <Printer className="w-4 h-4 mr-2" /> Print Report
+              </Button>
               <Button variant="outline" onClick={handleSendWhatsapp} disabled={isSending}>
                 {isSending ? 'Sending...' : <> <Send className="w-4 h-4 mr-2" /> Notify Absentees </>}
               </Button>
