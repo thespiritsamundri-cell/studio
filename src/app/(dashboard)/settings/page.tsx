@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, QrCode, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye } from 'lucide-react';
+import { Download, Upload, QrCode, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, Settings } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import { useState } from 'react';
 import { generateQrCode } from '@/ai/flows/generate-qr-code';
@@ -320,5 +320,7 @@ export default function SettingsPage() {
   );
 }
 
+
+    
 
     
