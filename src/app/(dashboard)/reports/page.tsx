@@ -46,7 +46,6 @@ export default function ReportsPage() {
     }
   }, [isPrinting, reportData, handlePrint]);
 
-
   const generateReport = async (type: string) => {
     setIsLoading(type);
     
@@ -58,7 +57,7 @@ export default function ReportsPage() {
       data = { students: allStudents, date: new Date() };
     } else if (type === 'fees') {
       const feesWithFatherName = allFees
-        .filter(fee => fee.status === 'Paid')
+        .filter(fee => fee.status === 'Paid' && fee.paymentDate)
         .map(fee => {
           const family = families.find(f => f.id === fee.familyId);
           return { ...fee, fatherName: family?.fatherName || 'N/A' };
@@ -66,7 +65,7 @@ export default function ReportsPage() {
       data = {
         fees: feesWithFatherName,
         totalIncome: feesWithFatherName.reduce((acc, fee) => acc + fee.amount, 0),
-        dateRange: undefined, // You may want to add date range selection here in future
+        dateRange: undefined,
       };
     } else if (type === 'attendance') {
       if (!selectedClass) {
@@ -89,7 +88,7 @@ export default function ReportsPage() {
     setReportData(data);
     setReportType(type);
     setIsLoading(null);
-    setIsPrinting(true); // Trigger printing via useEffect
+    setIsPrinting(true);
   };
 
   return (
