@@ -49,7 +49,7 @@ export function SidebarNav() {
       <SidebarHeader>
         <div className="flex items-center gap-2.5 p-2">
            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary-foreground/10">
-            {settings.schoolLogo ? (
+            {settings.schoolLogo && typeof settings.schoolLogo === 'string' && settings.schoolLogo.length > 0 ? (
               <Image src={settings.schoolLogo} alt="School Logo" width={40} height={40} className="rounded-full object-cover"/>
             ) : (
               <School className="w-6 h-6 text-primary-foreground" />
