@@ -13,6 +13,7 @@ import { Input } from '../ui/input';
 import { FeeReceipt } from '../reports/fee-receipt';
 import { useToast } from '@/hooks/use-toast';
 import { useReactToPrint } from 'react-to-print';
+import { fees as allFees } from '@/lib/data';
 
 
 interface FeeDetailsCardProps {
@@ -21,13 +22,20 @@ interface FeeDetailsCardProps {
     fees: Fee[];
 }
 
-export function FeeDetailsCard({ family, students, fees }: FeeDetailsCardProps) {
+export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetailsCardProps) {
     const { toast } = useToast();
+    const [fees, setFees] = useState(initialFees);
+
     const unpaidFees = fees.filter(f => f.status === 'Unpaid');
     const totalDues = unpaidFees.reduce((acc, fee) => acc + fee.amount, 0);
 
-    const [paidAmount, setPaidAmount] = useState<number>(totalDues);
+    const [paidAmount, setPaidAmount] = useState<number>(0);
     const [isPrinting, setIsPrinting] = useState(false);
+    
+    useEffect(() => {
+        setPaidAmount(totalDues);
+    }, [totalDues]);
+
     const remainingDues = totalDues - paidAmount;
 
     const printRef = useRef<HTMLDivElement>(null);
@@ -57,13 +65,47 @@ export function FeeDetailsCard({ family, students, fees }: FeeDetailsCardProps) 
                 setIsPrinting(false);
                 return;
             }
+
+            // This is a mock update. In a real app, you'd send this to an API.
+            const now = new Date();
+            let amountToSettle = paidAmount;
+
+            const updatedFees = fees.map(fee => {
+                if (fee.status === 'Unpaid' && amountToSettle > 0) {
+                    const settleAmount = Math.min(amountToSettle, fee.amount);
+                    // For simplicity, we mark the whole challan as paid if any amount is paid.
+                    // A real app might handle partial payments.
+                    if(paidAmount >= fee.amount) {
+                         amountToSettle -= settleAmount;
+                        return { ...fee, status: 'Paid' as 'Paid', paymentDate: now.toISOString().split('T')[0] };
+                    }
+                }
+                return fee;
+            });
+            
+            // This is where we would typically update a global state or database
+            // For now, we update the local component state to reflect the change
+            setFees(updatedFees);
+            
+            // Also updating the global mock data for persistence across navigation
+            unpaidFees.forEach(fee => {
+                if(paidAmount >= fee.amount) {
+                    const feeInGlobalData = allFees.find(f => f.id === fee.id);
+                    if (feeInGlobalData) {
+                        feeInGlobalData.status = 'Paid';
+                        feeInGlobalData.paymentDate = new Date().toISOString().split('T')[0];
+                    }
+                }
+            });
+
+
             handlePrint();
             toast({
                 title: 'Fee Collected',
                 description: `PKR ${paidAmount.toLocaleString()} collected for Family ${family.id}.`,
             });
         }
-    }, [isPrinting, handlePrint, paidAmount, totalDues, family.id, toast]);
+    }, [isPrinting, handlePrint, paidAmount, totalDues, family.id, toast, fees]);
 
     const handleCollectAndPrint = () => {
         setIsPrinting(true);
@@ -181,7 +223,7 @@ export function FeeDetailsCard({ family, students, fees }: FeeDetailsCardProps) 
                          </div>
                          <div className="flex justify-end gap-2">
                             <Button variant="outline">Add Other Charges</Button>
-                            <Button disabled={totalDues === 0} onClick={handleCollectAndPrint}>Collect Fee &amp; Print Receipt</Button>
+                            <Button disabled={totalDues === 0 || paidAmount <= 0} onClick={handleCollectAndPrint}>Collect Fee &amp; Print Receipt</Button>
                          </div>
                     </div>
 

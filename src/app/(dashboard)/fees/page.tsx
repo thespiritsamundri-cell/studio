@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
-import { families, students, fees } from '@/lib/data';
+import { families, students, fees as allFees } from '@/lib/data';
 import type { Family, Student, Fee } from '@/lib/types';
 import { FeeDetailsCard } from '@/components/fees/fee-details-card';
 import { useToast } from '@/hooks/use-toast';
@@ -33,7 +33,7 @@ export default function FeesPage() {
       setSearchedFamily(family);
       const s = students.filter(st => st.familyId === family.id);
       setFamilyStudents(s);
-      const f = fees.filter(fe => fe.familyId === family.id);
+      const f = allFees.filter(fe => fe.familyId === family.id);
       setFamilyFees(f);
     } else {
       toast({
