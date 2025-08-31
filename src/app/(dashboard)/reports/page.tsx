@@ -38,6 +38,7 @@ export default function ReportsPage() {
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
     onAfterPrint: () => {
+      setIsLoading(null);
       setReportData(null);
       setReportType(null);
     },
@@ -86,30 +87,33 @@ export default function ReportsPage() {
 
     setReportType(type);
     setReportData(data);
-    
-    // Use a timeout to ensure the component has re-rendered with the new data
-    // before attempting to print.
-    setTimeout(() => {
+  }, [allStudents, allFees, families, selectedClass, attendanceDate, toast]);
+
+  useEffect(() => {
+    // This effect will run after the component re-renders with new reportData
+    if (reportData && isLoading) {
+      setTimeout(() => {
         if (printRef.current) {
-            handlePrint();
+          handlePrint();
         } else {
-             toast({
-                title: "Print Error",
-                description: "Could not generate the report for printing.",
-                variant: "destructive",
-            });
+          toast({
+            title: "Print Error",
+            description: "Could not generate the report for printing.",
+            variant: "destructive",
+          });
+          setIsLoading(null);
         }
-        setIsLoading(null);
-    }, 100);
-  }, [allStudents, allFees, families, selectedClass, attendanceDate, handlePrint, toast]);
+      }, 100); // A short delay ensures the DOM is ready
+    }
+  }, [reportData, isLoading, handlePrint, toast]);
 
   return (
     <div className="space-y-6">
       {/* Printable content */}
       <div className="hidden">
-          {reportType === 'students' && <AllStudentsPrintReport ref={printRef} {...reportData} />}
-          {reportType === 'fees' && <IncomePrintReport ref={printRef} {...reportData} />}
-          {reportType === 'attendance' && <AttendancePrintReport ref={printRef} {...reportData} />}
+          {reportData && reportType === 'students' && <AllStudentsPrintReport ref={printRef} {...reportData} />}
+          {reportData && reportType === 'fees' && <IncomePrintReport ref={printRef} {...reportData} />}
+          {reportData && reportType === 'attendance' && <AttendancePrintReport ref={printRef} {...reportData} />}
       </div>
 
 
