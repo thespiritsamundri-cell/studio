@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -19,7 +19,12 @@ export default function ClassesPage() {
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const printRef = useRef<HTMLDivElement>(null);
-  const [reportDate, setReportDate] = useState<Date | null>(new Date());
+  const [reportDate, setReportDate] = useState<Date | null>(null);
+  
+  useEffect(() => {
+    // Set the date on the client side only to avoid hydration errors
+    setReportDate(new Date());
+  }, []);
 
   const classes = useMemo(() => {
     return ['all', ...Array.from(new Set(allStudents.map(s => s.class)))];
