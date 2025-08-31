@@ -18,15 +18,16 @@ export default function EditStudentPage({ params }: { params: { id: string } }) 
   const router = useRouter();
   const { toast } = useToast();
   const [student, setStudent] = useState<Student | undefined>(undefined);
+  const { id } = params;
 
   useEffect(() => {
-    const studentData = students.find((s) => s.id === params.id);
+    const studentData = students.find((s) => s.id === id);
     if (studentData) {
       setStudent(studentData);
     } else {
       notFound();
     }
-  }, [params.id]);
+  }, [id]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
