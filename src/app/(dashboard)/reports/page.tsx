@@ -81,10 +81,16 @@ export default function ReportsPage() {
     setReportType(type);
     setIsLoading(null);
     
-    // A small delay to ensure the state has been updated and the component re-rendered
-    // before the print dialog is triggered.
     setTimeout(() => {
-        handlePrint();
+        if (printRef.current) {
+            handlePrint();
+        } else {
+            toast({
+                title: "Print Error",
+                description: "Could not generate the report for printing.",
+                variant: "destructive",
+            });
+        }
     }, 100);
   };
 
