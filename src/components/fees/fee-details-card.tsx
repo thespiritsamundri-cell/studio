@@ -27,7 +27,6 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
     const { toast } = useToast();
     const [fees, setFees] = useState(initialFees);
     const [receiptData, setReceiptData] = useState<{fees: Fee[], paidAmount: number, totalDues: number, remainingDues: number} | null>(null);
-    const [isPrinting, setIsPrinting] = useState(false);
 
     const unpaidFees = fees.filter(f => f.status === 'Unpaid');
     const totalDues = unpaidFees.reduce((acc, fee) => acc + fee.amount, 0);
@@ -35,24 +34,19 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
     const [paidAmount, setPaidAmount] = useState<number>(0);
     
     useEffect(() => {
-        setPaidAmount(totalDues);
-    }, [totalDues, family.id]); // Reset when family changes
+        setFees(initialFees);
+        const currentUnpaidFees = initialFees.filter(f => f.status === 'Unpaid');
+        const currentTotalDues = currentUnpaidFees.reduce((acc, fee) => acc + fee.amount, 0);
+        setPaidAmount(currentTotalDues);
+    }, [initialFees, family.id]);
 
     const remainingDues = totalDues - paidAmount;
     const printRef = useRef<HTMLDivElement>(null);
 
     const handlePrint = useReactToPrint({
         content: () => printRef.current,
-        onAfterPrint: () => {
-            setIsPrinting(false);
-        },
     });
 
-    useEffect(() => {
-        if (isPrinting && receiptData) {
-            handlePrint();
-        }
-    }, [isPrinting, receiptData, handlePrint]);
 
     const handleCollectFee = () => {
         if (paidAmount <= 0) {
@@ -111,7 +105,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
             toast({ title: 'No Receipt Data', description: 'Please collect a fee first to generate a receipt.', variant: 'destructive' });
             return;
         }
-        setIsPrinting(true);
+        handlePrint();
     };
 
 

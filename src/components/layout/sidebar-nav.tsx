@@ -22,6 +22,7 @@ import {
   School,
   LogOut,
   Home,
+  TrendingUp,
 } from 'lucide-react';
 
 const navItems = [
@@ -30,6 +31,7 @@ const navItems = [
   { href: '/admissions', icon: UserPlus, label: 'Admissions' },
   { href: '/students', icon: Users, label: 'Students' },
   { href: '/fees', icon: Wallet, label: 'Fee Collection' },
+  { href: '/income', icon: TrendingUp, label: 'Income' },
   { href: '/attendance', icon: CalendarCheck, label: 'Attendance' },
   { href: '/reports', icon: FileText, label: 'Reports' },
 ];
