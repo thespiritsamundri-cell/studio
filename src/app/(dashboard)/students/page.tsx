@@ -1,10 +1,13 @@
 
+'use client';
+
+import { useState, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { students } from '@/lib/data';
-import { MoreHorizontal } from 'lucide-react';
+import { students as allStudents } from '@/lib/data';
+import { MoreHorizontal, Search } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,8 +17,20 @@ import {
 } from '@/components/ui/dropdown-menu';
 import Image from 'next/image';
 import Link from 'next/link';
+import { Input } from '@/components/ui/input';
 
 export default function StudentsPage() {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredStudents = useMemo(() => {
+    if (!searchQuery) {
+      return allStudents;
+    }
+    return allStudents.filter((student) =>
+      student.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [searchQuery]);
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline">Students</h1>
@@ -25,6 +40,18 @@ export default function StudentsPage() {
           <CardDescription>Manage student records, view details, and perform actions.</CardDescription>
         </CardHeader>
         <CardContent>
+           <div className="flex items-center space-x-2 mb-4">
+            <div className="relative flex-grow max-w-sm">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                type="text"
+                placeholder="Search by student name..."
+                className="pl-8"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                />
+            </div>
+          </div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -41,7 +68,7 @@ export default function StudentsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {students.map((student) => (
+              {filteredStudents.map((student) => (
                 <TableRow key={student.id}>
                   <TableCell className="hidden sm:table-cell">
                     <Image

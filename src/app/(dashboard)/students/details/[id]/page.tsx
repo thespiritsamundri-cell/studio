@@ -5,16 +5,19 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { students, families } from '@/lib/data';
 import { notFound, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import type { Student, Family } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Printer } from 'lucide-react';
+import { StudentDetailsPrint } from '@/components/reports/student-details-report';
+
 
 export default function StudentDetailsPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [student, setStudent] = useState<Student | undefined>(undefined);
   const [family, setFamily] = useState<Family | undefined>(undefined);
+  const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const studentData = students.find((s) => s.id === params.id);
@@ -26,8 +29,12 @@ export default function StudentDetailsPage({ params }: { params: { id: string } 
       notFound();
     }
   }, [params.id]);
+  
+  const handlePrint = () => {
+    alert("Printing is temporarily disabled.");
+  };
 
-  if (!student) {
+  if (!student || !family) {
     return <div>Loading...</div>;
   }
 
@@ -40,11 +47,22 @@ export default function StudentDetailsPage({ params }: { params: { id: string } 
 
   return (
     <div className="space-y-6">
-       <div className="flex items-center gap-4">
-        <Button variant="outline" size="icon" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-3xl font-bold font-headline">Student Details</h1>
+       <div style={{ display: 'none' }}>
+        <div ref={printRef}>
+          <StudentDetailsPrint student={student} family={family} />
+        </div>
+      </div>
+       <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <h1 className="text-3xl font-bold font-headline">Student Details</h1>
+        </div>
+        <div className="flex gap-2">
+            <Button variant="outline" onClick={() => router.push(`/students/edit/${student.id}`)}>Edit Student</Button>
+            <Button onClick={handlePrint}><Printer className="h-4 w-4 mr-2" />Print</Button>
+        </div>
       </div>
       <Card>
         <CardHeader>
@@ -87,9 +105,6 @@ export default function StudentDetailsPage({ params }: { params: { id: string } 
                         <DetailItem label="Family Address" value={family?.address} />
                     </div>
                 </div>
-            </div>
-             <div className="flex justify-end gap-2 pt-4">
-                <Button variant="outline" onClick={() => router.push(`/students/edit/${student.id}`)}>Edit Student</Button>
             </div>
         </CardContent>
       </Card>
