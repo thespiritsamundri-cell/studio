@@ -66,15 +66,6 @@ export default function ClassesPage() {
     }
   }, [isPrinting, reportDate, handlePrint]);
   
-  const triggerPrint = () => {
-    if (studentsToExport.length === 0) {
-      toast({ title: "No students selected", description: "Please select students to print.", variant: "destructive" });
-      return;
-    }
-    setReportDate(new Date());
-    setIsPrinting(true);
-  }
-
   const studentsInClass = useMemo(() => {
     if (!selectedClass) {
       return [];
@@ -85,6 +76,15 @@ export default function ClassesPage() {
   const studentsToExport = useMemo(() => {
     return allStudents.filter(s => selectedStudents.includes(s.id));
   }, [selectedStudents, allStudents]);
+
+  const triggerPrint = () => {
+    if (studentsToExport.length === 0) {
+      toast({ title: "No students selected", description: "Please select students to print.", variant: "destructive" });
+      return;
+    }
+    setReportDate(new Date());
+    setIsPrinting(true);
+  }
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -401,5 +401,7 @@ export default function ClassesPage() {
     </div>
   );
 }
+
+    
 
     
