@@ -30,17 +30,17 @@ export default function AttendancePage() {
   const [reportDate, setReportDate] = useState<Date | null>(null);
   
   const handlePrint = useReactToPrint({
-    content: () => printRef.current,
+    contentRef: printRef,
     onAfterPrint: () => setIsPrinting(false),
   });
   
   useEffect(() => {
-    if (isPrinting && printRef.current) {
+    if (isPrinting && reportDate && printRef.current) {
        setTimeout(() => {
         handlePrint();
       }, 0);
     }
-  }, [isPrinting, handlePrint]);
+  }, [isPrinting, reportDate, handlePrint]);
 
   const triggerPrint = () => {
     if (!selectedClass) {
@@ -128,12 +128,14 @@ export default function AttendancePage() {
     <div className="space-y-6">
        <div style={{ display: 'none' }}>
           <div ref={printRef}>
+            {reportDate && (
               <AttendancePrintReport
                 className={selectedClass || ''}
-                date={reportDate || new Date()}
+                date={reportDate}
                 students={students}
                 attendance={attendance}
               />
+            )}
           </div>
       </div>
       <div className="flex items-center justify-between">
