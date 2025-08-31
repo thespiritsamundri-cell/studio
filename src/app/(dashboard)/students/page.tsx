@@ -22,10 +22,14 @@ import { useReactToPrint } from 'react-to-print';
 import { AllStudentsPrintReport } from '@/components/reports/all-students-report';
 import type { Student } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useSearchParams } from 'next/navigation';
 
 
 export default function StudentsPage() {
   const { students: allStudents } = useData();
+  const searchParams = useSearchParams();
+  const familyIdFromQuery = searchParams.get('familyId');
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClass, setSelectedClass] = useState<string>('all');
   const printRef = useRef<HTMLDivElement>(null);
@@ -36,6 +40,10 @@ export default function StudentsPage() {
 
   const filteredStudents = useMemo(() => {
     let students = allStudents;
+
+    if (familyIdFromQuery) {
+      students = students.filter((student) => student.familyId === familyIdFromQuery);
+    }
     
     if (selectedClass !== 'all') {
       students = students.filter((student) => student.class === selectedClass);
@@ -50,7 +58,7 @@ export default function StudentsPage() {
     }
     
     return students;
-  }, [searchQuery, selectedClass, allStudents]);
+  }, [searchQuery, selectedClass, allStudents, familyIdFromQuery]);
 
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
@@ -150,7 +158,12 @@ export default function StudentsPage() {
       
       <Card>
         <CardHeader>
-          <CardTitle>All Students</CardTitle>
+          <CardTitle>
+            {familyIdFromQuery 
+                ? `Students for Family ID: ${familyIdFromQuery}`
+                : "All Students"
+            }
+          </CardTitle>
           <CardDescription>Manage student records, view details, and perform actions. Found {filteredStudents.length} students.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -210,6 +223,13 @@ export default function StudentsPage() {
                   </TableCell>
                 </TableRow>
               ))}
+               {filteredStudents.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-24 text-center">
+                    No students found.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -217,3 +237,5 @@ export default function StudentsPage() {
     </div>
   );
 }
+
+    

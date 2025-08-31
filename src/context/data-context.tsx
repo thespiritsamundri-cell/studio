@@ -11,8 +11,10 @@ interface DataContextType {
   fees: Fee[];
   addStudent: (student: Student) => void;
   updateStudent: (id: string, student: Student) => void;
+  deleteStudent: (id: string) => void;
   addFamily: (family: Family) => void;
   updateFamily: (id: string, family: Family) => void;
+  deleteFamily: (id: string) => void;
   addFee: (fee: Fee) => void;
   updateFee: (id: string, fee: Fee) => void;
   loadData: (data: { students: Student[], families: Family[], fees: Fee[] }) => void;
@@ -21,9 +23,9 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const [students, setStudents] = useState<Student[]>(initialStudents);
-  const [families, setFamilies] = useState<Family[]>(initialFamilies);
-  const [fees, setFees] = useState<Fee[]>(initialFees);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [families, setFamilies] = useState<Family[]>([]);
+  const [fees, setFees] = useState<Fee[]>([]);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -33,11 +35,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const savedFamilies = window.localStorage.getItem('schoolFamilies');
       const savedFees = window.localStorage.getItem('schoolFees');
       
-      if (savedStudents) setStudents(JSON.parse(savedStudents));
-      if (savedFamilies) setFamilies(JSON.parse(savedFamilies));
-      if (savedFees) setFees(JSON.parse(savedFees));
+      setStudents(savedStudents ? JSON.parse(savedStudents) : initialStudents);
+      setFamilies(savedFamilies ? JSON.parse(savedFamilies) : initialFamilies);
+      setFees(savedFees ? JSON.parse(savedFees) : initialFees);
     } catch (error) {
       console.error('Error reading from localStorage', error);
+      // Set initial data if localStorage fails
+      setStudents(initialStudents);
+      setFamilies(initialFamilies);
+      setFees(initialFees);
     }
   }, []);
 
@@ -60,6 +66,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const updateStudent = (id: string, updatedStudent: Student) => {
     setStudents(prev => prev.map(s => s.id === id ? updatedStudent : s));
   };
+  
+  const deleteStudent = (id: string) => {
+    setStudents(prev => prev.filter(s => s.id !== id));
+  };
 
   const addFamily = (family: Family) => {
     setFamilies(prev => [...prev, family]);
@@ -67,6 +77,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const updateFamily = (id: string, updatedFamily: Family) => {
     setFamilies(prev => prev.map(f => f.id === id ? updatedFamily : f));
+  };
+
+  const deleteFamily = (id: string) => {
+    setFamilies(prev => prev.filter(f => f.id !== id));
+    // Also delete students and fees associated with this family
+    setStudents(prev => prev.filter(s => s.familyId !== id));
+    setFees(prev => prev.filter(f => f.familyId !== id));
   };
   
   const addFee = (fee: Fee) => {
@@ -89,8 +106,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       fees, 
       addStudent,
       updateStudent, 
+      deleteStudent,
       addFamily,
       updateFamily, 
+      deleteFamily,
       addFee,
       updateFee,
       loadData 
@@ -111,3 +130,5 @@ export function useData() {
   }
   return context;
 }
+
+    

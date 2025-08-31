@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, PlusCircle, MoreHorizontal } from 'lucide-react';
+import { Search, PlusCircle, MoreHorizontal, Trash2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   DropdownMenu,
@@ -13,7 +13,18 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Dialog,
   DialogContent,
@@ -27,13 +38,16 @@ import { Label } from '@/components/ui/label';
 import { useData } from '@/context/data-context';
 import type { Family } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 export default function FamiliesPage() {
-  const { families: allFamilies, addFamily, updateFamily } = useData();
+  const { families: allFamilies, addFamily, updateFamily, deleteFamily } = useData();
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredFamilies, setFilteredFamilies] = useState<Family[]>(allFamilies);
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [selectedFamily, setSelectedFamily] = useState<Family | null>(null);
   const { toast } = useToast();
 
@@ -129,6 +143,27 @@ export default function FamiliesPage() {
     setOpenEditDialog(true);
   };
 
+  const handleDeleteClick = (family: Family) => {
+    setSelectedFamily(family);
+    setOpenDeleteDialog(true);
+  };
+
+  const confirmDelete = () => {
+    if (!selectedFamily) return;
+    deleteFamily(selectedFamily.id);
+    toast({
+        title: "Family Deleted",
+        description: `Family #${selectedFamily.id} (${selectedFamily.fatherName}) and all associated students have been deleted.`,
+        variant: "destructive"
+    });
+    setOpenDeleteDialog(false);
+    setSelectedFamily(null);
+  }
+
+  const handleViewStudents = (familyId: string) => {
+    router.push(`/students?familyId=${familyId}`);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -218,13 +253,24 @@ export default function FamiliesPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => handleEditClick(family)}>Edit</DropdownMenuItem>
-                        <DropdownMenuItem>View Students</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleViewStudents(family.id)}>View Students</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(family)}>
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
+               {filteredFamilies.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-24 text-center">
+                    No families found.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -261,6 +307,27 @@ export default function FamiliesPage() {
           </form>
         </DialogContent>
       </Dialog>
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={openDeleteDialog} onOpenChange={setOpenDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the family record for <strong>{selectedFamily?.fatherName}</strong> and all associated student records.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setSelectedFamily(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
+              Yes, delete family
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }
+
+    
