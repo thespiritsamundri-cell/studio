@@ -26,9 +26,9 @@ import {
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/families', icon: Home, label: 'Families' },
   { href: '/admissions', icon: UserPlus, label: 'Admissions' },
   { href: '/students', icon: Users, label: 'Students' },
-  { href: '/families', icon: Home, label: 'Families' },
   { href: '/fees', icon: Wallet, label: 'Fee Collection' },
   { href: '/attendance', icon: CalendarCheck, label: 'Attendance' },
   { href: '/reports', icon: FileText, label: 'Reports' },
