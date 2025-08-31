@@ -1,5 +1,5 @@
 
-import type { Student, Family, Fee } from './types';
+import type { Student, Family, Fee, Teacher, TeacherAttendance } from './types';
 
 export const students: Student[] = [
   { id: 'S001', name: 'Ali Khan', fatherName: 'Ahmed Khan', class: '5th', admissionDate: '2023-03-15', familyId: '1', status: 'Active', phone: '03001234567', address: '123, Main St, Lahore', dob: '2013-05-20', photoUrl: 'https://picsum.photos/seed/S001/100/100' },
@@ -16,6 +16,22 @@ export const families: Family[] = [
     { id: '4', fatherName: 'Tariq Ali', phone: '03451122334', address: 'G-10, Islamabad' },
 ];
 
+export const teachers: Teacher[] = [
+    { id: 'T01', name: 'Sana Javed', fatherName: 'Javed Iqbal', phone: '03112233445', education: 'M.Sc. Physics', salary: 60000 },
+    { id: 'T02', name: 'Rashid Mehmood', fatherName: 'Mehmood Ali', phone: '03223344556', education: 'M.A. English', salary: 55000 },
+];
+
+export const teacherAttendances: TeacherAttendance[] = [
+    // Example data for the last few days
+    { teacherId: 'T01', date: '2024-05-20', status: 'Present' },
+    { teacherId: 'T02', date: '2024-05-20', status: 'Present' },
+    { teacherId: 'T01', date: '2024-05-21', status: 'Present' },
+    { teacherId: 'T02', date: '2024-05-21', status: 'Absent' },
+    { teacherId: 'T01', date: '2024-05-22', status: 'Leave' },
+    { teacherId: 'T02', date: '2024-05-22', status: 'Present' },
+];
+
+
 export const fees: Fee[] = [
     { id: 'FEE01', familyId: '1', amount: 5000, month: 'April', year: 2024, paymentDate: '', status: 'Unpaid' },
     { id: 'FEE02', familyId: '2', amount: 3500, month: 'April', year: 2024, paymentDate: '', status: 'Unpaid' },
@@ -24,5 +40,3 @@ export const fees: Fee[] = [
     { id: 'FEE05', familyId: '2', amount: 3500, month: 'May', year: 2024, paymentDate: '', status: 'Unpaid' },
     { id: 'FEE06', familyId: '4', amount: 3000, month: 'May', year: 2024, status: 'Unpaid', paymentDate: '' },
 ];
-
-    

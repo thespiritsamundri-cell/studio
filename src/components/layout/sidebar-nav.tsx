@@ -24,6 +24,8 @@ import {
   Home,
   TrendingUp,
   BookCopy,
+  Briefcase,
+  UserCheck2,
 } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import Image from 'next/image';
@@ -34,9 +36,11 @@ const navItems = [
   { href: '/admissions', icon: UserPlus, label: 'Admissions' },
   { href: '/students', icon: Users, label: 'Students' },
   { href: '/classes', icon: BookCopy, label: 'Classes' },
+  { href: '/teachers', icon: Briefcase, label: 'Teachers' },
   { href: '/fees', icon: Wallet, label: 'Fee Collection' },
   { href: '/income', icon: TrendingUp, label: 'Income' },
   { href: '/attendance', icon: CalendarCheck, label: 'Attendance' },
+  { href: '/teacher-attendance', icon: UserCheck2, label: 'Teacher Attendance' },
   { href: '/reports', icon: FileText, label: 'Reports' },
 ];
 

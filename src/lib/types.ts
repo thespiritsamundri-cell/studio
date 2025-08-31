@@ -19,9 +19,24 @@ export interface Family {
   address: string;
 }
 
+export interface Teacher {
+  id: string;
+  name: string;
+  fatherName: string;
+  phone: string;
+  education: string;
+  salary: number;
+}
+
 export interface Attendance {
   studentId: string;
   date: string;
+  status: 'Present' | 'Absent' | 'Leave';
+}
+
+export interface TeacherAttendance {
+  teacherId: string;
+  date: string; // YYYY-MM-DD
   status: 'Present' | 'Absent' | 'Leave';
 }
 
