@@ -39,7 +39,7 @@ export const AttendancePrintReport = React.forwardRef<HTMLDivElement, Attendance
           </div>
           <div className="text-right">
             <h2 className="text-2xl font-semibold">Attendance Report</h2>
-            <p className="text-sm">Date: {date.toLocaleDateString()}</p>
+            <p className="text-sm">Date: {new Date(date).toLocaleDateString()}</p>
           </div>
         </header>
 

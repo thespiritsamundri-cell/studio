@@ -22,10 +22,10 @@ export const IncomePrintReport = React.forwardRef<HTMLDivElement, IncomePrintRep
     
     const getPeriodText = () => {
         if (dateRange?.from && dateRange?.to) {
-            return `From: ${format(dateRange.from, 'PPP')} To: ${format(dateRange.to, 'PPP')}`;
+            return `From: ${format(new Date(dateRange.from), 'PPP')} To: ${format(new Date(dateRange.to), 'PPP')}`;
         }
         if (dateRange?.from) {
-            return `Date: ${format(dateRange.from, 'PPP')}`;
+            return `Date: ${format(new Date(dateRange.from), 'PPP')}`;
         }
         return `As of: ${format(new Date(), 'PPP')}`;
     }

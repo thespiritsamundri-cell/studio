@@ -38,15 +38,16 @@ export default function ReportsPage() {
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
     onAfterPrint: () => {
-      setIsLoading(null);
       setReportData(null);
       setReportType(null);
+      setIsLoading(null);
     },
   });
   
   const generateReport = useCallback((type: string) => {
     setIsLoading(type);
 
+    // Prepare data immediately
     let data: any;
     if (type === 'students') {
       data = { students: allStudents, date: new Date() };
@@ -85,27 +86,28 @@ export default function ReportsPage() {
       data = { className: selectedClass, date: attendanceDate, students: classStudents, attendance: mockAttendance };
     }
 
-    setReportType(type);
+    // Set the data and type, which will cause the report component to render
     setReportData(data);
-  }, [allStudents, allFees, families, selectedClass, attendanceDate, toast]);
+    setReportType(type);
 
-  useEffect(() => {
-    // This effect will run after the component re-renders with new reportData
-    if (reportData && isLoading) {
-      setTimeout(() => {
+    // Use a timeout to allow the component to render before printing
+    setTimeout(() => {
         if (printRef.current) {
-          handlePrint();
+            handlePrint();
         } else {
-          toast({
-            title: "Print Error",
-            description: "Could not generate the report for printing.",
-            variant: "destructive",
-          });
-          setIsLoading(null);
+             toast({
+                title: "Print Error",
+                description: "Could not find the report content to print.",
+                variant: "destructive",
+              });
+              setIsLoading(null);
+              setReportData(null);
+              setReportType(null);
         }
-      }, 100); // A short delay ensures the DOM is ready
-    }
-  }, [reportData, isLoading, handlePrint, toast]);
+    }, 100);
+
+  }, [allStudents, allFees, families, selectedClass, attendanceDate, toast, handlePrint]);
+
 
   return (
     <div className="space-y-6">
