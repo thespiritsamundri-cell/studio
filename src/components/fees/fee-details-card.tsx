@@ -30,18 +30,21 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
     const [receiptDataForPrint, setReceiptDataForPrint] = useState<{fees: Fee[], paidAmount: number, totalDues: number, remainingDues: number} | null>(null);
     const printRef = useRef<HTMLDivElement>(null);
     
+    useEffect(() => {
+        setFees(initialFees);
+        setReceiptDataForPrint(null);
+    }, [initialFees, family.id]);
+
     const unpaidFees = fees.filter(f => f.status === 'Unpaid');
     const totalDues = unpaidFees.reduce((acc, fee) => acc + fee.amount, 0);
 
     const [paidAmount, setPaidAmount] = useState<number>(0);
     
     useEffect(() => {
-        setFees(initialFees);
-        const currentUnpaidFees = initialFees.filter(f => f.status === 'Unpaid');
-        const currentTotalDues = currentUnpaidFees.reduce((acc, fee) => acc + fee.amount, 0);
-        setPaidAmount(currentTotalDues);
-        setReceiptDataForPrint(null);
-    }, [initialFees, family.id]);
+        // Automatically set paid amount to total dues when family changes
+        setPaidAmount(totalDues);
+    }, [totalDues]);
+
 
     useEffect(() => {
         if (isPrinting && receiptDataForPrint) {
@@ -70,13 +73,22 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
         const newlyPaidFees: Fee[] = [];
         const updatedLocalFees = [...fees]; 
 
-        const sortedUnpaidFees = unpaidFees.sort((a,b) => new Date(a.year, new Date(Date.parse(a.month +" 1, 2012")).getMonth()).getTime() - new Date(b.year, new Date(Date.parse(b.month +" 1, 2012")).getMonth()).getTime());
+        // Sort unpaid fees by date to ensure oldest are paid first
+        const sortedUnpaidFees = [...unpaidFees].sort((a,b) => {
+            // A simple way to sort by month, not perfect for cross-year but works for typical school years
+            const monthA = new Date(Date.parse(a.month +" 1, 2012")).getMonth();
+            const monthB = new Date(Date.parse(b.month +" 1, 2012")).getMonth();
+            if (a.year !== b.year) {
+                return a.year - b.year;
+            }
+            return monthA - monthB;
+        });
 
         for (const fee of sortedUnpaidFees) {
             if (amountToSettle >= fee.amount) {
                 amountToSettle -= fee.amount;
                 
-                const paidFee = { ...fee, status: 'Paid' as 'Paid', paymentDate: new Date().toISOString().split('T')[0] };
+                const paidFee: Fee = { ...fee, status: 'Paid', paymentDate: new Date().toISOString().split('T')[0] };
                 newlyPaidFees.push(paidFee);
 
                 const indexInLocal = updatedLocalFees.findIndex(f => f.id === fee.id);
@@ -84,9 +96,10 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
                     updatedLocalFees[indexInLocal] = paidFee;
                 }
 
-                // Update global state
+                // Update global state via the passed function
                 onUpdateFee(fee.id, paidFee);
             } else {
+                // Stop if the paid amount doesn't cover the full fee for the month
                 break; 
             }
         }
@@ -96,22 +109,26 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
             description: `PKR ${paidAmount.toLocaleString()} collected for Family ${family.id}.`,
         });
         
+        // Update the local state to re-render the component
         setFees(updatedLocalFees);
+        // Reset paid amount for the next transaction
         const newDues = updatedLocalFees.filter(f => f.status === 'Unpaid').reduce((acc, fee) => acc + fee.amount, 0);
         setPaidAmount(newDues);
-        triggerPrint(newlyPaidFees, paidAmount);
+        
+        // Trigger the printing of the receipt with the fees that were just paid
+        triggerPrint(newlyPaidFees, paidAmount, newlyPaidFees.reduce((acc, f) => acc + f.amount, 0), newDues);
     };
 
-    const triggerPrint = (paidFees: Fee[], collectedAmount: number) => {
+    const triggerPrint = (paidFeesForReceipt: Fee[], collectedAmount: number, totalPaid: number, newRemainingDues: number) => {
         if (collectedAmount === 0 && unpaidFees.length === 0) {
              toast({ title: 'No Dues', description: 'There are no outstanding fees to generate a receipt for.', variant: 'destructive' });
             return;
         }
         setReceiptDataForPrint({
-            fees: paidFees.length > 0 ? paidFees : unpaidFees,
-            paidAmount: collectedAmount > 0 ? collectedAmount : paidAmount,
-            totalDues: paidFees.length > 0 ? collectedAmount : totalDues,
-            remainingDues: paidFees.length > 0 ? 0 : remainingDues,
+            fees: paidFeesForReceipt.length > 0 ? paidFeesForReceipt : unpaidFees,
+            paidAmount: collectedAmount > 0 ? totalPaid : paidAmount,
+            totalDues: paidFeesForReceipt.length > 0 ? totalPaid : totalDues,
+            remainingDues: paidFeesForReceipt.length > 0 ? newRemainingDues : remainingDues,
         });
         setIsPrinting(true);
     };
@@ -228,7 +245,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
                          </div>
                          <div className="flex justify-end gap-2">
                             <Button disabled={totalDues === 0 || paidAmount <= 0} onClick={handleCollectFee}>Collect Fee</Button>
-                            <Button variant="outline" onClick={() => triggerPrint([], 0)}><Printer className="h-4 w-4 mr-2" />Print Receipt</Button>
+                            <Button variant="outline" onClick={() => triggerPrint([], 0, 0, totalDues)}><Printer className="h-4 w-4 mr-2" />Print Receipt</Button>
                          </div>
                     </div>
 
