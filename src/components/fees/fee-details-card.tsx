@@ -27,7 +27,6 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
     const { toast } = useToast();
     const [fees, setFees] = useState(initialFees);
     const [receiptData, setReceiptData] = useState<{fees: Fee[], paidAmount: number, totalDues: number, remainingDues: number} | null>(null);
-    const [isPrinting, setIsPrinting] = useState(false);
 
     const unpaidFees = fees.filter(f => f.status === 'Unpaid');
     const totalDues = unpaidFees.reduce((acc, fee) => acc + fee.amount, 0);
@@ -39,21 +38,24 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
         const currentUnpaidFees = initialFees.filter(f => f.status === 'Unpaid');
         const currentTotalDues = currentUnpaidFees.reduce((acc, fee) => acc + fee.amount, 0);
         setPaidAmount(currentTotalDues);
+        setReceiptData(null); // Reset receipt data on new family search
     }, [initialFees, family.id]);
 
-    useEffect(() => {
-        if(isPrinting) {
-            handlePrint();
-            setIsPrinting(false);
-        }
-    }, [isPrinting]);
 
     const remainingDues = totalDues - paidAmount;
     const printRef = useRef<HTMLDivElement>(null);
 
     const handlePrint = useReactToPrint({
         content: () => printRef.current,
+        onAfterPrint: () => setReceiptData(null),
     });
+
+
+    useEffect(() => {
+        if (receiptData) {
+            handlePrint();
+        }
+    }, [receiptData, handlePrint]);
 
 
     const handleCollectFee = () => {
@@ -66,26 +68,26 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
             return;
         }
 
-        // This is a mock update. In a real app, you'd send this to an API.
         let amountToSettle = paidAmount;
         const newlyPaidFees: Fee[] = [];
 
         const sortedUnpaidFees = [...unpaidFees].sort((a,b) => new Date(a.year, new Date(Date.parse(a.month +" 1, 2012")).getMonth()).getTime() - new Date(b.year, new Date(Date.parse(b.month +" 1, 2012")).getMonth()).getTime());
 
         const updatedFees = fees.map(fee => {
-            const isUnpaidAndShouldBePaid = sortedUnpaidFees.find(f => f.id === fee.id && amountToSettle >= f.amount);
-            if (isUnpaidAndShouldBePaid) {
-                amountToSettle -= fee.amount;
-                const paidFee = { ...fee, status: 'Paid' as 'Paid', paymentDate: new Date().toISOString().split('T')[0] };
-                newlyPaidFees.push(paidFee);
-                return paidFee;
+            const isUnpaidAndShouldBePaid = sortedUnpaidFees.find(f => f.id === fee.id);
+            if (isUnpaidAndShouldBePaid && amountToSettle > 0) {
+                const payment = Math.min(amountToSettle, fee.amount);
+                 if (payment === fee.amount) {
+                    amountToSettle -= fee.amount;
+                    const paidFee = { ...fee, status: 'Paid' as 'Paid', paymentDate: new Date().toISOString().split('T')[0] };
+                    newlyPaidFees.push(paidFee);
+                    return paidFee;
+                 }
             }
             return fee;
         });
 
-        setFees(updatedFees);
-        
-        // Update "global" mock data
+        // This is a mock data update.
         newlyPaidFees.forEach(fee => {
             const feeInGlobalData = allFees.find(f => f.id === fee.id);
             if (feeInGlobalData) {
@@ -93,45 +95,45 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
                 feeInGlobalData.paymentDate = new Date().toISOString().split('T')[0];
             }
         });
-
+        
         toast({
             title: 'Fee Collected',
             description: `PKR ${paidAmount.toLocaleString()} collected for Family ${family.id}.`,
         });
+        
+        setFees(updatedFees); // This will trigger a re-render with the new state
+        setPaidAmount(updatedFees.filter(f => f.status === 'Unpaid').reduce((acc, fee) => acc + fee.amount, 0));
+    };
 
-        // Set the data for the receipt
-        setReceiptData({
-            fees: newlyPaidFees,
+    const triggerPrint = () => {
+        if (!unpaidFees.length) {
+             toast({ title: 'No Dues', description: 'There are no outstanding fees to generate a receipt for.', variant: 'destructive' });
+            return;
+        }
+         setReceiptData({
+            fees: unpaidFees, // We'll show all unpaid fees on receipt before payment
             paidAmount: paidAmount,
             totalDues: totalDues,
             remainingDues: remainingDues
         });
     };
 
-    const triggerPrint = () => {
-        if (!receiptData) {
-            toast({ title: 'No Receipt Data', description: 'Please collect a fee first to generate a receipt.', variant: 'destructive' });
-            return;
-        }
-        setIsPrinting(true);
-    };
-
 
     return (
         <>
-            <div style={{ display: 'none' }}>
+            <div className="hidden">
+                <div ref={printRef}>
                 {receiptData && (
-                     <div ref={printRef}>
-                        <FeeReceipt
-                            family={family}
-                            students={students}
-                            fees={receiptData.fees}
-                            totalDues={receiptData.totalDues}
-                            paidAmount={receiptData.paidAmount}
-                            remainingDues={receiptData.remainingDues}
-                        />
-                    </div>
+                    <FeeReceipt
+                        family={family}
+                        students={students}
+                        fees={receiptData.fees}
+                        totalDues={receiptData.totalDues}
+                        paidAmount={receiptData.paidAmount}
+                        remainingDues={receiptData.remainingDues}
+                    />
                 )}
+                </div>
             </div>
             <Card>
                 <CardHeader>
@@ -228,7 +230,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
                          </div>
                          <div className="flex justify-end gap-2">
                             <Button disabled={totalDues === 0 || paidAmount <= 0} onClick={handleCollectFee}>Collect Fee</Button>
-                            <Button variant="outline" disabled={!receiptData} onClick={triggerPrint}><Printer className="h-4 w-4 mr-2" />Print Receipt</Button>
+                            <Button variant="outline" onClick={triggerPrint}><Printer className="h-4 w-4 mr-2" />Print Receipt</Button>
                          </div>
                     </div>
 
