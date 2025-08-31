@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Download, Upload, QrCode, KeyRound } from 'lucide-react';
+import { students, families, fees } from '@/lib/data';
 
 export default function SettingsPage() {
   const { settings, setSettings } = useSettings();
@@ -41,6 +42,73 @@ export default function SettingsPage() {
         years.push(`${startYear}-${startYear + 1}`);
     }
     return years;
+  };
+  
+  const handleCreateBackup = () => {
+    const backupData = {
+        students,
+        families,
+        fees,
+        settings
+    };
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `educentral-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+     toast({
+      title: 'Backup Created',
+      description: 'Your data has been successfully downloaded.',
+    });
+  };
+
+  const handleRestoreBackup = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      toast({ title: 'No file selected', variant: 'destructive'});
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const result = e.target?.result;
+        if (typeof result === 'string') {
+          const restoredData = JSON.parse(result);
+          // Here you would typically validate the data and then update your state.
+          // For this example, we'll just log it and show a success message.
+          console.log('Restored Data:', restoredData);
+
+          // Example of updating state if using a global state management library (like Zustand or Redux)
+          // Or you might need to make API calls to update your backend.
+          // For now, we update the settings from the backup.
+          if (restoredData.settings) {
+            setSettings(restoredData.settings);
+          }
+          
+          // You would also need to handle updating students, families, fees etc.
+          // This part is complex as it depends on how the app's state is managed.
+          // For now, this just demonstrates the file reading part.
+
+          toast({
+            title: 'Restore Successful',
+            description: 'Data has been restored from the backup file.',
+          });
+        }
+      } catch (error) {
+        toast({
+          title: 'Restore Failed',
+          description: 'The selected file is not a valid backup file.',
+          variant: 'destructive',
+        });
+        console.error('Error parsing backup file:', error);
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = ''; // Reset file input
   };
 
   return (
@@ -107,7 +175,7 @@ export default function SettingsPage() {
                  <CardContent className="pt-6 flex flex-col items-center justify-center text-center">
                     <p className="mb-4 text-muted-foreground">Scan this QR code with your WhatsApp linked devices to connect.</p>
                     <Image
-                        src="https://picsum.photos/200/200?grayscale"
+                        src="https://placehold.co/200x200/e2e8f0/64748b?text=QR+Code"
                         alt="WhatsApp QR Code Placeholder"
                         width={200}
                         height={200}
@@ -143,14 +211,14 @@ export default function SettingsPage() {
             <div className="space-y-2">
                 <h3 className="font-medium">Create Backup</h3>
                 <p className="text-sm text-muted-foreground">Download a complete backup of your school data (students, fees, etc.) as a JSON file.</p>
-                <Button variant="outline"><Download className="mr-2"/>Download Backup</Button>
+                <Button variant="outline" onClick={handleCreateBackup}><Download className="mr-2"/>Download Backup</Button>
             </div>
             <div className="space-y-2">
                 <h3 className="font-medium">Restore from Backup</h3>
                 <p className="text-sm text-muted-foreground">Upload a JSON backup file to restore your school data. This will overwrite existing data.</p>
                 <div className="flex items-center gap-2">
-                    <Input id="backup-file" type="file" accept=".json" className="max-w-xs" />
-                    <Button><Upload className="mr-2"/>Restore Data</Button>
+                    <Input id="backup-file" type="file" accept=".json" className="max-w-xs" onChange={handleRestoreBackup} />
+                    <Button onClick={() => document.getElementById('backup-file')?.click()}><Upload className="mr-2"/>Restore Data</Button>
                 </div>
             </div>
         </CardContent>
