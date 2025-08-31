@@ -11,10 +11,12 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, QrCode, KeyRound, Loader2 } from 'lucide-react';
+import { Download, Upload, QrCode, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import { useState } from 'react';
 import { generateQrCode } from '@/ai/flows/generate-qr-code';
+import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 export default function SettingsPage() {
   const { settings, setSettings } = useSettings();
@@ -22,6 +24,7 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const [qrCodeUri, setQrCodeUri] = useState<string | null>(null);
   const [isGeneratingQr, setIsGeneratingQr] = useState(false);
+  const [message, setMessage] = useState('');
 
   const handleSave = () => {
     toast({
@@ -122,132 +125,200 @@ export default function SettingsPage() {
     } finally {
         setIsGeneratingQr(false);
     }
-  }
+  };
 
+  const handleTemplateClick = (template: string) => {
+    setMessage(template);
+  };
+
+  const templates = {
+    absence: `Dear {father_name},\nWe noticed that your child {student_name} of class {class} was absent today. Please let us know the reason.`,
+    fee: `Dear {father_name},\nThis is a friendly reminder that the fee for the month is due. Kindly clear the dues at your earliest convenience to avoid any late charges.`,
+    general: `Dear Parents,\nThis is to inform you that...`,
+    exam: `Dear Parents,\nThe final examinations will commence from next week. Please ensure your child is well-prepared.`,
+    holiday: `Dear Parents,\nThe school will remain closed on account of...`
+  };
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold font-headline">Settings</h1>
-      <Card>
-        <CardHeader>
-          <CardTitle>School Information</CardTitle>
-          <CardDescription>Update your school's details. This information will appear on receipts and reports.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="schoolName">School Name</Label>
-              <Input id="schoolName" value={settings.schoolName} onChange={handleInputChange} />
-            </div>
-             <div className="space-y-2">
-              <Label htmlFor="academicYear">Academic Year</Label>
-               <Select value={settings.academicYear} onValueChange={handleSelectChange('academicYear')}>
-                <SelectTrigger id="academicYear">
-                  <SelectValue placeholder="Select Year" />
-                </SelectTrigger>
-                <SelectContent>
-                  {generateAcademicYears().map(year => (
-                    <SelectItem key={year} value={year}>{year}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="schoolAddress">School Address</Label>
-            <Textarea id="schoolAddress" value={settings.schoolAddress} onChange={handleInputChange} />
-          </div>
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="schoolPhone">Phone Number</Label>
-                <Input id="schoolPhone" value={settings.schoolPhone} onChange={handleInputChange} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="schoolLogo">School Logo URL</Label>
-                <Input id="schoolLogo" type="text" placeholder="https://example.com/logo.png" value={settings.schoolLogo} onChange={handleInputChange}/>
-              </div>
-           </div>
-          <div className="flex justify-end">
-            <Button onClick={handleSave}>Save Changes</Button>
-          </div>
-        </CardContent>
-      </Card>
+      <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><Settings className="w-8 h-8" />Settings</h1>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>WhatsApp Integration</CardTitle>
-          <CardDescription>Connect your WhatsApp account to send notifications to parents and students.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="qr" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 max-w-md">
-              <TabsTrigger value="qr"><QrCode className="mr-2"/>QR Code</TabsTrigger>
-              <TabsTrigger value="api"><KeyRound className="mr-2"/>API Key</TabsTrigger>
-            </TabsList>
-            <TabsContent value="qr" className="mt-4">
-               <Card>
-                 <CardContent className="pt-6 flex flex-col items-center justify-center text-center">
-                    <p className="mb-4 text-muted-foreground">Scan this QR code with your WhatsApp linked devices to connect.</p>
-                     <div className="w-[200px] h-[200px] rounded-lg border p-2 flex items-center justify-center">
-                        {isGeneratingQr && !qrCodeUri && <Loader2 className="w-10 h-10 animate-spin text-primary" />}
-                        {qrCodeUri ? (
-                             <Image
-                                src={qrCodeUri}
-                                alt="WhatsApp QR Code"
-                                width={200}
-                                height={200}
-                                className="rounded-md"
-                                data-ai-hint="qr code"
-                            />
-                        ) : (
-                           !isGeneratingQr && <div className="text-sm text-muted-foreground">Click button to generate QR</div>
-                        )}
-                    </div>
-                    <Button className="mt-4" onClick={handleGenerateQr} disabled={isGeneratingQr}>
-                        {isGeneratingQr ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Generating...</> : 'Generate New Code'}
-                    </Button>
-                 </CardContent>
-               </Card>
-            </TabsContent>
-            <TabsContent value="api" className="mt-4">
-              <Card>
-                <CardContent className="pt-6 space-y-4">
-                    <p className="text-muted-foreground">Enter your WhatsApp Business API key from your provider (e.g., Twilio).</p>
+      <Tabs defaultValue="whatsapp" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 max-w-lg">
+          <TabsTrigger value="school">School Settings</TabsTrigger>
+          <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
+          <TabsTrigger value="backup">Backup</TabsTrigger>
+        </TabsList>
+        <TabsContent value="school" className="mt-6">
+            <Card>
+                <CardHeader>
+                <CardTitle>School Information</CardTitle>
+                <CardDescription>Update your school's details. This information will appear on receipts and reports.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                        <Label htmlFor="whatsapp-api">API Key</Label>
-                        <Input id="whatsapp-api" placeholder="Enter your API Key" />
+                    <Label htmlFor="schoolName">School Name</Label>
+                    <Input id="schoolName" value={settings.schoolName} onChange={handleInputChange} />
                     </div>
-                    <Button>Connect via API</Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Backup & Restore</CardTitle>
-          <CardDescription>Manage your application data backups.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-                <h3 className="font-medium">Create Backup</h3>
-                <p className="text-sm text-muted-foreground">Download a complete backup of your school data (students, fees, etc.) as a JSON file.</p>
-                <Button variant="outline" onClick={handleCreateBackup}><Download className="mr-2"/>Download Backup</Button>
-            </div>
-            <div className="space-y-2">
-                <h3 className="font-medium">Restore from Backup</h3>
-                <p className="text-sm text-muted-foreground">Upload a JSON backup file to restore your school data. This will overwrite existing data.</p>
-                <div className="flex items-center gap-2">
-                    <Label htmlFor="backup-file" className="sr-only">Restore</Label>
-                    <Input id="backup-file" type="file" accept=".json" className="hidden" onChange={handleRestoreBackup} />
-                    <Button onClick={() => document.getElementById('backup-file')?.click()}><Upload className="mr-2"/>Restore Data</Button>
+                    <div className="space-y-2">
+                    <Label htmlFor="academicYear">Academic Year</Label>
+                    <Select value={settings.academicYear} onValueChange={handleSelectChange('academicYear')}>
+                        <SelectTrigger id="academicYear">
+                        <SelectValue placeholder="Select Year" />
+                        </SelectTrigger>
+                        <SelectContent>
+                        {generateAcademicYears().map(year => (
+                            <SelectItem key={year} value={year}>{year}</SelectItem>
+                        ))}
+                        </SelectContent>
+                    </Select>
+                    </div>
                 </div>
-            </div>
-        </CardContent>
-      </Card>
-
+                <div className="space-y-2">
+                    <Label htmlFor="schoolAddress">School Address</Label>
+                    <Textarea id="schoolAddress" value={settings.schoolAddress} onChange={handleInputChange} />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <Label htmlFor="schoolPhone">Phone Number</Label>
+                        <Input id="schoolPhone" value={settings.schoolPhone} onChange={handleInputChange} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="schoolLogo">School Logo URL</Label>
+                        <Input id="schoolLogo" type="text" placeholder="https://example.com/logo.png" value={settings.schoolLogo} onChange={handleInputChange}/>
+                    </div>
+                </div>
+                <div className="flex justify-end">
+                    <Button onClick={handleSave}>Save Changes</Button>
+                </div>
+                </CardContent>
+            </Card>
+        </TabsContent>
+        <TabsContent value="whatsapp" className="mt-6 space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>API Configuration</CardTitle>
+                    <CardDescription>Enter your WhatsApp API details to enable messaging features.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="apiUrl">API URL</Label>
+                            <Input id="apiUrl" placeholder="Enter WhatsApp API URL" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="apiKey">API Key</Label>
+                            <Input id="apiKey" placeholder="Enter WhatsApp API Key" />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="delay">Message Delay (seconds)</Label>
+                            <Input id="delay" type="number" defaultValue="25" />
+                        </div>
+                        <div className="flex items-end space-x-2">
+                            <div className="flex items-center space-x-2 h-10">
+                                <Checkbox id="active" />
+                                <Label htmlFor="active">Active</Label>
+                            </div>
+                        </div>
+                    </div>
+                     <div className="flex justify-end items-center gap-2 pt-4">
+                        <Button variant="default"><KeyRound className="mr-2"/>Save WhatsApp Settings</Button>
+                        <Button variant="secondary" onClick={handleGenerateQr} disabled={isGeneratingQr}>
+                            {isGeneratingQr ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Generating...</> : <><QrCode className="mr-2" />Generate QR Code</>}
+                        </Button>
+                        <Button variant="outline"><TestTubeDiagonal className="mr-2"/>Test Connection</Button>
+                    </div>
+                    {qrCodeUri && (
+                        <div className="flex flex-col items-center justify-center pt-4">
+                            <p className="mb-2 text-sm text-muted-foreground">Scan this with your linked device.</p>
+                             <Image src={qrCodeUri} alt="WhatsApp QR Code" width={200} height={200} className="rounded-md border p-2" data-ai-hint="qr code" />
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+            <Card className="bg-green-500/5">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><MessageSquare className="text-green-700"/>Custom Messaging</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div>
+                        <h3 className="font-semibold text-primary mb-2">Automatic Messages</h3>
+                        <div className="p-4 bg-background/70 rounded-lg space-y-4">
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="auto-attendance">Send attendance notifications automatically</Label>
+                                <Checkbox id="auto-attendance" />
+                            </div>
+                             <div className="flex items-center justify-between">
+                                <Label htmlFor="auto-fee">Send fee payment confirmations automatically</Label>
+                                <Checkbox id="auto-fee" />
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-primary mb-2">Send Custom Message</h3>
+                        <div className="p-4 bg-background/70 rounded-lg space-y-4">
+                            <div className="space-y-2">
+                                <Label>Send To:</Label>
+                                <RadioGroup defaultValue="all" className="flex flex-wrap gap-4">
+                                    <div className="flex items-center space-x-2"><RadioGroupItem value="all" id="r1" /><Label htmlFor="r1">All Families</Label></div>
+                                    <div className="flex items-center space-x-2"><RadioGroupItem value="class" id="r2" /><Label htmlFor="r2">Specific Class</Label></div>
+                                    <div className="flex items-center space-x-2"><RadioGroupItem value="family" id="r3" /><Label htmlFor="r3">Specific Family</Label></div>
+                                    <div className="flex items-center space-x-2"><RadioGroupItem value="custom" id="r4" /><Label htmlFor="r4">Custom Numbers</Label></div>
+                                </RadioGroup>
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="message">Message:</Label>
+                                <Textarea id="message" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Type your message here..." rows={5} />
+                                <p className="text-xs text-muted-foreground">Available variables: {'{student_name}, {father_name}, {class}, {family_number}, {school_name}'}</p>
+                            </div>
+                             <div className="space-y-2">
+                                <Label>Quick Templates</Label>
+                                <div className="flex flex-wrap gap-2">
+                                    <Button size="sm" variant="outline" onClick={() => handleTemplateClick(templates.absence)}>Absence Notice</Button>
+                                    <Button size="sm" variant="outline" onClick={() => handleTemplateClick(templates.fee)}>Fee Reminder</Button>
+                                    <Button size="sm" variant="outline" onClick={() => handleTemplateClick(templates.general)}>General Notice</Button>
+                                    <Button size="sm" variant="outline" onClick={() => handleTemplateClick(templates.exam)}>Exam Notice</Button>
+                                    <Button size="sm" variant="outline" onClick={() => handleTemplateClick(templates.holiday)}>Holiday Notice</Button>
+                                </div>
+                            </div>
+                            <div className="flex justify-end items-center gap-2 pt-4">
+                                <Button variant="secondary" className="bg-green-600 text-white hover:bg-green-700"><Send className="mr-2"/>Send Message</Button>
+                                <Button variant="ghost"><Eye className="mr-2"/>Preview</Button>
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        </TabsContent>
+        <TabsContent value="backup" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Backup & Restore</CardTitle>
+              <CardDescription>Manage your application data backups.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                    <h3 className="font-medium">Create Backup</h3>
+                    <p className="text-sm text-muted-foreground">Download a complete backup of your school data (students, fees, etc.) as a JSON file.</p>
+                    <Button variant="outline" onClick={handleCreateBackup}><Download className="mr-2"/>Download Backup</Button>
+                </div>
+                <div className="space-y-2">
+                    <h3 className="font-medium">Restore from Backup</h3>
+                    <p className="text-sm text-muted-foreground">Upload a JSON backup file to restore your school data. This will overwrite existing data.</p>
+                    <div className="flex items-center gap-2">
+                        <Label htmlFor="backup-file" className="sr-only">Restore</Label>
+                        <Input id="backup-file" type="file" accept=".json" className="hidden" onChange={handleRestoreBackup} />
+                        <Button onClick={() => document.getElementById('backup-file')?.click()}><Upload className="mr-2"/>Restore Data</Button>
+                    </div>
+                </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
+
+
+    
