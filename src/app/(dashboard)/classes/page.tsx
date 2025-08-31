@@ -50,6 +50,7 @@ export default function ClassesPage() {
   
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
+    documentTitle: "All Students Report",
     onAfterPrint: () => {
         setIsPrinting(false);
         setReportDate(null);
@@ -58,6 +59,7 @@ export default function ClassesPage() {
 
   useEffect(() => {
     if (isPrinting && reportDate && printRef.current) {
+        // Use timeout to ensure the component is mounted before printing
         setTimeout(() => {
             handlePrint?.();
         }, 0);
@@ -196,8 +198,8 @@ export default function ClassesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="hidden">
-        {isPrinting && reportDate && (
+       <div style={{ display: 'none' }}>
+        {reportDate && (
           <AllStudentsPrintReport ref={printRef} students={studentsToExport} date={reportDate} />
         )}
       </div>
@@ -399,3 +401,5 @@ export default function ClassesPage() {
     </div>
   );
 }
+
+    
