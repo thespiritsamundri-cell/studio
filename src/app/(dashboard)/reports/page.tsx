@@ -42,11 +42,11 @@ export default function ReportsPage() {
       setReportType(null);
     },
   });
-
+  
   const generateReport = useCallback((type: string) => {
     setIsLoading(type);
 
-    let data;
+    let data: any;
     if (type === 'students') {
       data = { students: allStudents, date: new Date() };
     } else if (type === 'fees') {
@@ -83,10 +83,9 @@ export default function ReportsPage() {
       });
       data = { className: selectedClass, date: attendanceDate, students: classStudents, attendance: mockAttendance };
     }
-    
-    setReportData(data);
+
     setReportType(type);
-    setIsLoading(null);
+    setReportData(data);
     
     // Use a timeout to ensure the component has re-rendered with the new data
     // before attempting to print.
@@ -100,6 +99,7 @@ export default function ReportsPage() {
                 variant: "destructive",
             });
         }
+        setIsLoading(null);
     }, 100);
   }, [allStudents, allFees, families, selectedClass, attendanceDate, handlePrint, toast]);
 
@@ -107,15 +107,9 @@ export default function ReportsPage() {
     <div className="space-y-6">
       {/* Printable content */}
       <div className="hidden">
-        <div className="print:block">
-            {reportData && (
-            <div ref={printRef}>
-                {reportType === 'students' && <AllStudentsPrintReport {...reportData} />}
-                {reportType === 'fees' && <IncomePrintReport {...reportData} />}
-                {reportType === 'attendance' && <AttendancePrintReport {...reportData} />}
-            </div>
-            )}
-        </div>
+          {reportType === 'students' && <AllStudentsPrintReport ref={printRef} {...reportData} />}
+          {reportType === 'fees' && <IncomePrintReport ref={printRef} {...reportData} />}
+          {reportType === 'attendance' && <AttendancePrintReport ref={printRef} {...reportData} />}
       </div>
 
 
