@@ -40,6 +40,7 @@ export default function ClassesPage() {
   const printRef = useRef<HTMLDivElement>(null);
   const [isPrinting, setIsPrinting] = useState(false);
   const [reportDate, setReportDate] = useState<Date | null>(null);
+  const [studentsForReport, setStudentsForReport] = useState<Student[]>([]);
 
   // State for class management
   const [openClassDialog, setOpenClassDialog] = useState(false);
@@ -54,18 +55,10 @@ export default function ClassesPage() {
     onAfterPrint: () => {
         setIsPrinting(false);
         setReportDate(null);
+        setStudentsForReport([]);
     },
   });
 
-  useEffect(() => {
-    if (isPrinting && reportDate && printRef.current) {
-        // Use timeout to ensure the component is mounted before printing
-        setTimeout(() => {
-            handlePrint?.();
-        }, 0);
-    }
-  }, [isPrinting, reportDate, handlePrint]);
-  
   const studentsInClass = useMemo(() => {
     if (!selectedClass) {
       return [];
@@ -82,9 +75,19 @@ export default function ClassesPage() {
       toast({ title: "No students selected", description: "Please select students to print.", variant: "destructive" });
       return;
     }
+    setStudentsForReport(studentsToExport);
     setReportDate(new Date());
     setIsPrinting(true);
   }
+
+  useEffect(() => {
+    if (isPrinting && reportDate && printRef.current) {
+        // Use timeout to ensure the component is mounted before printing
+        setTimeout(() => {
+            handlePrint?.();
+        }, 0);
+    }
+  }, [isPrinting, reportDate, handlePrint]);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -199,9 +202,7 @@ export default function ClassesPage() {
   return (
     <div className="space-y-6">
        <div style={{ display: 'none' }}>
-        {reportDate && (
-          <AllStudentsPrintReport ref={printRef} students={studentsToExport} date={reportDate} />
-        )}
+        <AllStudentsPrintReport ref={printRef} students={studentsForReport} date={reportDate || new Date()} />
       </div>
 
       <div className="print:hidden">
@@ -401,7 +402,5 @@ export default function ClassesPage() {
     </div>
   );
 }
-
-    
 
     
