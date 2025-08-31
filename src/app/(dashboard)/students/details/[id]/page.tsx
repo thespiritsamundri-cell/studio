@@ -1,0 +1,99 @@
+
+'use client';
+
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { students, families } from '@/lib/data';
+import { notFound, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import type { Student, Family } from '@/lib/types';
+import { Badge } from '@/components/ui/badge';
+import Image from 'next/image';
+import { ArrowLeft } from 'lucide-react';
+
+export default function StudentDetailsPage({ params }: { params: { id: string } }) {
+  const router = useRouter();
+  const [student, setStudent] = useState<Student | undefined>(undefined);
+  const [family, setFamily] = useState<Family | undefined>(undefined);
+  const { id } = params;
+
+  useEffect(() => {
+    const studentData = students.find((s) => s.id === id);
+    if (studentData) {
+      setStudent(studentData);
+      const familyData = families.find((f) => f.id === studentData.familyId);
+      setFamily(familyData);
+    } else {
+      notFound();
+    }
+  }, [id]);
+
+  if (!student) {
+    return <div>Loading...</div>;
+  }
+
+  const DetailItem = ({ label, value }: { label: string, value: string | undefined }) => (
+    <div>
+      <p className="text-sm font-medium text-muted-foreground">{label}</p>
+      <p className="text-base font-semibold">{value || 'N/A'}</p>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+       <div className="flex items-center gap-4">
+        <Button variant="outline" size="icon" onClick={() => router.back()}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <h1 className="text-3xl font-bold font-headline">Student Details</h1>
+      </div>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-6">
+            <Image
+                alt="Student image"
+                className="aspect-square rounded-lg object-cover"
+                height="120"
+                src={student.photoUrl}
+                width="120"
+                data-ai-hint="student photo"
+            />
+            <div className='space-y-1'>
+                <CardTitle className="text-4xl">{student.name}</CardTitle>
+                <CardDescription className="text-lg">Student ID: {student.id} | Class: {student.class}</CardDescription>
+                <Badge variant={student.status === 'Active' ? 'default' : 'destructive'} className={student.status === 'Active' ? 'bg-green-500/20 text-green-700 border-green-500/30 w-fit' : 'w-fit'}>{student.status}</Badge>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-8">
+            <div>
+                <h3 className="text-xl font-semibold mb-4 border-b pb-2">Personal Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <DetailItem label="Date of Birth" value={student.dob} />
+                    <DetailItem label="Admission Date" value={student.admissionDate} />
+                    <DetailItem label="Contact Number" value={student.phone} />
+                    <div className="md:col-span-3">
+                     <DetailItem label="Address" value={student.address} />
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <h3 className="text-xl font-semibold mb-4 border-b pb-2">Family Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <DetailItem label="Family ID" value={student.familyId} />
+                    <DetailItem label="Father's Name" value={family?.fatherName} />
+                    <DetailItem label="Family Contact" value={family?.phone} />
+                    <div className="md:col-span-3">
+                        <DetailItem label="Family Address" value={family?.address} />
+                    </div>
+                </div>
+            </div>
+             <div className="flex justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={() => router.push(`/students/edit/${student.id}`)}>Edit Student</Button>
+            </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

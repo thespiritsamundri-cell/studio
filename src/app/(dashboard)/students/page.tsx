@@ -72,7 +72,9 @@ export default function StudentsPage() {
                         <DropdownMenuItem asChild>
                           <Link href={`/students/edit/${student.id}`}>Edit</Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/students/details/${student.id}`}>View Details</Link>
+                        </DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
