@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileDown, BookOpenCheck, DollarSign, Users, CalendarIcon, Loader2 } from 'lucide-react';
@@ -14,12 +14,13 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import type { Student } from '@/lib/types';
+import type { Student, Fee } from '@/lib/types';
 
 
 export default function ReportsPage() {
     const printRef = useRef<HTMLDivElement>(null);
     const [reportType, setReportType] = useState<string | null>(null);
+    const [isPrinting, setIsPrinting] = useState(false);
 
     // States for Attendance Report
     const [selectedClass, setSelectedClass] = useState<string | null>(null);
@@ -28,14 +29,23 @@ export default function ReportsPage() {
     const [isGeneratingAttendance, setIsGeneratingAttendance] = useState(false);
 
     // States for Fee Report
-    const [paidFees, setPaidFees] = useState<any[]>([]);
+    const [paidFees, setPaidFees] = useState<(Fee & {fatherName?: string})[]>([]);
     const [totalIncome, setTotalIncome] = useState(0);
+    
+    useEffect(() => {
+        if (isPrinting) {
+            window.print();
+            setIsPrinting(false);
+            // Reset report data after printing if needed
+            // setReportType(null); 
+        }
+    }, [isPrinting]);
 
     const handlePrint = (type: string) => {
         setReportType(type);
 
         if (type === 'students') {
-            // Data is already available
+            setIsPrinting(true);
         } else if (type === 'fees') {
             const feesWithFatherName = allFees
                 .filter(fee => fee.status === 'Paid')
@@ -45,6 +55,7 @@ export default function ReportsPage() {
                 });
             setPaidFees(feesWithFatherName);
             setTotalIncome(feesWithFatherName.reduce((acc, fee) => acc + fee.amount, 0));
+            setIsPrinting(true);
 
         } else if (type === 'attendance') {
             if (!selectedClass) {
@@ -57,14 +68,9 @@ export default function ReportsPage() {
                 const classStudents = allStudents.filter(s => s.class === selectedClass);
                 setStudentsForAttendance(classStudents);
                 setIsGeneratingAttendance(false);
-                 setTimeout(() => window.print(), 100);
+                setIsPrinting(true);
             }, 500);
-            return;
         }
-
-        setTimeout(() => {
-             window.print();
-        }, 100);
     };
     
     const getMockAttendance = () => {
