@@ -27,6 +27,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
     const { toast } = useToast();
     const [fees, setFees] = useState(initialFees);
     const [receiptData, setReceiptData] = useState<{fees: Fee[], paidAmount: number, totalDues: number, remainingDues: number} | null>(null);
+    const [isPrinting, setIsPrinting] = useState(false);
 
     const unpaidFees = fees.filter(f => f.status === 'Unpaid');
     const totalDues = unpaidFees.reduce((acc, fee) => acc + fee.amount, 0);
@@ -47,15 +48,15 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
 
     const handlePrint = useReactToPrint({
         content: () => printRef.current,
-        onAfterPrint: () => setReceiptData(null),
+        onAfterPrint: () => setIsPrinting(false),
     });
 
 
     useEffect(() => {
-        if (receiptData) {
+        if (isPrinting) {
             handlePrint();
         }
-    }, [receiptData, handlePrint]);
+    }, [isPrinting, handlePrint]);
 
 
     const handleCollectFee = () => {
@@ -71,13 +72,15 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
         let amountToSettle = paidAmount;
         const newlyPaidFees: Fee[] = [];
 
+        // Sort unpaid fees by date to ensure oldest are paid first
         const sortedUnpaidFees = [...unpaidFees].sort((a,b) => new Date(a.year, new Date(Date.parse(a.month +" 1, 2012")).getMonth()).getTime() - new Date(b.year, new Date(Date.parse(b.month +" 1, 2012")).getMonth()).getTime());
 
         const updatedFees = fees.map(fee => {
+            // Check if this fee is in our sorted list of fees to be paid
             const isUnpaidAndShouldBePaid = sortedUnpaidFees.find(f => f.id === fee.id);
             if (isUnpaidAndShouldBePaid && amountToSettle > 0) {
                 const payment = Math.min(amountToSettle, fee.amount);
-                 if (payment === fee.amount) {
+                 if (payment >= fee.amount) { // Full payment for this challan
                     amountToSettle -= fee.amount;
                     const paidFee = { ...fee, status: 'Paid' as 'Paid', paymentDate: new Date().toISOString().split('T')[0] };
                     newlyPaidFees.push(paidFee);
@@ -87,12 +90,13 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
             return fee;
         });
 
-        // This is a mock data update.
+        // Update the global mock data
         newlyPaidFees.forEach(fee => {
             const feeInGlobalData = allFees.find(f => f.id === fee.id);
             if (feeInGlobalData) {
                 feeInGlobalData.status = 'Paid';
                 feeInGlobalData.paymentDate = new Date().toISOString().split('T')[0];
+                feeInGlobalData.amount = fee.amount; // Ensure amount is correct
             }
         });
         
@@ -101,8 +105,9 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
             description: `PKR ${paidAmount.toLocaleString()} collected for Family ${family.id}.`,
         });
         
-        setFees(updatedFees); // This will trigger a re-render with the new state
-        setPaidAmount(updatedFees.filter(f => f.status === 'Unpaid').reduce((acc, fee) => acc + fee.amount, 0));
+        setFees(updatedFees);
+        const newDues = updatedFees.filter(f => f.status === 'Unpaid').reduce((acc, fee) => acc + fee.amount, 0);
+        setPaidAmount(newDues);
     };
 
     const triggerPrint = () => {
@@ -116,24 +121,25 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
             totalDues: totalDues,
             remainingDues: remainingDues
         });
+        setIsPrinting(true);
     };
 
 
     return (
         <>
             <div className="hidden">
-                <div ref={printRef}>
                 {receiptData && (
-                    <FeeReceipt
-                        family={family}
-                        students={students}
-                        fees={receiptData.fees}
-                        totalDues={receiptData.totalDues}
-                        paidAmount={receiptData.paidAmount}
-                        remainingDues={receiptData.remainingDues}
-                    />
+                    <div ref={printRef}>
+                        <FeeReceipt
+                            family={family}
+                            students={students}
+                            fees={receiptData.fees}
+                            totalDues={receiptData.totalDues}
+                            paidAmount={receiptData.paidAmount}
+                            remainingDues={receiptData.remainingDues}
+                        />
+                    </div>
                 )}
-                </div>
             </div>
             <Card>
                 <CardHeader>
