@@ -35,14 +35,18 @@ export default function AttendancePage() {
   });
   
   useEffect(() => {
-    if (isPrinting && reportDate) {
+    if (isPrinting && printRef.current) {
        setTimeout(() => {
         handlePrint();
       }, 0);
     }
-  }, [isPrinting, reportDate, handlePrint]);
+  }, [isPrinting, handlePrint]);
 
   const triggerPrint = () => {
+    if (!selectedClass) {
+        toast({ title: "No Class Selected", description: "Please select a class to print a report.", variant: "destructive" });
+        return;
+    }
     setReportDate(new Date());
     setIsPrinting(true);
   };

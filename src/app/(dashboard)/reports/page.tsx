@@ -24,7 +24,6 @@ export default function ReportsPage() {
 
   const [reportType, setReportType] = useState<string | null>(null);
   const [reportData, setReportData] = useState<any>(null);
-  const [isPrinting, setIsPrinting] = useState(false);
   const [isLoading, setIsLoading] = useState<string | null>(null);
 
   // States for Attendance Report
@@ -37,9 +36,11 @@ export default function ReportsPage() {
   }, []);
 
   const handlePrint = useReactToPrint({
-    content: () => printRef.current,
+    contentRef: printRef,
     onAfterPrint: () => {
       setIsLoading(null);
+      setReportData(null);
+      setReportType(null);
     },
   });
 
@@ -86,30 +87,22 @@ export default function ReportsPage() {
 
     setReportData(data);
     setReportType(type);
-    setIsPrinting(true);
+    
+    // Defer printing to allow state to update and component to render
+    setTimeout(() => {
+      handlePrint();
+    }, 100);
   };
   
-  useEffect(() => {
-    if (isPrinting && reportData && printRef.current) {
-        setTimeout(() => {
-            handlePrint();
-            setIsPrinting(false);
-            setReportData(null);
-            setReportType(null);
-        }, 100);
-    }
-  }, [isPrinting, reportData, handlePrint]);
-
-
   const renderReportComponent = () => {
     if (!reportData) return null;
     switch (reportType) {
         case 'students':
-            return <AllStudentsPrintReport ref={printRef} {...reportData} />;
+            return <AllStudentsPrintReport {...reportData} />;
         case 'fees':
-            return <IncomePrintReport ref={printRef} {...reportData} />;
+            return <IncomePrintReport {...reportData} />;
         case 'attendance':
-            return <AttendancePrintReport ref={printRef} {...reportData} />;
+            return <AttendancePrintReport {...reportData} />;
         default:
             return null;
     }

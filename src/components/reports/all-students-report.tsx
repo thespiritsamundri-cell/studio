@@ -11,7 +11,7 @@ import { format } from 'date-fns';
 
 interface AllStudentsPrintReportProps {
   students: Student[];
-  date: Date;
+  date: Date | null;
 }
 
 export const AllStudentsPrintReport = React.forwardRef<HTMLDivElement, AllStudentsPrintReportProps>(

@@ -26,7 +26,6 @@ interface FeeDetailsCardProps {
 export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFee }: FeeDetailsCardProps) {
     const { toast } = useToast();
     const [fees, setFees] = useState(initialFees);
-    const [isPrinting, setIsPrinting] = useState(false);
     const [receiptDataForPrint, setReceiptDataForPrint] = useState<{fees: Fee[], paidAmount: number, totalDues: number, remainingDues: number} | null>(null);
     const printRef = useRef<HTMLDivElement>(null);
     
@@ -47,18 +46,17 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
 
 
     const handlePrint = useReactToPrint({
-        content: () => printRef.current,
+        contentRef: printRef,
         onAfterPrint: () => {
-            setIsPrinting(false);
             setReceiptDataForPrint(null); // Clean up after printing
         },
     });
 
     useEffect(() => {
-        if (isPrinting && receiptDataForPrint) {
-            handlePrint();
+        if (receiptDataForPrint) {
+           setTimeout(() => handlePrint(), 0);
         }
-    }, [isPrinting, receiptDataForPrint, handlePrint]);
+    }, [receiptDataForPrint, handlePrint]);
 
     const remainingDues = totalDues - paidAmount;
 
@@ -133,15 +131,14 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
             totalDues: paidFeesForReceipt.length > 0 ? totalPaid : totalDues,
             remainingDues: paidFeesForReceipt.length > 0 ? newRemainingDues : remainingDues,
         });
-        setIsPrinting(true);
     };
 
 
     return (
         <>
             <div style={{ display: 'none' }}>
-                {receiptDataForPrint && (
-                    <div ref={printRef}>
+                <div ref={printRef}>
+                    {receiptDataForPrint && (
                         <FeeReceipt
                             family={family}
                             students={students}
@@ -150,8 +147,8 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
                             paidAmount={receiptDataForPrint.paidAmount}
                             remainingDues={receiptDataForPrint.remainingDues}
                         />
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
             <Card>
                 <CardHeader>

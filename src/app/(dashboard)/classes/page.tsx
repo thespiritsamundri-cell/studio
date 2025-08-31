@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -43,7 +43,7 @@ export default function ClassesPage() {
   const [studentsForReport, setStudentsForReport] = useState<Student[]>([]);
 
   const handlePrint = useReactToPrint({
-    content: () => printRef.current,
+    contentRef: printRef,
     documentTitle: "All Students Report",
     onAfterPrint: () => {
         setIsPrinting(false);
@@ -75,7 +75,6 @@ export default function ClassesPage() {
 
   useEffect(() => {
     if (isPrinting && reportDate && printRef.current) {
-        // Use timeout to ensure the component is mounted with the latest data before printing
         setTimeout(() => {
             handlePrint?.();
         }, 0);
@@ -203,7 +202,7 @@ export default function ClassesPage() {
   return (
     <div className="space-y-6">
       <div style={{ display: 'none' }}>
-        <AllStudentsPrintReport ref={printRef} students={studentsForReport} date={reportDate!} />
+        <AllStudentsPrintReport ref={printRef} students={studentsForReport} date={reportDate} />
       </div>
       <div className="print:hidden">
         <h1 className="text-3xl font-bold font-headline">Classes</h1>
