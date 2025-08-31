@@ -52,8 +52,7 @@ export default function TeachersPage() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
-    const lastIdNumber = teachers.reduce((maxId, teacher) => Math.max(maxId, parseInt(teacher.id.replace('T', ''))), 0);
-    const newId = `T${(lastIdNumber + 1).toString().padStart(2, '0')}`;
+    const teacherId = isEditing && selectedTeacher ? selectedTeacher.id : `T${(teachers.reduce((maxId, teacher) => Math.max(maxId, parseInt(teacher.id.replace('T', ''))), 0) + 1).toString().padStart(2, '0')}`;
 
     const teacherData = {
       name: formData.get('name') as string,
@@ -61,7 +60,7 @@ export default function TeachersPage() {
       phone: formData.get('phone') as string,
       education: formData.get('education') as string,
       salary: Number(formData.get('salary') as string),
-      photoUrl: (formData.get('photoUrl') as string) || `https://picsum.photos/seed/${newId}/200`,
+      photoUrl: (formData.get('photoUrl') as string) || `https://picsum.photos/seed/${teacherId}/200`,
     };
 
     if(!teacherData.name || !teacherData.phone || !teacherData.education || !teacherData.salary) {
@@ -73,7 +72,7 @@ export default function TeachersPage() {
       updateTeacher(selectedTeacher.id, { ...selectedTeacher, ...teacherData });
       toast({ title: "Teacher Updated", description: `${teacherData.name}'s record has been successfully updated.` });
     } else {
-      addTeacher({ id: newId, ...teacherData });
+      addTeacher({ id: teacherId, ...teacherData });
       toast({ title: "Teacher Added", description: `${teacherData.name} has been successfully added.` });
     }
 
