@@ -104,10 +104,10 @@ export default function StudentsPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               />
           </div>
-          <Button variant="outline" onClick={handlePrint} disabled={!printRef.current}>
+          <Button variant="outline" onClick={handlePrint}>
             <Printer className="mr-2" /> Print
           </Button>
-          <Button variant="outline" onClick={handlePrint} disabled={!printRef.current}>
+          <Button variant="outline" onClick={handlePrint}>
             <FileDown className="mr-2" /> PDF Export
           </Button>
           <Button variant="outline" onClick={handleExportCsv}>
