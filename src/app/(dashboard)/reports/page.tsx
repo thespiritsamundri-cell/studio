@@ -26,7 +26,7 @@ export default function ReportsPage() {
     
     const [reportType, setReportType] = useState<string | null>(null);
     const [reportData, setReportData] = useState<any>(null);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState<string | null>(null);
 
     // States for Attendance Report
     const [selectedClass, setSelectedClass] = useState<string | null>(null);
@@ -35,72 +35,78 @@ export default function ReportsPage() {
     const handlePrint = useReactToPrint({
         content: () => printRef.current,
         onAfterPrint: () => {
-            setReportType(null);
             setReportData(null);
+            setReportType(null);
         },
     });
 
-    useEffect(() => {
-        if (reportData && isLoading === false) {
-            handlePrint();
-        }
-    }, [reportData, isLoading, handlePrint]);
-
-    const generateReport = (type: string) => {
+    const generateReport = async (type: string) => {
+        setIsLoading(type);
         setReportType(type);
-        setIsLoading(true);
 
         // Simulate data fetching/processing
-        setTimeout(() => {
-            if (type === 'students') {
-                setReportData({
-                    students: allStudents,
-                    date: new Date(),
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        let data;
+        if (type === 'students') {
+            data = {
+                students: allStudents,
+                date: new Date(),
+            };
+        } else if (type === 'fees') {
+            const feesWithFatherName = allFees
+                .filter(fee => fee.status === 'Paid')
+                .map(fee => {
+                    const family = families.find(f => f.id === fee.familyId);
+                    return { ...fee, fatherName: family?.fatherName || 'N/A' };
                 });
-            } else if (type === 'fees') {
-                const feesWithFatherName = allFees
-                    .filter(fee => fee.status === 'Paid')
-                    .map(fee => {
-                        const family = families.find(f => f.id === fee.familyId);
-                        return { ...fee, fatherName: family?.fatherName || 'N/A' };
-                    });
-                setReportData({
-                    fees: feesWithFatherName,
-                    totalIncome: feesWithFatherName.reduce((acc, fee) => acc + fee.amount, 0),
-                });
-            } else if (type === 'attendance') {
-                if (!selectedClass) {
-                    toast({ title: 'Please select a class first.', variant: 'destructive' });
-                    setIsLoading(false);
-                    return;
-                }
-                const classStudents = allStudents.filter(s => s.class === selectedClass);
-                const mockAttendance: Record<string, 'Present' | 'Absent' | 'Leave'> = {};
-                classStudents.forEach(s => {
-                    const rand = Math.random();
-                    if (rand < 0.9) mockAttendance[s.id] = 'Present';
-                    else if (rand < 0.95) mockAttendance[s.id] = 'Absent';
-                    else mockAttendance[s.id] = 'Leave';
-                });
-                setReportData({
-                    className: selectedClass,
-                    date: attendanceDate,
-                    students: classStudents,
-                    attendance: mockAttendance,
-                });
+            data = {
+                fees: feesWithFatherName,
+                totalIncome: feesWithFatherName.reduce((acc, fee) => acc + fee.amount, 0),
+            };
+        } else if (type === 'attendance') {
+            if (!selectedClass) {
+                toast({ title: 'Please select a class first.', variant: 'destructive' });
+                setIsLoading(null);
+                setReportType(null);
+                return;
             }
-            setIsLoading(false);
-        }, 500); // Small delay to allow state to update and show loader
+            const classStudents = allStudents.filter(s => s.class === selectedClass);
+            const mockAttendance: Record<string, 'Present' | 'Absent' | 'Leave'> = {};
+            classStudents.forEach(s => {
+                const rand = Math.random();
+                if (rand < 0.9) mockAttendance[s.id] = 'Present';
+                else if (rand < 0.95) mockAttendance[s.id] = 'Absent';
+                else mockAttendance[s.id] = 'Leave';
+            });
+            data = {
+                className: selectedClass,
+                date: attendanceDate,
+                students: classStudents,
+                attendance: mockAttendance,
+            };
+        }
+        
+        setReportData(data);
+        setIsLoading(null);
+
+        // We need another short delay to let React render the report component with the new data
+        // before we trigger the print dialog.
+        setTimeout(() => {
+            handlePrint();
+        }, 100);
     };
     
   return (
     <div className="space-y-6">
        <div className="hidden">
-            <div ref={printRef}>
-                {reportType === 'students' && reportData && <AllStudentsPrintReport {...reportData} />}
-                {reportType === 'fees' && reportData && <IncomePrintReport {...reportData} />}
-                {reportType === 'attendance' && reportData && <AttendancePrintReport {...reportData} />}
-            </div>
+            {reportData && (
+                <div ref={printRef}>
+                    {reportType === 'students' && <AllStudentsPrintReport {...reportData} />}
+                    {reportType === 'fees' && <IncomePrintReport {...reportData} />}
+                    {reportType === 'attendance' && <AttendancePrintReport {...reportData} />}
+                </div>
+            )}
        </div>
 
       <div className="print:hidden">
@@ -117,8 +123,8 @@ export default function ReportsPage() {
                 </div>
             </CardHeader>
             <CardContent>
-                <Button onClick={() => generateReport('students')} disabled={isLoading && reportType === 'students'}>
-                    {isLoading && reportType === 'students' ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <FileDown className="mr-2 h-4 w-4" />} 
+                <Button onClick={() => generateReport('students')} disabled={isLoading === 'students'}>
+                    {isLoading === 'students' ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <FileDown className="mr-2 h-4 w-4" />} 
                     Download PDF
                 </Button>
             </CardContent>
@@ -134,8 +140,8 @@ export default function ReportsPage() {
                 </div>
             </CardHeader>
             <CardContent>
-                <Button onClick={() => generateReport('fees')} disabled={isLoading && reportType === 'fees'}>
-                    {isLoading && reportType === 'fees' ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <FileDown className="mr-2 h-4 w-4" />}
+                <Button onClick={() => generateReport('fees')} disabled={isLoading === 'fees'}>
+                    {isLoading === 'fees' ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <FileDown className="mr-2 h-4 w-4" />}
                     Download PDF
                 </Button>
             </CardContent>
@@ -183,8 +189,8 @@ export default function ReportsPage() {
                       />
                     </PopoverContent>
                   </Popover>
-                <Button onClick={() => generateReport('attendance')} disabled={!selectedClass || (isLoading && reportType === 'attendance')}>
-                  {isLoading && reportType === 'attendance' ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Generating...</> : <><FileDown className="mr-2 h-4 w-4" /> Download PDF</>}
+                <Button onClick={() => generateReport('attendance')} disabled={!selectedClass || isLoading === 'attendance'}>
+                  {isLoading === 'attendance' ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Generating...</> : <><FileDown className="mr-2 h-4 w-4" /> Download PDF</>}
                 </Button>
             </CardContent>
             </Card>
@@ -193,5 +199,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-
-    
