@@ -17,10 +17,10 @@ export const families: Family[] = [
 ];
 
 export const fees: Fee[] = [
-    { id: 'FEE01', familyId: '1', amount: 5000, month: 'April', year: 2024, paymentDate: '2024-04-05', status: 'Paid' },
-    { id: 'FEE02', familyId: '2', amount: 3500, month: 'April', year: 2024, paymentDate: '2024-04-08', status: 'Paid' },
+    { id: 'FEE01', familyId: '1', amount: 5000, month: 'April', year: 2024, paymentDate: '', status: 'Unpaid' },
+    { id: 'FEE02', familyId: '2', amount: 3500, month: 'April', year: 2024, paymentDate: '', status: 'Unpaid' },
     { id: 'FEE03', familyId: '1', amount: 5000, month: 'May', year: 2024, status: 'Unpaid', paymentDate: '' },
     { id: 'FEE04', familyId: '3', amount: 4000, month: 'May', year: 2024, status: 'Unpaid', paymentDate: '' },
-    { id: 'FEE05', familyId: '2', amount: 3500, month: 'May', year: 2024, paymentDate: '2024-05-06', status: 'Paid' },
+    { id: 'FEE05', familyId: '2', amount: 3500, month: 'May', year: 2024, paymentDate: '', status: 'Unpaid' },
     { id: 'FEE06', familyId: '4', amount: 3000, month: 'May', year: 2024, status: 'Unpaid', paymentDate: '' },
 ]

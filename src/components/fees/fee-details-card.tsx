@@ -27,6 +27,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
     const { toast } = useToast();
     const [fees, setFees] = useState(initialFees);
     const [receiptData, setReceiptData] = useState<{fees: Fee[], paidAmount: number, totalDues: number, remainingDues: number} | null>(null);
+    const [isPrinting, setIsPrinting] = useState(false);
 
     const unpaidFees = fees.filter(f => f.status === 'Unpaid');
     const totalDues = unpaidFees.reduce((acc, fee) => acc + fee.amount, 0);
@@ -39,6 +40,13 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
         const currentTotalDues = currentUnpaidFees.reduce((acc, fee) => acc + fee.amount, 0);
         setPaidAmount(currentTotalDues);
     }, [initialFees, family.id]);
+
+    useEffect(() => {
+        if(isPrinting) {
+            handlePrint();
+            setIsPrinting(false);
+        }
+    }, [isPrinting]);
 
     const remainingDues = totalDues - paidAmount;
     const printRef = useRef<HTMLDivElement>(null);
@@ -60,25 +68,25 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
 
         // This is a mock update. In a real app, you'd send this to an API.
         let amountToSettle = paidAmount;
-        const feesToPay = unpaidFees.filter(fee => {
-            if (amountToSettle > 0 && amountToSettle >= fee.amount) {
-                amountToSettle -= fee.amount;
-                return true;
-            }
-            return false;
-        });
+        const newlyPaidFees: Fee[] = [];
 
-        // Update local state for immediate UI feedback
+        const sortedUnpaidFees = [...unpaidFees].sort((a,b) => new Date(a.year, new Date(Date.parse(a.month +" 1, 2012")).getMonth()).getTime() - new Date(b.year, new Date(Date.parse(b.month +" 1, 2012")).getMonth()).getTime());
+
         const updatedFees = fees.map(fee => {
-            if (feesToPay.some(paidFee => paidFee.id === fee.id)) {
-                 return { ...fee, status: 'Paid' as 'Paid', paymentDate: new Date().toISOString().split('T')[0] };
+            const isUnpaidAndShouldBePaid = sortedUnpaidFees.find(f => f.id === fee.id && amountToSettle >= f.amount);
+            if (isUnpaidAndShouldBePaid) {
+                amountToSettle -= fee.amount;
+                const paidFee = { ...fee, status: 'Paid' as 'Paid', paymentDate: new Date().toISOString().split('T')[0] };
+                newlyPaidFees.push(paidFee);
+                return paidFee;
             }
             return fee;
         });
+
         setFees(updatedFees);
         
         // Update "global" mock data
-        feesToPay.forEach(fee => {
+        newlyPaidFees.forEach(fee => {
             const feeInGlobalData = allFees.find(f => f.id === fee.id);
             if (feeInGlobalData) {
                 feeInGlobalData.status = 'Paid';
@@ -93,7 +101,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
 
         // Set the data for the receipt
         setReceiptData({
-            fees: feesToPay,
+            fees: newlyPaidFees,
             paidAmount: paidAmount,
             totalDues: totalDues,
             remainingDues: remainingDues
@@ -105,7 +113,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
             toast({ title: 'No Receipt Data', description: 'Please collect a fee first to generate a receipt.', variant: 'destructive' });
             return;
         }
-        handlePrint();
+        setIsPrinting(true);
     };
 
 
