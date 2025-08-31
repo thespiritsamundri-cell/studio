@@ -75,6 +75,7 @@ export default function ClassesPage() {
 
   useEffect(() => {
     if (isPrinting && reportDate && printRef.current) {
+        // Use timeout to ensure the component is mounted with the latest data before printing
         setTimeout(() => {
             handlePrint?.();
         }, 0);
