@@ -103,11 +103,13 @@ export default function TeachersPage() {
     setSelectedTeacher(null);
   };
 
-  const handleDialogClose = () => {
-      setIsEditing(false);
-      setSelectedTeacher(null);
-      setPhotoPreview(null);
-      setOpenDialog(false);
+  const handleDialogClose = (isOpen: boolean) => {
+      if (!isOpen) {
+        setIsEditing(false);
+        setSelectedTeacher(null);
+        setPhotoPreview(null);
+      }
+      setOpenDialog(isOpen);
   }
 
   return (
@@ -129,18 +131,6 @@ export default function TeachersPage() {
             </DialogHeader>
             <form id="teacher-form" onSubmit={handleAddOrEditTeacher}>
               <div className="grid gap-4 py-4">
-                {photoPreview && (
-                  <div className="grid grid-cols-4 items-center gap-4">
-                      <Label className="text-right">Photo Preview</Label>
-                      <div className="col-span-3">
-                          <Image src={photoPreview} alt="New photo preview" width={80} height={80} className="rounded-full aspect-square object-cover" />
-                      </div>
-                  </div>
-                )}
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="photo" className="text-right">Photo</Label>
-                  <Input id="photo" name="photo" type="file" className="col-span-3" onChange={handlePhotoChange} accept="image/*" />
-                </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="name" className="text-right">Name</Label>
                   <Input id="name" name="name" className="col-span-3" defaultValue={selectedTeacher?.name} required />
@@ -161,9 +151,21 @@ export default function TeachersPage() {
                   <Label htmlFor="salary" className="text-right">Salary (PKR)</Label>
                   <Input id="salary" name="salary" type="number" className="col-span-3" defaultValue={selectedTeacher?.salary} required />
                 </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="photo" className="text-right">Photo</Label>
+                  <Input id="photo" name="photo" type="file" className="col-span-3" onChange={handlePhotoChange} accept="image/*" />
+                </div>
+                {photoPreview && (
+                  <div className="grid grid-cols-4 items-center gap-4">
+                      <Label className="text-right">Preview</Label>
+                      <div className="col-span-3">
+                          <Image src={photoPreview} alt="New photo preview" width={80} height={80} className="rounded-full aspect-square object-cover" />
+                      </div>
+                  </div>
+                )}
               </div>
                <DialogFooter>
-                <Button type="button" variant="ghost" onClick={handleDialogClose}>Cancel</Button>
+                <Button type="button" variant="ghost" onClick={() => handleDialogClose(false)}>Cancel</Button>
                 <Button type="submit" form="teacher-form">{isEditing ? 'Save Changes' : 'Add Teacher'}</Button>
               </DialogFooter>
             </form>
