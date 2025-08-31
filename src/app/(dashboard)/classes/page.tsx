@@ -43,12 +43,10 @@ export default function ClassesPage() {
   const [studentsForReport, setStudentsForReport] = useState<Student[]>([]);
 
   const handlePrint = useReactToPrint({
-    contentRef: printRef,
+    content: () => printRef.current,
     documentTitle: "All Students Report",
     onAfterPrint: () => {
         setIsPrinting(false);
-        setReportDate(null);
-        setStudentsForReport([]);
     },
   });
 
@@ -202,7 +200,7 @@ export default function ClassesPage() {
   return (
     <div className="space-y-6">
       <div style={{ display: 'none' }}>
-        {reportDate && <AllStudentsPrintReport ref={printRef} students={studentsForReport} date={reportDate} />}
+        {<AllStudentsPrintReport ref={printRef} students={studentsForReport} date={reportDate} />}
       </div>
       <div className="print:hidden">
         <h1 className="text-3xl font-bold font-headline">Classes</h1>
@@ -256,9 +254,6 @@ export default function ClassesPage() {
                     <div className="flex items-center gap-2">
                         <Button variant="outline" onClick={triggerPrint} disabled={studentsToExport.length === 0}>
                             <Printer className="mr-2 h-4 w-4" /> Print Selected
-                        </Button>
-                        <Button variant="outline" onClick={triggerPrint} disabled={studentsToExport.length === 0}>
-                            <FileDown className="mr-2 h-4 w-4" /> PDF Export
                         </Button>
                         <Button variant="outline" onClick={handleExportCsv} disabled={studentsToExport.length === 0}>
                             <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel Export

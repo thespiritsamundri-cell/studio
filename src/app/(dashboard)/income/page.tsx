@@ -109,11 +109,7 @@ export default function IncomePage() {
   return (
     <div className="space-y-6">
       <div style={{ display: 'none' }}>
-        {isPrinting && (
-            <div ref={printRef}>
-              <IncomePrintReport fees={filteredFees} totalIncome={totalIncome} dateRange={dateRange} />
-            </div>
-        )}
+        <IncomePrintReport ref={printRef} fees={filteredFees} totalIncome={totalIncome} dateRange={dateRange} />
       </div>
       <div className="print:hidden">
         <h1 className="text-3xl font-bold font-headline">Income</h1>
@@ -171,8 +167,7 @@ export default function IncomePage() {
                   <Button variant="ghost" onClick={() => { setDateRange(undefined); setFamilyIdFilter(''); }}>Clear Filters</Button>
               </div>
               <div className="flex items-center gap-2">
-                  <Button variant="outline" onClick={triggerPrint}><Printer className="mr-2 h-4 w-4" />Print</Button>
-                  <Button variant="outline" onClick={triggerPrint}><FileDown className="mr-2 h-4 w-4" />PDF Export</Button>
+                  <Button variant="outline" onClick={triggerPrint}><Printer className="mr-2 h-4 w-4" />Print Report</Button>
                   <Button variant="outline" onClick={handleExportCsv}><FileSpreadsheet className="mr-2 h-4 w-4" />Excel Export</Button>
               </div>
             </div>

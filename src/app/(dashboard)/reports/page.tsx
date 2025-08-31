@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileDown, BookOpenCheck, DollarSign, Users, CalendarIcon, Loader2 } from 'lucide-react';
+import { FileDown, BookOpenCheck, DollarSign, Users, CalendarIcon, Loader2, Printer } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import { AllStudentsPrintReport } from '@/components/reports/all-students-report';
 import { IncomePrintReport } from '@/components/reports/income-report';
@@ -24,7 +24,9 @@ export default function ReportsPage() {
 
   const [reportType, setReportType] = useState<string | null>(null);
   const [reportData, setReportData] = useState<any>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
   const [isLoading, setIsLoading] = useState<string | null>(null);
+
 
   // States for Attendance Report
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
@@ -36,13 +38,20 @@ export default function ReportsPage() {
   }, []);
 
   const handlePrint = useReactToPrint({
-    contentRef: printRef,
+    content: () => printRef.current,
     onAfterPrint: () => {
+      setIsPrinting(false);
       setIsLoading(null);
       setReportData(null);
       setReportType(null);
     },
   });
+  
+  useEffect(() => {
+      if (isPrinting && printRef.current) {
+          handlePrint();
+      }
+  }, [isPrinting, handlePrint]);
 
   const generateReport = (type: string) => {
     setIsLoading(type);
@@ -90,19 +99,22 @@ export default function ReportsPage() {
     
     // Defer printing to allow state to update and component to render
     setTimeout(() => {
-      handlePrint();
+      setIsPrinting(true);
     }, 100);
   };
   
   const renderReportComponent = () => {
     if (!reportData) return null;
+    
+    const propsWithRef = { ...reportData, ref: printRef };
+
     switch (reportType) {
         case 'students':
-            return <AllStudentsPrintReport {...reportData} />;
+            return <AllStudentsPrintReport {...propsWithRef} />;
         case 'fees':
-            return <IncomePrintReport {...reportData} />;
+            return <IncomePrintReport {...propsWithRef} />;
         case 'attendance':
-            return <AttendancePrintReport {...reportData} />;
+            return <AttendancePrintReport {...propsWithRef} />;
         default:
             return null;
     }
@@ -112,9 +124,7 @@ export default function ReportsPage() {
     <div className="space-y-6">
       {/* Printable content, always in DOM but hidden */}
       <div className="hidden">
-        <div ref={printRef}>
           {renderReportComponent()}
-        </div>
       </div>
 
 
@@ -129,7 +139,7 @@ export default function ReportsPage() {
                 <Users className='w-8 h-8 text-primary' />
                 <div>
                   <CardTitle>Student Data Report</CardTitle>
-                  <CardDescription>Export complete data of all students.</CardDescription>
+                  <CardDescription>Generate a printable report of all students.</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -137,8 +147,8 @@ export default function ReportsPage() {
               <Button onClick={() => generateReport('students')} disabled={isLoading === 'students'}>
                 {isLoading === 'students'
                   ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  : <FileDown className="mr-2 h-4 w-4" />}
-                Download PDF
+                  : <Printer className="mr-2 h-4 w-4" />}
+                Print Report
               </Button>
             </CardContent>
           </Card>
@@ -150,7 +160,7 @@ export default function ReportsPage() {
                 <DollarSign className='w-8 h-8 text-primary' />
                 <div>
                   <CardTitle>Fee Collection Report</CardTitle>
-                  <CardDescription>Reports on all fee collections.</CardDescription>
+                  <CardDescription>Generate a report of all fee collections.</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -158,8 +168,8 @@ export default function ReportsPage() {
               <Button onClick={() => generateReport('fees')} disabled={isLoading === 'fees'}>
                 {isLoading === 'fees'
                   ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  : <FileDown className="mr-2 h-4 w-4" />}
-                Download PDF
+                  : <Printer className="mr-2 h-4 w-4" />}
+                Print Report
               </Button>
             </CardContent>
           </Card>
@@ -171,7 +181,7 @@ export default function ReportsPage() {
                 <BookOpenCheck className='w-8 h-8 text-primary' />
                 <div>
                   <CardTitle>Attendance Report</CardTitle>
-                  <CardDescription>Daily report for a selected class.</CardDescription>
+                  <CardDescription>Print a daily report for a selected class.</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -200,7 +210,7 @@ export default function ReportsPage() {
               <Button onClick={() => generateReport('attendance')} disabled={!selectedClass || isLoading === 'attendance'}>
                 {isLoading === 'attendance'
                   ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...</>
-                  : <><FileDown className="mr-2 h-4 w-4" /> Download PDF</>}
+                  : <><Printer className="mr-2 h-4 w-4" /> Print Report</>}
               </Button>
             </CardContent>
           </Card>

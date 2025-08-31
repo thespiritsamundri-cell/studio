@@ -65,7 +65,9 @@ export default function StudentsPage() {
 
   useEffect(() => {
     if (isPrinting && reportDate && printRef.current) {
-      handlePrint();
+      setTimeout(() => {
+        handlePrint();
+      }, 100);
     }
   }, [isPrinting, reportDate, handlePrint]);
 
@@ -111,11 +113,7 @@ export default function StudentsPage() {
   return (
     <div className="space-y-6">
       <div style={{ display: 'none' }}>
-        {isPrinting && reportDate && (
-            <div ref={printRef}>
-            <AllStudentsPrintReport students={filteredStudents} date={reportDate} />
-            </div>
-        )}
+        <AllStudentsPrintReport ref={printRef} students={filteredStudents} date={reportDate} />
       </div>
 
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -143,13 +141,10 @@ export default function StudentsPage() {
             </SelectContent>
           </Select>
           <Button variant="outline" onClick={triggerPrint}>
-            <Printer className="mr-2" /> Print
-          </Button>
-          <Button variant="outline" onClick={triggerPrint}>
-            <FileDown className="mr-2" /> PDF Export
+            <Printer className="mr-2 h-4 w-4" /> Print
           </Button>
           <Button variant="outline" onClick={handleExportCsv}>
-            <FileSpreadsheet className="mr-2" /> Excel Export
+            <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel Export
           </Button>
         </div>
       </div>
