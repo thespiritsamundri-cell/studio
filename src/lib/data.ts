@@ -2,18 +2,18 @@
 import type { Student, Family, Fee, Teacher, TeacherAttendance } from './types';
 
 export const students: Student[] = [
-  { id: 'S001', name: 'Ali Khan', fatherName: 'Ahmed Khan', class: '5th', admissionDate: '2023-03-15', familyId: '1', status: 'Active', phone: '03001234567', address: '123, Main St, Lahore', dob: '2013-05-20', photoUrl: 'https://picsum.photos/seed/S001/100/100' },
-  { id: 'S002', name: 'Fatima Ahmed', fatherName: 'Zubair Ahmed', class: '3rd', admissionDate: '2022-04-01', familyId: '2', status: 'Active', phone: '03217654321', address: '456, Park Ave, Karachi', dob: '2015-08-10', photoUrl: 'https://picsum.photos/seed/S002/100/100' },
-  { id: 'S003', name: 'Bilal Raza', fatherName: 'Ahmed Khan', class: '8th', admissionDate: '2021-08-20', familyId: '1', status: 'Active', phone: '03001234567', address: '123, Main St, Lahore', dob: '2010-01-30', photoUrl: 'https://picsum.photos/seed/S003/100/100' },
-  { id: 'S004', name: 'Ayesha Malik', fatherName: 'Imran Malik', class: '5th', admissionDate: '2023-09-10', familyId: '3', status: 'Active', phone: '03339876543', address: '789, Gulberg, Lahore', dob: '2013-11-25', photoUrl: 'https://picsum.photos/seed/S004/100/100' },
-  { id: 'S005', name: 'Usman Ali', fatherName: 'Tariq Ali', class: '3rd', admissionDate: '2022-07-22', familyId: '4', status: 'Inactive', phone: '03451122334', address: 'G-10, Islamabad', dob: '2015-02-15', photoUrl: 'https://picsum.photos/seed/S005/100/100' },
+  { id: 'S001', name: 'Ali Khan', fatherName: 'Ahmed Khan', class: '5th', admissionDate: '2023-03-15', familyId: '1', status: 'Active', phone: '03001234567', address: '123, Main St, Lahore', dob: '2013-05-20', photoUrl: 'https://picsum.photos/seed/S001/100/100', cnic: '35202-1111111-1' },
+  { id: 'S002', name: 'Fatima Ahmed', fatherName: 'Zubair Ahmed', class: '3rd', admissionDate: '2022-04-01', familyId: '2', status: 'Active', phone: '03217654321', address: '456, Park Ave, Karachi', dob: '2015-08-10', photoUrl: 'https://picsum.photos/seed/S002/100/100', cnic: '42101-2222222-2' },
+  { id: 'S003', name: 'Bilal Raza', fatherName: 'Ahmed Khan', class: '8th', admissionDate: '2021-08-20', familyId: '1', status: 'Active', phone: '03001234567', address: '123, Main St, Lahore', dob: '2010-01-30', photoUrl: 'https://picsum.photos/seed/S003/100/100', cnic: '35202-3333333-3' },
+  { id: 'S004', name: 'Ayesha Malik', fatherName: 'Imran Malik', class: '5th', admissionDate: '2023-09-10', familyId: '3', status: 'Active', phone: '03339876543', address: '789, Gulberg, Lahore', dob: '2013-11-25', photoUrl: 'https://picsum.photos/seed/S004/100/100', cnic: '35202-4444444-4' },
+  { id: 'S005', name: 'Usman Ali', fatherName: 'Tariq Ali', class: '3rd', admissionDate: '2022-07-22', familyId: '4', status: 'Inactive', phone: '03451122334', address: 'G-10, Islamabad', dob: '2015-02-15', photoUrl: 'https://picsum.photos/seed/S005/100/100', cnic: '17301-5555555-5' },
 ];
 
 export const families: Family[] = [
-    { id: '1', fatherName: 'Ahmed Khan', phone: '03001234567', address: '123, Main St, Lahore' },
-    { id: '2', fatherName: 'Zubair Ahmed', phone: '03217654321', address: '456, Park Ave, Karachi' },
-    { id: '3', fatherName: 'Imran Malik', phone: '03339876543', address: '789, Gulberg, Lahore' },
-    { id: '4', fatherName: 'Tariq Ali', phone: '03451122334', address: 'G-10, Islamabad' },
+    { id: '1', fatherName: 'Ahmed Khan', phone: '03001234567', address: '123, Main St, Lahore', cnic: '35202-0000001-1' },
+    { id: '2', fatherName: 'Zubair Ahmed', phone: '03217654321', address: '456, Park Ave, Karachi', cnic: '42101-0000002-1' },
+    { id: '3', fatherName: 'Imran Malik', phone: '03339876543', address: '789, Gulberg, Lahore', cnic: '35202-0000003-1' },
+    { id: '4', fatherName: 'Tariq Ali', phone: '03451122334', address: 'G-10, Islamabad', cnic: '17301-0000004-1' },
 ];
 
 export const teachers: Teacher[] = [

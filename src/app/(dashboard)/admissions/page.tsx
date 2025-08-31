@@ -33,6 +33,7 @@ export default function AdmissionsPage() {
     const [studentClass, setStudentClass] = useState('');
     const [phone, setPhone] = useState('');
     const [address, setAddress] = useState('');
+    const [studentCnic, setStudentCnic] = useState('');
 
     // State for dynamic fees
     const [customFees, setCustomFees] = useState<CustomFee[]>([]);
@@ -111,6 +112,7 @@ export default function AdmissionsPage() {
             phone: phone,
             address: address,
             dob: dob,
+            cnic: studentCnic,
             photoUrl: `https://picsum.photos/seed/${newStudentId}/100/100`
         };
 
@@ -174,6 +176,7 @@ export default function AdmissionsPage() {
         setStudentName('');
         setDob('');
         setStudentClass('');
+        setStudentCnic('');
         setCustomFees([]);
     };
 
@@ -219,7 +222,13 @@ export default function AdmissionsPage() {
                 Search
               </Button>
             </div>
-            {familyExists && <p className="mt-2 text-sm font-medium text-green-600">Family verified. You can proceed.</p>}
+            {familyExists && foundFamily && (
+              <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg max-w-sm">
+                <p className="font-semibold text-green-800">Family Verified</p>
+                <p className="text-sm text-green-700">Father's Name: {foundFamily.fatherName}</p>
+                <p className="text-sm text-green-700">CNIC: {foundFamily.cnic}</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -236,11 +245,15 @@ export default function AdmissionsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="father-name">Father's Name</Label>
-                <Input id="father-name" name="father-name" placeholder="Enter father's name" value={fatherName} onChange={e => setFatherName(e.target.value)} required />
+                <Input id="father-name" name="father-name" placeholder="Enter father's name" value={fatherName} onChange={e => setFatherName(e.target.value)} required readOnly={familyExists} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="dob">Date of Birth</Label>
                 <Input id="dob" name="dob" type="date" value={dob} onChange={e => setDob(e.target.value)} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="studentCnic">Student CNIC / B-Form</Label>
+                <Input id="studentCnic" name="studentCnic" placeholder="e.g. 12345-1234567-1" value={studentCnic} onChange={e => setStudentCnic(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="class">Class to Admit</Label>
@@ -259,7 +272,7 @@ export default function AdmissionsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number</Label>
-                <Input id="phone" name="phone" type="tel" placeholder="Enter contact number" value={phone} onChange={e => setPhone(e.target.value)} required />
+                <Input id="phone" name="phone" type="tel" placeholder="Enter contact number" value={phone} onChange={e => setPhone(e.target.value)} required readOnly={familyExists} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="photo">Student Photo</Label>
@@ -267,7 +280,7 @@ export default function AdmissionsPage() {
               </div>
               <div className="space-y-2 md:col-span-3">
                 <Label htmlFor="address">Address</Label>
-                <Textarea id="address" name="address" placeholder="Enter residential address" value={address} onChange={e => setAddress(e.target.value)} required />
+                <Textarea id="address" name="address" placeholder="Enter residential address" value={address} onChange={e => setAddress(e.target.value)} required readOnly={familyExists} />
               </div>
             </div>
           </CardContent>

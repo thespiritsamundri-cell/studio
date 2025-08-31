@@ -64,7 +64,8 @@ export default function FamiliesPage() {
     const filtered = allFamilies.filter(
         (family) =>
             family.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            family.fatherName.toLowerCase().includes(searchQuery.toLowerCase())
+            family.fatherName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            family.cnic?.toLowerCase().includes(searchQuery.toLowerCase())
     );
     setFilteredFamilies(filtered);
   };
@@ -84,6 +85,7 @@ export default function FamiliesPage() {
     const fatherName = formData.get('fatherName') as string;
     const phone = formData.get('phone') as string;
     const address = formData.get('address') as string;
+    const cnic = formData.get('cnic') as string;
 
     if(!fatherName || !phone || !address) {
         toast({
@@ -105,6 +107,7 @@ export default function FamiliesPage() {
       fatherName,
       phone,
       address,
+      cnic,
     };
 
     addFamily(newFamily);
@@ -127,6 +130,7 @@ export default function FamiliesPage() {
       fatherName: formData.get('editFatherName') as string,
       phone: formData.get('editPhone') as string,
       address: formData.get('editAddress') as string,
+      cnic: formData.get('editCnic') as string,
     };
 
     updateFamily(selectedFamily.id, updatedFamily);
@@ -188,6 +192,10 @@ export default function FamiliesPage() {
                   <Input id="fatherName" name="fatherName" className="col-span-3" required />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="cnic" className="text-right">Father's CNIC</Label>
+                  <Input id="cnic" name="cnic" className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="phone" className="text-right">Phone</Label>
                   <Input id="phone" name="phone" type="tel" className="col-span-3" required />
                 </div>
@@ -213,7 +221,7 @@ export default function FamiliesPage() {
           <form onSubmit={handleSearch} className="flex items-center space-x-2 mb-4">
             <Input 
               type="text" 
-              placeholder="Search by Family ID or Name..." 
+              placeholder="Search by Family ID, Name, or CNIC..." 
               className="max-w-sm" 
               value={searchQuery}
               onChange={handleSearchInputChange}
@@ -228,6 +236,7 @@ export default function FamiliesPage() {
               <TableRow>
                 <TableHead>Family ID</TableHead>
                 <TableHead>Father's Name</TableHead>
+                <TableHead>CNIC</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead className="hidden md:table-cell">Address</TableHead>
                 <TableHead>
@@ -240,6 +249,7 @@ export default function FamiliesPage() {
                 <TableRow key={family.id}>
                   <TableCell className="font-medium">{family.id}</TableCell>
                   <TableCell>{family.fatherName}</TableCell>
+                  <TableCell>{family.cnic}</TableCell>
                   <TableCell>{family.phone}</TableCell>
                   <TableCell className="hidden md:table-cell">{family.address}</TableCell>
                   <TableCell>
@@ -266,7 +276,7 @@ export default function FamiliesPage() {
               ))}
                {filteredFamilies.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
+                  <TableCell colSpan={6} className="h-24 text-center">
                     No families found.
                   </TableCell>
                 </TableRow>
@@ -290,6 +300,10 @@ export default function FamiliesPage() {
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="editFatherName" className="text-right">Father's Name</Label>
                 <Input id="editFatherName" name="editFatherName" className="col-span-3" defaultValue={selectedFamily?.fatherName} required />
+              </div>
+               <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="editCnic" className="text-right">Father's CNIC</Label>
+                <Input id="editCnic" name="editCnic" className="col-span-3" defaultValue={selectedFamily?.cnic} />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="editPhone" className="text-right">Phone</Label>
@@ -329,5 +343,3 @@ export default function FamiliesPage() {
     </div>
   );
 }
-
-    

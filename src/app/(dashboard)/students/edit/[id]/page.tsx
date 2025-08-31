@@ -90,6 +90,10 @@ export default function EditStudentPage() {
               <Input id="dob" type="date" value={student.dob} onChange={handleInputChange} />
             </div>
             <div className="space-y-2">
+                <Label htmlFor="cnic">Student CNIC / B-Form</Label>
+                <Input id="cnic" value={student.cnic} onChange={handleInputChange} placeholder="e.g. 12345-1234567-1" />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="class">Class</Label>
               <Select value={student.class} onValueChange={handleSelectChange('class')}>
                 <SelectTrigger id="class">

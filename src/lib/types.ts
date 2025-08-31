@@ -1,3 +1,4 @@
+
 export interface Student {
   id: string;
   name: string;
@@ -10,6 +11,7 @@ export interface Student {
   address: string;
   dob: string;
   photoUrl: string;
+  cnic?: string;
 }
 
 export interface Family {
@@ -17,6 +19,7 @@ export interface Family {
   fatherName: string;
   phone: string;
   address: string;
+  cnic?: string;
 }
 
 export interface Teacher {
