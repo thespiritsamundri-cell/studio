@@ -7,11 +7,17 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search } from 'lucide-react';
+import { Search, PlusCircle, X } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useData } from '@/context/data-context';
 import type { Student, Fee, Family } from '@/lib/types';
+
+interface CustomFee {
+  id: number;
+  name: string;
+  amount: number;
+}
 
 export default function AdmissionsPage() {
     const { toast } = useToast();
@@ -27,6 +33,9 @@ export default function AdmissionsPage() {
     const [studentClass, setStudentClass] = useState('');
     const [phone, setPhone] = useState('');
     const [address, setAddress] = useState('');
+
+    // State for dynamic fees
+    const [customFees, setCustomFees] = useState<CustomFee[]>([]);
     
     useEffect(() => {
         if (foundFamily) {
@@ -105,33 +114,52 @@ export default function AdmissionsPage() {
             photoUrl: `https://picsum.photos/seed/${newStudentId}/100/100`
         };
 
-        const lastFeeId = fees.reduce((max, f) => {
+        let lastFeeId = fees.reduce((max, f) => {
             const idNum = parseInt(f.id.replace('FEE', ''));
             return idNum > max ? idNum : max;
         }, 0);
         
-        const newRegFee: Fee = {
-            id: `FEE${String(lastFeeId + 1).padStart(2, '0')}`,
+        const feesToAdd: Fee[] = [];
+
+        // Registration Fee
+        feesToAdd.push({
+            id: `FEE${String(++lastFeeId).padStart(2, '0')}`,
             familyId: familyId,
             amount: registrationFee,
             month: 'Registration',
             year: new Date().getFullYear(),
             status: 'Unpaid',
             paymentDate: ''
-        };
-        const newMonthlyFee: Fee = {
-            id: `FEE${String(lastFeeId + 2).padStart(2, '0')}`,
+        });
+
+        // Monthly Fee
+        feesToAdd.push({
+            id: `FEE${String(++lastFeeId).padStart(2, '0')}`,
             familyId: familyId,
             amount: monthlyFee,
             month: new Date().toLocaleString('default', { month: 'long' }),
             year: new Date().getFullYear(),
             status: 'Unpaid',
             paymentDate: ''
-        };
+        });
+
+        // Custom Fees
+        customFees.forEach(fee => {
+            if (fee.name && fee.amount > 0) {
+                 feesToAdd.push({
+                    id: `FEE${String(++lastFeeId).padStart(2, '0')}`,
+                    familyId: familyId,
+                    amount: fee.amount,
+                    month: fee.name, // Use the custom fee name as the description
+                    year: new Date().getFullYear(),
+                    status: 'Unpaid',
+                    paymentDate: ''
+                });
+            }
+        });
 
         addStudent(newStudent);
-        addFee(newRegFee);
-        addFee(newMonthlyFee);
+        feesToAdd.forEach(fee => addFee(fee));
         
         toast({
             title: 'Student Admitted!',
@@ -146,6 +174,23 @@ export default function AdmissionsPage() {
         setStudentName('');
         setDob('');
         setStudentClass('');
+        setCustomFees([]);
+    };
+
+    const addCustomFeeField = () => {
+        setCustomFees(prev => [...prev, { id: Date.now(), name: '', amount: 0 }]);
+    };
+
+    const removeCustomFeeField = (id: number) => {
+        setCustomFees(prev => prev.filter(fee => fee.id !== id));
+    };
+
+    const handleCustomFeeChange = (id: number, field: 'name' | 'amount', value: string) => {
+        setCustomFees(prev => prev.map(fee => 
+            fee.id === id 
+                ? { ...fee, [field]: field === 'amount' ? Number(value) : value } 
+                : fee
+        ));
     };
 
   return (
@@ -230,10 +275,18 @@ export default function AdmissionsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Fee Structure</CardTitle>
-            <CardDescription>
-              Define the fee structure for this student. The registration fee is a one-time charge.
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Fee Structure</CardTitle>
+                <CardDescription>
+                  Define the fee structure for this student. The registration fee is a one-time charge.
+                </CardDescription>
+              </div>
+              <Button type="button" variant="outline" size="icon" onClick={addCustomFeeField}>
+                  <PlusCircle className="h-4 w-4" />
+                  <span className="sr-only">Add Fee Type</span>
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -245,14 +298,37 @@ export default function AdmissionsPage() {
                 <Label htmlFor="monthly-fee">Monthly Tution Fee (PKR)</Label>
                 <Input id="monthly-fee" name="monthly-fee" type="number" placeholder="e.g., 2500" required />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="annual-charges">Annual Charges (PKR)</Label>
-                <Input id="annual-charges" name="annual-charges" type="number" placeholder="e.g., 3000" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="summer-peak-fee">Summer Peak Fee (PKR)</Label>
-                <Input id="summer-peak-fee" name="summer-peak-fee" type="number" placeholder="e.g., 1500" />
-              </div>
+               {customFees.map((fee, index) => (
+                    <div key={fee.id} className="grid grid-cols-10 gap-x-2">
+                        <div className="space-y-2 col-span-5">
+                            <Label htmlFor={`custom-fee-name-${fee.id}`}>Fee Name</Label>
+                            <Input 
+                                id={`custom-fee-name-${fee.id}`} 
+                                name={`custom-fee-name-${index}`}
+                                placeholder="e.g., Annual" 
+                                value={fee.name}
+                                onChange={(e) => handleCustomFeeChange(fee.id, 'name', e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2 col-span-4">
+                            <Label htmlFor={`custom-fee-amount-${fee.id}`}>Amount</Label>
+                            <Input 
+                                id={`custom-fee-amount-${fee.id}`}
+                                name={`custom-fee-amount-${index}`}
+                                type="number" 
+                                placeholder="e.g., 3000" 
+                                value={fee.amount === 0 ? '' : fee.amount}
+                                onChange={(e) => handleCustomFeeChange(fee.id, 'amount', e.target.value)}
+                            />
+                        </div>
+                        <div className="flex items-end col-span-1">
+                             <Button type="button" variant="ghost" size="icon" onClick={() => removeCustomFeeField(fee.id)}>
+                                <X className="h-4 w-4 text-destructive" />
+                                <span className="sr-only">Remove</span>
+                            </Button>
+                        </div>
+                    </div>
+                ))}
             </div>
           </CardContent>
         </Card>
