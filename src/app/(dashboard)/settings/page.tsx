@@ -11,12 +11,16 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, QrCode, KeyRound } from 'lucide-react';
+import { Download, Upload, QrCode, KeyRound, Loader2 } from 'lucide-react';
 import { students, families, fees } from '@/lib/data';
+import { useState } from 'react';
+import { generateQrCode } from '@/ai/flows/generate-qr-code';
 
 export default function SettingsPage() {
   const { settings, setSettings } = useSettings();
   const { toast } = useToast();
+  const [qrCodeUri, setQrCodeUri] = useState<string | null>(null);
+  const [isGeneratingQr, setIsGeneratingQr] = useState(false);
 
   const handleSave = () => {
     toast({
@@ -110,6 +114,24 @@ export default function SettingsPage() {
     reader.readAsText(file);
     event.target.value = ''; // Reset file input
   };
+  
+  const handleGenerateQr = async () => {
+    setIsGeneratingQr(true);
+    try {
+        const result = await generateQrCode({ content: `https://wa.me/123456789?text=connect` });
+        setQrCodeUri(result.qrCodeDataUri);
+    } catch (error) {
+        console.error("Failed to generate QR code", error);
+        toast({
+            title: 'QR Generation Failed',
+            description: 'Could not generate a new QR code. Please try again.',
+            variant: 'destructive'
+        })
+    } finally {
+        setIsGeneratingQr(false);
+    }
+  }
+
 
   return (
     <div className="space-y-6">
@@ -174,15 +196,24 @@ export default function SettingsPage() {
                <Card>
                  <CardContent className="pt-6 flex flex-col items-center justify-center text-center">
                     <p className="mb-4 text-muted-foreground">Scan this QR code with your WhatsApp linked devices to connect.</p>
-                    <Image
-                        src="https://placehold.co/200x200/e2e8f0/64748b?text=QR+Code"
-                        alt="WhatsApp QR Code Placeholder"
-                        width={200}
-                        height={200}
-                        className="rounded-lg border p-2"
-                        data-ai-hint="qr code"
-                    />
-                    <Button className="mt-4">Generate New Code</Button>
+                     <div className="w-[200px] h-[200px] rounded-lg border p-2 flex items-center justify-center">
+                        {isGeneratingQr && !qrCodeUri && <Loader2 className="w-10 h-10 animate-spin text-primary" />}
+                        {qrCodeUri ? (
+                             <Image
+                                src={qrCodeUri}
+                                alt="WhatsApp QR Code"
+                                width={200}
+                                height={200}
+                                className="rounded-md"
+                                data-ai-hint="qr code"
+                            />
+                        ) : (
+                           !isGeneratingQr && <div className="text-sm text-muted-foreground">Click button to generate QR</div>
+                        )}
+                    </div>
+                    <Button className="mt-4" onClick={handleGenerateQr} disabled={isGeneratingQr}>
+                        {isGeneratingQr ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Generating...</> : 'Generate New Code'}
+                    </Button>
                  </CardContent>
                </Card>
             </TabsContent>
