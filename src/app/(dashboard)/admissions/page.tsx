@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -11,24 +11,47 @@ import { Search } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useData } from '@/context/data-context';
-import type { Student, Fee } from '@/lib/types';
+import type { Student, Fee, Family } from '@/lib/types';
 
 export default function AdmissionsPage() {
     const { toast } = useToast();
     const { families, students, fees, addStudent, addFee } = useData();
     const [familyId, setFamilyId] = useState('');
     const [familyExists, setFamilyExists] = useState(false);
+    const [foundFamily, setFoundFamily] = useState<Family | null>(null);
+
+    // Form state for student details
+    const [studentName, setStudentName] = useState('');
+    const [fatherName, setFatherName] = useState('');
+    const [dob, setDob] = useState('');
+    const [studentClass, setStudentClass] = useState('');
+    const [phone, setPhone] = useState('');
+    const [address, setAddress] = useState('');
+    
+    useEffect(() => {
+        if (foundFamily) {
+            setFatherName(foundFamily.fatherName);
+            setPhone(foundFamily.phone);
+            setAddress(foundFamily.address);
+        } else {
+            setFatherName('');
+            setPhone('');
+            setAddress('');
+        }
+    }, [foundFamily]);
     
     const handleFamilySearch = () => {
         const family = families.find(f => f.id === familyId);
         if (family) {
             setFamilyExists(true);
+            setFoundFamily(family);
             toast({
                 title: 'Family Found',
                 description: `Family "${family.fatherName}" is selected. You can now proceed with admission.`,
             });
         } else {
             setFamilyExists(false);
+            setFoundFamily(null);
             toast({
                 title: 'Family Not Found',
                 description: 'This family ID does not exist. Please add them from the Families page first.',
@@ -50,13 +73,6 @@ export default function AdmissionsPage() {
         }
 
         const formData = new FormData(e.currentTarget);
-        
-        const studentName = formData.get('student-name') as string;
-        const fatherName = formData.get('father-name') as string;
-        const dob = formData.get('dob') as string;
-        const studentClass = formData.get('class') as string;
-        const phone = formData.get('phone') as string;
-        const address = formData.get('address') as string;
         const registrationFee = Number(formData.get('registration-fee'));
         const monthlyFee = Number(formData.get('monthly-fee'));
 
@@ -122,9 +138,14 @@ export default function AdmissionsPage() {
             description: `${studentName} has been successfully admitted to ${studentClass} class.`,
         });
 
+        // Reset form
         e.currentTarget.reset();
         setFamilyId('');
         setFamilyExists(false);
+        setFoundFamily(null);
+        setStudentName('');
+        setDob('');
+        setStudentClass('');
     };
 
   return (
@@ -166,19 +187,19 @@ export default function AdmissionsPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="student-name">Student Name</Label>
-                <Input id="student-name" name="student-name" placeholder="Enter full name" required />
+                <Input id="student-name" name="student-name" placeholder="Enter full name" value={studentName} onChange={e => setStudentName(e.target.value)} required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="father-name">Father's Name</Label>
-                <Input id="father-name" name="father-name" placeholder="Enter father's name" required />
+                <Input id="father-name" name="father-name" placeholder="Enter father's name" value={fatherName} onChange={e => setFatherName(e.target.value)} required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="dob">Date of Birth</Label>
-                <Input id="dob" name="dob" type="date" required />
+                <Input id="dob" name="dob" type="date" value={dob} onChange={e => setDob(e.target.value)} required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="class">Class to Admit</Label>
-                <Select name="class" required>
+                <Select name="class" onValueChange={setStudentClass} value={studentClass} required>
                   <SelectTrigger id="class">
                     <SelectValue placeholder="Select class" />
                   </SelectTrigger>
@@ -193,7 +214,7 @@ export default function AdmissionsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number</Label>
-                <Input id="phone" name="phone" type="tel" placeholder="Enter contact number" required />
+                <Input id="phone" name="phone" type="tel" placeholder="Enter contact number" value={phone} onChange={e => setPhone(e.target.value)} required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="photo">Student Photo</Label>
@@ -201,7 +222,7 @@ export default function AdmissionsPage() {
               </div>
               <div className="space-y-2 md:col-span-3">
                 <Label htmlFor="address">Address</Label>
-                <Textarea id="address" name="address" placeholder="Enter residential address" required />
+                <Textarea id="address" name="address" placeholder="Enter residential address" value={address} onChange={e => setAddress(e.target.value)} required />
               </div>
             </div>
           </CardContent>
