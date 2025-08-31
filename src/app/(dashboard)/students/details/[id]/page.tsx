@@ -13,7 +13,6 @@ import { ArrowLeft, Printer } from 'lucide-react';
 import { StudentDetailsPrint } from '@/components/reports/student-details-report';
 import { useReactToPrint } from 'react-to-print';
 
-
 export default function StudentDetailsPage() {
   const router = useRouter();
   const params = useParams();
@@ -22,7 +21,8 @@ export default function StudentDetailsPage() {
   const printRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
-    const studentData = students.find((s) => s.id === params.id);
+    const id = params.id as string;
+    const studentData = students.find((s) => s.id === id);
     if (studentData) {
       setStudent(studentData);
       const familyData = families.find((f) => f.id === studentData.familyId);
@@ -63,7 +63,7 @@ export default function StudentDetailsPage() {
         </div>
         <div className="flex gap-2">
             <Button variant="outline" onClick={() => router.push(`/students/edit/${student.id}`)}>Edit Student</Button>
-            <Button onClick={handlePrint}><Printer className="h-4 w-4 mr-2" />Print</Button>
+            <Button onClick={handlePrint} disabled={!printRef.current}><Printer className="h-4 w-4 mr-2" />Print</Button>
         </div>
       </div>
       <Card>

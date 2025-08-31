@@ -84,11 +84,11 @@ export default function StudentsPage() {
   return (
     <div className="space-y-6">
       <div style={{ display: 'none' }}>
-        <div ref={printRef}>
-          {reportDate && (
+        {reportDate && (
+            <div ref={printRef}>
             <AllStudentsPrintReport students={filteredStudents} date={reportDate} />
-          )}
-        </div>
+            </div>
+        )}
       </div>
 
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -104,10 +104,10 @@ export default function StudentsPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               />
           </div>
-          <Button variant="outline" onClick={handlePrint}>
+          <Button variant="outline" onClick={handlePrint} disabled={!printRef.current}>
             <Printer className="mr-2" /> Print
           </Button>
-          <Button variant="outline" onClick={handlePrint}>
+          <Button variant="outline" onClick={handlePrint} disabled={!printRef.current}>
             <FileDown className="mr-2" /> PDF Export
           </Button>
           <Button variant="outline" onClick={handleExportCsv}>

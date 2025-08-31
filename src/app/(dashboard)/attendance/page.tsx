@@ -34,6 +34,9 @@ export default function AttendancePage() {
     setReportDate(new Date());
   }, []);
 
+  const handlePrint = useReactToPrint({
+    content: () => printRef.current,
+  });
 
   const handleClassChange = (classValue: string) => {
     setSelectedClass(classValue);
@@ -57,10 +60,6 @@ export default function AttendancePage() {
       description: `Attendance for class ${selectedClass} has been successfully saved.`,
     });
   };
-
-  const handlePrint = useReactToPrint({
-    content: () => printRef.current,
-  });
 
   const handleSendWhatsapp = async () => {
     const absentStudents = students.filter((student) => attendance[student.id] === 'Absent');
@@ -113,16 +112,16 @@ export default function AttendancePage() {
   return (
     <div className="space-y-6">
        <div style={{ display: 'none' }}>
-        <div ref={printRef}>
           {reportDate && (
-            <AttendancePrintReport
-              className={selectedClass || ''}
-              date={reportDate}
-              students={students}
-              attendance={attendance}
-            />
+            <div ref={printRef}>
+                <AttendancePrintReport
+                  className={selectedClass || ''}
+                  date={reportDate}
+                  students={students}
+                  attendance={attendance}
+                />
+            </div>
           )}
-        </div>
       </div>
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold font-headline">Attendance</h1>
@@ -130,7 +129,7 @@ export default function AttendancePage() {
           {selectedClass && (
             <>
               <Button onClick={saveAttendance}>Save Attendance</Button>
-               <Button variant="outline" onClick={handlePrint}>
+               <Button variant="outline" onClick={handlePrint} disabled={!printRef.current}>
                 <Printer className="w-4 h-4 mr-2" /> Print Report
               </Button>
               <Button variant="outline" onClick={handleSendWhatsapp} disabled={isSending}>

@@ -52,14 +52,14 @@ export function FeeDetailsCard({ family, students, fees }: FeeDetailsCardProps) 
             });
             return;
         }
-        // In a real app, you'd update the fee status in your database here.
-        // For now, we'll just trigger the print.
-        handlePrint();
-
-        toast({
-            title: 'Fee Collected',
-            description: `PKR ${paidAmount.toLocaleString()} collected for Family ${family.id}.`,
-        });
+        
+        if (printRef.current) {
+            handlePrint();
+            toast({
+                title: 'Fee Collected',
+                description: `PKR ${paidAmount.toLocaleString()} collected for Family ${family.id}.`,
+            });
+        }
     }
 
 
@@ -172,7 +172,7 @@ export function FeeDetailsCard({ family, students, fees }: FeeDetailsCardProps) 
                          </div>
                          <div className="flex justify-end gap-2">
                             <Button variant="outline">Add Other Charges</Button>
-                            <Button disabled={totalDues === 0} onClick={handleCollectAndPrint}>Collect Fee &amp; Print Receipt</Button>
+                            <Button disabled={totalDues === 0 || !printRef.current} onClick={handleCollectAndPrint}>Collect Fee &amp; Print Receipt</Button>
                          </div>
                     </div>
 
