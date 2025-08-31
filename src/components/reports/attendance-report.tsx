@@ -1,8 +1,12 @@
 
+'use client';
+
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Student } from '@/lib/types';
 import { School } from 'lucide-react';
+import { useSettings } from '@/context/settings-context';
+import Image from 'next/image';
 
 interface AttendancePrintReportProps {
   className: string;
@@ -13,19 +17,24 @@ interface AttendancePrintReportProps {
 
 export const AttendancePrintReport = React.forwardRef<HTMLDivElement, AttendancePrintReportProps>(
   ({ className, date, students, attendance }, ref) => {
+    const { settings } = useSettings();
     const presentCount = Object.values(attendance).filter(s => s === 'Present').length;
     const absentCount = Object.values(attendance).filter(s => s === 'Absent').length;
     const leaveCount = Object.values(attendance).filter(s => s === 'Leave').length;
 
     return (
-      <div ref={ref} className="p-8 font-sans">
+      <div ref={ref} className="p-8 font-sans bg-white text-black">
         <header className="flex items-center justify-between pb-4 border-b">
           <div className="flex items-center gap-4">
-            <School className="w-12 h-12 text-primary" />
+            {settings.schoolLogo ? (
+              <Image src={settings.schoolLogo} alt="School Logo" width={48} height={48} className="object-contain" />
+            ) : (
+              <School className="w-12 h-12 text-primary" />
+            )}
             <div>
-              <h1 className="text-3xl font-bold">EduCentral</h1>
-              <p className="text-sm text-muted-foreground">123 Education Lane, Knowledge City, Pakistan</p>
-              <p className="text-sm text-muted-foreground">Phone: +92 300 1234567</p>
+              <h1 className="text-3xl font-bold">{settings.schoolName}</h1>
+              <p className="text-sm text-muted-foreground">{settings.schoolAddress}</p>
+              <p className="text-sm text-muted-foreground">Phone: {settings.schoolPhone}</p>
             </div>
           </div>
           <div className="text-right">
@@ -73,7 +82,7 @@ export const AttendancePrintReport = React.forwardRef<HTMLDivElement, Attendance
         
         <footer className="mt-8 pt-4 border-t text-center text-xs text-muted-foreground">
           <p>This is a computer-generated report and does not require a signature.</p>
-          <p>&copy; {new Date().getFullYear()} EduCentral. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} {settings.schoolName}. All rights reserved.</p>
         </footer>
       </div>
     );

@@ -1,8 +1,12 @@
 
+'use client';
+
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Family, Student, Fee } from '@/lib/types';
 import { School } from 'lucide-react';
+import { useSettings } from '@/context/settings-context';
+import Image from 'next/image';
 
 interface FeeReceiptProps {
     family: Family;
@@ -15,17 +19,22 @@ interface FeeReceiptProps {
 
 export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
   ({ family, students, fees, totalDues, paidAmount, remainingDues }, ref) => {
+    const { settings } = useSettings();
     const date = new Date();
 
     return (
       <div ref={ref} className="p-8 font-sans bg-white text-black">
         <header className="flex items-center justify-between pb-4 border-b border-gray-300">
           <div className="flex items-center gap-4">
-            <School className="w-16 h-16 text-blue-500" />
+            {settings.schoolLogo ? (
+              <Image src={settings.schoolLogo} alt="School Logo" width={64} height={64} className="object-contain" />
+            ) : (
+              <School className="w-16 h-16 text-blue-500" />
+            )}
             <div>
-              <h1 className="text-4xl font-bold text-gray-800">EduCentral</h1>
-              <p className="text-sm text-gray-500">123 Education Lane, Knowledge City, Pakistan</p>
-              <p className="text-sm text-gray-500">Phone: +92 300 1234567</p>
+              <h1 className="text-4xl font-bold text-gray-800">{settings.schoolName}</h1>
+              <p className="text-sm text-gray-500">{settings.schoolAddress}</p>
+              <p className="text-sm text-gray-500">Phone: {settings.schoolPhone}</p>
             </div>
           </div>
           <div className="text-right">
@@ -93,7 +102,7 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
         
         <footer className="mt-12 pt-4 border-t border-gray-300 text-center text-xs text-gray-500">
           <p className="mb-2">Thank you for your payment! For any inquiries, please contact the accounts office.</p>
-          <p>&copy; {new Date().getFullYear()} EduCentral. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} {settings.schoolName}. All rights reserved.</p>
         </footer>
       </div>
     );

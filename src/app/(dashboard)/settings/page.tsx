@@ -1,10 +1,32 @@
+
+'use client';
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useSettings } from '@/context/settings-context';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SettingsPage() {
+  const { settings, setSettings } = useSettings();
+  const { toast } = useToast();
+
+  const handleSave = () => {
+    // The settings are already updated on change thanks to the binding.
+    // This button just provides user feedback.
+    toast({
+      title: 'Settings Saved',
+      description: 'Your school information has been updated.',
+    });
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
+    setSettings(prev => ({...prev, [id]: value}));
+  };
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline">Settings</h1>
@@ -15,23 +37,23 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="school-name">School Name</Label>
-            <Input id="school-name" defaultValue="EduCentral" />
+            <Label htmlFor="schoolName">School Name</Label>
+            <Input id="schoolName" value={settings.schoolName} onChange={handleInputChange} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="school-address">School Address</Label>
-            <Textarea id="school-address" defaultValue="123 Education Lane, Knowledge City, Pakistan" />
+            <Label htmlFor="schoolAddress">School Address</Label>
+            <Textarea id="schoolAddress" value={settings.schoolAddress} onChange={handleInputChange} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="school-phone">Phone Number</Label>
-            <Input id="school-phone" defaultValue="+92 300 1234567" />
+            <Label htmlFor="schoolPhone">Phone Number</Label>
+            <Input id="schoolPhone" value={settings.schoolPhone} onChange={handleInputChange} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="school-logo">School Logo</Label>
-            <Input id="school-logo" type="file" />
+            <Label htmlFor="schoolLogo">School Logo URL</Label>
+            <Input id="schoolLogo" type="text" placeholder="https://example.com/logo.png" value={settings.schoolLogo} onChange={handleInputChange}/>
           </div>
           <div className="flex justify-end">
-            <Button>Save Changes</Button>
+            <Button onClick={handleSave}>Save Changes</Button>
           </div>
         </CardContent>
       </Card>
