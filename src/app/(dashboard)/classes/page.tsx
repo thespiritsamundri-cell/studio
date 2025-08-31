@@ -4,6 +4,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
 import { students as allStudents } from '@/lib/data';
 import type { Student } from '@/lib/types';
 import Image from 'next/image';
@@ -16,6 +17,7 @@ import { AllStudentsPrintReport } from '@/components/reports/all-students-report
 
 export default function ClassesPage() {
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const printRef = useRef<HTMLDivElement>(null);
   const [reportDate, setReportDate] = useState<Date | null>(new Date());
 
@@ -29,17 +31,41 @@ export default function ClassesPage() {
     }
     return allStudents.filter(student => student.class === selectedClass);
   }, [selectedClass]);
+  
+  const studentsToExport = useMemo(() => {
+    return allStudents.filter(s => selectedStudents.includes(s.id));
+  }, [selectedStudents]);
+
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedStudents(studentsInClass.map(s => s.id));
+    } else {
+      setSelectedStudents([]);
+    }
+  };
+
+  const handleSelectStudent = (studentId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedStudents(prev => [...prev, studentId]);
+    } else {
+      setSelectedStudents(prev => prev.filter(id => id !== studentId));
+    }
+  };
+  
+  const isAllSelected = selectedStudents.length > 0 && selectedStudents.length === studentsInClass.length;
+
 
   const handlePrint = () => {
     window.print();
   };
   
   const handleExportCsv = () => {
-    if (studentsInClass.length === 0) return;
+    if (studentsToExport.length === 0) return;
     const headers = ['ID', 'Name', 'FatherName', 'Class', 'AdmissionDate', 'FamilyId', 'Status', 'Phone', 'Address', 'DOB'];
     const csvContent = [
       headers.join(','),
-      ...studentsInClass.map((student: Student) => 
+      ...studentsToExport.map((student: Student) => 
         [
           student.id,
           `"${student.name}"`,
@@ -62,7 +88,7 @@ export default function ClassesPage() {
     }
     const url = URL.createObjectURL(blob);
     link.href = url;
-    link.setAttribute('download', `${selectedClass}-students.csv`);
+    link.setAttribute('download', `${selectedClass}-students-selection.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -76,13 +102,13 @@ export default function ClassesPage() {
             <h1 className="text-3xl font-bold font-headline">Classes</h1>
             {selectedClass && selectedClass !== 'all' && (
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={handlePrint}>
-                        <Printer className="mr-2 h-4 w-4" /> Print
+                    <Button variant="outline" onClick={handlePrint} disabled={studentsToExport.length === 0}>
+                        <Printer className="mr-2 h-4 w-4" /> Print Selected
                     </Button>
-                    <Button variant="outline" onClick={handlePrint}>
+                    <Button variant="outline" onClick={handlePrint} disabled={studentsToExport.length === 0}>
                         <FileDown className="mr-2 h-4 w-4" /> PDF Export
                     </Button>
-                    <Button variant="outline" onClick={handleExportCsv}>
+                    <Button variant="outline" onClick={handleExportCsv} disabled={studentsToExport.length === 0}>
                         <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel Export
                     </Button>
                 </div>
@@ -91,11 +117,11 @@ export default function ClassesPage() {
         <Card className="mt-6">
             <CardHeader>
             <CardTitle>Class Overview</CardTitle>
-            <CardDescription>Select a class to view the students enrolled.</CardDescription>
+            <CardDescription>Select a class to view and select students for export.</CardDescription>
             </CardHeader>
             <CardContent>
             <div className="w-full max-w-sm mb-6">
-                <Select onValueChange={setSelectedClass}>
+                <Select onValueChange={(value) => { setSelectedClass(value); setSelectedStudents([]); }}>
                     <SelectTrigger>
                         <SelectValue placeholder="Select a class" />
                     </SelectTrigger>
@@ -112,11 +138,19 @@ export default function ClassesPage() {
                     <div className='flex items-center gap-4 mb-4'>
                         <h2 className="text-xl font-semibold">{selectedClass} Class</h2>
                         <Badge variant="secondary">{studentsInClass.length} Students</Badge>
+                        <Badge variant="default">{selectedStudents.length} Selected</Badge>
                     </div>
                     <div className="border rounded-lg">
                         <Table>
                         <TableHeader>
                             <TableRow>
+                            <TableHead className="w-[50px]">
+                                <Checkbox
+                                    checked={isAllSelected}
+                                    onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+                                    aria-label="Select all"
+                                />
+                            </TableHead>
                             <TableHead className="w-[80px]">Photo</TableHead>
                             <TableHead>Student ID</TableHead>
                             <TableHead>Name</TableHead>
@@ -126,7 +160,14 @@ export default function ClassesPage() {
                         </TableHeader>
                         <TableBody>
                             {studentsInClass.map((student) => (
-                            <TableRow key={student.id}>
+                            <TableRow key={student.id} data-state={selectedStudents.includes(student.id) && "selected"}>
+                                <TableCell>
+                                    <Checkbox
+                                        checked={selectedStudents.includes(student.id)}
+                                        onCheckedChange={(checked) => handleSelectStudent(student.id, checked as boolean)}
+                                        aria-label={`Select student ${student.name}`}
+                                    />
+                                </TableCell>
                                 <TableCell>
                                 <Image
                                     alt="Student image"
@@ -151,7 +192,7 @@ export default function ClassesPage() {
                             ))}
                             {studentsInClass.length === 0 && (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
+                                    <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
                                         No students found in this class.
                                     </TableCell>
                                 </TableRow>
@@ -173,7 +214,7 @@ export default function ClassesPage() {
       </div>
 
       <div className="hidden print:block">
-        {reportDate && <AllStudentsPrintReport ref={printRef} students={studentsInClass} date={reportDate} />}
+        {reportDate && <AllStudentsPrintReport ref={printRef} students={studentsToExport} date={reportDate} />}
       </div>
     </div>
   );
