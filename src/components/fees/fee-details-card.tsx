@@ -14,6 +14,7 @@ import { FeeReceipt } from '../reports/fee-receipt';
 import { useToast } from '@/hooks/use-toast';
 import { useReactToPrint } from 'react-to-print';
 import { fees as allFees } from '@/lib/data';
+import { Printer } from 'lucide-react';
 
 
 interface FeeDetailsCardProps {
@@ -26,6 +27,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
     const { toast } = useToast();
     const [fees, setFees] = useState(initialFees);
     const [receiptData, setReceiptData] = useState<{fees: Fee[], paidAmount: number, totalDues: number, remainingDues: number} | null>(null);
+    const [isPrinting, setIsPrinting] = useState(false);
 
     const unpaidFees = fees.filter(f => f.status === 'Unpaid');
     const totalDues = unpaidFees.reduce((acc, fee) => acc + fee.amount, 0);
@@ -34,56 +36,54 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
     
     useEffect(() => {
         setPaidAmount(totalDues);
-    }, [totalDues]);
+    }, [totalDues, family.id]); // Reset when family changes
 
     const remainingDues = totalDues - paidAmount;
-
     const printRef = useRef<HTMLDivElement>(null);
 
     const handlePrint = useReactToPrint({
         content: () => printRef.current,
-        onAfterPrint: () => setReceiptData(null), // Clear receipt data after printing
+        onAfterPrint: () => {
+            setIsPrinting(false);
+        },
     });
 
-    const triggerPrint = () => {
+    useEffect(() => {
+        if (isPrinting && receiptData) {
+            handlePrint();
+        }
+    }, [isPrinting, receiptData, handlePrint]);
+
+    const handleCollectFee = () => {
         if (paidAmount <= 0) {
-            toast({
-                title: 'Invalid Amount',
-                description: 'Paid amount must be greater than zero.',
-                variant: 'destructive',
-            });
+            toast({ title: 'Invalid Amount', description: 'Paid amount must be greater than zero.', variant: 'destructive' });
             return;
         }
         if (paidAmount > totalDues) {
-            toast({
-                title: 'Invalid Amount',
-                description: 'Paid amount cannot be greater than total dues.',
-                variant: 'destructive',
-            });
+            toast({ title: 'Invalid Amount', description: 'Paid amount cannot be greater than total dues.', variant: 'destructive' });
             return;
         }
 
         // This is a mock update. In a real app, you'd send this to an API.
-        const now = new Date();
         let amountToSettle = paidAmount;
-
         const feesToPay = unpaidFees.filter(fee => {
-            if (amountToSettle >= fee.amount) {
+            if (amountToSettle > 0 && amountToSettle >= fee.amount) {
                 amountToSettle -= fee.amount;
                 return true;
             }
             return false;
         });
 
+        // Update local state for immediate UI feedback
         const updatedFees = fees.map(fee => {
             if (feesToPay.some(paidFee => paidFee.id === fee.id)) {
-                 return { ...fee, status: 'Paid' as 'Paid', paymentDate: now.toISOString().split('T')[0] };
+                 return { ...fee, status: 'Paid' as 'Paid', paymentDate: new Date().toISOString().split('T')[0] };
             }
             return fee;
         });
-        
         setFees(updatedFees);
         
+        // Update "global" mock data
         feesToPay.forEach(fee => {
             const feeInGlobalData = allFees.find(f => f.id === fee.id);
             if (feeInGlobalData) {
@@ -91,7 +91,6 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
                 feeInGlobalData.paymentDate = new Date().toISOString().split('T')[0];
             }
         });
-
 
         toast({
             title: 'Fee Collected',
@@ -105,13 +104,15 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
             totalDues: totalDues,
             remainingDues: remainingDues
         });
-    }
-    
-    useEffect(() => {
-        if (receiptData) {
-            handlePrint();
+    };
+
+    const triggerPrint = () => {
+        if (!receiptData) {
+            toast({ title: 'No Receipt Data', description: 'Please collect a fee first to generate a receipt.', variant: 'destructive' });
+            return;
         }
-    }, [receiptData, handlePrint]);
+        setIsPrinting(true);
+    };
 
 
     return (
@@ -224,8 +225,8 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
                              </div>
                          </div>
                          <div className="flex justify-end gap-2">
-                            <Button variant="outline">Add Other Charges</Button>
-                            <Button disabled={totalDues === 0 || paidAmount <= 0} onClick={triggerPrint}>Collect Fee &amp; Print Receipt</Button>
+                            <Button disabled={totalDues === 0 || paidAmount <= 0} onClick={handleCollectFee}>Collect Fee</Button>
+                            <Button variant="outline" disabled={!receiptData} onClick={triggerPrint}><Printer className="h-4 w-4 mr-2" />Print Receipt</Button>
                          </div>
                     </div>
 
