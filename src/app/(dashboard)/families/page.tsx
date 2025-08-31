@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -24,27 +24,42 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { families as initialFamilies } from '@/lib/data';
+import { useData } from '@/context/data-context';
 import type { Family } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 export default function FamiliesPage() {
-  const [allFamilies, setAllFamilies] = useState<Family[]>(initialFamilies);
+  const { families: allFamilies, addFamily } = useData();
   const [searchQuery, setSearchQuery] = useState('');
+  const [filteredFamilies, setFilteredFamilies] = useState<Family[]>(allFamilies);
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
 
-  const filteredFamilies = useMemo(() => {
-    if (!searchQuery) {
-      return allFamilies;
-    }
-    return allFamilies.filter(
-      (family) =>
-        family.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        family.fatherName.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [allFamilies, searchQuery]);
+  useEffect(() => {
+    setFilteredFamilies(allFamilies);
+  }, [allFamilies]);
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery) {
+        setFilteredFamilies(allFamilies);
+        return;
+    }
+    const filtered = allFamilies.filter(
+        (family) =>
+            family.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            family.fatherName.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    setFilteredFamilies(filtered);
+  };
+  
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    if (!query) {
+      setFilteredFamilies(allFamilies);
+    }
+  }
 
   const handleAddFamily = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -54,7 +69,6 @@ export default function FamiliesPage() {
     const phone = formData.get('phone') as string;
     const address = formData.get('address') as string;
 
-    // Basic validation
     if(!fatherName || !phone || !address) {
         toast({
             title: "Missing Information",
@@ -64,7 +78,6 @@ export default function FamiliesPage() {
         return;
     }
     
-    // Auto-generate ID
     const lastIdNumber = allFamilies.reduce((maxId, family) => {
         const currentId = parseInt(family.id);
         return isNaN(currentId) ? maxId : Math.max(maxId, currentId);
@@ -78,21 +91,16 @@ export default function FamiliesPage() {
       address,
     };
 
-    setAllFamilies(prev => [...prev, newFamily]);
+    addFamily(newFamily);
     toast({
         title: "Family Added",
         description: `Family #${newFamily.id} for ${newFamily.fatherName} has been successfully created.`,
     });
     setOpen(false);
     e.currentTarget.reset();
+    setSearchQuery(''); 
   };
   
-  const handleSearch = (e: React.FormEvent) => {
-      e.preventDefault();
-      // The useMemo hook automatically filters when searchQuery changes,
-      // so this function can be left empty or used for other search-related logic.
-      // For this implementation, we can just rely on the input's onChange.
-  }
 
   return (
     <div className="space-y-6">
@@ -146,7 +154,7 @@ export default function FamiliesPage() {
               placeholder="Search by Family ID or Name..." 
               className="max-w-sm" 
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={handleSearchInputChange}
             />
             <Button type="submit">
               <Search className="h-4 w-4 mr-2" />

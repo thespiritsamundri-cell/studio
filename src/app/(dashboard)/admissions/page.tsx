@@ -10,11 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Search } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { families, students, fees } from '@/lib/data';
+import { useData } from '@/context/data-context';
 import type { Student, Fee } from '@/lib/types';
 
 export default function AdmissionsPage() {
     const { toast } = useToast();
+    const { families, students, fees, addStudent, addFee } = useData();
     const [familyId, setFamilyId] = useState('');
     const [familyExists, setFamilyExists] = useState(false);
     
@@ -112,8 +113,9 @@ export default function AdmissionsPage() {
             paymentDate: ''
         };
 
-        students.push(newStudent);
-        fees.push(newRegFee, newMonthlyFee);
+        addStudent(newStudent);
+        addFee(newRegFee);
+        addFee(newMonthlyFee);
         
         toast({
             title: 'Student Admitted!',
@@ -241,5 +243,3 @@ export default function AdmissionsPage() {
     </div>
   );
 }
-
-    

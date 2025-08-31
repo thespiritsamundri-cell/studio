@@ -6,12 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
-import { families, students, fees as allFees } from '@/lib/data';
+import { useData } from '@/context/data-context';
 import type { Family, Student, Fee } from '@/lib/types';
 import { FeeDetailsCard } from '@/components/fees/fee-details-card';
 import { useToast } from '@/hooks/use-toast';
 
 export default function FeesPage() {
+  const { families, students, fees: allFees, updateFee } = useData();
   const [familyId, setFamilyId] = useState('');
   const [searchedFamily, setSearchedFamily] = useState<Family | null>(null);
   const [familyStudents, setFamilyStudents] = useState<Student[]>([]);
@@ -77,6 +78,7 @@ export default function FeesPage() {
           family={searchedFamily}
           students={familyStudents}
           fees={familyFees}
+          onUpdateFee={updateFee}
         />
       )}
     </div>

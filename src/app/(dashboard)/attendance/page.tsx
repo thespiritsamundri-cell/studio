@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { students as allStudents, families } from '@/lib/data';
+import { useData } from '@/context/data-context';
 import type { Student } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { analyzeAttendanceAndSendMessage } from '@/ai/flows/attendance-analysis-messaging';
@@ -21,6 +21,7 @@ const classes = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', 
 type AttendanceStatus = 'Present' | 'Absent' | 'Leave';
 
 export default function AttendancePage() {
+  const { students: allStudents, families } = useData();
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
@@ -63,6 +64,8 @@ export default function AttendancePage() {
 
   const saveAttendance = () => {
     console.log('Saving attendance:', attendance);
+    // Here you would typically save to a database.
+    // For now, we just show a toast.
     toast({
       title: 'Attendance Saved',
       description: `Attendance for class ${selectedClass} has been successfully saved.`,

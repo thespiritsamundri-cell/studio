@@ -12,12 +12,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Download, Upload, QrCode, KeyRound, Loader2 } from 'lucide-react';
-import { students, families, fees } from '@/lib/data';
+import { useData } from '@/context/data-context';
 import { useState } from 'react';
 import { generateQrCode } from '@/ai/flows/generate-qr-code';
 
 export default function SettingsPage() {
   const { settings, setSettings } = useSettings();
+  const { students, families, fees, loadData } = useData();
   const { toast } = useToast();
   const [qrCodeUri, setQrCodeUri] = useState<string | null>(null);
   const [isGeneratingQr, setIsGeneratingQr] = useState(false);
@@ -82,25 +83,16 @@ export default function SettingsPage() {
         const result = e.target?.result;
         if (typeof result === 'string') {
           const restoredData = JSON.parse(result);
-          // Here you would typically validate the data and then update your state.
-          // For this example, we'll just log it and show a success message.
-          console.log('Restored Data:', restoredData);
-
-          // Example of updating state if using a global state management library (like Zustand or Redux)
-          // Or you might need to make API calls to update your backend.
-          // For now, we update the settings from the backup.
-          if (restoredData.settings) {
-            setSettings(restoredData.settings);
-          }
           
-          // You would also need to handle updating students, families, fees etc.
-          // This part is complex as it depends on how the app's state is managed.
-          // For now, this just demonstrates the file reading part.
-
-          toast({
-            title: 'Restore Successful',
-            description: 'Data has been restored from the backup file.',
-          });
+          if (restoredData.settings && restoredData.students && restoredData.families && restoredData.fees) {
+             loadData(restoredData);
+             toast({
+                title: 'Restore Successful',
+                description: 'Data has been restored from the backup file.',
+             });
+          } else {
+             throw new Error("Invalid backup file structure.");
+          }
         }
       } catch (error) {
         toast({
@@ -112,7 +104,7 @@ export default function SettingsPage() {
       }
     };
     reader.readAsText(file);
-    event.target.value = ''; // Reset file input
+    event.target.value = ''; 
   };
   
   const handleGenerateQr = async () => {
@@ -248,7 +240,8 @@ export default function SettingsPage() {
                 <h3 className="font-medium">Restore from Backup</h3>
                 <p className="text-sm text-muted-foreground">Upload a JSON backup file to restore your school data. This will overwrite existing data.</p>
                 <div className="flex items-center gap-2">
-                    <Input id="backup-file" type="file" accept=".json" className="max-w-xs" onChange={handleRestoreBackup} />
+                    <Label htmlFor="backup-file" className="sr-only">Restore</Label>
+                    <Input id="backup-file" type="file" accept=".json" className="hidden" onChange={handleRestoreBackup} />
                     <Button onClick={() => document.getElementById('backup-file')?.click()}><Upload className="mr-2"/>Restore Data</Button>
                 </div>
             </div>

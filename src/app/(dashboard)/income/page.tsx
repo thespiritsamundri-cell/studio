@@ -4,7 +4,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { fees as allFees, families } from '@/lib/data';
+import { useData } from '@/context/data-context';
 import { Input } from '@/components/ui/input';
 import { DateRange } from 'react-day-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -18,19 +18,20 @@ import type { Fee } from '@/lib/types';
 
 
 export default function IncomePage() {
+  const { fees: allFees, families } = useData();
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [familyIdFilter, setFamilyIdFilter] = useState('');
   const printRef = useRef<HTMLDivElement>(null);
 
   const paidFees = useMemo(() => {
     return allFees
-      .filter((fee) => fee.status === 'Paid')
+      .filter((fee) => fee.status === 'Paid' && fee.paymentDate)
       .map(fee => {
         const family = families.find(f => f.id === fee.familyId);
         return { ...fee, fatherName: family?.fatherName || 'N/A' };
       })
       .sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime());
-  }, []);
+  }, [allFees, families]);
 
   const filteredFees = useMemo(() => {
     let fees = paidFees;

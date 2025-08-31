@@ -5,7 +5,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
-import { students as allStudents } from '@/lib/data';
+import { useData } from '@/context/data-context';
 import type { Student } from '@/lib/types';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,7 @@ import { Printer, FileDown, FileSpreadsheet } from 'lucide-react';
 import { AllStudentsPrintReport } from '@/components/reports/all-students-report';
 
 export default function ClassesPage() {
+  const { students: allStudents } = useData();
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const printRef = useRef<HTMLDivElement>(null);
@@ -28,18 +29,18 @@ export default function ClassesPage() {
 
   const classes = useMemo(() => {
     return ['all', ...Array.from(new Set(allStudents.map(s => s.class)))];
-  }, []);
+  }, [allStudents]);
 
   const studentsInClass = useMemo(() => {
     if (!selectedClass || selectedClass === 'all') {
       return [];
     }
     return allStudents.filter(student => student.class === selectedClass);
-  }, [selectedClass]);
+  }, [selectedClass, allStudents]);
   
   const studentsToExport = useMemo(() => {
     return allStudents.filter(s => selectedStudents.includes(s.id));
-  }, [selectedStudents]);
+  }, [selectedStudents, allStudents]);
 
 
   const handleSelectAll = (checked: boolean) => {

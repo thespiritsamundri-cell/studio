@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { students } from '@/lib/data';
+import { useData } from '@/context/data-context';
 import { notFound, useRouter, useParams } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
@@ -17,6 +17,7 @@ import Image from 'next/image';
 export default function EditStudentPage() {
   const router = useRouter();
   const params = useParams();
+  const { students, updateStudent } = useData();
   const { toast } = useToast();
   const [student, setStudent] = useState<Student | undefined>(undefined);
 
@@ -25,19 +26,20 @@ export default function EditStudentPage() {
     if (studentData) {
       setStudent(studentData);
     } else {
-      notFound();
+      // notFound();
     }
-  }, [params.id]);
+  }, [params.id, students]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would typically handle the form submission, e.g., send data to an API
-    console.log('Updated student data:', student);
-    toast({
-      title: 'Student Updated',
-      description: `${student?.name}'s information has been successfully updated.`,
-    });
-    router.push('/students');
+    if (student) {
+        updateStudent(student.id, student);
+        toast({
+        title: 'Student Updated',
+        description: `${student?.name}'s information has been successfully updated.`,
+        });
+        router.push('/students');
+    }
   };
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileDown, BookOpenCheck, DollarSign, Users, CalendarIcon, Loader2 } from 'lucide-react';
-import { students as allStudents, fees as allFees, families } from '@/lib/data';
+import { useData } from '@/context/data-context';
 import { AllStudentsPrintReport } from '@/components/reports/all-students-report';
 import { IncomePrintReport } from '@/components/reports/income-report';
 import { AttendancePrintReport } from '@/components/reports/attendance-report';
@@ -18,6 +18,7 @@ import type { Student, Fee } from '@/lib/types';
 
 
 export default function ReportsPage() {
+    const { students: allStudents, fees: allFees, families } = useData();
     const printRef = useRef<HTMLDivElement>(null);
     const [reportType, setReportType] = useState<string | null>(null);
     const [isPrinting, setIsPrinting] = useState(false);
@@ -36,8 +37,6 @@ export default function ReportsPage() {
         if (isPrinting) {
             window.print();
             setIsPrinting(false);
-            // Reset report data after printing if needed
-            // setReportType(null); 
         }
     }, [isPrinting]);
 
@@ -63,7 +62,6 @@ export default function ReportsPage() {
                 return;
             }
             setIsGeneratingAttendance(true);
-            // Simulate fetching and generating attendance
             setTimeout(() => {
                 const classStudents = allStudents.filter(s => s.class === selectedClass);
                 setStudentsForAttendance(classStudents);

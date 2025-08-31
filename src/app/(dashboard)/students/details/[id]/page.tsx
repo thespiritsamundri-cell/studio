@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { students, families } from '@/lib/data';
+import { useData } from '@/context/data-context';
 import { notFound, useRouter, useParams } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import type { Student, Family } from '@/lib/types';
@@ -16,6 +16,7 @@ import { useReactToPrint } from 'react-to-print';
 export default function StudentDetailsPage() {
   const router = useRouter();
   const params = useParams();
+  const { students, families } = useData();
   const [student, setStudent] = useState<Student | undefined>(undefined);
   const [family, setFamily] = useState<Family | undefined>(undefined);
   const printRef = useRef<HTMLDivElement>(null);
@@ -29,9 +30,9 @@ export default function StudentDetailsPage() {
       const familyData = families.find((f) => f.id === studentData.familyId);
       setFamily(familyData);
     } else {
-      notFound();
+      // notFound(); We can't use this as it throws an error. A simple loading/not found state is better.
     }
-  }, [params.id]);
+  }, [params.id, students, families]);
 
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
@@ -50,7 +51,7 @@ export default function StudentDetailsPage() {
   
 
   if (!student || !family) {
-    return <div>Loading...</div>;
+    return <div>Loading student details or student not found...</div>;
   }
 
   const DetailItem = ({ label, value }: { label: string, value: string | undefined }) => (

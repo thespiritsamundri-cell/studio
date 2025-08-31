@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { students as allStudents } from '@/lib/data';
+import { useData } from '@/context/data-context';
 import { MoreHorizontal, Search, Printer, FileDown, FileSpreadsheet } from 'lucide-react';
 import {
   DropdownMenu,
@@ -25,13 +25,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 
 export default function StudentsPage() {
+  const { students: allStudents } = useData();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClass, setSelectedClass] = useState<string>('all');
   const printRef = useRef<HTMLDivElement>(null);
   const [isPrinting, setIsPrinting] = useState(false);
   const [reportDate, setReportDate] = useState<Date | null>(null);
 
-  const classes = useMemo(() => ['all', ...Array.from(new Set(allStudents.map(s => s.class)))], []);
+  const classes = useMemo(() => ['all', ...Array.from(new Set(allStudents.map(s => s.class)))], [allStudents]);
 
   const filteredStudents = useMemo(() => {
     let students = allStudents;
@@ -49,7 +50,7 @@ export default function StudentsPage() {
     }
     
     return students;
-  }, [searchQuery, selectedClass]);
+  }, [searchQuery, selectedClass, allStudents]);
 
   const handlePrint = useReactToPrint({
     content: () => printRef.current,

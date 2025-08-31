@@ -13,7 +13,6 @@ import { Input } from '../ui/input';
 import { FeeReceipt } from '../reports/fee-receipt';
 import { useToast } from '@/hooks/use-toast';
 import { useReactToPrint } from 'react-to-print';
-import { fees as allFees } from '@/lib/data';
 import { Printer } from 'lucide-react';
 
 
@@ -21,9 +20,10 @@ interface FeeDetailsCardProps {
     family: Family;
     students: Student[];
     fees: Fee[];
+    onUpdateFee: (id: string, fee: Fee) => void;
 }
 
-export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetailsCardProps) {
+export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFee }: FeeDetailsCardProps) {
     const { toast } = useToast();
     const [fees, setFees] = useState(initialFees);
     const [isPrinting, setIsPrinting] = useState(false);
@@ -44,10 +44,10 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
     }, [initialFees, family.id]);
 
     useEffect(() => {
-        if (isPrinting) {
+        if (isPrinting && receiptDataForPrint) {
             handlePrint();
         }
-    }, [isPrinting]);
+    }, [isPrinting, receiptDataForPrint]);
 
     const handlePrint = useReactToPrint({
         content: () => printRef.current,
@@ -84,10 +84,8 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
                     updatedLocalFees[indexInLocal] = paidFee;
                 }
 
-                const indexInGlobal = allFees.findIndex(f => f.id === fee.id);
-                if (indexInGlobal !== -1) {
-                    allFees[indexInGlobal] = paidFee;
-                }
+                // Update global state
+                onUpdateFee(fee.id, paidFee);
             } else {
                 break; 
             }
