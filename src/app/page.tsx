@@ -6,10 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
 import { School } from 'lucide-react';
-import { SettingsProvider, useSettings } from '@/context/settings-context';
+import { useSettings } from '@/context/settings-context';
 import { useEffect, useState } from 'react';
 
-function LoginComponent() {
+export default function LoginPage() {
   const router = useRouter();
   const { settings } = useSettings();
   const [isClient, setIsClient] = useState(false);
@@ -53,12 +53,4 @@ function LoginComponent() {
       </Card>
     </div>
   );
-}
-
-export default function LoginPage() {
-    return (
-        <SettingsProvider>
-            <LoginComponent />
-        </SettingsProvider>
-    )
 }
