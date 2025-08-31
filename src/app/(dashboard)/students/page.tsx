@@ -1,13 +1,13 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { students as allStudents } from '@/lib/data';
-import { MoreHorizontal, Search } from 'lucide-react';
+import { MoreHorizontal, Search, Printer, FileDown, FileSpreadsheet } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,40 +18,102 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
+import { useReactToPrint } from 'react-to-print';
+import { AllStudentsPrintReport } from '@/components/reports/all-students-report';
+import type { Student } from '@/lib/types';
+
 
 export default function StudentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const printRef = useRef<HTMLDivElement>(null);
 
   const filteredStudents = useMemo(() => {
     if (!searchQuery) {
       return allStudents;
     }
     return allStudents.filter((student) =>
-      student.name.toLowerCase().includes(searchQuery.toLowerCase())
+      student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      student.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      student.fatherName.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [searchQuery]);
 
+  const handlePrint = useReactToPrint({
+    content: () => printRef.current,
+  });
+
+  const handleExportCsv = () => {
+    const headers = ['ID', 'Name', 'FatherName', 'Class', 'AdmissionDate', 'FamilyId', 'Status', 'Phone', 'Address', 'DOB'];
+    const csvContent = [
+      headers.join(','),
+      ...filteredStudents.map((student: Student) => 
+        [
+          student.id,
+          `"${student.name}"`,
+          `"${student.fatherName}"`,
+          student.class,
+          student.admissionDate,
+          student.familyId,
+          student.status,
+          `"${student.phone}"`,
+          `"${student.address.replace(/"/g, '""')}"`,
+          student.dob
+        ].join(',')
+      )
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.href) {
+      URL.revokeObjectURL(link.href);
+    }
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.setAttribute('download', 'students.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold font-headline">Students</h1>
+      <div style={{ display: 'none' }}>
+        <div ref={printRef}>
+          <AllStudentsPrintReport students={filteredStudents} />
+        </div>
+      </div>
+
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <h1 className="text-3xl font-bold font-headline">Students</h1>
+        <div className="flex flex-wrap items-center gap-2">
+           <div className="relative flex-grow md:flex-grow-0">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+              type="text"
+              placeholder="Search students..."
+              className="pl-8 w-full md:w-[200px] lg:w-[336px]"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              />
+          </div>
+          <Button variant="outline" onClick={handlePrint}>
+            <Printer className="mr-2" /> Print
+          </Button>
+          <Button variant="outline" onClick={handlePrint}>
+            <FileDown className="mr-2" /> PDF Export
+          </Button>
+          <Button variant="outline" onClick={handleExportCsv}>
+            <FileSpreadsheet className="mr-2" /> Excel Export
+          </Button>
+        </div>
+      </div>
+      
       <Card>
         <CardHeader>
           <CardTitle>All Students</CardTitle>
-          <CardDescription>Manage student records, view details, and perform actions.</CardDescription>
+          <CardDescription>Manage student records, view details, and perform actions. Found {filteredStudents.length} students.</CardDescription>
         </CardHeader>
         <CardContent>
-           <div className="flex items-center space-x-2 mb-4">
-            <div className="relative flex-grow max-w-sm">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                type="text"
-                placeholder="Search by student name..."
-                className="pl-8"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                />
-            </div>
-          </div>
           <Table>
             <TableHeader>
               <TableRow>
