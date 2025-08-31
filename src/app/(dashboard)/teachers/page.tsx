@@ -5,15 +5,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, MoreHorizontal, Trash2, Edit, Phone, GraduationCap } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu';
+import { PlusCircle, Trash2, Edit, Phone, GraduationCap } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,21 +39,32 @@ export default function TeachersPage() {
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const { toast } = useToast();
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleAddOrEditTeacher = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
     const teacherId = isEditing && selectedTeacher ? selectedTeacher.id : `T${(teachers.reduce((maxId, teacher) => Math.max(maxId, parseInt(teacher.id.replace('T', ''))), 0) + 1).toString().padStart(2, '0')}`;
-    const photoUrlValue = formData.get('photoUrl') as string;
-
+    
     const teacherData = {
       name: formData.get('name') as string,
       fatherName: formData.get('fatherName') as string,
       phone: formData.get('phone') as string,
       education: formData.get('education') as string,
       salary: Number(formData.get('salary') as string),
-      photoUrl: photoUrlValue || `https://picsum.photos/seed/${teacherId}/200`,
+      photoUrl: photoPreview || selectedTeacher?.photoUrl || `https://picsum.photos/seed/${teacherId}/200`,
     };
 
     if(!teacherData.name || !teacherData.phone || !teacherData.education || !teacherData.salary) {
@@ -78,13 +81,11 @@ export default function TeachersPage() {
     }
 
     setOpenDialog(false);
-    setIsEditing(false);
-    setSelectedTeacher(null);
-    e.currentTarget.reset();
   };
   
   const handleEditClick = (teacher: Teacher) => {
     setSelectedTeacher(teacher);
+    setPhotoPreview(teacher.photoUrl);
     setIsEditing(true);
     setOpenDialog(true);
   };
@@ -102,19 +103,20 @@ export default function TeachersPage() {
     setSelectedTeacher(null);
   };
 
-  const handleOpenDialog = (editing: boolean, teacher: Teacher | null = null) => {
-      setIsEditing(editing);
-      setSelectedTeacher(teacher);
-      setOpenDialog(true);
+  const handleDialogClose = () => {
+      setIsEditing(false);
+      setSelectedTeacher(null);
+      setPhotoPreview(null);
+      setOpenDialog(false);
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold font-headline">Manage Teachers</h1>
-        <Dialog open={openDialog} onOpenChange={(isOpen) => { if (!isOpen) { setIsEditing(false); setSelectedTeacher(null); } setOpenDialog(isOpen); }}>
+        <Dialog open={openDialog} onOpenChange={handleDialogClose}>
           <DialogTrigger asChild>
-            <Button onClick={() => handleOpenDialog(false)}>
+            <Button>
               <PlusCircle className="w-4 h-4 mr-2" /> Add New Teacher
             </Button>
           </DialogTrigger>
@@ -127,6 +129,18 @@ export default function TeachersPage() {
             </DialogHeader>
             <form id="teacher-form" onSubmit={handleAddOrEditTeacher}>
               <div className="grid gap-4 py-4">
+                {photoPreview && (
+                  <div className="grid grid-cols-4 items-center gap-4">
+                      <Label className="text-right">Photo Preview</Label>
+                      <div className="col-span-3">
+                          <Image src={photoPreview} alt="New photo preview" width={80} height={80} className="rounded-full aspect-square object-cover" />
+                      </div>
+                  </div>
+                )}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="photo" className="text-right">Photo</Label>
+                  <Input id="photo" name="photo" type="file" className="col-span-3" onChange={handlePhotoChange} accept="image/*" />
+                </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="name" className="text-right">Name</Label>
                   <Input id="name" name="name" className="col-span-3" defaultValue={selectedTeacher?.name} required />
@@ -143,16 +157,13 @@ export default function TeachersPage() {
                   <Label htmlFor="education" className="text-right">Education</Label>
                   <Input id="education" name="education" className="col-span-3" defaultValue={selectedTeacher?.education} required />
                 </div>
-                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="photoUrl" className="text-right">Photo URL</Label>
-                    <Input id="photoUrl" name="photoUrl" className="col-span-3" defaultValue={selectedTeacher?.photoUrl} />
-                </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="salary" className="text-right">Salary (PKR)</Label>
                   <Input id="salary" name="salary" type="number" className="col-span-3" defaultValue={selectedTeacher?.salary} required />
                 </div>
               </div>
                <DialogFooter>
+                <Button type="button" variant="ghost" onClick={handleDialogClose}>Cancel</Button>
                 <Button type="submit" form="teacher-form">{isEditing ? 'Save Changes' : 'Add Teacher'}</Button>
               </DialogFooter>
             </form>
@@ -162,33 +173,24 @@ export default function TeachersPage() {
 
        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {teachers.map(teacher => (
-          <Card key={teacher.id} className="flex flex-col">
-            <CardHeader className="flex flex-row items-center gap-4">
-               <Image
-                  src={teacher.photoUrl || `https://picsum.photos/seed/${teacher.id}/200`}
+          <Card key={teacher.id} className="flex flex-col overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 ease-in-out">
+            <CardHeader className="p-0">
+               <div className="aspect-[4/3] w-full overflow-hidden">
+                <Image
+                  src={teacher.photoUrl || `https://picsum.photos/seed/${teacher.id}/400/300`}
                   alt={teacher.name}
-                  width={80}
-                  height={80}
-                  className="rounded-full aspect-square object-cover"
+                  width={400}
+                  height={300}
+                  className="w-full h-full object-cover"
                   data-ai-hint="teacher photo"
                 />
-                <div className="flex-1">
-                    <CardTitle>{teacher.name}</CardTitle>
-                    <CardDescription>{teacher.id}</CardDescription>
-                </div>
-                 <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleEditClick(teacher)}><Edit className="mr-2 h-4 w-4" />Edit</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(teacher)}><Trash2 className="mr-2 h-4 w-4" />Delete</DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+               </div>
             </CardHeader>
-            <CardContent className="flex-grow space-y-2">
+            <CardContent className="p-4 flex-grow space-y-3">
+                <div>
+                    <h3 className="text-lg font-bold">{teacher.name}</h3>
+                    <p className="text-sm text-muted-foreground">{teacher.id}</p>
+                </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <GraduationCap className="h-4 w-4" />
                     <span>{teacher.education}</span>
@@ -197,9 +199,11 @@ export default function TeachersPage() {
                     <Phone className="h-4 w-4" />
                     <span>{teacher.phone}</span>
                 </div>
+                <Badge variant="secondary" className="w-full justify-center text-base py-1">PKR {teacher.salary.toLocaleString()}</Badge>
             </CardContent>
-            <CardFooter>
-                <Badge variant="secondary" className="w-full justify-center">Salary: PKR {teacher.salary.toLocaleString()}</Badge>
+            <CardFooter className="p-2 bg-muted/50 grid grid-cols-2 gap-2">
+                <Button variant="outline" size="sm" onClick={() => handleEditClick(teacher)}><Edit className="mr-2 h-4 w-4" />Edit</Button>
+                <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(teacher)}><Trash2 className="mr-2 h-4 w-4" />Delete</Button>
             </CardFooter>
           </Card>
         ))}
