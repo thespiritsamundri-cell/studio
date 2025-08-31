@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { analyzeAttendanceAndSendMessage } from '@/ai/flows/attendance-analysis-messaging';
 import { Send, Printer } from 'lucide-react';
 import { AttendancePrintReport } from '@/components/reports/attendance-report';
+import { useReactToPrint } from 'react-to-print';
 
 const classes = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th'];
 
@@ -57,10 +58,9 @@ export default function AttendancePage() {
     });
   };
 
-  const handlePrint = () => {
-    // Printing functionality to be re-implemented with a stable library.
-    alert("Printing is temporarily disabled.");
-  };
+  const handlePrint = useReactToPrint({
+    content: () => printRef.current,
+  });
 
   const handleSendWhatsapp = async () => {
     const absentStudents = students.filter((student) => attendance[student.id] === 'Absent');

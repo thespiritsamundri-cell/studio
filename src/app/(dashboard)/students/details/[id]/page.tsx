@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { ArrowLeft, Printer } from 'lucide-react';
 import { StudentDetailsPrint } from '@/components/reports/student-details-report';
+import { useReactToPrint } from 'react-to-print';
 
 
 export default function StudentDetailsPage() {
@@ -31,9 +32,9 @@ export default function StudentDetailsPage() {
     }
   }, [params.id]);
   
-  const handlePrint = () => {
-    alert("Printing is temporarily disabled.");
-  };
+  const handlePrint = useReactToPrint({
+    content: () => printRef.current,
+  });
 
   if (!student || !family) {
     return <div>Loading...</div>;

@@ -12,6 +12,7 @@ import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { FeeReceipt } from '../reports/fee-receipt';
 import { useToast } from '@/hooks/use-toast';
+import { useReactToPrint } from 'react-to-print';
 
 
 interface FeeDetailsCardProps {
@@ -30,10 +31,9 @@ export function FeeDetailsCard({ family, students, fees }: FeeDetailsCardProps) 
 
     const printRef = useRef<HTMLDivElement>(null);
 
-    const handlePrint = () => {
-        // Printing functionality to be re-implemented with a stable library.
-        alert("Printing is temporarily disabled.");
-    };
+    const handlePrint = useReactToPrint({
+        content: () => printRef.current,
+    });
 
     const handleCollectAndPrint = () => {
         if (paidAmount <= 0) {
