@@ -21,24 +21,35 @@ import { Input } from '@/components/ui/input';
 import { useReactToPrint } from 'react-to-print';
 import { AllStudentsPrintReport } from '@/components/reports/all-students-report';
 import type { Student } from '@/lib/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 export default function StudentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedClass, setSelectedClass] = useState<string>('all');
   const printRef = useRef<HTMLDivElement>(null);
   const [isPrinting, setIsPrinting] = useState(false);
   const [reportDate, setReportDate] = useState<Date | null>(null);
 
+  const classes = useMemo(() => ['all', ...Array.from(new Set(allStudents.map(s => s.class)))], []);
+
   const filteredStudents = useMemo(() => {
-    if (!searchQuery) {
-      return allStudents;
+    let students = allStudents;
+    
+    if (selectedClass !== 'all') {
+      students = students.filter((student) => student.class === selectedClass);
     }
-    return allStudents.filter((student) =>
-      student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      student.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      student.fatherName.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [searchQuery]);
+
+    if (searchQuery) {
+       students = students.filter((student) =>
+        student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        student.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        student.fatherName.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    return students;
+  }, [searchQuery, selectedClass]);
 
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
@@ -106,13 +117,24 @@ export default function StudentsPage() {
            <div className="relative flex-grow md:flex-grow-0">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-              type="text"
-              placeholder="Search students..."
-              className="pl-8 w-full md:w-[200px] lg:w-[336px]"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+                type="text"
+                placeholder="Search students..."
+                className="pl-8 w-full md:w-[200px] lg:w-[250px]"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
           </div>
+          <Select value={selectedClass} onValueChange={setSelectedClass}>
+            <SelectTrigger className="w-full md:w-[180px]">
+                <SelectValue placeholder="Select Class" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="all">All Classes</SelectItem>
+                {classes.filter(c => c !== 'all').sort().map(c => (
+                    <SelectItem key={c} value={c}>{c} Class</SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
           <Button variant="outline" onClick={triggerPrint}>
             <Printer className="mr-2" /> Print
           </Button>
