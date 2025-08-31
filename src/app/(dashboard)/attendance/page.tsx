@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -123,16 +123,14 @@ export default function AttendancePage() {
   return (
     <div className="space-y-6">
        <div style={{ display: 'none' }}>
-          {reportDate && (
-            <div ref={printRef}>
-                <AttendancePrintReport
-                  className={selectedClass || ''}
-                  date={reportDate}
-                  students={students}
-                  attendance={attendance}
-                />
-            </div>
-          )}
+          <div ref={printRef}>
+              <AttendancePrintReport
+                className={selectedClass || ''}
+                date={reportDate || new Date()}
+                students={students}
+                attendance={attendance}
+              />
+          </div>
       </div>
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold font-headline">Attendance</h1>

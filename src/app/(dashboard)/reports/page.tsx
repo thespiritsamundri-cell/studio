@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileDown, BookOpenCheck, DollarSign, Users, CalendarIcon, Loader2 } from 'lucide-react';
@@ -24,6 +24,7 @@ export default function ReportsPage() {
 
   const [reportType, setReportType] = useState<string | null>(null);
   const [reportData, setReportData] = useState<any>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
   const [isLoading, setIsLoading] = useState<string | null>(null);
 
   // States for Attendance Report
@@ -38,16 +39,13 @@ export default function ReportsPage() {
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
     onAfterPrint: () => {
-      setReportData(null);
-      setReportType(null);
       setIsLoading(null);
     },
   });
-  
-  const generateReport = useCallback((type: string) => {
+
+  const generateReport = (type: string) => {
     setIsLoading(type);
 
-    // Prepare data immediately
     let data: any;
     if (type === 'students') {
       data = { students: allStudents, date: new Date() };
@@ -75,7 +73,7 @@ export default function ReportsPage() {
         return;
       }
       const classStudents = allStudents.filter(s => s.class === selectedClass);
-      // This is mock data for demonstration, replace with actual attendance data if available
+      // This is mock data for demonstration
       const mockAttendance: Record<string, 'Present' | 'Absent' | 'Leave'> = {};
       classStudents.forEach(s => {
         const rand = Math.random();
@@ -86,36 +84,44 @@ export default function ReportsPage() {
       data = { className: selectedClass, date: attendanceDate, students: classStudents, attendance: mockAttendance };
     }
 
-    // Set the data and type, which will cause the report component to render
     setReportData(data);
     setReportType(type);
-
-    // Use a timeout to allow the component to render before printing
-    setTimeout(() => {
-        if (printRef.current) {
+    setIsPrinting(true);
+  };
+  
+  useEffect(() => {
+    if (isPrinting && reportData && printRef.current) {
+        setTimeout(() => {
             handlePrint();
-        } else {
-             toast({
-                title: "Print Error",
-                description: "Could not find the report content to print.",
-                variant: "destructive",
-              });
-              setIsLoading(null);
-              setReportData(null);
-              setReportType(null);
-        }
-    }, 100);
+            setIsPrinting(false);
+            setReportData(null);
+            setReportType(null);
+        }, 100);
+    }
+  }, [isPrinting, reportData, handlePrint]);
 
-  }, [allStudents, allFees, families, selectedClass, attendanceDate, toast, handlePrint]);
 
+  const renderReportComponent = () => {
+    if (!reportData) return null;
+    switch (reportType) {
+        case 'students':
+            return <AllStudentsPrintReport ref={printRef} {...reportData} />;
+        case 'fees':
+            return <IncomePrintReport ref={printRef} {...reportData} />;
+        case 'attendance':
+            return <AttendancePrintReport ref={printRef} {...reportData} />;
+        default:
+            return null;
+    }
+  }
 
   return (
     <div className="space-y-6">
-      {/* Printable content */}
+      {/* Printable content, always in DOM but hidden */}
       <div className="hidden">
-          {reportData && reportType === 'students' && <AllStudentsPrintReport ref={printRef} {...reportData} />}
-          {reportData && reportType === 'fees' && <IncomePrintReport ref={printRef} {...reportData} />}
-          {reportData && reportType === 'attendance' && <AttendancePrintReport ref={printRef} {...reportData} />}
+        <div ref={printRef}>
+          {renderReportComponent()}
+        </div>
       </div>
 
 
