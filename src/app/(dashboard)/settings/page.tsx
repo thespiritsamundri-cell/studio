@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, QrCode, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, Settings } from 'lucide-react';
+import { Download, Upload, QrCode, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, Settings as SettingsIcon } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import { useState } from 'react';
 import { generateQrCode } from '@/ai/flows/generate-qr-code';
@@ -36,6 +36,17 @@ export default function SettingsPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
     setSettings(prev => ({...prev, [id]: value}));
+  };
+  
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setSettings(prev => ({...prev, schoolLogo: reader.result as string}));
+        };
+        reader.readAsDataURL(file);
+    }
   };
 
   const handleSelectChange = (id: keyof typeof settings) => (value: string) => {
@@ -141,7 +152,7 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><Settings className="w-8 h-8" />Settings</h1>
+      <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><SettingsIcon className="w-8 h-8" />Settings</h1>
       
       <Tabs defaultValue="whatsapp" className="w-full">
         <TabsList className="grid w-full grid-cols-3 max-w-lg">
@@ -185,10 +196,19 @@ export default function SettingsPage() {
                         <Input id="schoolPhone" value={settings.schoolPhone} onChange={handleInputChange} />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="schoolLogo">School Logo URL</Label>
-                        <Input id="schoolLogo" type="text" placeholder="https://example.com/logo.png" value={settings.schoolLogo} onChange={handleInputChange}/>
+                        <Label htmlFor="schoolLogo">School Logo</Label>
+                        <Input id="schoolLogo" type="file" accept="image/*" onChange={handleLogoChange} className="file:text-primary file:font-medium" />
                     </div>
                 </div>
+                 {settings.schoolLogo && (
+                    <div className="space-y-2">
+                        <Label>Logo Preview</Label>
+                        <div className="flex items-center gap-4 p-4 border rounded-md">
+                            <Image src={settings.schoolLogo} alt="School Logo Preview" width={60} height={60} className="object-contain rounded-md" />
+                            <Button variant="ghost" size="sm" onClick={() => setSettings(prev => ({...prev, schoolLogo: ''}))}>Remove</Button>
+                        </div>
+                    </div>
+                )}
                 <div className="flex justify-end">
                     <Button onClick={handleSave}>Save Changes</Button>
                 </div>
@@ -319,8 +339,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-
-    
-
-    
