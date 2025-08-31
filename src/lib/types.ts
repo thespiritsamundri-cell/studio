@@ -8,6 +8,7 @@ export interface Student {
   familyId: string;
   status: 'Active' | 'Inactive';
   phone: string;
+  alternatePhone?: string;
   address: string;
   dob: string;
   photoUrl: string;

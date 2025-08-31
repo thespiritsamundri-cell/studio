@@ -7,11 +7,14 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, PlusCircle, X } from 'lucide-react';
+import { Search, PlusCircle, X, Users, CheckCircle, Info } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useData } from '@/context/data-context';
 import type { Student, Fee, Family } from '@/lib/types';
+import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface CustomFee {
   id: number;
@@ -25,6 +28,7 @@ export default function AdmissionsPage() {
     const [familyId, setFamilyId] = useState('');
     const [familyExists, setFamilyExists] = useState(false);
     const [foundFamily, setFoundFamily] = useState<Family | null>(null);
+    const [existingChildren, setExistingChildren] = useState<Student[]>([]);
 
     // Form state for student details
     const [studentName, setStudentName] = useState('');
@@ -33,6 +37,7 @@ export default function AdmissionsPage() {
     const [dob, setDob] = useState('');
     const [studentClass, setStudentClass] = useState('');
     const [phone, setPhone] = useState('');
+    const [alternatePhone, setAlternatePhone] = useState('');
     const [address, setAddress] = useState('');
     const [studentCnic, setStudentCnic] = useState('');
 
@@ -45,13 +50,17 @@ export default function AdmissionsPage() {
             setPhone(foundFamily.phone);
             setAddress(foundFamily.address);
             setProfession(foundFamily.profession || '');
+            const children = students.filter(s => s.familyId === foundFamily.id);
+            setExistingChildren(children);
         } else {
             setFatherName('');
             setPhone('');
             setAddress('');
             setProfession('');
+            setAlternatePhone('');
+            setExistingChildren([]);
         }
-    }, [foundFamily]);
+    }, [foundFamily, students]);
     
     const handleFamilySearch = () => {
         const family = families.find(f => f.id === familyId);
@@ -113,6 +122,7 @@ export default function AdmissionsPage() {
             familyId: familyId,
             status: 'Active',
             phone: phone,
+            alternatePhone: alternatePhone,
             address: address,
             dob: dob,
             cnic: studentCnic,
@@ -225,16 +235,58 @@ export default function AdmissionsPage() {
                 Search
               </Button>
             </div>
-            {familyExists && foundFamily && (
-              <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg max-w-sm">
-                <p className="font-semibold text-green-800">Family Verified</p>
-                <p className="text-sm text-green-700">Father's Name: {foundFamily.fatherName}</p>
-                <p className="text-sm text-green-700">Father's Profession: {foundFamily.profession}</p>
-                <p className="text-sm text-green-700">CNIC: {foundFamily.cnic}</p>
-              </div>
+             {familyExists && foundFamily && (
+                <Alert className="mt-4 max-w-sm">
+                    <CheckCircle className="h-4 w-4" />
+                    <AlertTitle>Family Verified</AlertTitle>
+                    <AlertDescription>
+                        <p>Father's Name: {foundFamily.fatherName}</p>
+                        <p>Father's Profession: {foundFamily.profession}</p>
+                        <p>CNIC: {foundFamily.cnic}</p>
+                    </AlertDescription>
+                </Alert>
             )}
           </CardContent>
         </Card>
+        
+        {foundFamily && (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Users className="w-5 h-5"/>Existing Children</CardTitle>
+                <CardDescription>
+                    The following students are already enrolled from this family.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                 {existingChildren.length > 0 ? (
+                    <div className="border rounded-md">
+                        <ul className="divide-y">
+                            {existingChildren.map(child => (
+                                <li key={child.id} className="flex items-center justify-between p-3">
+                                    <div>
+                                        <p className="font-semibold">{child.name} <span className="font-normal text-muted-foreground">(ID: {child.id})</span></p>
+                                        <p className="text-sm text-muted-foreground">Class: {child.class}</p>
+                                    </div>
+                                    <div className='flex items-center gap-4'>
+                                        <Badge variant={child.status === 'Active' ? 'default' : 'destructive'} className={child.status === 'Active' ? 'bg-green-500/20 text-green-700 border-green-500/30' : ''}>{child.status}</Badge>
+                                        <Button asChild variant="link" size="sm"><Link href={`/students/details/${child.id}`}>View</Link></Button>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                ) : (
+                    <Alert variant="default" className="border-dashed">
+                        <Info className="h-4 w-4"/>
+                        <AlertTitle>No Existing Students</AlertTitle>
+                        <AlertDescription>
+                            There are currently no other students enrolled from this family.
+                        </AlertDescription>
+                    </Alert>
+                )}
+            </CardContent>
+        </Card>
+        )}
 
         <Card>
           <CardHeader>
@@ -279,8 +331,12 @@ export default function AdmissionsPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
+                <Label htmlFor="phone">Primary Phone</Label>
                 <Input id="phone" name="phone" type="tel" placeholder="Enter contact number" value={phone} onChange={e => setPhone(e.target.value)} required readOnly={familyExists} />
+              </div>
+               <div className="space-y-2">
+                <Label htmlFor="alternate-phone">Alternate Phone (Optional)</Label>
+                <Input id="alternate-phone" name="alternate-phone" type="tel" placeholder="Enter alternate contact" value={alternatePhone} onChange={e => setAlternatePhone(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="photo">Student Photo</Label>
