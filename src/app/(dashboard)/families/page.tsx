@@ -53,10 +53,10 @@ export default function FamiliesPage() {
     
     // Auto-generate ID
     const lastIdNumber = families.reduce((maxId, family) => {
-        const currentId = parseInt(family.id.replace('F', ''));
-        return currentId > maxId ? currentId : maxId;
+        const currentId = parseInt(family.id);
+        return isNaN(currentId) ? maxId : Math.max(maxId, currentId);
     }, 0);
-    const newId = `F${(lastIdNumber + 1).toString().padStart(3, '0')}`;
+    const newId = (lastIdNumber + 1).toString();
 
     const newFamily: Family = {
       id: newId,

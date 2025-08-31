@@ -59,7 +59,7 @@ export default function FeesPage() {
           <div className="flex w-full max-w-sm items-center space-x-2">
             <Input
               type="text"
-              placeholder="Family Number (e.g., F001)"
+              placeholder="Family Number (e.g., 1)"
               value={familyId}
               onChange={(e) => setFamilyId(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}

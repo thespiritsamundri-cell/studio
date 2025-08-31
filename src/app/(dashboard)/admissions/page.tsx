@@ -27,7 +27,7 @@ export default function AdmissionsPage() {
             <div className="flex items-end gap-2 max-w-sm">
               <div className="flex-grow space-y-2">
                 <Label htmlFor="family-id">Family Number</Label>
-                <Input id="family-id" placeholder="Enter existing family number (e.g., F001)" />
+                <Input id="family-id" placeholder="Enter existing family number (e.g., 1)" />
               </div>
               <Button variant="outline" type="button">
                 <Search className="h-4 w-4 mr-2" />
