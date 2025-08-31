@@ -14,7 +14,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import type { Student, Fee, Class } from '@/lib/types';
 import { useReactToPrint } from 'react-to-print';
 import { useToast } from '@/hooks/use-toast';
 
@@ -27,6 +26,7 @@ export default function ReportsPage() {
     const [reportType, setReportType] = useState<string | null>(null);
     const [reportData, setReportData] = useState<any>(null);
     const [isLoading, setIsLoading] = useState<string | null>(null);
+    const [isPrinting, setIsPrinting] = useState(false);
 
     // States for Attendance Report
     const [selectedClass, setSelectedClass] = useState<string | null>(null);
@@ -37,8 +37,15 @@ export default function ReportsPage() {
         onAfterPrint: () => {
             setReportData(null);
             setReportType(null);
+            setIsPrinting(false);
         },
     });
+
+    useEffect(() => {
+        if (isPrinting && reportData) {
+            handlePrint();
+        }
+    }, [isPrinting, reportData, handlePrint]);
 
     const generateReport = async (type: string) => {
         setIsLoading(type);
@@ -89,17 +96,12 @@ export default function ReportsPage() {
         
         setReportData(data);
         setIsLoading(null);
-
-        // We need another short delay to let React render the report component with the new data
-        // before we trigger the print dialog.
-        setTimeout(() => {
-            handlePrint();
-        }, 100);
+        setIsPrinting(true); // Trigger printing via useEffect
     };
     
   return (
     <div className="space-y-6">
-       <div className="hidden">
+       <div className="hidden print:block">
             {reportData && (
                 <div ref={printRef}>
                     {reportType === 'students' && <AllStudentsPrintReport {...reportData} />}
