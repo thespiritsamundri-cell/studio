@@ -27,8 +27,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
     const { toast } = useToast();
     const [fees, setFees] = useState(initialFees);
     const [receiptData, setReceiptData] = useState<{fees: Fee[], paidAmount: number, totalDues: number, remainingDues: number} | null>(null);
-    const [isPrinting, setIsPrinting] = useState(false);
-
+    
     const unpaidFees = fees.filter(f => f.status === 'Unpaid');
     const totalDues = unpaidFees.reduce((acc, fee) => acc + fee.amount, 0);
 
@@ -48,15 +47,14 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
 
     const handlePrint = useReactToPrint({
         content: () => printRef.current,
-        onAfterPrint: () => setIsPrinting(false),
+        onAfterPrint: () => setReceiptData(null),
     });
 
-
     useEffect(() => {
-        if (isPrinting) {
+        if (receiptData) {
             handlePrint();
         }
-    }, [isPrinting, handlePrint]);
+    }, [receiptData, handlePrint]);
 
 
     const handleCollectFee = () => {
@@ -72,11 +70,9 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
         let amountToSettle = paidAmount;
         const newlyPaidFees: Fee[] = [];
 
-        // Sort unpaid fees by date to ensure oldest are paid first
         const sortedUnpaidFees = [...unpaidFees].sort((a,b) => new Date(a.year, new Date(Date.parse(a.month +" 1, 2012")).getMonth()).getTime() - new Date(b.year, new Date(Date.parse(b.month +" 1, 2012")).getMonth()).getTime());
 
         const updatedFees = fees.map(fee => {
-            // Check if this fee is in our sorted list of fees to be paid
             const isUnpaidAndShouldBePaid = sortedUnpaidFees.find(f => f.id === fee.id);
             if (isUnpaidAndShouldBePaid && amountToSettle > 0) {
                 const payment = Math.min(amountToSettle, fee.amount);
@@ -90,13 +86,12 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
             return fee;
         });
 
-        // Update the global mock data
         newlyPaidFees.forEach(fee => {
             const feeInGlobalData = allFees.find(f => f.id === fee.id);
             if (feeInGlobalData) {
                 feeInGlobalData.status = 'Paid';
                 feeInGlobalData.paymentDate = new Date().toISOString().split('T')[0];
-                feeInGlobalData.amount = fee.amount; // Ensure amount is correct
+                feeInGlobalData.amount = fee.amount;
             }
         });
         
@@ -111,23 +106,22 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
     };
 
     const triggerPrint = () => {
-        if (!unpaidFees.length) {
+        if (!unpaidFees.length && paidAmount === 0) {
              toast({ title: 'No Dues', description: 'There are no outstanding fees to generate a receipt for.', variant: 'destructive' });
             return;
         }
          setReceiptData({
-            fees: unpaidFees, // We'll show all unpaid fees on receipt before payment
+            fees: unpaidFees,
             paidAmount: paidAmount,
             totalDues: totalDues,
             remainingDues: remainingDues
         });
-        setIsPrinting(true);
     };
 
 
     return (
         <>
-            <div className="hidden">
+            <div style={{ display: 'none' }}>
                 {receiptData && (
                     <div ref={printRef}>
                         <FeeReceipt
