@@ -26,6 +26,7 @@ export interface Teacher {
   phone: string;
   education: string;
   salary: number;
+  photoUrl: string;
 }
 
 export interface Attendance {

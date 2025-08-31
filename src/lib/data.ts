@@ -17,8 +17,8 @@ export const families: Family[] = [
 ];
 
 export const teachers: Teacher[] = [
-    { id: 'T01', name: 'Sana Javed', fatherName: 'Javed Iqbal', phone: '03112233445', education: 'M.Sc. Physics', salary: 60000 },
-    { id: 'T02', name: 'Rashid Mehmood', fatherName: 'Mehmood Ali', phone: '03223344556', education: 'M.A. English', salary: 55000 },
+    { id: 'T01', name: 'Sana Javed', fatherName: 'Javed Iqbal', phone: '03112233445', education: 'M.Sc. Physics', salary: 60000, photoUrl: 'https://picsum.photos/seed/T01/200' },
+    { id: 'T02', name: 'Rashid Mehmood', fatherName: 'Mehmood Ali', phone: '03223344556', education: 'M.A. English', salary: 55000, photoUrl: 'https://picsum.photos/seed/T02/200' },
 ];
 
 export const teacherAttendances: TeacherAttendance[] = [

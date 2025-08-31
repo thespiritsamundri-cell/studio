@@ -1,12 +1,11 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, MoreHorizontal, Trash2, Edit } from 'lucide-react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { PlusCircle, MoreHorizontal, Trash2, Edit, Phone, GraduationCap } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,6 +37,8 @@ import { Label } from '@/components/ui/label';
 import { useData } from '@/context/data-context';
 import type { Teacher } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
+import { Badge } from '@/components/ui/badge';
 
 export default function TeachersPage() {
   const { teachers, addTeacher, updateTeacher, deleteTeacher } = useData();
@@ -57,6 +58,7 @@ export default function TeachersPage() {
       phone: formData.get('phone') as string,
       education: formData.get('education') as string,
       salary: Number(formData.get('salary') as string),
+      photoUrl: formData.get('photoUrl') as string,
     };
 
     if(!teacherData.name || !teacherData.phone || !teacherData.education || !teacherData.salary) {
@@ -70,7 +72,7 @@ export default function TeachersPage() {
     } else {
       const lastIdNumber = teachers.reduce((maxId, teacher) => Math.max(maxId, parseInt(teacher.id.replace('T', ''))), 0);
       const newId = `T${(lastIdNumber + 1).toString().padStart(2, '0')}`;
-      addTeacher({ id: newId, ...teacherData });
+      addTeacher({ id: newId, ...teacherData, photoUrl: teacherData.photoUrl || `https://picsum.photos/seed/${newId}/200` });
       toast({ title: "Teacher Added", description: `${teacherData.name} has been successfully added.` });
     }
 
@@ -140,6 +142,10 @@ export default function TeachersPage() {
                   <Label htmlFor="education" className="text-right">Education</Label>
                   <Input id="education" name="education" className="col-span-3" defaultValue={selectedTeacher?.education} required />
                 </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="photoUrl" className="text-right">Photo URL</Label>
+                    <Input id="photoUrl" name="photoUrl" className="col-span-3" defaultValue={selectedTeacher?.photoUrl} />
+                </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="salary" className="text-right">Salary (PKR)</Label>
                   <Input id="salary" name="salary" type="number" className="col-span-3" defaultValue={selectedTeacher?.salary} required />
@@ -153,53 +159,59 @@ export default function TeachersPage() {
         </Dialog>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Teacher Records</CardTitle>
-          <CardDescription>A list of all teachers in the school.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Education</TableHead>
-                <TableHead className="text-right">Salary</TableHead>
-                <TableHead><span className="sr-only">Actions</span></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {teachers.map((teacher) => (
-                <TableRow key={teacher.id}>
-                  <TableCell className="font-medium">{teacher.id}</TableCell>
-                  <TableCell>{teacher.name}</TableCell>
-                  <TableCell>{teacher.phone}</TableCell>
-                  <TableCell>{teacher.education}</TableCell>
-                  <TableCell className="text-right">{teacher.salary.toLocaleString()}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {teachers.map(teacher => (
+          <Card key={teacher.id} className="flex flex-col">
+            <CardHeader className="flex flex-row items-center gap-4">
+               <Image
+                  src={teacher.photoUrl}
+                  alt={teacher.name}
+                  width={80}
+                  height={80}
+                  className="rounded-full aspect-square object-cover"
+                  data-ai-hint="teacher photo"
+                />
+                <div className="flex-1">
+                    <CardTitle>{teacher.name}</CardTitle>
+                    <CardDescription>{teacher.id}</CardDescription>
+                </div>
+                 <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
                         <Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => handleEditClick(teacher)}><Edit className="mr-2 h-4 w-4" />Edit</DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(teacher)}><Trash2 className="mr-2 h-4 w-4" />Delete</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {teachers.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="h-24 text-center">No teachers found.</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </CardHeader>
+            <CardContent className="flex-grow space-y-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <GraduationCap className="h-4 w-4" />
+                    <span>{teacher.education}</span>
+                </div>
+                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Phone className="h-4 w-4" />
+                    <span>{teacher.phone}</span>
+                </div>
+            </CardContent>
+            <CardFooter>
+                <Badge variant="secondary" className="w-full justify-center">Salary: PKR {teacher.salary.toLocaleString()}</Badge>
+            </CardFooter>
+          </Card>
+        ))}
+
+         {teachers.length === 0 && (
+            <Card className="col-span-full flex items-center justify-center h-64">
+                <CardContent>
+                    <p className="text-muted-foreground">No teachers found. Add one to get started.</p>
+                </CardContent>
+            </Card>
+        )}
+      </div>
+
       
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={openDeleteDialog} onOpenChange={setOpenDeleteDialog}>
