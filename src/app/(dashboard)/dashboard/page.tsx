@@ -2,40 +2,11 @@
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Users, Wallet, UserCheck, UserPlus } from 'lucide-react';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, PieChart, Pie, Cell, Line, LineChart } from 'recharts';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, PieChart, Pie, Cell, Line, LineChart, Tooltip } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-
-const totalStudents = 1250;
-const feeCollected = 567800;
-const attendanceToday = 95.5;
-const newAdmissions = 42;
-
-const weeklyAttendanceData = [
-  { day: 'Mon', attendance: 96 },
-  { day: 'Tue', attendance: 92 },
-  { day: 'Wed', attendance: 98 },
-  { day: 'Thu', attendance: 94 },
-  { day: 'Fri', attendance: 95.5 },
-];
-
-const classDistributionData = [
-    { name: 'Nursery', value: 150, fill: 'hsl(var(--chart-1))' },
-    { name: 'KG', value: 120, fill: 'hsl(var(--chart-2))' },
-    { name: '1st', value: 130, fill: 'hsl(var(--chart-3))' },
-    { name: '2nd', value: 110, fill: 'hsl(var(--chart-4))' },
-    { name: '3rd', value: 100, fill: 'hsl(var(--chart-5))' },
-    { name: 'Other', value: 640, fill: 'hsl(var(--muted))' },
-];
-
-const newAdmissionsData = [
-  { month: 'Jan', count: 12 },
-  { month: 'Feb', count: 18 },
-  { month: 'Mar', count: 25 },
-  { month: 'Apr', count: 31 },
-  { month: 'May', count: 28 },
-  { month: 'Jun', count: 42 },
-];
-
+import { useData } from '@/context/data-context';
+import { useMemo } from 'react';
+import { subMonths, format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from 'date-fns';
 
 const chartConfig = {
   attendance: {
@@ -49,6 +20,61 @@ const chartConfig = {
 };
 
 export default function DashboardPage() {
+    const { students, fees } = useData();
+
+    const totalStudents = students.length;
+    const feeCollected = fees.filter(f => f.status === 'Paid').reduce((acc, fee) => acc + fee.amount, 0);
+    const newAdmissions = students.filter(s => new Date(s.admissionDate) > subMonths(new Date(), 1)).length;
+
+    // Dummy data for attendance as we don't have historical attendance data in context
+    const attendanceToday = 95.5;
+    const weeklyAttendanceData = [
+      { day: 'Mon', attendance: 96 },
+      { day: 'Tue', attendance: 92 },
+      { day: 'Wed', attendance: 98 },
+      { day: 'Thu', attendance: 94 },
+      { day: 'Fri', attendance: 95.5 },
+    ];
+    
+    const classDistributionData = useMemo(() => {
+        const dist = students.reduce((acc, student) => {
+            acc[student.class] = (acc[student.class] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+
+        const chartColors = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
+        
+        return Object.entries(dist)
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, 5)
+            .map(([name, value], i) => ({
+                name,
+                value,
+                fill: chartColors[i],
+            }));
+    }, [students]);
+
+    const newAdmissionsData = useMemo(() => {
+        const sixMonthsAgo = subMonths(new Date(), 5);
+        const months = Array.from({ length: 6 }, (_, i) => {
+            const date = subMonths(new Date(), 5 - i);
+            return { month: format(date, 'MMM'), count: 0 };
+        });
+
+        students.forEach(student => {
+            const admissionDate = new Date(student.admissionDate);
+            if (admissionDate >= sixMonthsAgo) {
+                const monthStr = format(admissionDate, 'MMM');
+                const monthData = months.find(m => m.month === monthStr);
+                if (monthData) {
+                    monthData.count++;
+                }
+            }
+        });
+        return months;
+
+    }, [students]);
+
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -61,12 +87,12 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{totalStudents.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">+20 from last month</p>
+            <p className="text-xs text-muted-foreground">+2 from last month</p>
           </CardContent>
         </Card>
         <Card className="bg-card shadow-lg border-l-4 border-green-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Fee Collection (MTD)</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Fee Collection</CardTitle>
              <div className="p-2 rounded-full bg-green-500/10">
                 <Wallet className="w-5 h-5 text-green-500" />
             </div>
@@ -90,7 +116,7 @@ export default function DashboardPage() {
         </Card>
         <Card className="bg-card shadow-lg border-l-4 border-red-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">New Admissions (MTD)</CardTitle>
+            <CardTitle className="text-sm font-medium">New Admissions (Month)</CardTitle>
             <div className="p-2 rounded-full bg-red-500/10">
                 <UserPlus className="w-5 h-5 text-red-500" />
             </div>
@@ -104,25 +130,25 @@ export default function DashboardPage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Weekly Attendance</CardTitle>
+            <CardTitle>Weekly Attendance Trend</CardTitle>
             <CardDescription>Attendance percentage for the current week.</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px]">
             <ChartContainer config={chartConfig} className="w-full h-full">
-              <BarChart accessibilityLayer data={weeklyAttendanceData}>
+              <LineChart accessibilityLayer data={weeklyAttendanceData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" />
                 <XAxis dataKey="day" tickLine={false} tickMargin={10} axisLine={false} />
                 <YAxis tickFormatter={(value) => `${value}%`} domain={[80, 100]} />
-                <ChartTooltip cursor={false} content={<ChartTooltipContent formatter={(value) => `${value}%`} />} />
-                <Bar dataKey="attendance" fill="var(--color-attendance)" radius={[8, 8, 0, 0]} />
-              </BarChart>
+                <ChartTooltip content={<ChartTooltipContent formatter={(value) => `${value}%`} />} />
+                <Line type="monotone" dataKey="attendance" stroke="var(--color-attendance)" strokeWidth={3} dot={{ r: 6, fill: "var(--color-attendance)" }} activeDot={{ r: 8 }} />
+              </LineChart>
             </ChartContainer>
           </CardContent>
         </Card>
         <Card>
             <CardHeader>
                 <CardTitle>Class Distribution</CardTitle>
-                <CardDescription>Student distribution across primary classes.</CardDescription>
+                <CardDescription>Student distribution across top classes.</CardDescription>
             </CardHeader>
             <CardContent className="flex items-center justify-center h-[300px]">
                 <ChartContainer config={{}} className="w-full h-full">
