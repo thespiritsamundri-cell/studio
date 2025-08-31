@@ -50,12 +50,18 @@ export default function ClassesPage() {
   
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
-    onAfterPrint: () => setIsPrinting(false),
+    onAfterPrint: () => {
+        setIsPrinting(false);
+        setReportDate(null);
+    },
   });
 
   useEffect(() => {
     if (isPrinting && reportDate && printRef.current) {
-        handlePrint();
+        setTimeout(() => {
+            handlePrint?.();
+            setIsPrinting(false);
+        }, 0);
     }
   }, [isPrinting, reportDate, handlePrint]);
   
@@ -394,5 +400,7 @@ export default function ClassesPage() {
     </div>
   );
 }
+
+    
 
     
