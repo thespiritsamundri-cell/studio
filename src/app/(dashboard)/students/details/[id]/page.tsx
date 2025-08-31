@@ -19,6 +19,7 @@ export default function StudentDetailsPage() {
   const [student, setStudent] = useState<Student | undefined>(undefined);
   const [family, setFamily] = useState<Family | undefined>(undefined);
   const printRef = useRef<HTMLDivElement>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
   
   useEffect(() => {
     const id = params.id as string;
@@ -31,10 +32,22 @@ export default function StudentDetailsPage() {
       notFound();
     }
   }, [params.id]);
-  
+
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
+    onAfterPrint: () => setIsPrinting(false),
   });
+
+  useEffect(() => {
+    if (isPrinting) {
+      handlePrint();
+    }
+  }, [isPrinting, handlePrint]);
+
+  const triggerPrint = () => {
+    setIsPrinting(true);
+  };
+  
 
   if (!student || !family) {
     return <div>Loading...</div>;
@@ -50,9 +63,11 @@ export default function StudentDetailsPage() {
   return (
     <div className="space-y-6">
        <div style={{ display: 'none' }}>
-        <div ref={printRef}>
-          <StudentDetailsPrint student={student} family={family} />
-        </div>
+        {isPrinting && (
+          <div ref={printRef}>
+            <StudentDetailsPrint student={student} family={family} />
+          </div>
+        )}
       </div>
        <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -63,7 +78,7 @@ export default function StudentDetailsPage() {
         </div>
         <div className="flex gap-2">
             <Button variant="outline" onClick={() => router.push(`/students/edit/${student.id}`)}>Edit Student</Button>
-            <Button onClick={handlePrint} disabled={!printRef.current}><Printer className="h-4 w-4 mr-2" />Print</Button>
+            <Button onClick={triggerPrint}><Printer className="h-4 w-4 mr-2" />Print</Button>
         </div>
       </div>
       <Card>

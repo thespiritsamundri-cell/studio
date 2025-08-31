@@ -27,16 +27,24 @@ export default function AttendancePage() {
   const { toast } = useToast();
   const [isSending, setIsSending] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
   const [reportDate, setReportDate] = useState<Date | null>(null);
-
-  useEffect(() => {
-    // Set the date only on the client side to avoid hydration mismatch
-    setReportDate(new Date());
-  }, []);
-
+  
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
+    onAfterPrint: () => setIsPrinting(false),
   });
+  
+  useEffect(() => {
+    if (isPrinting && reportDate) {
+      handlePrint();
+    }
+  }, [isPrinting, reportDate, handlePrint]);
+
+  const triggerPrint = () => {
+    setReportDate(new Date());
+    setIsPrinting(true);
+  };
 
   const handleClassChange = (classValue: string) => {
     setSelectedClass(classValue);
@@ -112,7 +120,7 @@ export default function AttendancePage() {
   return (
     <div className="space-y-6">
        <div style={{ display: 'none' }}>
-          {reportDate && (
+          {reportDate && isPrinting && (
             <div ref={printRef}>
                 <AttendancePrintReport
                   className={selectedClass || ''}
@@ -129,7 +137,7 @@ export default function AttendancePage() {
           {selectedClass && (
             <>
               <Button onClick={saveAttendance}>Save Attendance</Button>
-               <Button variant="outline" onClick={handlePrint} disabled={!printRef.current}>
+               <Button variant="outline" onClick={triggerPrint}>
                 <Printer className="w-4 h-4 mr-2" /> Print Report
               </Button>
               <Button variant="outline" onClick={handleSendWhatsapp} disabled={isSending}>

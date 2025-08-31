@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import type { Family, Student, Fee } from '@/lib/types';
 import { Button } from '../ui/button';
@@ -27,55 +27,64 @@ export function FeeDetailsCard({ family, students, fees }: FeeDetailsCardProps) 
     const totalDues = unpaidFees.reduce((acc, fee) => acc + fee.amount, 0);
 
     const [paidAmount, setPaidAmount] = useState<number>(totalDues);
+    const [isPrinting, setIsPrinting] = useState(false);
     const remainingDues = totalDues - paidAmount;
 
     const printRef = useRef<HTMLDivElement>(null);
 
     const handlePrint = useReactToPrint({
         content: () => printRef.current,
+        onAfterPrint: () => setIsPrinting(false),
     });
 
-    const handleCollectAndPrint = () => {
-        if (paidAmount <= 0) {
-            toast({
-                title: 'Invalid Amount',
-                description: 'Paid amount must be greater than zero.',
-                variant: 'destructive',
-            });
-            return;
-        }
-        if (paidAmount > totalDues) {
-            toast({
-                title: 'Invalid Amount',
-                description: 'Paid amount cannot be greater than total dues.',
-                variant: 'destructive',
-            });
-            return;
-        }
-        
-        if (printRef.current) {
+     useEffect(() => {
+        if (isPrinting) {
+            if (paidAmount <= 0) {
+                toast({
+                    title: 'Invalid Amount',
+                    description: 'Paid amount must be greater than zero.',
+                    variant: 'destructive',
+                });
+                setIsPrinting(false);
+                return;
+            }
+            if (paidAmount > totalDues) {
+                toast({
+                    title: 'Invalid Amount',
+                    description: 'Paid amount cannot be greater than total dues.',
+                    variant: 'destructive',
+                });
+                setIsPrinting(false);
+                return;
+            }
             handlePrint();
             toast({
                 title: 'Fee Collected',
                 description: `PKR ${paidAmount.toLocaleString()} collected for Family ${family.id}.`,
             });
         }
+    }, [isPrinting, handlePrint, paidAmount, totalDues, family.id, toast]);
+
+    const handleCollectAndPrint = () => {
+        setIsPrinting(true);
     }
 
 
     return (
         <>
             <div style={{ display: 'none' }}>
-                <div ref={printRef}>
-                    <FeeReceipt
-                        family={family}
-                        students={students}
-                        fees={unpaidFees}
-                        totalDues={totalDues}
-                        paidAmount={paidAmount}
-                        remainingDues={remainingDues}
-                    />
-                </div>
+                {isPrinting && (
+                     <div ref={printRef}>
+                        <FeeReceipt
+                            family={family}
+                            students={students}
+                            fees={unpaidFees}
+                            totalDues={totalDues}
+                            paidAmount={paidAmount}
+                            remainingDues={remainingDues}
+                        />
+                    </div>
+                )}
             </div>
             <Card>
                 <CardHeader>
@@ -172,7 +181,7 @@ export function FeeDetailsCard({ family, students, fees }: FeeDetailsCardProps) 
                          </div>
                          <div className="flex justify-end gap-2">
                             <Button variant="outline">Add Other Charges</Button>
-                            <Button disabled={totalDues === 0 || !printRef.current} onClick={handleCollectAndPrint}>Collect Fee &amp; Print Receipt</Button>
+                            <Button disabled={totalDues === 0} onClick={handleCollectAndPrint}>Collect Fee &amp; Print Receipt</Button>
                          </div>
                     </div>
 

@@ -26,12 +26,8 @@ import type { Student } from '@/lib/types';
 export default function StudentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const printRef = useRef<HTMLDivElement>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
   const [reportDate, setReportDate] = useState<Date | null>(null);
-
-  useEffect(() => {
-    // Set the date only on the client side to avoid hydration mismatch
-    setReportDate(new Date());
-  }, []);
 
   const filteredStudents = useMemo(() => {
     if (!searchQuery) {
@@ -46,7 +42,20 @@ export default function StudentsPage() {
 
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
+    onAfterPrint: () => setIsPrinting(false),
   });
+
+  useEffect(() => {
+    if (isPrinting && reportDate) {
+      handlePrint();
+    }
+  }, [isPrinting, reportDate, handlePrint]);
+
+  const triggerPrint = () => {
+    setReportDate(new Date());
+    setIsPrinting(true);
+  };
+
 
   const handleExportCsv = () => {
     const headers = ['ID', 'Name', 'FatherName', 'Class', 'AdmissionDate', 'FamilyId', 'Status', 'Phone', 'Address', 'DOB'];
@@ -84,7 +93,7 @@ export default function StudentsPage() {
   return (
     <div className="space-y-6">
       <div style={{ display: 'none' }}>
-        {reportDate && (
+        {reportDate && isPrinting && (
             <div ref={printRef}>
             <AllStudentsPrintReport students={filteredStudents} date={reportDate} />
             </div>
@@ -104,10 +113,10 @@ export default function StudentsPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               />
           </div>
-          <Button variant="outline" onClick={handlePrint}>
+          <Button variant="outline" onClick={triggerPrint}>
             <Printer className="mr-2" /> Print
           </Button>
-          <Button variant="outline" onClick={handlePrint}>
+          <Button variant="outline" onClick={triggerPrint}>
             <FileDown className="mr-2" /> PDF Export
           </Button>
           <Button variant="outline" onClick={handleExportCsv}>
