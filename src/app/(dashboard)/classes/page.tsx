@@ -400,7 +400,3 @@ export default function ClassesPage() {
     </div>
   );
 }
-
-    
-
-    
