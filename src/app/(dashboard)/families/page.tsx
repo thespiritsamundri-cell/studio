@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -29,9 +29,22 @@ import type { Family } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 export default function FamiliesPage() {
-  const [families, setFamilies] = useState<Family[]>(initialFamilies);
+  const [allFamilies, setAllFamilies] = useState<Family[]>(initialFamilies);
+  const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
+
+  const filteredFamilies = useMemo(() => {
+    if (!searchQuery) {
+      return allFamilies;
+    }
+    return allFamilies.filter(
+      (family) =>
+        family.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        family.fatherName.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [allFamilies, searchQuery]);
+
 
   const handleAddFamily = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -52,7 +65,7 @@ export default function FamiliesPage() {
     }
     
     // Auto-generate ID
-    const lastIdNumber = families.reduce((maxId, family) => {
+    const lastIdNumber = allFamilies.reduce((maxId, family) => {
         const currentId = parseInt(family.id);
         return isNaN(currentId) ? maxId : Math.max(maxId, currentId);
     }, 0);
@@ -65,7 +78,7 @@ export default function FamiliesPage() {
       address,
     };
 
-    setFamilies(prev => [...prev, newFamily]);
+    setAllFamilies(prev => [...prev, newFamily]);
     toast({
         title: "Family Added",
         description: `Family #${newFamily.id} for ${newFamily.fatherName} has been successfully created.`,
@@ -73,6 +86,13 @@ export default function FamiliesPage() {
     setOpen(false);
     e.currentTarget.reset();
   };
+  
+  const handleSearch = (e: React.FormEvent) => {
+      e.preventDefault();
+      // The useMemo hook automatically filters when searchQuery changes,
+      // so this function can be left empty or used for other search-related logic.
+      // For this implementation, we can just rely on the input's onChange.
+  }
 
   return (
     <div className="space-y-6">
@@ -95,15 +115,15 @@ export default function FamiliesPage() {
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="fatherName" className="text-right">Father's Name</Label>
-                  <Input id="fatherName" name="fatherName" className="col-span-3" />
+                  <Input id="fatherName" name="fatherName" className="col-span-3" required />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="phone" className="text-right">Phone</Label>
-                  <Input id="phone" name="phone" type="tel" className="col-span-3" />
+                  <Input id="phone" name="phone" type="tel" className="col-span-3" required />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="address" className="text-right">Address</Label>
-                  <Input id="address" name="address" className="col-span-3" />
+                  <Input id="address" name="address" className="col-span-3" required />
                 </div>
               </div>
                <DialogFooter>
@@ -120,13 +140,19 @@ export default function FamiliesPage() {
           <CardDescription>Search, view, and manage family records.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center space-x-2 mb-4">
-            <Input type="text" placeholder="Search by Family ID or Name..." className="max-w-sm" />
+          <form onSubmit={handleSearch} className="flex items-center space-x-2 mb-4">
+            <Input 
+              type="text" 
+              placeholder="Search by Family ID or Name..." 
+              className="max-w-sm" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
             <Button type="submit">
               <Search className="h-4 w-4 mr-2" />
               Search
             </Button>
-          </div>
+          </form>
           <Table>
             <TableHeader>
               <TableRow>
@@ -140,7 +166,7 @@ export default function FamiliesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {families.map((family) => (
+              {filteredFamilies.map((family) => (
                 <TableRow key={family.id}>
                   <TableCell className="font-medium">{family.id}</TableCell>
                   <TableCell>{family.fatherName}</TableCell>
