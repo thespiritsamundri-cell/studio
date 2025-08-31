@@ -25,6 +25,8 @@ import {
   TrendingUp,
   BookCopy,
 } from 'lucide-react';
+import { useSettings } from '@/context/settings-context';
+import Image from 'next/image';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -40,17 +42,22 @@ const navItems = [
 
 export function SidebarNav() {
   const pathname = usePathname();
+  const { settings } = useSettings();
 
   return (
     <>
       <SidebarHeader>
         <div className="flex items-center gap-2.5 p-2">
            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary-foreground/10">
-            <School className="w-6 h-6 text-primary-foreground" />
+            {settings.schoolLogo ? (
+              <Image src={settings.schoolLogo} alt="School Logo" width={40} height={40} className="rounded-full object-cover"/>
+            ) : (
+              <School className="w-6 h-6 text-primary-foreground" />
+            )}
           </div>
           <div className="flex flex-col">
-            <span className="text-lg font-bold text-primary-foreground font-headline">EduCentral</span>
-            <span className="text-xs text-primary-foreground/70">2024-2025</span>
+            <span className="text-lg font-bold text-primary-foreground font-headline">{settings.schoolName}</span>
+            <span className="text-xs text-primary-foreground/70">{settings.academicYear}</span>
           </div>
         </div>
       </SidebarHeader>
