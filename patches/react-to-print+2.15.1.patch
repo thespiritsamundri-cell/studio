@@ -1,0 +1,193 @@
+diff --git a/node_modules/react-to-print/lib/index.js b/node_modules/react-to-print/lib/index.js
+index 9a66d58..892523e 100644
+--- a/node_modules/react-to-print/lib/index.js
++++ b/node_modules/react-to-print/lib/index.js
+@@ -102,7 +102,7 @@ function useReactToPrint(props) {
+         }
+         else {
+             // Some versions of React do not support printing fully controlled components. To bypass this,
+-            // we render the component to a new iframe and print that.
++            // we render the component to a new iframe and print that. See https://github.com/gregnb/react-to-print/pull/427
+             startPrint(printWindow, props);
+         }
+     }, [props]);
+diff --git a/node_modules/react-to-print/lib/utils.js b/node_modules/react-to-print/lib/utils.js
+index 23d5776..055e8d8 100644
+--- a/node_modules/react-to-print/lib/utils.js
++++ b/node_modules/react-to-print/lib/utils.js
+@@ -2,12 +2,22 @@
+ Object.defineProperty(exports, "__esModule", { value: true });
+ exports.useWhyDidYouUpdate = exports.isFunction = exports.isNil = exports.removeStyle = exports.addStyle = exports.copyStyles = void 0;
+ const React = require("react");
++const react_dom_1 = require("react-dom");
++const PrintContext_1 = require("./PrintContext");
+ const copyStyles = (sourceDoc, targetDoc) => {
+     // <style> elements
+     Array.from(sourceDoc.getElementsByTagName("style")).forEach(style => {
+         targetDoc.head.appendChild(style.cloneNode(true));
+     });
+     // <link rel="stylesheet"> elements
+-    Array.from(sourceDoc.getElementsByTagName("link")).forEach(link => {
+-        if (link.rel === "stylesheet") {
+-            targetDoc.head.appendChild(link.cloneNode(true));
+-        }
+-    });
++    // Many browsers will do all sorts of weird things if they encounter an empty `href`
++    // tag (which is invalid HTML), so we have to do some filtering here
++    Array.from(sourceDoc.querySelectorAll('link[rel="stylesheet"][href]')).forEach(link => {
++        targetDoc.head.appendChild(link.cloneNode(true));
++    });
++};
++exports.copyStyles = copyStyles;
++/**
++ * Adds a `<style>` to the `<head>` of the document with the given `css`.
++ * This is used to hide content that is not part of the print.
++ */
++const addStyle = (doc, css) => {
++    const style = doc.createElement("style");
++    style.type = "text/css";
++    style.appendChild(doc.createTextNode(css));
++    doc.head.appendChild(style);
++    return style;
++};
++exports.addStyle = addStyle;
++/**
++ * Creates a new STYLE element and removes it from the DOM after the print.
++ * This is used to add custom CSS to the print.
++ */
++const removeStyle = (style) => {
++    if (style && style.parentNode) {
++        style.parentNode.removeChild(style);
+    }
+ };
+-exports.copyStyles = copyStyles;
+-const addStyle = (doc, css) => {
+-    const style = doc.createElement("style");
+-    style.appendChild(doc.createTextNode(css));
+-    doc.head.appendChild(style);
+-    return style;
+-};
+-exports.addStyle = addStyle;
+-const removeStyle = (style) => {
+-    if (style) {
+-        style.parentNode.removeChild(style);
+-    }
+-};
+ exports.removeStyle = removeStyle;
+ const isNil = (val) => val === undefined || val === null;
+ exports.isNil = isNil;
+ const isFunction = (val) => typeof val === "function";
+ exports.isFunction = isFunction;
++/**
++ * A React hook to tell you what props have changed between renders.
++ *
++ * Usage:
++ *    useWhyDidYouUpdate(Component.displayName, props);
++ */
+ function useWhyDidYouUpdate(name, props) {
+     const previousProps = React.useRef(props);
+     React.useEffect(() => {
+@@ -28,3 +38,103 @@
+     previousProps.current = props;
+ }
+ exports.useWhyDidYouUpdate = useWhyDidYouUpdate;
++/**
++ * A shared context to hold the `onBeforePrint` and `onAfterPrint` handlers passed to
++</sup> * `<ReactToPrint />`. This is used to allow the `PrintContextConsumer` to call the handlers.
++ */
++function createPrintIframe(options) {
++    const { documentTitle, nonce } = options;
++    const iframe = document.createElement("iframe");
++    iframe.style.position = "absolute";
++    iframe.style.width = "0";
++    iframe.style.height = "0";
++    iframe.style.left = "-9999px";
++    iframe.style.top = "-9999px";
++    iframe.title = documentTitle;
++    if (nonce) {
++        iframe.setAttribute("nonce", nonce);
++    }
++    document.body.appendChild(iframe);
++    return iframe;
++}
++/**
++ * Render a component into the iframe, wait for it to be loaded, and then resolve the promise.
++ * @param printWindow The iframe to render into
++ * @param props The props passed to `<ReactToPrint />`
++ */
++function renderComponent(printWindow, props) {
++    return new Promise(resolve => {
++        const { content, onBeforeGetContent } = props;
+        const contentEl = content();
++        const doc = printWindow.contentDocument;
++        if (doc) {
++            const setRef = (node) => {
++                if (node) {
++                    if ((0, exports.isFunction)(onBeforeGetContent)) {
++                        // eslint-disable-next-line @typescript-eslint/no-empty-function
++                        onBeforeGetContent().then(() => react_dom_1.default.createRoot(doc.body).render(React.createElement(PrintContext_1.default.Provider, { value: {
++                                handleChange: () => {
++                                    // Do nothing for now
++                                }
++                            } }, contentEl))));
++                    }
++                    else {
++                        react_dom_1.default.createRoot(doc.body).render(React.createElement(PrintContext_1.default.Provider, { value: {
++                                handleChange: () => {
++                                    // Do nothing for now
++                                }
++                            } }, contentEl));
++                    }
++                    resolve(undefined); // TODO: why are we returning this?
++                }
++            };
++            // NOTE: `contentEl` is a `ref` which indicates that we must render it to the DOM
++            // before we can get its content. We will render it to a temporary `div` and
++            // then call `onBeforeGetContent`.
++            const tempDiv = doc.createElement("div");
++            doc.body.appendChild(tempDiv);
++            react_dom_1.default.createRoot(tempDiv).render(React.cloneElement(contentEl, { ref: setRef }));
++        }
++    });
++}
++function triggerPrint(printWindow, props) {
++    const { onAfterPrint, onBeforePrint } = props;
++    const doc = printWindow.contentDocument;
++    const win = printWindow.contentWindow;
++    if (doc && win) {
++        if ((0, exports.isFunction)(onBeforePrint)) {
++            const onBeforePrintPromise = onBeforePrint();
++            if (onBeforePrintPromise && (0, exports.isFunction)(onBeforePrintPromise.then)) {
++                onBeforePrintPromise.then(() => {
++                    win.focus();
++                    win.print();
++                });
++            }
++            else {
++                win.focus();
++                win.print();
++            }
++        }
++        else {
++            win.focus();
++            win.print();
++        }
++    }
++    if ((0, exports.isFunction)(onAfterPrint)) {
++        onAfterPrint();
++    }
++}
++async function startPrint(printWindow, props) {
++    const { documentTitle, onBeforeGetContent, onAfterPrint, onBeforePrint } = props;
++    const doc = printWindow.contentDocument;
++    if (doc) {
++        doc.open();
++        doc.write(`<!DOCTYPE html><html><head><title>${documentTitle}</title></head><body></body></html>`);
++        await renderComponent(printWindow, props);
++        (0, exports.copyStyles)(document, doc);
++        const style = (0, exports.addStyle)(doc, "@page { size: auto; margin: 0mm; }");
++        triggerPrint(printWindow, props);
++        (0, exports.removeStyle)(style);
++        doc.close();
++    }
++}

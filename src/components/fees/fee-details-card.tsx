@@ -10,7 +10,6 @@ import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
-import { useReactToPrint } from 'react-to-print';
 import { FeeReceipt } from '../reports/fee-receipt';
 import { useToast } from '@/hooks/use-toast';
 
@@ -31,10 +30,10 @@ export function FeeDetailsCard({ family, students, fees }: FeeDetailsCardProps) 
 
     const printRef = useRef<HTMLDivElement>(null);
 
-    const handlePrint = useReactToPrint({
-        content: () => printRef.current,
-        documentTitle: `Fee-Receipt-${family.id}-${new Date().toLocaleDateString()}`,
-    });
+    const handlePrint = () => {
+        // Printing functionality to be re-implemented with a stable library.
+        alert("Printing is temporarily disabled.");
+    };
 
     const handleCollectAndPrint = () => {
         if (paidAmount <= 0) {
