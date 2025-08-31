@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileDown, BookOpenCheck, DollarSign, Users, CalendarIcon, Loader2 } from 'lucide-react';
@@ -14,82 +14,93 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import type { Student, Fee } from '@/lib/types';
+import type { Student, Fee, Class } from '@/lib/types';
+import { useReactToPrint } from 'react-to-print';
+import { useToast } from '@/hooks/use-toast';
 
 
 export default function ReportsPage() {
-    const { students: allStudents, fees: allFees, families } = useData();
+    const { students: allStudents, fees: allFees, families, classes } = useData();
+    const { toast } = useToast();
     const printRef = useRef<HTMLDivElement>(null);
+    
     const [reportType, setReportType] = useState<string | null>(null);
-    const [isPrinting, setIsPrinting] = useState(false);
+    const [reportData, setReportData] = useState<any>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
     // States for Attendance Report
     const [selectedClass, setSelectedClass] = useState<string | null>(null);
     const [attendanceDate, setAttendanceDate] = useState<Date>(new Date());
-    const [studentsForAttendance, setStudentsForAttendance] = useState<Student[]>([]);
-    const [isGeneratingAttendance, setIsGeneratingAttendance] = useState(false);
-
-    // States for Fee Report
-    const [paidFees, setPaidFees] = useState<(Fee & {fatherName?: string})[]>([]);
-    const [totalIncome, setTotalIncome] = useState(0);
     
+    const handlePrint = useReactToPrint({
+        content: () => printRef.current,
+        onAfterPrint: () => {
+            setReportType(null);
+            setReportData(null);
+        },
+    });
+
     useEffect(() => {
-        if (isPrinting) {
-            window.print();
-            setIsPrinting(false);
+        if (reportData && isLoading === false) {
+            handlePrint();
         }
-    }, [isPrinting]);
+    }, [reportData, isLoading, handlePrint]);
 
-    const handlePrint = (type: string) => {
+    const generateReport = (type: string) => {
         setReportType(type);
+        setIsLoading(true);
 
-        if (type === 'students') {
-            setIsPrinting(true);
-        } else if (type === 'fees') {
-            const feesWithFatherName = allFees
-                .filter(fee => fee.status === 'Paid')
-                .map(fee => {
-                    const family = families.find(f => f.id === fee.familyId);
-                    return { ...fee, fatherName: family?.fatherName || 'N/A' };
+        // Simulate data fetching/processing
+        setTimeout(() => {
+            if (type === 'students') {
+                setReportData({
+                    students: allStudents,
+                    date: new Date(),
                 });
-            setPaidFees(feesWithFatherName);
-            setTotalIncome(feesWithFatherName.reduce((acc, fee) => acc + fee.amount, 0));
-            setIsPrinting(true);
-
-        } else if (type === 'attendance') {
-            if (!selectedClass) {
-                alert('Please select a class first.');
-                return;
-            }
-            setIsGeneratingAttendance(true);
-            setTimeout(() => {
+            } else if (type === 'fees') {
+                const feesWithFatherName = allFees
+                    .filter(fee => fee.status === 'Paid')
+                    .map(fee => {
+                        const family = families.find(f => f.id === fee.familyId);
+                        return { ...fee, fatherName: family?.fatherName || 'N/A' };
+                    });
+                setReportData({
+                    fees: feesWithFatherName,
+                    totalIncome: feesWithFatherName.reduce((acc, fee) => acc + fee.amount, 0),
+                });
+            } else if (type === 'attendance') {
+                if (!selectedClass) {
+                    toast({ title: 'Please select a class first.', variant: 'destructive' });
+                    setIsLoading(false);
+                    return;
+                }
                 const classStudents = allStudents.filter(s => s.class === selectedClass);
-                setStudentsForAttendance(classStudents);
-                setIsGeneratingAttendance(false);
-                setIsPrinting(true);
-            }, 500);
-        }
+                const mockAttendance: Record<string, 'Present' | 'Absent' | 'Leave'> = {};
+                classStudents.forEach(s => {
+                    const rand = Math.random();
+                    if (rand < 0.9) mockAttendance[s.id] = 'Present';
+                    else if (rand < 0.95) mockAttendance[s.id] = 'Absent';
+                    else mockAttendance[s.id] = 'Leave';
+                });
+                setReportData({
+                    className: selectedClass,
+                    date: attendanceDate,
+                    students: classStudents,
+                    attendance: mockAttendance,
+                });
+            }
+            setIsLoading(false);
+        }, 500); // Small delay to allow state to update and show loader
     };
     
-    const getMockAttendance = () => {
-        const attendance: Record<string, 'Present' | 'Absent' | 'Leave'> = {};
-        studentsForAttendance.forEach(s => {
-            const rand = Math.random();
-            if (rand < 0.9) attendance[s.id] = 'Present';
-            else if (rand < 0.95) attendance[s.id] = 'Absent';
-            else attendance[s.id] = 'Leave';
-        });
-        return attendance;
-    }
-
   return (
     <div className="space-y-6">
-       <div className="hidden print:block">
-        <div ref={printRef}>
-            {reportType === 'students' && <AllStudentsPrintReport students={allStudents} date={new Date()} />}
-            {reportType === 'fees' && <IncomePrintReport fees={paidFees} totalIncome={totalIncome} />}
-            {reportType === 'attendance' && selectedClass && <AttendancePrintReport className={selectedClass} date={attendanceDate} students={studentsForAttendance} attendance={getMockAttendance()} />}
-        </div>
+       <div className="hidden">
+            <div ref={printRef}>
+                {reportType === 'students' && reportData && <AllStudentsPrintReport {...reportData} />}
+                {reportType === 'fees' && reportData && <IncomePrintReport {...reportData} />}
+                {reportType === 'attendance' && reportData && <AttendancePrintReport {...reportData} />}
+            </div>
        </div>
 
       <div className="print:hidden">
@@ -106,8 +117,9 @@ export default function ReportsPage() {
                 </div>
             </CardHeader>
             <CardContent>
-                <Button onClick={() => handlePrint('students')}>
-                <FileDown className="mr-2 h-4 w-4" /> Download PDF
+                <Button onClick={() => generateReport('students')} disabled={isLoading && reportType === 'students'}>
+                    {isLoading && reportType === 'students' ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <FileDown className="mr-2 h-4 w-4" />} 
+                    Download PDF
                 </Button>
             </CardContent>
             </Card>
@@ -122,8 +134,9 @@ export default function ReportsPage() {
                 </div>
             </CardHeader>
             <CardContent>
-                <Button onClick={() => handlePrint('fees')}>
-                <FileDown className="mr-2 h-4 w-4" /> Download PDF
+                <Button onClick={() => generateReport('fees')} disabled={isLoading && reportType === 'fees'}>
+                    {isLoading && reportType === 'fees' ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <FileDown className="mr-2 h-4 w-4" />}
+                    Download PDF
                 </Button>
             </CardContent>
             </Card>
@@ -143,8 +156,8 @@ export default function ReportsPage() {
                         <SelectValue placeholder="Select a class" />
                     </SelectTrigger>
                     <SelectContent>
-                        {['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th'].map(c => (
-                            <SelectItem key={c} value={c}>{c} Class</SelectItem>
+                        {classes.map(c => (
+                            <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
@@ -170,8 +183,8 @@ export default function ReportsPage() {
                       />
                     </PopoverContent>
                   </Popover>
-                <Button onClick={() => handlePrint('attendance')} disabled={!selectedClass || isGeneratingAttendance}>
-                  {isGeneratingAttendance ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Generating...</> : <><FileDown className="mr-2 h-4 w-4" /> Download PDF</>}
+                <Button onClick={() => generateReport('attendance')} disabled={!selectedClass || (isLoading && reportType === 'attendance')}>
+                  {isLoading && reportType === 'attendance' ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Generating...</> : <><FileDown className="mr-2 h-4 w-4" /> Download PDF</>}
                 </Button>
             </CardContent>
             </Card>
@@ -180,3 +193,5 @@ export default function ReportsPage() {
     </div>
   );
 }
+
+    
