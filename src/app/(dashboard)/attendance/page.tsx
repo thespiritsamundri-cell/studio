@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -25,6 +26,13 @@ export default function AttendancePage() {
   const { toast } = useToast();
   const [isSending, setIsSending] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
+  const [reportDate, setReportDate] = useState<Date | null>(null);
+
+  useEffect(() => {
+    // Set the date only on the client side to avoid hydration mismatch
+    setReportDate(new Date());
+  }, []);
+
 
   const handleClassChange = (classValue: string) => {
     setSelectedClass(classValue);
@@ -106,12 +114,14 @@ export default function AttendancePage() {
     <div className="space-y-6">
        <div style={{ display: 'none' }}>
         <div ref={printRef}>
-          <AttendancePrintReport
-            className={selectedClass || ''}
-            date={new Date()}
-            students={students}
-            attendance={attendance}
-          />
+          {reportDate && (
+            <AttendancePrintReport
+              className={selectedClass || ''}
+              date={reportDate}
+              students={students}
+              attendance={attendance}
+            />
+          )}
         </div>
       </div>
       <div className="flex items-center justify-between">
