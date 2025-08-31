@@ -60,7 +60,6 @@ export default function ClassesPage() {
     if (isPrinting && reportDate && printRef.current) {
         setTimeout(() => {
             handlePrint?.();
-            setIsPrinting(false);
         }, 0);
     }
   }, [isPrinting, reportDate, handlePrint]);
