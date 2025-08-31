@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog } from 'lucide-react';
+import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import { useState, useMemo } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -123,6 +123,7 @@ export default function SettingsPage() {
           
           if (restoredData.settings && restoredData.students && restoredData.families && restoredData.fees) {
              loadData(restoredData);
+             setSettings(restoredData.settings);
              toast({
                 title: 'Restore Successful',
                 description: 'Data has been restored from the backup file.',
@@ -242,7 +243,7 @@ export default function SettingsPage() {
             // Using academic year as placeholder for delay, which is not ideal but was in original code
             await sendWhatsAppMessage(recipient.phone, personalizedMessage);
             successCount++;
-            await sleep(Number(settings.academicYear) || 2000); 
+            await sleep(Number(settings.messageDelay) * 1000 || 2000); 
         } catch (error) {
             console.error(`Failed to send message to ${recipient.phone}`, error);
         }
@@ -251,14 +252,28 @@ export default function SettingsPage() {
     toast({ title: 'Process Complete', description: `Successfully sent messages to ${successCount} out of ${recipients.length} recipients.` });
     setIsSending(false);
   };
+  
+    const handleThemeColorChange = (variableName: string, value: string) => {
+        document.documentElement.style.setProperty(variableName, value);
+        // Also save it to settings so it persists
+        setSettings(prev => ({
+            ...prev,
+            themeColors: {
+                ...prev.themeColors,
+                [variableName.replace('--', '')]: value
+            }
+        }));
+    };
+
 
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><SettingsIcon className="w-8 h-8" />Settings</h1>
       
       <Tabs defaultValue="school" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 max-w-xl">
+        <TabsList className="grid w-full grid-cols-5 max-w-2xl">
           <TabsTrigger value="school">School</TabsTrigger>
+          <TabsTrigger value="theme">Theme</TabsTrigger>
           <TabsTrigger value="account">Account</TabsTrigger>
           <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
           <TabsTrigger value="backup">Backup</TabsTrigger>
@@ -318,6 +333,57 @@ export default function SettingsPage() {
                 </CardContent>
             </Card>
         </TabsContent>
+        <TabsContent value="theme" className="mt-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Palette />Theme Customization</CardTitle>
+                    <CardDescription>Customize the look and feel of the application to match your school's branding.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="p-4 border rounded-lg space-y-4">
+                        <h3 className="font-medium text-lg">Main Theme</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                             <div className="space-y-2">
+                                <Label htmlFor="primary-color">Primary Color</Label>
+                                <Input id="primary-color" type="color" value={settings.themeColors?.primary || '#6a3fdc'} onChange={e => handleThemeColorChange('--primary', e.target.value)} />
+                             </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="background-color">Background Color</Label>
+                                <Input id="background-color" type="color" value={settings.themeColors?.background || '#f0f2f5'} onChange={e => handleThemeColorChange('--background', e.target.value)} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="accent-color">Accent Color</Label>
+                                <Input id="accent-color" type="color" value={settings.themeColors?.accent || '#e9e1ff'} onChange={e => handleThemeColorChange('--accent', e.target.value)} />
+                            </div>
+                        </div>
+                    </div>
+                     <div className="p-4 border rounded-lg space-y-4">
+                        <h3 className="font-medium text-lg">Sidebar Theme</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                             <div className="space-y-2">
+                                <Label htmlFor="sidebar-background-color">Background</Label>
+                                <Input id="sidebar-background-color" type="color" value={settings.themeColors?.['sidebar-background'] || '#2c2a4a'} onChange={e => handleThemeColorChange('--sidebar-background', e.target.value)} />
+                             </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="sidebar-foreground-color">Text</Label>
+                                <Input id="sidebar-foreground-color" type="color" value={settings.themeColors?.['sidebar-foreground'] || '#f8f9fa'} onChange={e => handleThemeColorChange('--sidebar-foreground', e.target.value)} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="sidebar-accent-color">Accent</Label>
+                                <Input id="sidebar-accent-color" type="color" value={settings.themeColors?.['sidebar-accent'] || '#403d6d'} onChange={e => handleThemeColorChange('--sidebar-accent', e.target.value)} />
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="sidebar-accent-foreground-color">Accent Text</Label>
+                                <Input id="sidebar-accent-foreground-color" type="color" value={settings.themeColors?.['sidebar-accent-foreground'] || '#ffffff'} onChange={e => handleThemeColorChange('--sidebar-accent-foreground', e.target.value)} />
+                            </div>
+                        </div>
+                    </div>
+                     <div className="flex justify-end">
+                        <Button onClick={() => toast({ title: "Theme Saved", description: "Your new colors have been applied."})}>Save Theme</Button>
+                    </div>
+                </CardContent>
+            </Card>
+        </TabsContent>
          <TabsContent value="account" className="mt-6">
             <Card>
                 <CardHeader>
@@ -360,6 +426,7 @@ export default function SettingsPage() {
               <AlertDescription>
                 To send messages, you need to connect to a WhatsApp API provider (e.g., UltraMSG, Twilio). 
                 Log in to your provider's dashboard, get your API credentials (URL and Key/Token), and enter them below.
+                This is a mock integration and will not send real messages.
               </AlertDescription>
             </Alert>
             <Card>
@@ -370,26 +437,26 @@ export default function SettingsPage() {
                 <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <Label htmlFor="apiUrl">API URL</Label>
-                            <Input id="apiUrl" placeholder="Enter WhatsApp API URL" />
+                            <Label htmlFor="whatsappApiUrl">API URL</Label>
+                            <Input id="whatsappApiUrl" value={settings.whatsappApiUrl} onChange={handleInputChange} placeholder="Enter WhatsApp API URL" />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="apiKey">API Key / Token</Label>
-                            <Input id="apiKey" placeholder="Enter WhatsApp API Key or Token" />
+                            <Label htmlFor="whatsappApiKey">API Key / Token</Label>
+                            <Input id="whatsappApiKey" value={settings.whatsappApiKey} onChange={handleInputChange} placeholder="Enter WhatsApp API Key or Token" />
                         </div>
                          <div className="space-y-2">
-                            <Label htmlFor="delay">Message Delay (seconds)</Label>
-                            <Input id="delay" type="number" defaultValue="2" />
+                            <Label htmlFor="messageDelay">Message Delay (seconds)</Label>
+                            <Input id="messageDelay" type="number" value={settings.messageDelay} onChange={handleInputChange} />
                         </div>
                         <div className="flex items-end space-x-2">
                             <div className="flex items-center space-x-2 h-10">
-                                <Checkbox id="active" />
-                                <Label htmlFor="active">Active</Label>
+                                <Checkbox id="whatsappActive" checked={settings.whatsappActive} onCheckedChange={(checked) => setSettings(prev => ({...prev, whatsappActive: !!checked}))} />
+                                <Label htmlFor="whatsappActive">Active</Label>
                             </div>
                         </div>
                     </div>
                      <div className="flex justify-end items-center gap-2 pt-4">
-                        <Button variant="default"><KeyRound className="mr-2"/>Save WhatsApp Settings</Button>
+                        <Button onClick={handleSave}><KeyRound className="mr-2"/>Save WhatsApp Settings</Button>
                         <Button variant="outline"><TestTubeDiagonal className="mr-2"/>Test Connection</Button>
                     </div>
                 </CardContent>
