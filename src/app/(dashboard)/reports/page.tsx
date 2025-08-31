@@ -38,12 +38,9 @@ export default function ReportsPage() {
     },
   });
 
-  const generateReport = async (type: string) => {
+  const generateReport = (type: string) => {
     setIsLoading(type);
     
-    // Allow UI to show loader
-    await new Promise(resolve => setTimeout(resolve, 100));
-
     let data;
     if (type === 'students') {
       data = { students: allStudents, date: new Date() };
@@ -85,7 +82,7 @@ export default function ReportsPage() {
         if (printRef.current) {
             handlePrint();
         } else {
-            toast({
+             toast({
                 title: "Print Error",
                 description: "Could not generate the report for printing.",
                 variant: "destructive",

@@ -69,7 +69,7 @@ export const IncomePrintReport = React.forwardRef<HTMLDivElement, IncomePrintRep
                   <TableCell>{fee.id}</TableCell>
                   <TableCell className="font-medium">{fee.familyId}</TableCell>
                   <TableCell>{fee.fatherName}</TableCell>
-                  <TableCell>{format(new Date(fee.paymentDate), 'PPP')}</TableCell>
+                  <TableCell>{fee.paymentDate && format(new Date(fee.paymentDate), 'PPP')}</TableCell>
                   <TableCell>{fee.month}, {fee.year}</TableCell>
                   <TableCell className="text-right font-semibold text-green-600">{fee.amount.toLocaleString()}</TableCell>
                 </TableRow>
