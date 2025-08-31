@@ -26,7 +26,8 @@ interface FeeDetailsCardProps {
 export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetailsCardProps) {
     const { toast } = useToast();
     const [fees, setFees] = useState(initialFees);
-    const [receiptData, setReceiptData] = useState<{fees: Fee[], paidAmount: number, totalDues: number, remainingDues: number} | null>(null);
+    const [isPrinting, setIsPrinting] = useState(false);
+    const [receiptDataForPrint, setReceiptDataForPrint] = useState<{fees: Fee[], paidAmount: number, totalDues: number, remainingDues: number} | null>(null);
     
     const unpaidFees = fees.filter(f => f.status === 'Unpaid');
     const totalDues = unpaidFees.reduce((acc, fee) => acc + fee.amount, 0);
@@ -38,7 +39,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
         const currentUnpaidFees = initialFees.filter(f => f.status === 'Unpaid');
         const currentTotalDues = currentUnpaidFees.reduce((acc, fee) => acc + fee.amount, 0);
         setPaidAmount(currentTotalDues);
-        setReceiptData(null); // Reset receipt data on new family search
+        setReceiptDataForPrint(null);
     }, [initialFees, family.id]);
 
 
@@ -47,14 +48,14 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
 
     const handlePrint = useReactToPrint({
         content: () => printRef.current,
-        onAfterPrint: () => setReceiptData(null),
+        onAfterPrint: () => setIsPrinting(false),
     });
 
     useEffect(() => {
-        if (receiptData) {
+        if (isPrinting) {
             handlePrint();
         }
-    }, [receiptData, handlePrint]);
+    }, [isPrinting, handlePrint]);
 
 
     const handleCollectFee = () => {
@@ -106,31 +107,32 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
     };
 
     const triggerPrint = () => {
-        if (!unpaidFees.length && paidAmount === 0) {
+        if (totalDues === 0) {
              toast({ title: 'No Dues', description: 'There are no outstanding fees to generate a receipt for.', variant: 'destructive' });
             return;
         }
-         setReceiptData({
+        setReceiptDataForPrint({
             fees: unpaidFees,
             paidAmount: paidAmount,
             totalDues: totalDues,
             remainingDues: remainingDues
         });
+        setIsPrinting(true);
     };
 
 
     return (
         <>
             <div style={{ display: 'none' }}>
-                {receiptData && (
+                {receiptDataForPrint && (
                     <div ref={printRef}>
                         <FeeReceipt
                             family={family}
                             students={students}
-                            fees={receiptData.fees}
-                            totalDues={receiptData.totalDues}
-                            paidAmount={receiptData.paidAmount}
-                            remainingDues={receiptData.remainingDues}
+                            fees={receiptDataForPrint.fees}
+                            totalDues={receiptDataForPrint.totalDues}
+                            paidAmount={receiptDataForPrint.paidAmount}
+                            remainingDues={receiptDataForPrint.remainingDues}
                         />
                     </div>
                 )}
