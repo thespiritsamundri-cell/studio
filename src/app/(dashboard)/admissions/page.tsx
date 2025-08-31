@@ -36,7 +36,7 @@ export default function AdmissionsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {[...Array(10)].map((_, i) => (
-                    <SelectItem key={i + 1} value={`${i + 1}th`}>{`${i + 1}th Class`}</SelectItem>
+                    <SelectItem key={i + 1} value={`${i + 1}`}>{`${i + 1}th Class`}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -61,6 +61,7 @@ export default function AdmissionsPage() {
             {/* Fee Structure */}
             <div className="md:col-span-3">
                  <h3 className="text-lg font-medium border-t pt-6 mt-6">Fee Structure</h3>
+                 <p className="text-sm text-muted-foreground">Define the fees for this student. The registration fee is a one-time charge.</p>
             </div>
 
              <div className="space-y-2">
