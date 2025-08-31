@@ -35,7 +35,7 @@ export const AllStudentsPrintReport = React.forwardRef<HTMLDivElement, AllStuden
           </div>
           <div className="text-right">
             <h2 className="text-2xl font-semibold text-gray-700">All Students Report</h2>
-            <p className="text-sm text-gray-500">Date: {date ? format(new Date(date), 'PPP') : ''}</p>
+            <p className="text-sm text-gray-500">Date: {date ? format(date, 'PPP') : ''}</p>
             <p className="text-sm text-gray-500">Total Students: {students.length}</p>
           </div>
         </header>

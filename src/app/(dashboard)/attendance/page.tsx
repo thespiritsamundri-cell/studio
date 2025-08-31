@@ -38,7 +38,7 @@ export default function AttendancePage() {
     if (isPrinting && reportDate && printRef.current) {
        setTimeout(() => {
         handlePrint();
-      }, 0);
+      }, 100);
     }
   }, [isPrinting, reportDate, handlePrint]);
 
@@ -127,16 +127,15 @@ export default function AttendancePage() {
   return (
     <div className="space-y-6">
        <div style={{ display: 'none' }}>
-          <div ref={printRef}>
-            {reportDate && (
-              <AttendancePrintReport
-                className={selectedClass || ''}
-                date={reportDate}
-                students={students}
-                attendance={attendance}
-              />
-            )}
-          </div>
+          {reportDate && (
+            <AttendancePrintReport
+              ref={printRef}
+              className={selectedClass || ''}
+              date={reportDate}
+              students={students}
+              attendance={attendance}
+            />
+          )}
       </div>
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold font-headline">Attendance</h1>

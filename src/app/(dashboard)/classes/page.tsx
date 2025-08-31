@@ -77,7 +77,7 @@ export default function ClassesPage() {
     if (isPrinting && reportDate && printRef.current) {
         setTimeout(() => {
             handlePrint?.();
-        }, 0);
+        }, 100);
     }
   }, [isPrinting, reportDate, handlePrint]);
 
@@ -202,7 +202,7 @@ export default function ClassesPage() {
   return (
     <div className="space-y-6">
       <div style={{ display: 'none' }}>
-        <AllStudentsPrintReport ref={printRef} students={studentsForReport} date={reportDate} />
+        {reportDate && <AllStudentsPrintReport ref={printRef} students={studentsForReport} date={reportDate} />}
       </div>
       <div className="print:hidden">
         <h1 className="text-3xl font-bold font-headline">Classes</h1>
