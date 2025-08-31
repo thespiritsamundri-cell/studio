@@ -38,7 +38,7 @@ export default function ReportsPage() {
   }, []);
 
   const handlePrint = useReactToPrint({
-    content: () => printRef.current,
+    contentRef: printRef,
     onAfterPrint: () => {
       setIsPrinting(false);
       setIsLoading(null);
@@ -49,7 +49,9 @@ export default function ReportsPage() {
   
   useEffect(() => {
       if (isPrinting && printRef.current) {
-          handlePrint();
+          setTimeout(() => {
+            handlePrint();
+          }, 100);
       }
   }, [isPrinting, handlePrint]);
 
@@ -124,7 +126,9 @@ export default function ReportsPage() {
     <div className="space-y-6">
       {/* Printable content, always in DOM but hidden */}
       <div className="hidden">
-          {renderReportComponent()}
+          <div ref={printRef}>
+            {renderReportComponent()}
+          </div>
       </div>
 
 
