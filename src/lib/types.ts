@@ -20,6 +20,7 @@ export interface Family {
   phone: string;
   address: string;
   cnic?: string;
+  profession?: string;
 }
 
 export interface Teacher {

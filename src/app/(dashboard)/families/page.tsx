@@ -39,6 +39,12 @@ import { useData } from '@/context/data-context';
 import type { Family } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const professions = [
+    'Doctor', 'Engineer', 'Teacher', 'Businessman', 'Government Employee', 
+    'Farmer', 'Lawyer', 'Laborer', 'Driver', 'Other'
+];
 
 export default function FamiliesPage() {
   const { families: allFamilies, addFamily, updateFamily, deleteFamily } = useData();
@@ -50,10 +56,22 @@ export default function FamiliesPage() {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [selectedFamily, setSelectedFamily] = useState<Family | null>(null);
   const { toast } = useToast();
+  
+  // State for select dropdowns
+  const [newProfession, setNewProfession] = useState('');
+  const [editProfession, setEditProfession] = useState('');
+
 
   useEffect(() => {
     setFilteredFamilies(allFamilies);
   }, [allFamilies]);
+  
+   useEffect(() => {
+    if (selectedFamily) {
+      setEditProfession(selectedFamily.profession || '');
+    }
+  }, [selectedFamily]);
+
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,6 +126,7 @@ export default function FamiliesPage() {
       phone,
       address,
       cnic,
+      profession: newProfession,
     };
 
     addFamily(newFamily);
@@ -117,6 +136,7 @@ export default function FamiliesPage() {
     });
     setOpenAddDialog(false);
     e.currentTarget.reset();
+    setNewProfession('');
     setSearchQuery(''); 
   };
   
@@ -131,6 +151,7 @@ export default function FamiliesPage() {
       phone: formData.get('editPhone') as string,
       address: formData.get('editAddress') as string,
       cnic: formData.get('editCnic') as string,
+      profession: editProfession,
     };
 
     updateFamily(selectedFamily.id, updatedFamily);
@@ -191,6 +212,17 @@ export default function FamiliesPage() {
                   <Label htmlFor="fatherName" className="text-right">Father's Name</Label>
                   <Input id="fatherName" name="fatherName" className="col-span-3" required />
                 </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="profession" className="text-right">Profession</Label>
+                  <Select name="profession" onValueChange={setNewProfession} value={newProfession}>
+                    <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select profession" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {professions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="cnic" className="text-right">Father's CNIC</Label>
                   <Input id="cnic" name="cnic" className="col-span-3" />
@@ -236,6 +268,7 @@ export default function FamiliesPage() {
               <TableRow>
                 <TableHead>Family ID</TableHead>
                 <TableHead>Father's Name</TableHead>
+                <TableHead>Profession</TableHead>
                 <TableHead>CNIC</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead className="hidden md:table-cell">Address</TableHead>
@@ -249,6 +282,7 @@ export default function FamiliesPage() {
                 <TableRow key={family.id}>
                   <TableCell className="font-medium">{family.id}</TableCell>
                   <TableCell>{family.fatherName}</TableCell>
+                  <TableCell>{family.profession}</TableCell>
                   <TableCell>{family.cnic}</TableCell>
                   <TableCell>{family.phone}</TableCell>
                   <TableCell className="hidden md:table-cell">{family.address}</TableCell>
@@ -276,7 +310,7 @@ export default function FamiliesPage() {
               ))}
                {filteredFamilies.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center">
+                  <TableCell colSpan={7} className="h-24 text-center">
                     No families found.
                   </TableCell>
                 </TableRow>
@@ -301,6 +335,17 @@ export default function FamiliesPage() {
                 <Label htmlFor="editFatherName" className="text-right">Father's Name</Label>
                 <Input id="editFatherName" name="editFatherName" className="col-span-3" defaultValue={selectedFamily?.fatherName} required />
               </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="editProfession" className="text-right">Profession</Label>
+                  <Select name="editProfession" onValueChange={setEditProfession} value={editProfession}>
+                    <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select profession" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {professions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
                <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="editCnic" className="text-right">Father's CNIC</Label>
                 <Input id="editCnic" name="editCnic" className="col-span-3" defaultValue={selectedFamily?.cnic} />
