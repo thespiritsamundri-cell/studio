@@ -46,7 +46,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
     });
 
      useEffect(() => {
-        if (isPrinting) {
+        if (isPrinting && printRef.current) {
             if (paidAmount <= 0) {
                 toast({
                     title: 'Invalid Amount',
@@ -107,7 +107,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
         }
     }, [isPrinting, handlePrint, paidAmount, totalDues, family.id, toast, fees]);
 
-    const handleCollectAndPrint = () => {
+    const triggerPrint = () => {
         setIsPrinting(true);
     }
 
@@ -223,7 +223,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees }: FeeDetai
                          </div>
                          <div className="flex justify-end gap-2">
                             <Button variant="outline">Add Other Charges</Button>
-                            <Button disabled={totalDues === 0 || paidAmount <= 0} onClick={handleCollectAndPrint}>Collect Fee &amp; Print Receipt</Button>
+                            <Button disabled={totalDues === 0 || paidAmount <= 0} onClick={triggerPrint}>Collect Fee &amp; Print Receipt</Button>
                          </div>
                     </div>
 
