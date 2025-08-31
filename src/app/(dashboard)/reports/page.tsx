@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileDown, BookOpenCheck, DollarSign, Users, CalendarIcon, Loader2 } from 'lucide-react';
@@ -28,7 +28,12 @@ export default function ReportsPage() {
 
   // States for Attendance Report
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
-  const [attendanceDate, setAttendanceDate] = useState<Date>(new Date());
+  const [attendanceDate, setAttendanceDate] = useState<Date | undefined>(undefined);
+
+  // Set date on client mount to avoid hydration errors
+  useEffect(() => {
+    setAttendanceDate(new Date());
+  }, []);
 
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
@@ -38,9 +43,9 @@ export default function ReportsPage() {
     },
   });
 
-  const generateReport = (type: string) => {
+  const generateReport = useCallback((type: string) => {
     setIsLoading(type);
-    
+
     let data;
     if (type === 'students') {
       data = { students: allStudents, date: new Date() };
@@ -62,6 +67,11 @@ export default function ReportsPage() {
         setIsLoading(null);
         return;
       }
+      if (!attendanceDate) {
+        toast({ title: 'Please select a date first.', variant: 'destructive' });
+        setIsLoading(null);
+        return;
+      }
       const classStudents = allStudents.filter(s => s.class === selectedClass);
       // This is mock data for demonstration, replace with actual attendance data if available
       const mockAttendance: Record<string, 'Present' | 'Absent' | 'Leave'> = {};
@@ -73,11 +83,13 @@ export default function ReportsPage() {
       });
       data = { className: selectedClass, date: attendanceDate, students: classStudents, attendance: mockAttendance };
     }
-
+    
     setReportData(data);
     setReportType(type);
     setIsLoading(null);
     
+    // Use a timeout to ensure the component has re-rendered with the new data
+    // before attempting to print.
     setTimeout(() => {
         if (printRef.current) {
             handlePrint();
@@ -89,7 +101,7 @@ export default function ReportsPage() {
             });
         }
     }, 100);
-  };
+  }, [allStudents, allFees, families, selectedClass, attendanceDate, handlePrint, toast]);
 
   return (
     <div className="space-y-6">
