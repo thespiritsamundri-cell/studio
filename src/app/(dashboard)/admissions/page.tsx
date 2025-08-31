@@ -29,6 +29,7 @@ export default function AdmissionsPage() {
     // Form state for student details
     const [studentName, setStudentName] = useState('');
     const [fatherName, setFatherName] = useState('');
+    const [profession, setProfession] = useState('');
     const [dob, setDob] = useState('');
     const [studentClass, setStudentClass] = useState('');
     const [phone, setPhone] = useState('');
@@ -43,10 +44,12 @@ export default function AdmissionsPage() {
             setFatherName(foundFamily.fatherName);
             setPhone(foundFamily.phone);
             setAddress(foundFamily.address);
+            setProfession(foundFamily.profession || '');
         } else {
             setFatherName('');
             setPhone('');
             setAddress('');
+            setProfession('');
         }
     }, [foundFamily]);
     
@@ -226,6 +229,7 @@ export default function AdmissionsPage() {
               <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg max-w-sm">
                 <p className="font-semibold text-green-800">Family Verified</p>
                 <p className="text-sm text-green-700">Father's Name: {foundFamily.fatherName}</p>
+                <p className="text-sm text-green-700">Father's Profession: {foundFamily.profession}</p>
                 <p className="text-sm text-green-700">CNIC: {foundFamily.cnic}</p>
               </div>
             )}
@@ -246,6 +250,10 @@ export default function AdmissionsPage() {
               <div className="space-y-2">
                 <Label htmlFor="father-name">Father's Name</Label>
                 <Input id="father-name" name="father-name" placeholder="Enter father's name" value={fatherName} onChange={e => setFatherName(e.target.value)} required readOnly={familyExists} />
+              </div>
+               <div className="space-y-2">
+                <Label htmlFor="profession">Father's Profession</Label>
+                <Input id="profession" name="profession" placeholder="Father's Profession" value={profession} onChange={e => setProfession(e.target.value)} required readOnly={familyExists} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="dob">Date of Birth</Label>
