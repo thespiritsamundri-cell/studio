@@ -60,6 +60,10 @@ export default function ClassesPage() {
   }, [isPrinting, reportDate, handlePrint]);
   
   const triggerPrint = () => {
+    if (studentsToExport.length === 0) {
+      toast({ title: "No students selected", description: "Please select students to print.", variant: "destructive" });
+      return;
+    }
     setReportDate(new Date());
     setIsPrinting(true);
   }
@@ -187,11 +191,9 @@ export default function ClassesPage() {
 
   return (
     <div className="space-y-6">
-      <div style={{ display: 'none' }}>
+      <div className="hidden">
         {isPrinting && reportDate && (
-          <div ref={printRef}>
-            <AllStudentsPrintReport students={studentsToExport} date={reportDate} />
-          </div>
+          <AllStudentsPrintReport ref={printRef} students={studentsToExport} date={reportDate} />
         )}
       </div>
 
