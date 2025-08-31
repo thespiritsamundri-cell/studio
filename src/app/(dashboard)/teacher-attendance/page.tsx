@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -14,7 +14,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDaysInMonth, getMonth, getYear, setMonth, setYear, subMonths, addMonths } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Printer } from 'lucide-react';
+import { useReactToPrint } from 'react-to-print';
+import { TeacherAttendancePrintReport } from '@/components/reports/teacher-attendance-report';
 
 
 type AttendanceStatus = 'Present' | 'Absent' | 'Leave';
@@ -55,13 +57,23 @@ export default function TeacherAttendancePage() {
 
   // Monthly Report Logic
   const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [selectedTeacherId, setSelectedTeacherId] = useState('all');
+  const printRef = useRef<HTMLDivElement>(null);
+  
+  const handlePrint = useReactToPrint({
+      content: () => printRef.current,
+  });
 
   const monthlyReportData = useMemo(() => {
     const start = startOfMonth(selectedMonth);
     const end = endOfMonth(selectedMonth);
     const daysInMonth = eachDayOfInterval({ start, end });
 
-    const report = teachers.map(teacher => {
+    const filteredTeachers = selectedTeacherId === 'all'
+      ? teachers
+      : teachers.filter(t => t.id === selectedTeacherId);
+
+    const report = filteredTeachers.map(teacher => {
         const attendanceByDate: Record<string, AttendanceStatus | undefined> = {};
         daysInMonth.forEach(day => {
             const dateStr = format(day, 'yyyy-MM-dd');
@@ -71,8 +83,8 @@ export default function TeacherAttendancePage() {
         return { teacher, attendanceByDate };
     });
 
-    return { report, daysInMonth };
-  }, [teachers, teacherAttendances, selectedMonth]);
+    return { report, daysInMonth, filteredTeachers };
+  }, [teachers, teacherAttendances, selectedMonth, selectedTeacherId]);
   
   const getStatusBadge = (status: AttendanceStatus | undefined) => {
       if (!status) return <span className="text-muted-foreground">-</span>;
@@ -91,6 +103,17 @@ export default function TeacherAttendancePage() {
 
   return (
     <div className="space-y-6">
+      <div style={{ display: 'none' }}>
+        <div ref={printRef}>
+            <TeacherAttendancePrintReport
+                teachers={monthlyReportData.filteredTeachers}
+                daysInMonth={monthlyReportData.daysInMonth}
+                attendanceData={monthlyReportData.report}
+                month={selectedMonth}
+            />
+        </div>
+      </div>
+
       <h1 className="text-3xl font-bold font-headline">Teacher Attendance</h1>
       
       <Tabs defaultValue="daily">
@@ -144,7 +167,7 @@ export default function TeacherAttendancePage() {
         <TabsContent value="monthly">
             <Card>
                 <CardHeader>
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center flex-wrap gap-4">
                         <div>
                             <CardTitle>Monthly Attendance Sheet</CardTitle>
                             <CardDescription>View the complete attendance record for the selected month.</CardDescription>
@@ -157,11 +180,28 @@ export default function TeacherAttendancePage() {
                     </div>
                 </CardHeader>
                 <CardContent>
+                    <div className="flex justify-between items-center mb-4">
+                        <div className="w-full max-w-xs">
+                            <Select value={selectedTeacherId} onValueChange={setSelectedTeacherId}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a teacher" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Teachers</SelectItem>
+                                    {teachers.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <Button variant="outline" onClick={handlePrint}>
+                            <Printer className="w-4 h-4 mr-2" /> Print Report
+                        </Button>
+                    </div>
+
                     <div className="border rounded-lg overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="sticky left-0 bg-background z-10 w-[200px]">Teacher</TableHead>
+                                    <TableHead className="sticky left-0 bg-background z-10 w-[200px] min-w-[200px]">Teacher</TableHead>
                                     {monthlyReportData.daysInMonth.map(day => (
                                         <TableHead key={day.toISOString()} className="text-center">{format(day, 'd')}</TableHead>
                                     ))}
