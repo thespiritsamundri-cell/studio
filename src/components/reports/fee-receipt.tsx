@@ -156,7 +156,7 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
             
             <footer className={isThermal ? 'mt-4 pt-2 border-t text-center' : 'mt-12 pt-4 border-t border-gray-300 text-center text-xs text-gray-500'}>
             <p className={isThermal ? 'mb-1' : 'mb-2'}>Thank you for your payment!</p>
-            {!isThermal && <p>&copy; {new Date().getFullYear()} {settings.schoolName}. All rights reserved.</p>}
+            <p>&copy; {new Date().getFullYear()} {settings.schoolName}. All rights reserved.</p>
             </footer>
         </div>
       </div>
