@@ -68,6 +68,7 @@ export default function ExamsPage() {
     setSelectedExamId(newExam.id);
     setCurrentResults(newExam.results);
     setNewExamName('');
+    toast({ title: 'Exam Created', description: `The exam "${newExam.name}" has been created for ${selectedClass}.`});
   };
 
   const handleExamChange = (examId: string) => {
@@ -75,7 +76,9 @@ export default function ExamsPage() {
     const exam = exams.find(e => e.id === examId);
     if (exam) {
       setCurrentResults(exam.results || []);
-      setTotalMarksPerSubject(exam.totalMarks / (subjects.length || 1));
+      // Ensure totalMarksPerSubject is not NaN or zero
+      const validSubjectsLength = subjects.length || 1;
+      setTotalMarksPerSubject(exam.totalMarks / validSubjectsLength);
     }
   };
   
@@ -86,6 +89,7 @@ export default function ExamsPage() {
       if (studentResult) {
         return prev.map(r => r.studentId === studentId ? { ...r, marks: { ...r.marks, [subject]: isNaN(marks) ? 0 : marks } } : r);
       }
+      // If student has no results yet, create a new entry
       return [...prev, { studentId, marks: { [subject]: isNaN(marks) ? 0 : marks } }];
     });
   };
@@ -107,10 +111,12 @@ export default function ExamsPage() {
       };
     });
 
+    // Sort by obtained marks to calculate position
     data.sort((a, b) => b.obtainedMarks - a.obtainedMarks);
 
     let rank = 1;
     for (let i = 0; i < data.length; i++) {
+        // Assign rank
         if (i > 0 && data[i].obtainedMarks < data[i-1].obtainedMarks) {
             rank = i + 1;
         }
@@ -226,7 +232,7 @@ export default function ExamsPage() {
         </CardContent>
       </Card>
 
-      {selectedClass && selectedExamId && (
+      {selectedClass && selectedExamId && subjects.length > 0 && (
         <Card>
           <CardHeader className="flex flex-row justify-between items-center">
             <div>
@@ -282,9 +288,25 @@ export default function ExamsPage() {
                 </TableBody>
               </Table>
             </div>
+             {classStudents.length === 0 && (
+                <p className="text-center text-muted-foreground py-10">No students found in this class.</p>
+            )}
           </CardContent>
+        </Card>
+      )}
+
+      {selectedClass && selectedExamId && subjects.length === 0 && (
+        <Card>
+            <CardHeader>
+                 <CardTitle>No Subjects Found</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className="text-muted-foreground">There are no subjects defined for the class "{selectedClass}". Please add subjects on the <a href="/classes" className="text-primary underline">Classes</a> page first.</p>
+            </CardContent>
         </Card>
       )}
     </div>
   );
 }
+
+    
