@@ -40,7 +40,6 @@ export default function IncomePage() {
   const [familyIdFilter, setFamilyIdFilter] = useState('');
   const [feeToCancel, setFeeToCancel] = useState<Fee | null>(null);
   
-  // State for Edit Dialog
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [feeToEdit, setFeeToEdit] = useState<Fee | null>(null);
   const [editAmount, setEditAmount] = useState(0);
@@ -96,18 +95,15 @@ export default function IncomePage() {
         return;
     }
     
-    // Find if a partial challan already exists
     const existingChallan = allFees.find(f => f.id === originalChallanId);
 
     if (existingChallan) {
-        // Add amount back to existing challan
         const revertedChallan: Fee = {
             ...existingChallan,
             amount: existingChallan.amount + feeToCancel.amount,
         };
         updateFee(existingChallan.id, revertedChallan);
     } else {
-        // Re-create the challan since it was fully paid and deleted
         const newChallan: Fee = {
             id: originalChallanId,
             familyId: feeToCancel.familyId,
@@ -150,7 +146,7 @@ export default function IncomePage() {
       return;
     }
     
-    if (difference > 0) { // Amount was decreased, so we need to add dues back
+    if (difference > 0) { 
       const originalChallanId = feeToEdit.originalChallanId;
        if (!originalChallanId) {
           toast({ title: 'Error', description: 'Cannot find original challan to revert to. This might be a legacy record.', variant: 'destructive' });
@@ -171,12 +167,11 @@ export default function IncomePage() {
                paymentDate: '',
            });
        }
-    } else { // Amount was increased, need to check if it's possible
+    } else { 
        toast({ title: 'Not Supported', description: 'Increasing a payment amount is not supported. Please cancel and re-enter.', variant: 'destructive'});
        return;
     }
 
-    // Update the payment record itself
     updateFee(feeToEdit.id, { ...feeToEdit, amount: editAmount });
     
     toast({ title: "Payment Updated", description: `Payment has been adjusted to PKR ${editAmount.toLocaleString()}`});

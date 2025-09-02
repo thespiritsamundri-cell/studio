@@ -23,7 +23,7 @@ interface FeeDetailsCardProps {
     fees: Fee[];
     onUpdateFee: (id: string, fee: Fee) => void;
     onAddFee: (fee: Fee) => void;
-    onDeleteFee: (id: string) => void; // Add onDeleteFee to props
+    onDeleteFee: (id: string) => void; 
     settings: SchoolSettings;
 }
 
@@ -106,12 +106,10 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
             amountToSettle -= paymentForThisChallan;
         }
         
-        // This part is tricky because the global state updates asynchronously.
-        // For immediate UI feedback, we can manually update the local state.
         updatedLocalFees = updatedLocalFees.filter(f => {
             const paidChallan = newlyPaidFees.find(p => p.originalChallanId === f.id);
-            if (!paidChallan) return true; // Not part of this transaction
-            return f.amount - paidChallan.amount > 0; // Keep if partially paid
+            if (!paidChallan) return true; 
+            return f.amount - paidChallan.amount > 0;
         }).map(f => {
             const paidChallan = newlyPaidFees.find(p => p.originalChallanId === f.id);
             if(paidChallan) {
