@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import type { Family, Student, Fee } from '@/lib/types';
 import { Button } from '../ui/button';
@@ -23,10 +23,11 @@ interface FeeDetailsCardProps {
     fees: Fee[];
     onUpdateFee: (id: string, fee: Fee) => void;
     onAddFee: (fee: Fee) => void;
+    onDeleteFee: (id: string) => void; // Add onDeleteFee to props
     settings: SchoolSettings;
 }
 
-export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFee, onAddFee, settings }: FeeDetailsCardProps) {
+export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFee, onAddFee, onDeleteFee, settings }: FeeDetailsCardProps) {
     const { toast } = useToast();
     const [fees, setFees] = useState(initialFees);
     
@@ -57,7 +58,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
 
         let amountToSettle = paidAmount;
         const newlyPaidFees: Fee[] = [];
-        const updatedLocalFees = [...fees]; 
+        let updatedLocalFees = [...fees]; 
 
         const monthOrder = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         const specialFeeOrder = ['Registration', 'Admission', 'Annual'];
@@ -76,13 +77,9 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
 
         for (const fee of sortedUnpaidFees) {
             if (amountToSettle <= 0) break;
-
-            const feeIndexInLocal = updatedLocalFees.findIndex(f => f.id === fee.id);
-            if (feeIndexInLocal === -1) continue;
-
+            
             const paymentForThisChallan = Math.min(amountToSettle, fee.amount);
 
-            // Create a new "Paid" fee record for the income sheet
             const paymentRecord: Fee = {
                 id: `PAY-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
                 familyId: fee.familyId,
@@ -91,28 +88,37 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
                 year: fee.year,
                 status: 'Paid',
                 paymentDate: new Date().toISOString().split('T')[0],
-                originalChallanId: fee.id, // Link to the original challan
+                originalChallanId: fee.id, 
             };
             
             onAddFee(paymentRecord);
             newlyPaidFees.push(paymentRecord);
             
-            // Update the original challan
             const remainingAmountInChallan = fee.amount - paymentForThisChallan;
             
             if (remainingAmountInChallan > 0) {
                  const updatedChallan: Fee = { ...fee, amount: remainingAmountInChallan };
-                 updatedLocalFees[feeIndexInLocal] = updatedChallan;
                  onUpdateFee(fee.id, updatedChallan);
             } else {
-                // If challan is fully paid, mark it as 'Paid' but with 0 amount to remove it from dues
-                 const updatedChallan: Fee = { ...fee, amount: 0, status: 'Paid' };
-                 updatedLocalFees[feeIndexInLocal] = updatedChallan;
-                 onUpdateFee(fee.id, updatedChallan);
+                 onDeleteFee(fee.id);
             }
 
             amountToSettle -= paymentForThisChallan;
         }
+        
+        // This part is tricky because the global state updates asynchronously.
+        // For immediate UI feedback, we can manually update the local state.
+        updatedLocalFees = updatedLocalFees.filter(f => {
+            const paidChallan = newlyPaidFees.find(p => p.originalChallanId === f.id);
+            if (!paidChallan) return true; // Not part of this transaction
+            return f.amount - paidChallan.amount > 0; // Keep if partially paid
+        }).map(f => {
+            const paidChallan = newlyPaidFees.find(p => p.originalChallanId === f.id);
+            if(paidChallan) {
+                return { ...f, amount: f.amount - paidChallan.amount };
+            }
+            return f;
+        });
         
         const collectedAmount = paidAmount - amountToSettle;
         

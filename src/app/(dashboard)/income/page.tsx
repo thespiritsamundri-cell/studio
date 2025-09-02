@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { DateRange } from 'react-day-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { CalendarIcon, Printer, FileSpreadsheet, Trash2 } from 'lucide-react';
+import { CalendarIcon, Printer, FileSpreadsheet, Trash2, Edit, Save } from 'lucide-react';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
@@ -28,15 +28,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 
 
 export default function IncomePage() {
-  const { fees: allFees, families, deleteFee, updateFee } = useData();
+  const { fees: allFees, families, deleteFee, updateFee, addFee } = useData();
   const { settings } = useSettings();
   const { toast } = useToast();
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [familyIdFilter, setFamilyIdFilter] = useState('');
   const [feeToCancel, setFeeToCancel] = useState<Fee | null>(null);
+  
+  // State for Edit Dialog
+  const [openEditDialog, setOpenEditDialog] = useState(false);
+  const [feeToEdit, setFeeToEdit] = useState<Fee | null>(null);
+  const [editAmount, setEditAmount] = useState(0);
+
 
   const paidFees = useMemo(() => {
     return allFees
@@ -81,30 +89,37 @@ export default function IncomePage() {
   const handleConfirmCancel = () => {
     if (!feeToCancel) return;
 
-    // 1. Find the original challan this payment was for.
-    // The convention is that a payment record has an originalChallanId.
     const originalChallanId = feeToCancel.originalChallanId;
     if (!originalChallanId) {
-        toast({ title: 'Error', description: 'Cannot find original challan to revert.', variant: 'destructive' });
+        toast({ title: 'Error', description: 'Cannot find original challan to revert. This might be a legacy record.', variant: 'destructive' });
         setFeeToCancel(null);
         return;
     }
+    
+    // Find if a partial challan already exists
+    const existingChallan = allFees.find(f => f.id === originalChallanId);
 
-    const originalChallan = allFees.find(f => f.id === originalChallanId);
-
-    if (originalChallan) {
-        // 2. Add the cancelled amount back to the original challan.
+    if (existingChallan) {
+        // Add amount back to existing challan
         const revertedChallan: Fee = {
-            ...originalChallan,
-            amount: originalChallan.amount + feeToCancel.amount,
-            status: 'Unpaid', // It must be unpaid if we're reverting a payment
+            ...existingChallan,
+            amount: existingChallan.amount + feeToCancel.amount,
         };
-        updateFee(originalChallan.id, revertedChallan);
+        updateFee(existingChallan.id, revertedChallan);
     } else {
-         toast({ title: 'Error', description: `Original challan ID ${originalChallanId} not found. Cannot revert payment.`, variant: 'destructive' });
+        // Re-create the challan since it was fully paid and deleted
+        const newChallan: Fee = {
+            id: originalChallanId,
+            familyId: feeToCancel.familyId,
+            amount: feeToCancel.amount,
+            month: feeToCancel.month,
+            year: feeToCancel.year,
+            status: 'Unpaid',
+            paymentDate: '',
+        };
+        addFee(newChallan);
     }
 
-    // 3. Delete the payment record itself.
     deleteFee(feeToCancel.id);
 
     toast({
@@ -113,6 +128,59 @@ export default function IncomePage() {
     });
 
     setFeeToCancel(null);
+  };
+
+  const handleOpenEditDialog = (fee: Fee) => {
+    setFeeToEdit(fee);
+    setEditAmount(fee.amount);
+    setOpenEditDialog(true);
+  };
+
+  const handleConfirmEdit = () => {
+    if (!feeToEdit || editAmount < 0) {
+      toast({ title: "Invalid amount", variant: "destructive"});
+      return;
+    }
+
+    const difference = feeToEdit.amount - editAmount;
+    
+    if (difference === 0) {
+      toast({ title: "No Changes", description: "The amount is the same." });
+      setOpenEditDialog(false);
+      return;
+    }
+    
+    if (difference > 0) { // Amount was decreased, so we need to add dues back
+      const originalChallanId = feeToEdit.originalChallanId;
+       if (!originalChallanId) {
+          toast({ title: 'Error', description: 'Cannot find original challan to revert to. This might be a legacy record.', variant: 'destructive' });
+          return;
+       }
+       
+       const existingChallan = allFees.find(f => f.id === originalChallanId);
+       if (existingChallan) {
+           updateFee(existingChallan.id, { ...existingChallan, amount: existingChallan.amount + difference });
+       } else {
+           addFee({
+               id: originalChallanId,
+               familyId: feeToEdit.familyId,
+               amount: difference,
+               month: feeToEdit.month,
+               year: feeToEdit.year,
+               status: 'Unpaid',
+               paymentDate: '',
+           });
+       }
+    } else { // Amount was increased, need to check if it's possible
+       toast({ title: 'Not Supported', description: 'Increasing a payment amount is not supported. Please cancel and re-enter.', variant: 'destructive'});
+       return;
+    }
+
+    // Update the payment record itself
+    updateFee(feeToEdit.id, { ...feeToEdit, amount: editAmount });
+    
+    toast({ title: "Payment Updated", description: `Payment has been adjusted to PKR ${editAmount.toLocaleString()}`});
+    setOpenEditDialog(false);
   };
   
   const triggerPrint = () => {
@@ -251,6 +319,10 @@ export default function IncomePage() {
                     <TableCell>{fee.month}, {fee.year}</TableCell>
                     <TableCell className="text-right font-semibold text-green-600">{fee.amount.toLocaleString()}</TableCell>
                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(fee)}>
+                            <Edit className="h-4 w-4" />
+                            <span className="sr-only">Edit Payment</span>
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={() => handleOpenCancelDialog(fee)}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                             <span className="sr-only">Cancel Payment</span>
@@ -285,6 +357,41 @@ export default function IncomePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+       <Dialog open={openEditDialog} onOpenChange={setOpenEditDialog}>
+        <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+                <DialogTitle>Edit Payment</DialogTitle>
+                <DialogDescription>
+                    Adjust the payment amount. The difference will be returned to the family's outstanding dues.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="py-4 space-y-4">
+                <div className="space-y-2">
+                    <Label>Family</Label>
+                    <Input value={`${feeToEdit?.fatherName} (ID: ${feeToEdit?.familyId})`} disabled />
+                </div>
+                <div className="space-y-2">
+                    <Label>Original Paid Amount</Label>
+                    <Input value={`PKR ${feeToEdit?.amount.toLocaleString()}`} disabled />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="edit-amount">New Paid Amount (PKR)</Label>
+                    <Input 
+                        id="edit-amount" 
+                        type="number" 
+                        value={editAmount} 
+                        onChange={(e) => setEditAmount(Number(e.target.value))}
+                        max={feeToEdit?.amount}
+                    />
+                </div>
+            </div>
+            <DialogFooter>
+                <Button variant="ghost" onClick={() => setOpenEditDialog(false)}>Cancel</Button>
+                <Button onClick={handleConfirmEdit}><Save className="mr-2 h-4 w-4"/> Save Changes</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

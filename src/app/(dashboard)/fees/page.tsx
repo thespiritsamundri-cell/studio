@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/context/settings-context';
 
 export default function FeesPage() {
-  const { families, students, fees: allFees, updateFee, addFee } = useData();
+  const { families, students, fees: allFees, updateFee, addFee, deleteFee } = useData();
   const { settings } = useSettings();
   const [familyId, setFamilyId] = useState('');
   const [searchedFamily, setSearchedFamily] = useState<Family | null>(null);
@@ -82,6 +82,7 @@ export default function FeesPage() {
           fees={familyFees}
           onUpdateFee={updateFee}
           onAddFee={addFee}
+          onDeleteFee={deleteFee}
           settings={settings}
         />
       )}
