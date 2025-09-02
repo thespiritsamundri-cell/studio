@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -35,8 +35,8 @@ export default function ExamsPage() {
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
   const [newExamName, setNewExamName] = useState('');
-  const [totalMarksPerSubject, setTotalMarksPerSubject] = useState(100);
   
+  const [subjectTotals, setSubjectTotals] = useState<{[subject: string]: number}>({});
   const [currentResults, setCurrentResults] = useState<ExamResult[]>([]);
 
   const classStudents = useMemo(() => {
@@ -52,6 +52,16 @@ export default function ExamsPage() {
     const cls = classes.find(c => c.name === selectedClass);
     return cls?.subjects || [];
   }, [selectedClass, classes]);
+  
+  useEffect(() => {
+    if (subjects.length > 0) {
+        const initialTotals = subjects.reduce((acc, subject) => {
+            acc[subject] = 100;
+            return acc;
+        }, {} as {[subject: string]: number});
+        setSubjectTotals(initialTotals);
+    }
+  }, [subjects]);
 
   const handleCreateNewExam = () => {
     if (!selectedClass || !newExamName.trim()) {
@@ -62,14 +72,14 @@ export default function ExamsPage() {
       id: `EXAM-${Date.now()}`,
       name: newExamName,
       class: selectedClass,
-      totalMarks: totalMarksPerSubject * subjects.length,
+      subjectTotals,
       results: classStudents.map(s => ({ studentId: s.id, marks: {} })),
     };
     addExam(newExam);
     setSelectedExamId(newExam.id);
     setCurrentResults(newExam.results);
-    setNewExamName('');
     toast({ title: 'Exam Created', description: `The exam "${newExam.name}" has been created for ${selectedClass}.`});
+    setNewExamName('');
   };
 
   const handleExamChange = (examId: string) => {
@@ -77,14 +87,17 @@ export default function ExamsPage() {
     const exam = exams.find(e => e.id === examId);
     if (exam) {
       setCurrentResults(exam.results || []);
-      // Ensure totalMarksPerSubject is not NaN or zero
-      const validSubjectsLength = subjects.length || 1;
-      setTotalMarksPerSubject(exam.totalMarks / validSubjectsLength);
+      setSubjectTotals(exam.subjectTotals || {});
     }
   };
   
   const handleMarksChange = (studentId: string, subject: string, value: string) => {
     const marks = parseInt(value, 10);
+    const total = subjectTotals[subject] || 0;
+    if (!isNaN(marks) && marks > total) {
+      toast({ title: 'Invalid Marks', description: `Marks cannot exceed the total of ${total} for ${subject}.`, variant: 'destructive' });
+      return;
+    }
     setCurrentResults(prev => {
       const studentResult = prev.find(r => r.studentId === studentId);
       if (studentResult) {
@@ -95,11 +108,18 @@ export default function ExamsPage() {
     });
   };
 
+  const handleTotalMarksChange = (subject: string, value: string) => {
+    setSubjectTotals(prev => ({
+      ...prev,
+      [subject]: Number(value)
+    }));
+  };
+
   const marksheetData = useMemo((): MarksheetData[] => {
     const data = classStudents.map(student => {
       const result = currentResults.find(r => r.studentId === student.id);
       const obtainedMarks = subjects.reduce((total, subject) => total + (result?.marks[subject] || 0), 0);
-      const totalMarks = subjects.length * totalMarksPerSubject;
+      const totalMarks = subjects.reduce((total, subject) => total + (subjectTotals[subject] || 0), 0);
       const percentage = totalMarks > 0 ? (obtainedMarks / totalMarks) * 100 : 0;
       
       return {
@@ -112,12 +132,9 @@ export default function ExamsPage() {
       };
     });
 
-    // Sort by obtained marks to calculate position
     data.sort((a, b) => b.obtainedMarks - a.obtainedMarks);
-
     let rank = 1;
     for (let i = 0; i < data.length; i++) {
-        // Assign rank
         if (i > 0 && data[i].obtainedMarks < data[i-1].obtainedMarks) {
             rank = i + 1;
         }
@@ -125,7 +142,7 @@ export default function ExamsPage() {
     }
 
     return data;
-  }, [classStudents, currentResults, subjects, totalMarksPerSubject]);
+  }, [classStudents, currentResults, subjects, subjectTotals]);
 
   const handleSaveResults = () => {
     if (!selectedExamId) return;
@@ -134,7 +151,7 @@ export default function ExamsPage() {
       const updatedExam: ExamType = {
         ...exam,
         results: currentResults,
-        totalMarks: subjects.length * totalMarksPerSubject,
+        subjectTotals: subjectTotals,
       };
       updateExam(selectedExamId, updatedExam);
       toast({ title: 'Results Saved', description: `Results for ${exam.name} have been saved successfully.` });
@@ -241,10 +258,6 @@ export default function ExamsPage() {
               <CardDescription>Enter marks for each student. Totals and positions will be calculated automatically.</CardDescription>
             </div>
             <div className="flex items-center gap-4">
-               <div className="flex items-center gap-2">
-                    <label htmlFor="total-marks" className="text-sm font-medium">Total Marks / Subject:</label>
-                    <Input id="total-marks" type="number" value={totalMarksPerSubject} onChange={(e) => setTotalMarksPerSubject(Number(e.target.value))} className="w-24" />
-                </div>
                 <Button onClick={handleSaveResults}>Save Results</Button>
                 <Button variant="outline" onClick={handlePrint}><Printer className="mr-2 h-4 w-4"/>Print Marksheet</Button>
             </div>
@@ -254,27 +267,43 @@ export default function ExamsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="sticky left-0 bg-background z-10">Student</TableHead>
-                    {subjects.map(subject => <TableHead key={subject} className="text-center">{subject}</TableHead>)}
+                    <TableHead className="sticky left-0 bg-background z-10 min-w-[150px]">Student</TableHead>
+                    {subjects.map(subject => <TableHead key={subject} className="text-center min-w-[120px]">{subject}</TableHead>)}
                     <TableHead className="text-center font-bold">Obtained</TableHead>
                     <TableHead className="text-center font-bold">Total</TableHead>
                     <TableHead className="text-center font-bold">%</TableHead>
                     <TableHead className="text-center font-bold">Position</TableHead>
                   </TableRow>
+                   <TableRow className="bg-muted/50">
+                        <TableHead className="sticky left-0 bg-muted/50 z-10 font-medium">Total Marks</TableHead>
+                        {subjects.map(subject => (
+                            <TableCell key={`${subject}-total`} className="p-1">
+                                <Input
+                                    type="number"
+                                    className="text-center h-8"
+                                    value={subjectTotals[subject] || ''}
+                                    onChange={(e) => handleTotalMarksChange(subject, e.target.value)}
+                                    placeholder="e.g., 100"
+                                />
+                            </TableCell>
+                        ))}
+                         <TableCell className="text-center font-bold">{Object.values(subjectTotals).reduce((a, b) => a + b, 0)}</TableCell>
+                        <TableCell colSpan={3}></TableCell>
+                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {marksheetData.map(row => (
                     <TableRow key={row.studentId}>
                       <TableCell className="font-medium sticky left-0 bg-background z-10">{row.studentName}</TableCell>
                       {subjects.map(subject => (
-                        <TableCell key={subject} className="min-w-[100px]">
+                        <TableCell key={subject}>
                           <Input
                             type="number"
                             className="text-center"
                             placeholder="-"
                             value={row.marks[subject] || ''}
                             onChange={(e) => handleMarksChange(row.studentId, subject, e.target.value)}
-                            max={totalMarksPerSubject}
+                            max={subjectTotals[subject]}
                           />
                         </TableCell>
                       ))}

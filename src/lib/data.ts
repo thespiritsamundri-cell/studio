@@ -56,4 +56,45 @@ export const fees: Fee[] = [
     { id: 'FEE06', familyId: '4', amount: 3000, month: 'May', year: 2024, status: 'Unpaid', paymentDate: '' },
 ];
 
-export const exams: Exam[] = [];
+export const exams: Exam[] = [
+    {
+        id: 'EXAM-1685026800000',
+        name: 'Mid-Term',
+        class: '5th',
+        subjectTotals: {
+            'English': 100,
+            'Urdu': 100,
+            'Maths': 100,
+            'Science': 75,
+            'Social Studies': 75,
+            'Computer': 50,
+            'Islamiat': 50,
+        },
+        results: [
+            {
+                studentId: '1',
+                marks: {
+                    'English': 85,
+                    'Urdu': 88,
+                    'Maths': 92,
+                    'Science': 65,
+                    'Social Studies': 70,
+                    'Computer': 45,
+                    'Islamiat': 48,
+                },
+            },
+            {
+                studentId: '4',
+                marks: {
+                    'English': 78,
+                    'Urdu': 82,
+                    'Maths': 85,
+                    'Science': 60,
+                    'Social Studies': 68,
+                    'Computer': 40,
+                    'Islamiat': 42,
+                },
+            },
+        ],
+    },
+];

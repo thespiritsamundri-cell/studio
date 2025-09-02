@@ -78,5 +78,7 @@ export interface Exam {
     name: string;
     class: string;
     results: ExamResult[];
-    totalMarks: number;
+    subjectTotals: {
+        [subject: string]: number;
+    };
 }
