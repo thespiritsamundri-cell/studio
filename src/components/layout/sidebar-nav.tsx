@@ -27,6 +27,7 @@ import {
   Briefcase,
   UserCheck2,
   Receipt,
+  FileSignature,
 } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import Image from 'next/image';
@@ -43,6 +44,7 @@ const navItems = [
   { href: '/income', icon: TrendingUp, label: 'Income' },
   { href: '/attendance', icon: CalendarCheck, label: 'Attendance' },
   { href: '/teacher-attendance', icon: UserCheck2, label: 'Teacher Attendance' },
+  { href: '/exams', icon: FileSignature, label: 'Exams' },
   { href: '/reports', icon: FileText, label: 'Reports' },
 ];
 

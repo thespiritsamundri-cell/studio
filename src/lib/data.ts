@@ -1,5 +1,5 @@
 
-import type { Student, Family, Fee, Teacher, TeacherAttendance, Class } from './types';
+import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam } from './types';
 
 export const students: Student[] = [
   { id: '1', name: 'Ali Khan', fatherName: 'Ahmed Khan', class: '5th', section: 'A', admissionDate: '2023-03-15', familyId: '1', status: 'Active', phone: '03001234567', address: '123, Main St, Lahore', dob: '2013-05-20', photoUrl: 'https://picsum.photos/seed/S001/100/100', cnic: '35202-1111111-1' },
@@ -17,18 +17,18 @@ export const families: Family[] = [
 ];
 
 export const classes: Class[] = [
-    { id: 'C01', name: 'Nursery', sections: ['Rose', 'Jasmine'] },
-    { id: 'C02', name: 'KG', sections: ['A', 'B'] },
-    { id: 'C03', name: '1st', sections: ['A', 'B'] },
-    { id: 'C04', name: '2nd', sections: ['A', 'B'] },
-    { id: 'C05', name: '3rd', sections: ['A'] },
-    { id: 'C06', name: '4th', sections: ['A', 'B'] },
-    { id: 'C07', name: '5th', sections: ['A', 'B', 'C'] },
-    { id: 'C08', name: '6th', sections: ['A', 'B'] },
-    { id: 'C09', name: '7th', sections: ['A', 'B'] },
-    { id: 'C10', name: '8th', sections: ['A', 'B'] },
-    { id: 'C11', name: '9th', sections: [] },
-    { id: 'C12', name: '10th', sections: [] },
+    { id: 'C01', name: 'Nursery', sections: ['Rose', 'Jasmine'], subjects: ['English', 'Urdu', 'Maths', 'Coloring'] },
+    { id: 'C02', name: 'KG', sections: ['A', 'B'], subjects: ['English', 'Urdu', 'Maths', 'General Knowledge'] },
+    { id: 'C03', name: '1st', sections: ['A', 'B'], subjects: ['English', 'Urdu', 'Maths', 'Science', 'Social Studies'] },
+    { id: 'C04', name: '2nd', sections: ['A', 'B'], subjects: ['English', 'Urdu', 'Maths', 'Science', 'Social Studies'] },
+    { id: 'C05', name: '3rd', sections: ['A'], subjects: ['English', 'Urdu', 'Maths', 'Science', 'Social Studies', 'Computer'] },
+    { id: 'C06', name: '4th', sections: ['A', 'B'], subjects: ['English', 'Urdu', 'Maths', 'Science', 'Social Studies', 'Computer'] },
+    { id: 'C07', name: '5th', sections: ['A', 'B', 'C'], subjects: ['English', 'Urdu', 'Maths', 'Science', 'Social Studies', 'Computer', 'Islamiat'] },
+    { id: 'C08', name: '6th', sections: ['A', 'B'], subjects: ['English', 'Urdu', 'Maths', 'Science', 'History', 'Geography', 'Computer'] },
+    { id: 'C09', name: '7th', sections: ['A', 'B'], subjects: ['English', 'Urdu', 'Maths', 'Science', 'History', 'Geography', 'Computer'] },
+    { id: 'C10', name: '8th', sections: ['A', 'B'], subjects: ['English', 'Urdu', 'Maths', 'Physics', 'Chemistry', 'Biology', 'Computer'] },
+    { id: 'C11', name: '9th', sections: [], subjects: ['English', 'Urdu', 'Maths', 'Physics', 'Chemistry', 'Biology', 'Computer', 'Pak Studies'] },
+    { id: 'C12', name: '10th', sections: [], subjects: ['English', 'Urdu', 'Maths', 'Physics', 'Chemistry', 'Biology', 'Computer', 'Pak Studies'] },
 ];
 
 export const teachers: Teacher[] = [
@@ -55,3 +55,5 @@ export const fees: Fee[] = [
     { id: 'FEE05', familyId: '2', amount: 3500, month: 'May', year: 2024, paymentDate: '', status: 'Unpaid' },
     { id: 'FEE06', familyId: '4', amount: 3000, month: 'May', year: 2024, status: 'Unpaid', paymentDate: '' },
 ];
+
+export const exams: Exam[] = [];

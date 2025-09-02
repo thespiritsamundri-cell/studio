@@ -37,6 +37,8 @@ export default function ClassesPage() {
   const [newClassName, setNewClassName] = useState('');
   const [sections, setSections] = useState<string[]>([]);
   const [newSectionName, setNewSectionName] = useState('');
+  const [subjects, setSubjects] = useState<string[]>([]);
+  const [newSubjectName, setNewSubjectName] = useState('');
 
 
   // Class management handlers
@@ -46,11 +48,13 @@ export default function ClassesPage() {
       setSelectedClassData(classData);
       setNewClassName(classData.name);
       setSections(classData.sections || []);
+      setSubjects(classData.subjects || []);
     } else {
       setIsEditingClass(false);
       setSelectedClassData(null);
       setNewClassName('');
       setSections([]);
+      setSubjects([]);
     }
     setOpenClassDialog(true);
   };
@@ -65,6 +69,17 @@ export default function ClassesPage() {
   const handleRemoveSection = (sectionToRemove: string) => {
     setSections(sections.filter(s => s !== sectionToRemove));
   };
+  
+  const handleAddSubject = () => {
+    if (newSubjectName.trim() && !subjects.includes(newSubjectName.trim())) {
+      setSubjects([...subjects, newSubjectName.trim()]);
+      setNewSubjectName('');
+    }
+  };
+
+  const handleRemoveSubject = (subjectToRemove: string) => {
+    setSubjects(subjects.filter(s => s !== subjectToRemove));
+  };
 
 
   const handleSaveClass = () => {
@@ -74,13 +89,14 @@ export default function ClassesPage() {
     }
 
     if (isEditingClass && selectedClassData) {
-      updateClass(selectedClassData.id, { ...selectedClassData, name: newClassName, sections });
+      updateClass(selectedClassData.id, { ...selectedClassData, name: newClassName, sections, subjects });
       toast({ title: "Class Updated", description: `Class "${selectedClassData.name}" has been updated.` });
     } else {
       const newClass: Class = {
         id: `C${Date.now()}`,
         name: newClassName,
         sections,
+        subjects,
       };
       addClass(newClass);
       toast({ title: "Class Added", description: `Class "${newClassName}" has been successfully created.` });
@@ -121,7 +137,7 @@ export default function ClassesPage() {
             <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                     <CardTitle>Manage Classes</CardTitle>
-                    <CardDescription>Add, edit, or delete class sections for your school.</CardDescription>
+                    <CardDescription>Add, edit, or delete classes, sections and subjects for your school.</CardDescription>
                 </div>
                 <Button onClick={() => handleOpenClassDialog(null)}>
                     <PlusCircle className="mr-2 h-4 w-4"/> Add New Class
@@ -133,6 +149,7 @@ export default function ClassesPage() {
                         <TableRow>
                             <TableHead>Class Name</TableHead>
                             <TableHead>Sections</TableHead>
+                            <TableHead>Subjects</TableHead>
                             <TableHead>Students</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
@@ -144,6 +161,11 @@ export default function ClassesPage() {
                                 <TableCell>
                                     <div className="flex flex-wrap gap-1">
                                         {c.sections?.map(s => <Badge key={s} variant="secondary">{s}</Badge>) || 'No Sections'}
+                                    </div>
+                                </TableCell>
+                                 <TableCell>
+                                    <div className="flex flex-wrap gap-1 max-w-xs">
+                                        {c.subjects?.map(s => <Badge key={s} variant="outline">{s}</Badge>) || 'No Subjects'}
                                     </div>
                                 </TableCell>
                                 <TableCell>{allStudents.filter(s => s.class === c.name).length}</TableCell>
@@ -165,11 +187,11 @@ export default function ClassesPage() {
 
        {/* Class Dialog */}
       <Dialog open={openClassDialog} onOpenChange={setOpenClassDialog}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{isEditingClass ? 'Edit Class' : 'Add New Class'}</DialogTitle>
             <DialogDescription>
-              {isEditingClass ? `Enter the new name for the class "${selectedClassData?.name}".` : 'Enter the name for the new class.'}
+              {isEditingClass ? `Update the details for the class "${selectedClassData?.name}".` : 'Enter the details for the new class.'}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
@@ -177,26 +199,50 @@ export default function ClassesPage() {
                 <Label htmlFor="class-name">Class Name</Label>
                 <Input id="class-name" value={newClassName} onChange={(e) => setNewClassName(e.target.value)} />
             </div>
-            <div className="space-y-2">
-                <Label>Sections</Label>
-                <div className="flex gap-2">
-                    <Input 
-                        placeholder="Enter section name (e.g., A)" 
-                        value={newSectionName} 
-                        onChange={(e) => setNewSectionName(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddSection()}
-                    />
-                    <Button type="button" onClick={handleAddSection}>Add</Button>
+            <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                    <Label>Sections</Label>
+                    <div className="flex gap-2">
+                        <Input 
+                            placeholder="e.g., A" 
+                            value={newSectionName} 
+                            onChange={(e) => setNewSectionName(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleAddSection()}
+                        />
+                        <Button type="button" onClick={handleAddSection}>Add</Button>
+                    </div>
+                     <div className="flex flex-wrap gap-2 mt-2 min-h-16 rounded-md border p-2">
+                        {sections.map(s => (
+                            <Badge key={s} variant="secondary" className="flex items-center gap-1">
+                                {s}
+                                <button onClick={() => handleRemoveSection(s)} className="rounded-full hover:bg-muted-foreground/20 p-0.5">
+                                    <X className="h-3 w-3" />
+                                </button>
+                            </Badge>
+                        ))}
+                    </div>
                 </div>
-                 <div className="flex flex-wrap gap-2 mt-2">
-                    {sections.map(s => (
-                        <Badge key={s} variant="secondary" className="flex items-center gap-1">
-                            {s}
-                            <button onClick={() => handleRemoveSection(s)} className="rounded-full hover:bg-muted-foreground/20 p-0.5">
-                                <X className="h-3 w-3" />
-                            </button>
-                        </Badge>
-                    ))}
+                 <div className="space-y-2">
+                    <Label>Subjects</Label>
+                    <div className="flex gap-2">
+                        <Input 
+                            placeholder="e.g., English" 
+                            value={newSubjectName} 
+                            onChange={(e) => setNewSubjectName(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleAddSubject()}
+                        />
+                        <Button type="button" onClick={handleAddSubject}>Add</Button>
+                    </div>
+                     <div className="flex flex-wrap gap-2 mt-2 min-h-16 rounded-md border p-2">
+                        {subjects.map(s => (
+                            <Badge key={s} variant="outline" className="flex items-center gap-1">
+                                {s}
+                                <button onClick={() => handleRemoveSubject(s)} className="rounded-full hover:bg-muted-foreground/20 p-0.5">
+                                    <X className="h-3 w-3" />
+                                </button>
+                            </Badge>
+                        ))}
+                    </div>
                 </div>
             </div>
           </div>

@@ -63,4 +63,20 @@ export interface Class {
     id: string;
     name: string;
     sections: string[];
+    subjects?: string[]; // New: List of subjects for the class
+}
+
+export interface ExamResult {
+    studentId: string;
+    marks: {
+        [subject: string]: number;
+    };
+}
+
+export interface Exam {
+    id: string;
+    name: string;
+    class: string;
+    results: ExamResult[];
+    totalMarks: number;
 }
