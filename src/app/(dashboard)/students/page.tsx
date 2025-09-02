@@ -54,7 +54,8 @@ export default function StudentsPage() {
        students = students.filter((student) =>
         student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         student.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        student.fatherName.toLowerCase().includes(searchQuery.toLowerCase())
+        student.fatherName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        student.familyId.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
     
