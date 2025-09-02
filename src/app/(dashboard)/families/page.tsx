@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, PlusCircle, MoreHorizontal, Trash2 } from 'lucide-react';
+import { Search, PlusCircle, MoreHorizontal, Trash2, Users } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   DropdownMenu,
@@ -47,7 +47,7 @@ const professions = [
 ];
 
 export default function FamiliesPage() {
-  const { families: allFamilies, addFamily, updateFamily, deleteFamily } = useData();
+  const { families: allFamilies, students: allStudents, addFamily, updateFamily, deleteFamily } = useData();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredFamilies, setFilteredFamilies] = useState<Family[]>(allFamilies);
@@ -189,6 +189,10 @@ export default function FamiliesPage() {
     router.push(`/students?familyId=${familyId}`);
   };
 
+  const getStudentCountForFamily = (familyId: string) => {
+    return allStudents.filter(student => student.familyId === familyId).length;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -268,9 +272,9 @@ export default function FamiliesPage() {
               <TableRow>
                 <TableHead>Family ID</TableHead>
                 <TableHead>Father's Name</TableHead>
-                <TableHead>Profession</TableHead>
-                <TableHead>CNIC</TableHead>
+                <TableHead>Students</TableHead>
                 <TableHead>Phone</TableHead>
+                <TableHead className="hidden md:table-cell">Profession</TableHead>
                 <TableHead className="hidden md:table-cell">Address</TableHead>
                 <TableHead>
                   <span className="sr-only">Actions</span>
@@ -282,9 +286,14 @@ export default function FamiliesPage() {
                 <TableRow key={family.id}>
                   <TableCell className="font-medium">{family.id}</TableCell>
                   <TableCell>{family.fatherName}</TableCell>
-                  <TableCell>{family.profession}</TableCell>
-                  <TableCell>{family.cnic}</TableCell>
+                  <TableCell>
+                     <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <span>{getStudentCountForFamily(family.id)}</span>
+                    </div>
+                  </TableCell>
                   <TableCell>{family.phone}</TableCell>
+                  <TableCell className="hidden md:table-cell">{family.profession}</TableCell>
                   <TableCell className="hidden md:table-cell">{family.address}</TableCell>
                   <TableCell>
                     <DropdownMenu>

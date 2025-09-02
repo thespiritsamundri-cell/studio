@@ -446,5 +446,3 @@ export default function AdmissionsPage() {
     </div>
   );
 }
-
-    
