@@ -38,6 +38,7 @@ export default function ExamsPage() {
   
   const [subjectTotals, setSubjectTotals] = useState<{[subject: string]: number}>({});
   const [currentResults, setCurrentResults] = useState<ExamResult[]>([]);
+  const [fontSize, setFontSize] = useState('text-sm');
 
   const classStudents = useMemo(() => {
     return selectedClass ? allStudents.filter(s => s.class === selectedClass) : [];
@@ -173,6 +174,7 @@ export default function ExamsPage() {
               subjects={subjects}
               marksheetData={marksheetData}
               settings={settings}
+              fontSize={fontSize}
           />
       );
       const printWindow = window.open('', '_blank');
@@ -259,6 +261,16 @@ export default function ExamsPage() {
             </div>
             <div className="flex items-center gap-4">
                 <Button onClick={handleSaveResults}>Save Results</Button>
+                 <Select value={fontSize} onValueChange={setFontSize}>
+                    <SelectTrigger className="w-[120px]">
+                        <SelectValue placeholder="Font Size" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="text-xs">Small</SelectItem>
+                        <SelectItem value="text-sm">Medium</SelectItem>
+                        <SelectItem value="text-base">Large</SelectItem>
+                    </SelectContent>
+                </Select>
                 <Button variant="outline" onClick={handlePrint}><Printer className="mr-2 h-4 w-4"/>Print Marksheet</Button>
             </div>
           </CardHeader>
@@ -338,3 +350,5 @@ export default function ExamsPage() {
     </div>
   );
 }
+
+    
