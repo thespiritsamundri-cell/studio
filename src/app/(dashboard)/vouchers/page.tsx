@@ -6,18 +6,18 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Search, Printer, FileText } from 'lucide-react';
+import { Search, Printer } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import { useSettings } from '@/context/settings-context';
 import { useToast } from '@/hooks/use-toast';
-import type { Family, Student } from '@/lib/types';
+import type { Family, Student, Fee } from '@/lib/types';
 import { format } from 'date-fns';
 import { FeeVoucherPrint } from '@/components/reports/fee-voucher-print';
 import { renderToString } from 'react-dom/server';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function VouchersPage() {
-  const { families, students } = useData();
+  const { families, students, fees: allFees } = useData();
   const { settings } = useSettings();
   const { toast } = useToast();
 
@@ -27,7 +27,7 @@ export default function VouchersPage() {
   
   const [issueDate, setIssueDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [dueDate, setDueDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [feeMonths, setFeeMonths] = useState('');
+  const [feeMonths, setFeeMonths] = useState(format(new Date(), 'MMMM'));
   const [lateFee, setLateFee] = useState(50);
   const [notes, setNotes] = useState(
     '1. Dues, once paid, are not refundable in any case.\n' +
@@ -52,10 +52,42 @@ export default function VouchersPage() {
       setSelectedFamily(family);
       const foundStudents = students.filter(s => s.familyId === family.id);
       setFamilyStudents(foundStudents);
-      toast({ title: 'Family Found', description: `Selected family: ${family.fatherName}` });
+      
+      const familyUnpaidFees = allFees.filter(fee => fee.familyId === family.id && fee.status === 'Unpaid');
+      
+      // Separate different types of fees
+      const monthlyFeeTotal = familyUnpaidFees
+        .filter(fee => !['Registration', 'Admission', 'Annual'].some(type => fee.month.includes(type)))
+        .reduce((acc, fee) => acc + fee.amount, 0);
+
+      const admissionFeeTotal = familyUnpaidFees
+        .filter(fee => fee.month.includes('Registration'))
+        .reduce((acc, fee) => acc + fee.amount, 0);
+        
+      const pendingDuesTotal = familyUnpaidFees
+        .filter(fee => !fee.month.includes('Registration') && !['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].includes(fee.month))
+        .reduce((acc, fee) => acc + fee.amount, 0);
+
+
+      setFeeItems(prev => ({
+          ...prev,
+          monthlyFee: monthlyFeeTotal,
+          admissionFee: admissionFeeTotal,
+          pendingDues: pendingDuesTotal
+      }));
+      
+      toast({ title: 'Family Found', description: `Selected family: ${family.fatherName}. Fees auto-populated.` });
     } else {
       setSelectedFamily(null);
       setFamilyStudents([]);
+      setFeeItems({
+        admissionFee: 0,
+        monthlyFee: 0,
+        concession: 0,
+        annualCharges: 0,
+        boardRegFee: 0,
+        pendingDues: 0,
+      });
       toast({ title: 'Family Not Found', variant: 'destructive' });
     }
   };
@@ -122,7 +154,7 @@ export default function VouchersPage() {
       <Card>
         <CardHeader>
           <CardTitle>Generate Fee Voucher</CardTitle>
-          <CardDescription>Create and print fee vouchers for families.</CardDescription>
+          <CardDescription>Create and print fee vouchers for families. Unpaid fees are loaded automatically.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
           <div className="flex items-end gap-2 max-w-sm">
@@ -169,27 +201,27 @@ export default function VouchersPage() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="monthlyFee">Monthly Fee</Label>
-                      <Input id="monthlyFee" type="number" value={feeItems.monthlyFee} onChange={handleFeeItemChange} />
+                      <Input id="monthlyFee" type="number" value={feeItems.monthlyFee || ''} onChange={handleFeeItemChange} />
                     </div>
                      <div className="space-y-2">
                       <Label htmlFor="admissionFee">Admission Fee</Label>
-                      <Input id="admissionFee" type="number" value={feeItems.admissionFee} onChange={handleFeeItemChange} />
+                      <Input id="admissionFee" type="number" value={feeItems.admissionFee || ''} onChange={handleFeeItemChange} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="annualCharges">Annual Charges</Label>
-                      <Input id="annualCharges" type="number" value={feeItems.annualCharges} onChange={handleFeeItemChange} />
+                      <Input id="annualCharges" type="number" value={feeItems.annualCharges || ''} onChange={handleFeeItemChange} />
                     </div>
                      <div className="space-y-2">
                       <Label htmlFor="boardRegFee">Board Reg / Other</Label>
-                      <Input id="boardRegFee" type="number" value={feeItems.boardRegFee} onChange={handleFeeItemChange} />
+                      <Input id="boardRegFee" type="number" value={feeItems.boardRegFee || ''} onChange={handleFeeItemChange} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="pendingDues">Pending Dues</Label>
-                      <Input id="pendingDues" type="number" value={feeItems.pendingDues} onChange={handleFeeItemChange} />
+                      <Input id="pendingDues" type="number" value={feeItems.pendingDues || ''} onChange={handleFeeItemChange} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="concession">Concession (-)</Label>
-                      <Input id="concession" type="number" value={feeItems.concession} onChange={handleFeeItemChange} className="text-destructive" />
+                      <Input id="concession" type="number" value={feeItems.concession || ''} onChange={handleFeeItemChange} className="text-destructive" />
                     </div>
                      <div className="space-y-2">
                       <Label htmlFor="lateFee">Late Fee Fine</Label>
@@ -221,9 +253,9 @@ export default function VouchersPage() {
                             <SelectValue placeholder="Select copies" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="1">1 Copy</SelectItem>
-                            <SelectItem value="2">2 Copies</SelectItem>
-                            <SelectItem value="3">3 Copies</SelectItem>
+                            <SelectItem value="1">1 Copy (Page Breaks)</SelectItem>
+                            <SelectItem value="2">2 Copies (Side-by-side)</SelectItem>
+                            <SelectItem value="3">3 Copies (Vertical)</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
