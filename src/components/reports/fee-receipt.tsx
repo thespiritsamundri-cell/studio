@@ -7,6 +7,7 @@ import type { Family, Student, Fee } from '@/lib/types';
 import { School } from 'lucide-react';
 import type { SchoolSettings } from '@/context/settings-context';
 import Image from 'next/image';
+import { PaidStamp } from '../ui/paid-stamp';
 
 interface FeeReceiptProps {
     family: Family;
@@ -23,7 +24,7 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
     const date = new Date();
 
     return (
-      <div ref={ref} className="p-8 font-sans bg-white text-black">
+      <div ref={ref} className="p-8 font-sans bg-white text-black relative">
         <header className="flex items-center justify-between pb-4 border-b border-gray-300">
           <div className="flex items-center gap-4">
             {settings.schoolLogo ? (
@@ -43,6 +44,15 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
             <p className="text-sm text-gray-500">Date: {date.toLocaleDateString()}</p>
           </div>
         </header>
+
+        {/* Paid Stamp Overlay */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-15 pointer-events-none">
+            <PaidStamp
+                schoolName={settings.schoolName}
+                schoolPhone={settings.schoolPhone}
+                paymentDate={date}
+            />
+        </div>
         
         <section className="my-6 grid grid-cols-2 gap-4">
            <div>
