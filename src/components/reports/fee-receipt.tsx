@@ -11,10 +11,10 @@ import Image from 'next/image';
 interface FeeReceiptProps {
     family: Family;
     students: Student[];
-    fees: Fee[];
-    totalDues: number;
-    paidAmount: number;
-    remainingDues: number;
+    fees: Fee[]; // These are the fees included in THIS transaction
+    totalDues: number; // The total dues BEFORE this transaction
+    paidAmount: number; // The amount paid in THIS transaction
+    remainingDues: number; // The remaining dues AFTER this transaction
     settings: SchoolSettings;
 }
 
@@ -70,7 +70,7 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
               <TableBody>
                   {fees.map((fee) => (
                   <TableRow key={fee.id}>
-                      <TableCell className="font-medium">Tuition Fee for {fee.month}, {fee.year}</TableCell>
+                      <TableCell className="font-medium">{fee.month} {fee.year}</TableCell>
                       <TableCell className="text-right">{fee.amount.toLocaleString()}</TableCell>
                   </TableRow>
                   ))}
@@ -86,15 +86,15 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
          <div className="flex justify-end mt-8">
           <div className="w-full max-w-xs space-y-2 text-right">
               <div className="flex justify-between">
-                  <span className="font-semibold text-gray-600">Subtotal:</span>
+                  <span className="font-semibold text-gray-600">Previous Balance:</span>
                   <span>PKR {totalDues.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                   <span className="font-semibold text-gray-600">Paid Amount:</span>
-                  <span>PKR {paidAmount.toLocaleString()}</span>
+                  <span>- PKR {paidAmount.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-lg font-bold text-red-600">
-                  <span className="text-gray-800">Balance Due:</span>
+              <div className="flex justify-between text-lg font-bold text-red-600 border-t pt-2 mt-2">
+                  <span className="text-gray-800">New Balance Due:</span>
                   <span>PKR {remainingDues.toLocaleString()}</span>
               </div>
           </div>

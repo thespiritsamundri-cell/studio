@@ -58,30 +58,48 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
         const newlyPaidFees: Fee[] = [];
         const updatedLocalFees = [...fees]; 
 
+        // Sort unpaid fees chronologically (by year, then by month)
+        const monthOrder = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        const specialFeeOrder = ['Registration', 'Admission', 'Annual'];
+        
         const sortedUnpaidFees = [...unpaidFees].sort((a,b) => {
-            const monthA = new Date(Date.parse(a.month +" 1, 2012")).getMonth();
-            const monthB = new Date(Date.parse(b.month +" 1, 2012")).getMonth();
-            if (a.year !== b.year) {
-                return a.year - b.year;
-            }
-            return monthA - monthB;
+            if (a.year !== b.year) return a.year - b.year;
+            
+            const monthAIndex = specialFeeOrder.includes(a.month) ? -1 : monthOrder.indexOf(a.month);
+            const monthBIndex = specialFeeOrder.includes(b.month) ? -1 : monthOrder.indexOf(b.month);
+
+            return monthAIndex - monthBIndex;
         });
 
         for (const fee of sortedUnpaidFees) {
+            if (amountToSettle <= 0) break;
+
+            const feeIndexInLocal = updatedLocalFees.findIndex(f => f.id === fee.id);
+            if (feeIndexInLocal === -1) continue;
+
             if (amountToSettle >= fee.amount) {
+                // Full payment for this fee
                 amountToSettle -= fee.amount;
                 
                 const paidFee: Fee = { ...fee, status: 'Paid', paymentDate: new Date().toISOString().split('T')[0] };
-                newlyPaidFees.push(paidFee);
+                newlyPaidFees.push({ ...paidFee });
 
-                const indexInLocal = updatedLocalFees.findIndex(f => f.id === fee.id);
-                if (indexInLocal !== -1) {
-                    updatedLocalFees[indexInLocal] = paidFee;
-                }
-
+                updatedLocalFees[feeIndexInLocal] = paidFee;
                 onUpdateFee(fee.id, paidFee);
+
             } else {
-                break; 
+                // Partial payment for this fee
+                const remainingAmountInFee = fee.amount - amountToSettle;
+                
+                const partiallyPaidFee: Fee = { ...fee, amount: remainingAmountInFee };
+                
+                // We create a "receipt" copy of the fee showing how much was paid
+                 newlyPaidFees.push({ ...fee, amount: amountToSettle, status: 'Paid', paymentDate: new Date().toISOString().split('T')[0] });
+
+                amountToSettle = 0;
+                
+                updatedLocalFees[feeIndexInLocal] = partiallyPaidFee;
+                onUpdateFee(fee.id, partiallyPaidFee);
             }
         }
         
@@ -92,37 +110,27 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
             description: `PKR ${collectedAmount.toLocaleString()} collected for Family ${family.id}.`,
         });
         
-        // Update local state to re-render the component with new data
         setFees(updatedLocalFees);
         const newDues = updatedLocalFees.filter(f => f.status === 'Unpaid').reduce((acc, fee) => acc + fee.amount, 0);
         setPaidAmount(newDues);
         
         triggerPrint(newlyPaidFees, collectedAmount, newDues);
     };
-
+    
     const triggerPrint = (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number) => {
         if (collectedAmount === 0 && unpaidFees.length === 0) {
              toast({ title: 'No Dues', description: 'There are no outstanding fees to generate a receipt for.', variant: 'destructive' });
             return;
         }
         
-        const totalPaidOnReceipt = paidFeesForReceipt.reduce((acc, f) => acc + f.amount, 0);
-
-        const receiptData = {
-            fees: paidFeesForReceipt.length > 0 ? paidFeesForReceipt : unpaidFees,
-            paidAmount: collectedAmount > 0 ? totalPaidOnReceipt : 0,
-            totalDues: paidFeesForReceipt.length > 0 ? totalPaidOnReceipt : totalDues,
-            remainingDues: paidFeesForReceipt.length > 0 ? newRemainingDues : remainingDues,
-        };
-
         const printContent = renderToString(
             <FeeReceipt
                 family={family}
                 students={students}
-                fees={receiptData.fees}
-                totalDues={receiptData.totalDues}
-                paidAmount={receiptData.paidAmount}
-                remainingDues={receiptData.remainingDues}
+                fees={paidFeesForReceipt}
+                totalDues={totalDues}
+                paidAmount={collectedAmount}
+                remainingDues={newRemainingDues}
                 settings={settings}
             />
         );
