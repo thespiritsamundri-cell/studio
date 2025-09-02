@@ -48,7 +48,6 @@ export interface SchoolSettings {
   messageDelay: number;
   themeColors?: Partial<ThemeColors>;
   font: 'inter' | 'roboto' | 'open-sans' | 'lato' | 'montserrat' | 'poppins';
-  principalSignature?: string;
   subjects?: { [className: string]: string[] };
 }
 
@@ -69,7 +68,6 @@ const defaultSettings: SchoolSettings = {
   messageDelay: 2,
   themeColors: {},
   font: 'inter',
-  principalSignature: '',
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);

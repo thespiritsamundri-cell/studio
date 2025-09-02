@@ -72,17 +72,6 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSignatureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setSettings(prev => ({...prev, principalSignature: reader.result as string}));
-        };
-        reader.readAsDataURL(file);
-    }
-  };
-
   const handleSelectChange = (id: keyof typeof settings) => (value: string) => {
     setSettings(prev => ({ ...prev, [id]: value }));
   };
@@ -335,20 +324,6 @@ export default function SettingsPage() {
                         <div className="flex items-center gap-4 p-4 border rounded-md">
                             <Image src={settings.schoolLogo} alt="School Logo Preview" width={60} height={60} className="object-contain rounded-md" />
                             <Button variant="ghost" size="sm" onClick={() => setSettings(prev => ({...prev, schoolLogo: ''}))}>Remove</Button>
-                        </div>
-                    </div>
-                )}
-                <div className="space-y-2">
-                    <Label htmlFor="principalSignature">Principal Signature</Label>
-                    <Input id="principalSignatureInput" name="principalSignature" type="file" accept="image/*" onChange={handleSignatureChange} className="file:text-primary file:font-medium" />
-                     <p className="text-xs text-muted-foreground">Upload an image with a transparent background for best results.</p>
-                </div>
-                 {settings.principalSignature && (
-                    <div className="space-y-2">
-                        <Label>Signature Preview</Label>
-                        <div className="flex items-center gap-4 p-4 border rounded-md bg-gray-100">
-                            <Image src={settings.principalSignature} alt="Principal Signature Preview" width={150} height={60} className="object-contain" />
-                            <Button variant="ghost" size="sm" onClick={() => setSettings(prev => ({...prev, principalSignature: ''}))}>Remove</Button>
                         </div>
                     </div>
                 )}
