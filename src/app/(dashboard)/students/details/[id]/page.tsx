@@ -34,7 +34,7 @@ export default function StudentDetailsPage() {
   }, [params.id, students, families]);
 
   const handlePrint = useReactToPrint({
-    contentRef: printRef,
+    content: () => printRef.current,
   });
 
   if (!student || !family) {
@@ -51,11 +51,9 @@ export default function StudentDetailsPage() {
   return (
     <div className="space-y-6">
        <div style={{ display: 'none' }}>
-          <div ref={printRef}>
-            <StudentDetailsPrint student={student} family={family} />
-          </div>
+          <StudentDetailsPrint ref={printRef} student={student} family={family} />
       </div>
-       <div className="flex items-center justify-between">
+       <div className="flex items-center justify-between print:hidden">
         <div className="flex items-center gap-4">
             <Button variant="outline" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
