@@ -1,13 +1,13 @@
 
 'use client';
 
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useData } from '@/context/data-context';
-import { MoreHorizontal, Search, Printer, FileDown, FileSpreadsheet } from 'lucide-react';
+import { MoreHorizontal, Search, Printer, FileSpreadsheet } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,7 +18,7 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
-import { useReactToPrint } from 'react-to-print';
+import { renderToString } from 'react-dom/server';
 import { AllStudentsPrintReport } from '@/components/reports/all-students-report';
 import type { Student } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -32,10 +32,7 @@ export default function StudentsPage() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClass, setSelectedClass] = useState<string>('all');
-  const printRef = useRef<HTMLDivElement>(null);
-  const [isPrinting, setIsPrinting] = useState(false);
-  const [reportDate, setReportDate] = useState<Date | null>(null);
-
+  
   const filteredStudents = useMemo(() => {
     let students = allStudents;
 
@@ -58,22 +55,28 @@ export default function StudentsPage() {
     return students;
   }, [searchQuery, selectedClass, allStudents, familyIdFromQuery]);
 
-  const handlePrint = useReactToPrint({
-    content: () => printRef.current,
-    onAfterPrint: () => setIsPrinting(false),
-  });
+  const handlePrint = () => {
+    const reportDate = new Date();
+    const printContent = renderToString(
+        <AllStudentsPrintReport students={filteredStudents} date={reportDate} />
+    );
 
-  useEffect(() => {
-    if (isPrinting && reportDate && printRef.current) {
-      setTimeout(() => {
-        handlePrint();
-      }, 100);
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>All Students Report</title>
+                    <script src="https://cdn.tailwindcss.com"></script>
+                </head>
+                <body>
+                    ${printContent}
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
     }
-  }, [isPrinting, reportDate, handlePrint]);
-
-  const triggerPrint = () => {
-    setReportDate(new Date());
-    setIsPrinting(true);
   };
 
 
@@ -112,10 +115,6 @@ export default function StudentsPage() {
 
   return (
     <div className="space-y-6">
-      <div style={{ display: 'none' }}>
-        <AllStudentsPrintReport ref={printRef} students={filteredStudents} date={reportDate} />
-      </div>
-
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold font-headline">Students</h1>
         <div className="flex flex-wrap items-center gap-2">
@@ -140,7 +139,7 @@ export default function StudentsPage() {
                 ))}
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={triggerPrint}>
+          <Button variant="outline" onClick={handlePrint}>
             <Printer className="mr-2 h-4 w-4" /> Print
           </Button>
           <Button variant="outline" onClick={handleExportCsv}>

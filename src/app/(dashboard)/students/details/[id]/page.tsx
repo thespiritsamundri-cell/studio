@@ -5,13 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { useData } from '@/context/data-context';
 import { notFound, useRouter, useParams } from 'next/navigation';
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import type { Student, Family } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { ArrowLeft, Printer } from 'lucide-react';
 import { StudentDetailsPrint } from '@/components/reports/student-details-report';
-import { useReactToPrint } from 'react-to-print';
+import { renderToString } from 'react-dom/server';
 
 export default function StudentDetailsPage() {
   const router = useRouter();
@@ -19,7 +19,6 @@ export default function StudentDetailsPage() {
   const { students, families } = useData();
   const [student, setStudent] = useState<Student | undefined>(undefined);
   const [family, setFamily] = useState<Family | undefined>(undefined);
-  const printRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
     const id = params.id as string;
@@ -33,9 +32,30 @@ export default function StudentDetailsPage() {
     }
   }, [params.id, students, families]);
 
-  const handlePrint = useReactToPrint({
-    content: () => printRef.current,
-  });
+  const handlePrint = () => {
+    if (!student || !family) return;
+
+    const printContent = renderToString(
+        <StudentDetailsPrint student={student} family={family} />
+    );
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Student Details - ${student.name}</title>
+                    <script src="https://cdn.tailwindcss.com"></script>
+                </head>
+                <body>
+                    ${printContent}
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+    }
+  };
 
   if (!student || !family) {
     return <div>Loading student details or student not found...</div>;
@@ -50,9 +70,6 @@ export default function StudentDetailsPage() {
 
   return (
     <div className="space-y-6">
-       <div style={{ display: 'none' }}>
-          <StudentDetailsPrint ref={printRef} student={student} family={family} />
-      </div>
        <div className="flex items-center justify-between print:hidden">
         <div className="flex items-center gap-4">
             <Button variant="outline" size="icon" onClick={() => router.back()}>

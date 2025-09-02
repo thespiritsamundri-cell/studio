@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useData } from '@/context/data-context';
@@ -9,21 +9,18 @@ import { Input } from '@/components/ui/input';
 import { DateRange } from 'react-day-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { CalendarIcon, Printer, FileDown, FileSpreadsheet } from 'lucide-react';
+import { CalendarIcon, Printer, FileSpreadsheet } from 'lucide-react';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { IncomePrintReport } from '@/components/reports/income-report';
-import type { Fee } from '@/lib/types';
-import { useReactToPrint } from 'react-to-print';
+import { renderToString } from 'react-dom/server';
 
 
 export default function IncomePage() {
   const { fees: allFees, families } = useData();
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [familyIdFilter, setFamilyIdFilter] = useState('');
-  const printRef = useRef<HTMLDivElement>(null);
-  const [isPrinting, setIsPrinting] = useState(false);
 
   const paidFees = useMemo(() => {
     return allFees
@@ -60,20 +57,27 @@ export default function IncomePage() {
   const totalIncome = useMemo(() => {
       return filteredFees.reduce((acc, fee) => acc + fee.amount, 0);
   }, [filteredFees]);
-
-  const handlePrint = useReactToPrint({
-    content: () => printRef.current,
-    onAfterPrint: () => setIsPrinting(false),
-  });
-
-  useEffect(() => {
-    if (isPrinting) {
-      handlePrint();
-    }
-  }, [isPrinting, handlePrint]);
   
   const triggerPrint = () => {
-    setIsPrinting(true);
+    const printContent = renderToString(
+      <IncomePrintReport fees={filteredFees} totalIncome={totalIncome} dateRange={dateRange} />
+    );
+    const printWindow = window.open('', '_blank');
+    if(printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Income Report</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+          </head>
+          <body>
+            ${printContent}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+    }
   };
 
   const handleExportCsv = () => {
@@ -108,9 +112,6 @@ export default function IncomePage() {
 
   return (
     <div className="space-y-6">
-      <div style={{ display: 'none' }}>
-        <IncomePrintReport ref={printRef} fees={filteredFees} totalIncome={totalIncome} dateRange={dateRange} />
-      </div>
       <div className="print:hidden">
         <h1 className="text-3xl font-bold font-headline">Income</h1>
 

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -12,9 +12,9 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Printer, FileDown, FileSpreadsheet, PlusCircle, Edit, Trash2 } from 'lucide-react';
+import { Printer, FileSpreadsheet, PlusCircle, Edit, Trash2 } from 'lucide-react';
 import { AllStudentsPrintReport } from '@/components/reports/all-students-report';
-import { useReactToPrint } from 'react-to-print';
+import { renderToString } from 'react-dom/server';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,19 +37,7 @@ export default function ClassesPage() {
 
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
-  const printRef = useRef<HTMLDivElement>(null);
-  const [isPrinting, setIsPrinting] = useState(false);
-  const [reportDate, setReportDate] = useState<Date | null>(null);
-  const [studentsForReport, setStudentsForReport] = useState<Student[]>([]);
-
-  const handlePrint = useReactToPrint({
-    content: () => printRef.current,
-    documentTitle: "All Students Report",
-    onAfterPrint: () => {
-        setIsPrinting(false);
-    },
-  });
-
+  
   const studentsInClass = useMemo(() => {
     if (!selectedClass) {
       return [];
@@ -66,19 +54,29 @@ export default function ClassesPage() {
       toast({ title: "No students selected", description: "Please select students to print.", variant: "destructive" });
       return;
     }
-    setStudentsForReport(studentsToExport);
-    setReportDate(new Date());
-    setIsPrinting(true);
-  }
+    
+    const reportDate = new Date();
+    const printContent = renderToString(
+        <AllStudentsPrintReport students={studentsToExport} date={reportDate} />
+    );
 
-  useEffect(() => {
-    if (isPrinting && reportDate && printRef.current) {
-        setTimeout(() => {
-            handlePrint?.();
-        }, 100);
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Selected Students Report</title>
+                    <script src="https://cdn.tailwindcss.com"></script>
+                </head>
+                <body>
+                    ${printContent}
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
     }
-  }, [isPrinting, reportDate, handlePrint]);
-
+  }
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -199,9 +197,6 @@ export default function ClassesPage() {
 
   return (
     <div className="space-y-6">
-      <div style={{ display: 'none' }}>
-        {<AllStudentsPrintReport ref={printRef} students={studentsForReport} date={reportDate} />}
-      </div>
       <div className="print:hidden">
         <h1 className="text-3xl font-bold font-headline">Classes</h1>
         

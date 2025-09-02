@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -11,11 +11,11 @@ import { useData } from '@/context/data-context';
 import type { Teacher, TeacherAttendance } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDaysInMonth, getMonth, getYear, setMonth, setYear, subMonths, addMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, subMonths, addMonths } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, ChevronRight, Printer } from 'lucide-react';
-import { useReactToPrint } from 'react-to-print';
+import { renderToString } from 'react-dom/server';
 import { TeacherAttendancePrintReport } from '@/components/reports/teacher-attendance-report';
 
 
@@ -58,12 +58,7 @@ export default function TeacherAttendancePage() {
   // Monthly Report Logic
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [selectedTeacherId, setSelectedTeacherId] = useState('all');
-  const printRef = useRef<HTMLDivElement>(null);
   
-  const handlePrint = useReactToPrint({
-      content: () => printRef.current,
-  });
-
   const monthlyReportData = useMemo(() => {
     const start = startOfMonth(selectedMonth);
     const end = endOfMonth(selectedMonth);
@@ -85,6 +80,34 @@ export default function TeacherAttendancePage() {
 
     return { report, daysInMonth, filteredTeachers };
   }, [teachers, teacherAttendances, selectedMonth, selectedTeacherId]);
+
+  const handlePrint = () => {
+    const printContent = renderToString(
+        <TeacherAttendancePrintReport
+            teachers={monthlyReportData.filteredTeachers}
+            daysInMonth={monthlyReportData.daysInMonth}
+            attendanceData={monthlyReportData.report}
+            month={selectedMonth}
+        />
+    );
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Teacher Attendance Report - ${format(selectedMonth, 'MMMM yyyy')}</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+          </head>
+          <body>
+            ${printContent}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+    }
+  };
+
   
   const getStatusBadge = (status: AttendanceStatus | undefined) => {
       if (!status) return <span className="text-muted-foreground">-</span>;
@@ -103,17 +126,6 @@ export default function TeacherAttendancePage() {
 
   return (
     <div className="space-y-6">
-      <div style={{ display: 'none' }}>
-        <div ref={printRef}>
-            <TeacherAttendancePrintReport
-                teachers={monthlyReportData.filteredTeachers}
-                daysInMonth={monthlyReportData.daysInMonth}
-                attendanceData={monthlyReportData.report}
-                month={selectedMonth}
-            />
-        </div>
-      </div>
-
       <h1 className="text-3xl font-bold font-headline">Teacher Attendance</h1>
       
       <Tabs defaultValue="daily">

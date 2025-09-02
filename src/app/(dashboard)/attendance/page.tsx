@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { analyzeAttendanceAndSendMessage } from '@/ai/flows/attendance-analysis-messaging';
 import { Send, Printer } from 'lucide-react';
 import { AttendancePrintReport } from '@/components/reports/attendance-report';
-import { useReactToPrint } from 'react-to-print';
+import { renderToString } from 'react-dom/server';
 
 type AttendanceStatus = 'Present' | 'Absent' | 'Leave';
 
@@ -25,30 +25,37 @@ export default function AttendancePage() {
   const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
   const { toast } = useToast();
   const [isSending, setIsSending] = useState(false);
-  const printRef = useRef<HTMLDivElement>(null);
-  const [isPrinting, setIsPrinting] = useState(false);
-  const [reportDate, setReportDate] = useState<Date | null>(null);
   
-  const handlePrint = useReactToPrint({
-    contentRef: printRef,
-    onAfterPrint: () => setIsPrinting(false),
-  });
-  
-  useEffect(() => {
-    if (isPrinting && reportDate && printRef.current) {
-       setTimeout(() => {
-        handlePrint();
-      }, 100);
-    }
-  }, [isPrinting, reportDate, handlePrint]);
-
   const triggerPrint = () => {
     if (!selectedClass) {
         toast({ title: "No Class Selected", description: "Please select a class to print a report.", variant: "destructive" });
         return;
     }
-    setReportDate(new Date());
-    setIsPrinting(true);
+    const reportDate = new Date();
+    const printContent = renderToString(
+      <AttendancePrintReport
+        className={selectedClass || ''}
+        date={reportDate}
+        students={students}
+        attendance={attendance}
+      />
+    );
+    const printWindow = window.open('', '_blank');
+    if(printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Attendance Report - ${selectedClass}</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+          </head>
+          <body>
+            ${printContent}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+    }
   };
 
   const handleClassChange = (classValue: string) => {
@@ -126,17 +133,6 @@ export default function AttendancePage() {
 
   return (
     <div className="space-y-6">
-       <div style={{ display: 'none' }}>
-          {reportDate && (
-            <AttendancePrintReport
-              ref={printRef}
-              className={selectedClass || ''}
-              date={reportDate}
-              students={students}
-              attendance={attendance}
-            />
-          )}
-      </div>
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold font-headline">Attendance</h1>
         <div className="flex items-center gap-4">
