@@ -160,12 +160,12 @@ export default function ClassesPage() {
                                 <TableCell className="font-medium">{c.name}</TableCell>
                                 <TableCell>
                                     <div className="flex flex-wrap gap-1">
-                                        {c.sections?.map(s => <Badge key={s} variant="secondary">{s}</Badge>) || 'No Sections'}
+                                        {(c.sections && c.sections.length > 0) ? c.sections.map(s => <Badge key={s} variant="secondary">{s}</Badge>) : 'No Sections'}
                                     </div>
                                 </TableCell>
                                  <TableCell>
                                     <div className="flex flex-wrap gap-1 max-w-xs">
-                                        {c.subjects?.map(s => <Badge key={s} variant="outline">{s}</Badge>) || 'No Subjects'}
+                                        {(c.subjects && c.subjects.length > 0) ? c.subjects.map(s => <Badge key={s} variant="outline">{s}</Badge>) : 'No Subjects'}
                                     </div>
                                 </TableCell>
                                 <TableCell>{allStudents.filter(s => s.class === c.name).length}</TableCell>

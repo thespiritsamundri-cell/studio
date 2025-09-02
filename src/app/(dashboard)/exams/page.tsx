@@ -48,6 +48,7 @@ export default function ExamsPage() {
   }, [selectedClass, exams]);
 
   const subjects = useMemo(() => {
+    if (!selectedClass) return [];
     const cls = classes.find(c => c.name === selectedClass);
     return cls?.subjects || [];
   }, [selectedClass, classes]);
@@ -223,7 +224,7 @@ export default function ExamsPage() {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => { deleteExam(selectedExamId); setSelectedExamId(null); setCurrentResults([]); }} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                            <AlertDialogAction onClick={() => { if(selectedExamId) {deleteExam(selectedExamId)}; setSelectedExamId(null); setCurrentResults([]); }} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
@@ -308,5 +309,3 @@ export default function ExamsPage() {
     </div>
   );
 }
-
-    
