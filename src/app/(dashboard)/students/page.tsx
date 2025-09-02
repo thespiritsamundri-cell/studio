@@ -1,13 +1,14 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useData } from '@/context/data-context';
 import { MoreHorizontal, Search, Printer, FileSpreadsheet } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +25,7 @@ import type { Student } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSearchParams } from 'next/navigation';
 import { useSettings } from '@/context/settings-context';
+import { useToast } from '@/hooks/use-toast';
 
 
 export default function StudentsPage() {
@@ -31,9 +33,11 @@ export default function StudentsPage() {
   const { settings } = useSettings();
   const searchParams = useSearchParams();
   const familyIdFromQuery = searchParams.get('familyId');
+  const { toast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClass, setSelectedClass] = useState<string>('all');
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   
   const filteredStudents = useMemo(() => {
     let students = allStudents;
@@ -57,10 +61,18 @@ export default function StudentsPage() {
     return students;
   }, [searchQuery, selectedClass, allStudents, familyIdFromQuery]);
 
+  const studentsToExport = useMemo(() => {
+    return allStudents.filter(s => selectedStudents.includes(s.id));
+  }, [selectedStudents, allStudents]);
+
   const handlePrint = () => {
+    if (studentsToExport.length === 0) {
+      toast({ title: "No students selected", description: "Please select students to print.", variant: "destructive" });
+      return;
+    }
     const reportDate = new Date();
     const printContent = renderToString(
-        <AllStudentsPrintReport students={filteredStudents} date={reportDate} settings={settings} />
+        <AllStudentsPrintReport students={studentsToExport} date={reportDate} settings={settings} />
     );
 
     const printWindow = window.open('', '_blank');
@@ -68,7 +80,7 @@ export default function StudentsPage() {
         printWindow.document.write(`
             <html>
                 <head>
-                    <title>All Students Report</title>
+                    <title>Selected Students Report</title>
                     <script src="https://cdn.tailwindcss.com"></script>
                 </head>
                 <body>
@@ -83,10 +95,14 @@ export default function StudentsPage() {
 
 
   const handleExportCsv = () => {
+    if (studentsToExport.length === 0) {
+      toast({ title: "No students selected", description: "Please select students to export.", variant: "destructive" });
+      return;
+    }
     const headers = ['ID', 'Name', 'FatherName', 'Class', 'AdmissionDate', 'FamilyId', 'Status', 'Phone', 'Address', 'DOB'];
     const csvContent = [
       headers.join(','),
-      ...filteredStudents.map((student: Student) => 
+      ...studentsToExport.map((student: Student) => 
         [
           student.id,
           `"${student.name}"`,
@@ -115,6 +131,25 @@ export default function StudentsPage() {
     document.body.removeChild(link);
   }
 
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedStudents(filteredStudents.map(s => s.id));
+    } else {
+      setSelectedStudents([]);
+    }
+  };
+
+  const handleSelectStudent = (studentId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedStudents(prev => [...prev, studentId]);
+    } else {
+      setSelectedStudents(prev => prev.filter(id => id !== studentId));
+    }
+  };
+  
+  const isAllSelected = selectedStudents.length > 0 && selectedStudents.length === filteredStudents.length;
+
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -130,7 +165,7 @@ export default function StudentsPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
           </div>
-          <Select value={selectedClass} onValueChange={setSelectedClass}>
+          <Select value={selectedClass} onValueChange={(value) => {setSelectedClass(value); setSelectedStudents([]);}}>
             <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Select Class" />
             </SelectTrigger>
@@ -141,29 +176,41 @@ export default function StudentsPage() {
                 ))}
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={handlePrint}>
-            <Printer className="mr-2 h-4 w-4" /> Print
+          <Button variant="outline" onClick={handlePrint} disabled={studentsToExport.length === 0}>
+            <Printer className="mr-2 h-4 w-4" /> Print Selected
           </Button>
-          <Button variant="outline" onClick={handleExportCsv}>
-            <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel Export
+          <Button variant="outline" onClick={handleExportCsv} disabled={studentsToExport.length === 0}>
+            <FileSpreadsheet className="mr-2 h-4 w-4" /> Export Selected
           </Button>
         </div>
       </div>
       
       <Card>
         <CardHeader>
-          <CardTitle>
-            {familyIdFromQuery 
-                ? `Students for Family ID: ${familyIdFromQuery}`
-                : "All Students"
-            }
-          </CardTitle>
-          <CardDescription>Manage student records, view details, and perform actions. Found {filteredStudents.length} students.</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>
+                {familyIdFromQuery 
+                    ? `Students for Family ID: ${familyIdFromQuery}`
+                    : "All Students"
+                }
+              </CardTitle>
+              <CardDescription>Manage student records, view details, and perform actions. Found {filteredStudents.length} students.</CardDescription>
+            </div>
+             <Badge variant="secondary">{selectedStudents.length} Selected</Badge>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
+                 <TableHead className="w-[50px]">
+                    <Checkbox
+                        checked={isAllSelected}
+                        onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+                        aria-label="Select all"
+                    />
+                </TableHead>
                 <TableHead className="hidden w-[100px] sm:table-cell">
                   <span className="sr-only">Image</span>
                 </TableHead>
@@ -178,7 +225,14 @@ export default function StudentsPage() {
             </TableHeader>
             <TableBody>
               {filteredStudents.map((student) => (
-                <TableRow key={student.id}>
+                <TableRow key={student.id} data-state={selectedStudents.includes(student.id) && "selected"}>
+                  <TableCell>
+                    <Checkbox
+                        checked={selectedStudents.includes(student.id)}
+                        onCheckedChange={(checked) => handleSelectStudent(student.id, checked as boolean)}
+                        aria-label={`Select student ${student.name}`}
+                    />
+                  </TableCell>
                   <TableCell className="hidden sm:table-cell">
                     <Image
                       alt="Student image"
@@ -219,7 +273,7 @@ export default function StudentsPage() {
               ))}
                {filteredStudents.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center">
+                  <TableCell colSpan={7} className="h-24 text-center">
                     No students found.
                   </TableCell>
                 </TableRow>
