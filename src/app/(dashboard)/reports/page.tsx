@@ -16,9 +16,11 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { renderToString } from 'react-dom/server';
+import { useSettings } from '@/context/settings-context';
 
 export default function ReportsPage() {
   const { students: allStudents, fees: allFees, families, classes } = useData();
+  const { settings } = useSettings();
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState<string | null>(null);
@@ -41,7 +43,7 @@ export default function ReportsPage() {
     setTimeout(() => {
       if (type === 'students') {
         printContent = renderToString(
-          <AllStudentsPrintReport students={allStudents} date={new Date()} />
+          <AllStudentsPrintReport students={allStudents} date={new Date()} settings={settings} />
         );
         reportTitle = 'All Students Report';
       } else if (type === 'fees') {
@@ -53,7 +55,7 @@ export default function ReportsPage() {
           });
         const totalIncome = feesWithFatherName.reduce((acc, fee) => acc + fee.amount, 0);
         printContent = renderToString(
-          <IncomePrintReport fees={feesWithFatherName} totalIncome={totalIncome} />
+          <IncomePrintReport fees={feesWithFatherName} totalIncome={totalIncome} settings={settings} />
         );
         reportTitle = 'Fee Collection Report';
       } else if (type === 'attendance') {
@@ -72,7 +74,7 @@ export default function ReportsPage() {
           else mockAttendance[s.id] = 'Leave';
         });
         printContent = renderToString(
-            <AttendancePrintReport className={selectedClass} date={attendanceDate} students={classStudents} attendance={mockAttendance} />
+            <AttendancePrintReport className={selectedClass} date={attendanceDate} students={classStudents} attendance={mockAttendance} settings={settings} />
         );
         reportTitle = `Attendance Report - ${selectedClass}`;
       }

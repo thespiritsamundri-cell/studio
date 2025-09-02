@@ -5,7 +5,7 @@ import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Family, Student, Fee } from '@/lib/types';
 import { School } from 'lucide-react';
-import { useSettings } from '@/context/settings-context';
+import type { SchoolSettings } from '@/context/settings-context';
 import Image from 'next/image';
 
 interface FeeReceiptProps {
@@ -15,11 +15,11 @@ interface FeeReceiptProps {
     totalDues: number;
     paidAmount: number;
     remainingDues: number;
+    settings: SchoolSettings;
 }
 
 export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
-  ({ family, students, fees, totalDues, paidAmount, remainingDues }, ref) => {
-    const { settings } = useSettings();
+  ({ family, students, fees, totalDues, paidAmount, remainingDues, settings }, ref) => {
     const date = new Date();
 
     return (

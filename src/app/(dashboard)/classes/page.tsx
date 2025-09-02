@@ -29,10 +29,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { useSettings } from '@/context/settings-context';
 
 
 export default function ClassesPage() {
   const { students: allStudents, classes, addClass, updateClass, deleteClass } = useData();
+  const { settings } = useSettings();
   const { toast } = useToast();
 
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
@@ -57,7 +59,7 @@ export default function ClassesPage() {
     
     const reportDate = new Date();
     const printContent = renderToString(
-        <AllStudentsPrintReport students={studentsToExport} date={reportDate} />
+        <AllStudentsPrintReport students={studentsToExport} date={reportDate} settings={settings} />
     );
 
     const printWindow = window.open('', '_blank');

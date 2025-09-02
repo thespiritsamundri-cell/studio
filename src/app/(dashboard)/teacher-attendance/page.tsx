@@ -17,12 +17,14 @@ import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, ChevronRight, Printer } from 'lucide-react';
 import { renderToString } from 'react-dom/server';
 import { TeacherAttendancePrintReport } from '@/components/reports/teacher-attendance-report';
+import { useSettings } from '@/context/settings-context';
 
 
 type AttendanceStatus = 'Present' | 'Absent' | 'Leave';
 
 export default function TeacherAttendancePage() {
   const { teachers, teacherAttendances, saveTeacherAttendance } = useData();
+  const { settings } = useSettings();
   const { toast } = useToast();
   const [today, setToday] = useState(new Date());
 
@@ -88,6 +90,7 @@ export default function TeacherAttendancePage() {
             daysInMonth={monthlyReportData.daysInMonth}
             attendanceData={monthlyReportData.report}
             month={selectedMonth}
+            settings={settings}
         />
     );
     const printWindow = window.open('', '_blank');

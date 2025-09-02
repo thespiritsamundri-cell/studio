@@ -35,7 +35,7 @@ interface ThemeColors {
   'sidebar-ring': HexColor;
 }
 
-interface SchoolSettings {
+export interface SchoolSettings {
   schoolName: string;
   schoolAddress: string;
   schoolPhone: string;

@@ -5,7 +5,7 @@ import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Teacher } from '@/lib/types';
 import { School } from 'lucide-react';
-import { useSettings } from '@/context/settings-context';
+import type { SchoolSettings } from '@/context/settings-context';
 import Image from 'next/image';
 import { format } from 'date-fns';
 import { Badge } from '../ui/badge';
@@ -16,11 +16,11 @@ interface TeacherAttendancePrintReportProps {
   daysInMonth: Date[];
   attendanceData: { teacher: Teacher, attendanceByDate: Record<string, AttendanceStatus | undefined> }[];
   month: Date;
+  settings: SchoolSettings;
 }
 
 export const TeacherAttendancePrintReport = React.forwardRef<HTMLDivElement, TeacherAttendancePrintReportProps>(
-  ({ teachers, daysInMonth, attendanceData, month }, ref) => {
-    const { settings } = useSettings();
+  ({ teachers, daysInMonth, attendanceData, month, settings }, ref) => {
 
     const getStatusBadge = (status: AttendanceStatus | undefined) => {
       if (!status) return <span style={{ color: '#a1a1aa' }}>-</span>; // gray-400

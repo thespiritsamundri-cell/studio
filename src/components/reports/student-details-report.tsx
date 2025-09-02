@@ -5,11 +5,12 @@ import React from 'react';
 import type { Student, Family } from '@/lib/types';
 import { School } from 'lucide-react';
 import Image from 'next/image';
-import { useSettings } from '@/context/settings-context';
+import type { SchoolSettings } from '@/context/settings-context';
 
 interface StudentDetailsPrintProps {
   student: Student;
   family: Family;
+  settings: SchoolSettings;
 }
 
 const DetailItem = ({ label, value }: { label: string; value: string | undefined }) => (
@@ -21,9 +22,7 @@ const DetailItem = ({ label, value }: { label: string; value: string | undefined
 
 
 export const StudentDetailsPrint = React.forwardRef<HTMLDivElement, StudentDetailsPrintProps>(
-  ({ student, family }, ref) => {
-    const { settings } = useSettings();
-
+  ({ student, family, settings }, ref) => {
     return (
       <div ref={ref} className="p-8 font-sans bg-white text-black">
         <header className="flex items-center justify-between pb-4 border-b border-gray-300">

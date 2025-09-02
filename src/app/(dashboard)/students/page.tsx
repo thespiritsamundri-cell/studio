@@ -23,10 +23,12 @@ import { AllStudentsPrintReport } from '@/components/reports/all-students-report
 import type { Student } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSearchParams } from 'next/navigation';
+import { useSettings } from '@/context/settings-context';
 
 
 export default function StudentsPage() {
   const { students: allStudents, classes } = useData();
+  const { settings } = useSettings();
   const searchParams = useSearchParams();
   const familyIdFromQuery = searchParams.get('familyId');
 
@@ -58,7 +60,7 @@ export default function StudentsPage() {
   const handlePrint = () => {
     const reportDate = new Date();
     const printContent = renderToString(
-        <AllStudentsPrintReport students={filteredStudents} date={reportDate} />
+        <AllStudentsPrintReport students={filteredStudents} date={reportDate} settings={settings} />
     );
 
     const printWindow = window.open('', '_blank');

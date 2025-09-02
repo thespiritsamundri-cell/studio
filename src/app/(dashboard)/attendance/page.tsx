@@ -15,11 +15,13 @@ import { analyzeAttendanceAndSendMessage } from '@/ai/flows/attendance-analysis-
 import { Send, Printer } from 'lucide-react';
 import { AttendancePrintReport } from '@/components/reports/attendance-report';
 import { renderToString } from 'react-dom/server';
+import { useSettings } from '@/context/settings-context';
 
 type AttendanceStatus = 'Present' | 'Absent' | 'Leave';
 
 export default function AttendancePage() {
   const { students: allStudents, families, classes } = useData();
+  const { settings } = useSettings();
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
@@ -38,6 +40,7 @@ export default function AttendancePage() {
         date={reportDate}
         students={students}
         attendance={attendance}
+        settings={settings}
       />
     );
     const printWindow = window.open('', '_blank');

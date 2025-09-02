@@ -10,9 +10,11 @@ import { useData } from '@/context/data-context';
 import type { Family, Student, Fee } from '@/lib/types';
 import { FeeDetailsCard } from '@/components/fees/fee-details-card';
 import { useToast } from '@/hooks/use-toast';
+import { useSettings } from '@/context/settings-context';
 
 export default function FeesPage() {
   const { families, students, fees: allFees, updateFee } = useData();
+  const { settings } = useSettings();
   const [familyId, setFamilyId] = useState('');
   const [searchedFamily, setSearchedFamily] = useState<Family | null>(null);
   const [familyStudents, setFamilyStudents] = useState<Student[]>([]);
@@ -79,6 +81,7 @@ export default function FeesPage() {
           students={familyStudents}
           fees={familyFees}
           onUpdateFee={updateFee}
+          settings={settings}
         />
       )}
     </div>

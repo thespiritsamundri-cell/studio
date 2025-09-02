@@ -15,10 +15,12 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { IncomePrintReport } from '@/components/reports/income-report';
 import { renderToString } from 'react-dom/server';
+import { useSettings } from '@/context/settings-context';
 
 
 export default function IncomePage() {
   const { fees: allFees, families } = useData();
+  const { settings } = useSettings();
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [familyIdFilter, setFamilyIdFilter] = useState('');
 
@@ -60,7 +62,7 @@ export default function IncomePage() {
   
   const triggerPrint = () => {
     const printContent = renderToString(
-      <IncomePrintReport fees={filteredFees} totalIncome={totalIncome} dateRange={dateRange} />
+      <IncomePrintReport fees={filteredFees} totalIncome={totalIncome} dateRange={dateRange} settings={settings} />
     );
     const printWindow = window.open('', '_blank');
     if(printWindow) {

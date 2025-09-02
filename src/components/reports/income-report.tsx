@@ -7,18 +7,18 @@ import type { Fee } from '@/lib/types';
 import { School } from 'lucide-react';
 import { DateRange } from 'react-day-picker';
 import { format } from 'date-fns';
-import { useSettings } from '@/context/settings-context';
+import type { SchoolSettings } from '@/context/settings-context';
 import Image from 'next/image';
 
 interface IncomePrintReportProps {
   fees: (Fee & { fatherName?: string })[];
   totalIncome: number;
   dateRange?: DateRange;
+  settings: SchoolSettings;
 }
 
 export const IncomePrintReport = React.forwardRef<HTMLDivElement, IncomePrintReportProps>(
-  ({ fees, totalIncome, dateRange }, ref) => {
-    const { settings } = useSettings();
+  ({ fees, totalIncome, dateRange, settings }, ref) => {
     
     const getPeriodText = () => {
         if (dateRange?.from && dateRange?.to) {

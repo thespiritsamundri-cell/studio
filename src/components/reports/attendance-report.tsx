@@ -5,7 +5,7 @@ import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Student } from '@/lib/types';
 import { School } from 'lucide-react';
-import { useSettings } from '@/context/settings-context';
+import type { SchoolSettings } from '@/context/settings-context';
 import Image from 'next/image';
 import { format } from 'date-fns';
 
@@ -14,11 +14,11 @@ interface AttendancePrintReportProps {
   date: Date;
   students: Student[];
   attendance: Record<string, 'Present' | 'Absent' | 'Leave'>;
+  settings: SchoolSettings;
 }
 
 export const AttendancePrintReport = React.forwardRef<HTMLDivElement, AttendancePrintReportProps>(
-  ({ className, date, students, attendance }, ref) => {
-    const { settings } = useSettings();
+  ({ className, date, students, attendance, settings }, ref) => {
     const presentCount = Object.values(attendance).filter(s => s === 'Present').length;
     const absentCount = Object.values(attendance).filter(s => s === 'Absent').length;
     const leaveCount = Object.values(attendance).filter(s => s === 'Leave').length;

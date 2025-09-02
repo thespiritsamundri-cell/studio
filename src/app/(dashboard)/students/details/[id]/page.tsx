@@ -12,11 +12,13 @@ import Image from 'next/image';
 import { ArrowLeft, Printer } from 'lucide-react';
 import { StudentDetailsPrint } from '@/components/reports/student-details-report';
 import { renderToString } from 'react-dom/server';
+import { useSettings } from '@/context/settings-context';
 
 export default function StudentDetailsPage() {
   const router = useRouter();
   const params = useParams();
   const { students, families } = useData();
+  const { settings } = useSettings();
   const [student, setStudent] = useState<Student | undefined>(undefined);
   const [family, setFamily] = useState<Family | undefined>(undefined);
   
@@ -34,7 +36,7 @@ export default function StudentDetailsPage() {
     if (!student || !family) return;
 
     const printContent = renderToString(
-        <StudentDetailsPrint student={student} family={family} />
+        <StudentDetailsPrint student={student} family={family} settings={settings} />
     );
 
     const printWindow = window.open('', '_blank');

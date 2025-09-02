@@ -5,19 +5,18 @@ import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Student } from '@/lib/types';
 import { School } from 'lucide-react';
-import { useSettings } from '@/context/settings-context';
+import type { SchoolSettings } from '@/context/settings-context';
 import Image from 'next/image';
 import { format } from 'date-fns';
 
 interface AllStudentsPrintReportProps {
   students: Student[];
   date: Date | null;
+  settings: SchoolSettings;
 }
 
 export const AllStudentsPrintReport = React.forwardRef<HTMLDivElement, AllStudentsPrintReportProps>(
-  ({ students, date }, ref) => {
-    const { settings } = useSettings();
-
+  ({ students, date, settings }, ref) => {
     return (
       <div ref={ref} className="p-8 font-sans bg-white text-black">
         <header className="flex items-center justify-between pb-4 border-b border-gray-300">

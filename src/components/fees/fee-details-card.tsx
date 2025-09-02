@@ -14,6 +14,7 @@ import { FeeReceipt } from '../reports/fee-receipt';
 import { useToast } from '@/hooks/use-toast';
 import { Printer } from 'lucide-react';
 import { renderToString } from 'react-dom/server';
+import type { SchoolSettings } from '@/context/settings-context';
 
 
 interface FeeDetailsCardProps {
@@ -21,9 +22,10 @@ interface FeeDetailsCardProps {
     students: Student[];
     fees: Fee[];
     onUpdateFee: (id: string, fee: Fee) => void;
+    settings: SchoolSettings;
 }
 
-export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFee }: FeeDetailsCardProps) {
+export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFee, settings }: FeeDetailsCardProps) {
     const { toast } = useToast();
     const [fees, setFees] = useState(initialFees);
     
@@ -116,6 +118,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
                 totalDues={receiptData.totalDues}
                 paidAmount={receiptData.paidAmount}
                 remainingDues={receiptData.remainingDues}
+                settings={settings}
             />
         );
         const printWindow = window.open('', '_blank');
