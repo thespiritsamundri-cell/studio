@@ -14,21 +14,22 @@
   }
 
   /* --- 1 Copy per Page --- */
+  [data-print-copies="1"] .voucher-page {
+    page-break-inside: avoid;
+  }
   [data-print-copies="1"] .voucher-wrapper {
-    page-break-after: always;
-    height: 98vh; /* Full portrait page for each copy */
+    page-break-after: always; /* Each slip on a new page */
+    height: 98vh;
     width: 100%;
   }
   [data-print-copies="1"] .voucher-page:last-child .voucher-wrapper:last-child {
-    page-break-after: auto;
-  }
-   [data-print-copies="1"] .voucher-wrapper:last-child {
-    page-break-after: auto;
+     page-break-after: auto;
   }
 
 
   /* --- 2 Copies per Page --- */
   [data-print-copies="2"] .voucher-page {
+    page-break-inside: avoid;
     display: flex;
     flex-direction: column;
     height: 98vh;
@@ -36,26 +37,22 @@
     gap: 0.25in;
   }
   [data-print-copies="2"] .voucher-wrapper {
-    height: 48%; /* Each copy takes up half the page */
+    height: 48%;
     width: 100%;
     box-sizing: border-box;
   }
-   [data-print-copies="2"] .voucher-wrapper:nth-child(2) {
-    page-break-after: avoid;
-  }
+  /* Ensure the 3rd copy goes to the next page */
   [data-print-copies="2"] .voucher-wrapper:nth-child(3) {
     page-break-before: always;
   }
 
   /* --- 3 Copies per Page (Landscape) --- */
-  [data-print-copies="3"] {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-  @page {
+  @page landscape-page {
     size: A4 landscape;
   }
   [data-print-copies="3"] .voucher-page {
+    page: landscape-page;
+    page-break-inside: avoid;
     display: flex;
     flex-direction: row;
     justify-content: space-between;
@@ -68,6 +65,6 @@
     width: 32%;
     height: 100%;
     box-sizing: border-box;
-    display: flex;
+    display: flex; /* Ensure inner content can grow */
   }
 }

@@ -42,7 +42,7 @@ const VoucherCopy = ({ family, students, settings, voucherData, copyType }: { fa
               <School className="w-10 h-10 text-black" />
             )}
             <div>
-              <h1 className="text-xl font-bold uppercase">{settings.schoolName}</h1>
+              <h1 className="text-base font-bold uppercase">{settings.schoolName}</h1>
               <p className="text-[10px]">{settings.schoolAddress}</p>
             </div>
           </div>
@@ -55,77 +55,74 @@ const VoucherCopy = ({ family, students, settings, voucherData, copyType }: { fa
           </div>
         </div>
         
-        <div className="flex justify-between py-1 border-b-2 border-black font-bold">
+        <div className="flex justify-between py-1 border-b-2 border-black font-bold text-[10px]">
           <h2>FEE CHALLAN ({feeMonths} {new Date().getFullYear()})</h2>
           <h2>Due Date: {format(parsedDueDate, 'dd-MM-yyyy')}</h2>
         </div>
+        
+        {/* Student Info */}
+         <table className="w-full text-[10px] my-1">
+            <tbody>
+                <tr>
+                    <td className="font-bold p-0.5 w-1/5">Family No:</td>
+                    <td className="p-0.5">{family.id}</td>
+                    <td className="font-bold p-0.5 w-1/5">Student(s):</td>
+                    <td className="p-0.5">{studentNames}</td>
+                </tr>
+                <tr>
+                    <td className="font-bold p-0.5">Father's Name:</td>
+                    <td className="p-0.5">{family.fatherName}</td>
+                    <td className="font-bold p-0.5">Class(es):</td>
+                    <td className="p-0.5">{studentClasses}</td>
+                </tr>
+            </tbody>
+        </table>
 
-        <div className="flex-grow grid grid-cols-2 gap-2 py-1">
-            {/* Left Column */}
-            <div className="border-r-2 border-black pr-2">
-                 <table className="w-full text-sm">
-                    <tbody>
-                        <tr>
-                            <td className="font-bold p-1 w-1/3">Family No:</td>
-                            <td className="p-1">{family.id}</td>
-                        </tr>
-                        <tr>
-                            <td className="font-bold p-1 border-t border-gray-300">Father's Name:</td>
-                            <td className="p-1 border-t border-gray-300">{family.fatherName}</td>
-                        </tr>
-                        <tr>
-                            <td className="font-bold p-1 border-t border-gray-300">Student(s):</td>
-                            <td className="p-1 border-t border-gray-300">{studentNames}</td>
-                        </tr>
-                        <tr>
-                            <td className="font-bold p-1 border-t border-gray-300">Class(es):</td>
-                            <td className="p-1 border-t border-gray-300">{studentClasses}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
 
-            {/* Right Column */}
-            <div>
-                 <table className="w-full text-sm">
-                    <thead className="bg-gray-200 font-bold">
-                        <tr>
-                            <th className="p-1 text-left">Description</th>
-                            <th className="p-1 text-right">Amount (PKR)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {admissionFee > 0 && <tr className="border-b border-gray-300"><td className="p-1">Admission fee</td><td className="p-1 text-right">{admissionFee.toLocaleString()}</td></tr>}
-                        {monthlyFee > 0 && <tr className="border-b border-gray-300"><td className="p-1">Monthly Fee</td><td className="p-1 text-right">{monthlyFee.toLocaleString()}</td></tr>}
-                        {concession > 0 && <tr className="border-b border-gray-300"><td className="p-1">Concession</td><td className="p-1 text-right text-red-600">-{concession.toLocaleString()}</td></tr>}
-                        {annualCharges > 0 && <tr className="border-b border-gray-300"><td className="p-1">Annual Charges</td><td className="p-1 text-right">{annualCharges.toLocaleString()}</td></tr>}
-                        {boardRegFee > 0 && <tr className="border-b border-gray-300"><td className="p-1">Board Reg Fee / Other</td><td className="p-1 text-right">{boardRegFee.toLocaleString()}</td></tr>}
-                        {pendingDues > 0 && <tr className="border-b-2 border-black"><td className="p-1">Pending Dues</td><td className="p-1 text-right">{pendingDues.toLocaleString()}</td></tr>}
+        {/* Fees Table */}
+        <div className="flex-grow">
+            <table className="w-full text-[10px]">
+                <thead className="bg-gray-200 font-bold text-black">
+                    <tr>
+                        <th className="p-1 text-left w-2/3">Description</th>
+                        <th className="p-1 text-right">Amount (PKR)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {admissionFee > 0 && <tr className="border-b"><td className="p-1">Admission fee</td><td className="p-1 text-right">{admissionFee.toLocaleString()}</td></tr>}
+                    {monthlyFee > 0 && <tr className="border-b"><td className="p-1">Monthly Fee</td><td className="p-1 text-right">{monthlyFee.toLocaleString()}</td></tr>}
+                    {concession > 0 && <tr className="border-b"><td className="p-1">Concession</td><td className="p-1 text-right text-red-600">-{concession.toLocaleString()}</td></tr>}
+                    {annualCharges > 0 && <tr className="border-b"><td className="p-1">Annual Charges</td><td className="p-1 text-right">{annualCharges.toLocaleString()}</td></tr>}
+                    {boardRegFee > 0 && <tr className="border-b"><td className="p-1">Board Reg Fee / Other</td><td className="p-1 text-right">{boardRegFee.toLocaleString()}</td></tr>}
+                    {pendingDues > 0 && <tr className="border-b"><td className="p-1">Pending Dues</td><td className="p-1 text-right">{pendingDues.toLocaleString()}</td></tr>}
+                    
+                    {/* Spacer row to push totals down */}
+                    <tr><td className="p-1" colSpan={2}>&nbsp;</td></tr>
 
-                        <tr className="font-bold bg-gray-200">
-                            <td className="p-1">Total Before Due Date</td>
-                            <td className="p-1 text-right">{totalBeforeFine.toLocaleString()}</td>
-                        </tr>
-                        <tr className="border-t-2 border-black">
-                            <td className="p-1">Late Fee Fine</td>
-                            <td className="p-1 text-right">{lateFeeFine.toLocaleString()}</td>
-                        </tr>
-                        <tr className="font-bold bg-gray-200">
-                            <td className="p-1">Total After Due Date</td>
-                            <td className="p-1 text-right">{totalAfterFine.toLocaleString()}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+                    <tr className="font-bold bg-gray-200 text-black">
+                        <td className="p-1">Total Before Due Date</td>
+                        <td className="p-1 text-right">{totalBeforeFine.toLocaleString()}</td>
+                    </tr>
+                    <tr>
+                        <td className="p-1">Late Fee Fine</td>
+                        <td className="p-1 text-right">{lateFeeFine.toLocaleString()}</td>
+                    </tr>
+                    <tr className="font-bold bg-gray-200 text-black">
+                        <td className="p-1">Total After Due Date</td>
+                        <td className="p-1 text-right">{totalAfterFine.toLocaleString()}</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
 
-        <div className="text-[9px] py-1 border-t-2 border-black flex-grow">
+
+        <div className="text-[9px] py-1 border-t-2 border-black">
           <p className="font-bold">Notes:</p>
           <div className="whitespace-pre-wrap">{voucherData.notes}</div>
         </div>
 
         {/* Footer */}
-        <div className="flex justify-between items-end pt-1 mt-auto">
+        <div className="flex justify-between items-end pt-1 mt-auto border-t-2 border-black">
           <p>Bank Stamp: __________________</p>
           <div className="bg-black text-white px-4 py-1 text-center font-bold">Signature</div>
         </div>
@@ -143,7 +140,7 @@ export const FeeVoucherPrint = React.forwardRef<HTMLDivElement, FeeVoucherPrintP
       <div ref={ref} className="bg-gray-200" data-print-copies={copies}>
         {allVouchersData.map(({ family, students, voucherData }) => (
             <div key={family.id} className="voucher-page">
-                {copyTypes.map((copyType, copyIndex) => (
+                {copyTypes.slice(0, copies).map((copyType, copyIndex) => (
                     <div key={copyIndex} className="voucher-wrapper">
                         <VoucherCopy 
                             family={family}
