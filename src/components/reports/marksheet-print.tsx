@@ -47,18 +47,22 @@ export const MarksheetPrintReport = React.forwardRef<HTMLDivElement, MarksheetPr
 
     return (
       <div ref={ref} className="p-8 font-sans bg-white text-black">
-        <header className="text-center pb-4 border-b border-gray-300">
-            <div className="flex justify-center items-center gap-4">
-                {settings.schoolLogo && (
-                  <Image src={settings.schoolLogo} alt="School Logo" width={64} height={64} className="object-contain" />
-                )}
-                 <div>
-                    <h1 className="text-4xl font-bold text-gray-800">{settings.schoolName}</h1>
-                    <p className="text-sm text-gray-500">{settings.schoolAddress}</p>
-                    <p className="text-sm text-gray-500">Phone: {settings.schoolPhone}</p>
-                </div>
+        <header className="flex items-center justify-between pb-4 border-b border-gray-300">
+          <div className="flex items-center gap-4">
+            {settings.schoolLogo ? (
+              <Image src={settings.schoolLogo} alt="School Logo" width={64} height={64} className="object-contain" />
+            ) : (
+              <School className="w-16 h-16 text-blue-500" />
+            )}
+            <div>
+              <h1 className="text-4xl font-bold text-gray-800">{settings.schoolName}</h1>
+              <p className="text-sm text-gray-500">{settings.schoolAddress}</p>
+              <p className="text-sm text-gray-500">Phone: {settings.schoolPhone}</p>
             </div>
-             <h2 className="text-2xl font-semibold text-gray-700 mt-4">Marksheet</h2>
+          </div>
+          <div className="text-right">
+            <p className="text-sm text-gray-500">Date: {format(new Date(), 'PPP')}</p>
+          </div>
         </header>
         
         <div className="text-center my-6">
