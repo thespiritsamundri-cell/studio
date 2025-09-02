@@ -15,6 +15,10 @@ import type { Student, Fee, Family } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { renderToString } from 'react-dom/server';
+import { StudentDetailsPrint } from '@/components/reports/student-details-report';
+import { useSettings } from '@/context/settings-context';
+
 
 interface CustomFee {
   id: number;
@@ -25,6 +29,7 @@ interface CustomFee {
 export default function AdmissionsPage() {
     const { toast } = useToast();
     const { families, students, fees, addStudent, addFee, classes } = useData();
+    const { settings } = useSettings();
     const [familyId, setFamilyId] = useState('');
     const [familyExists, setFamilyExists] = useState(false);
     const [foundFamily, setFoundFamily] = useState<Family | null>(null);
@@ -81,11 +86,34 @@ export default function AdmissionsPage() {
             });
         }
     };
+    
+    const triggerAdmissionPrint = (student: Student, family: Family) => {
+        const printContent = renderToString(
+            <StudentDetailsPrint student={student} family={family} settings={settings} />
+        );
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Student Admission Form - ${student.name}</title>
+                        <script src="https://cdn.tailwindcss.com"></script>
+                    </head>
+                    <body>
+                        ${printContent}
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.focus();
+        }
+    };
 
     const handleAdmission = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         
-        if (!familyExists) {
+        if (!familyExists || !foundFamily) {
             toast({
                 title: 'Admission Failed',
                 description: 'Please search for and verify a valid family ID before admitting a student.',
@@ -108,10 +136,10 @@ export default function AdmissionsPage() {
         }
 
         const lastStudentId = students.reduce((max, s) => {
-            const idNum = parseInt(s.id.replace('S', ''));
-            return idNum > max ? idNum : max;
+            const idNum = parseInt(s.id, 10);
+            return !isNaN(idNum) && idNum > max ? idNum : max;
         }, 0);
-        const newStudentId = `S${String(lastStudentId + 1).padStart(3, '0')}`;
+        const newStudentId = (lastStudentId + 1).toString();
 
         const newStudent: Student = {
             id: newStudentId,
@@ -178,8 +206,11 @@ export default function AdmissionsPage() {
         
         toast({
             title: 'Student Admitted!',
-            description: `${studentName} has been successfully admitted to ${studentClass} class.`,
+            description: `${studentName} has been successfully admitted. Printing admission form...`,
         });
+
+        // Trigger print
+        triggerAdmissionPrint(newStudent, foundFamily);
 
         // Reset form
         e.currentTarget.reset();
@@ -415,3 +446,5 @@ export default function AdmissionsPage() {
     </div>
   );
 }
+
+    
