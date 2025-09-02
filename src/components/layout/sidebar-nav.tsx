@@ -10,6 +10,10 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   SidebarContent,
+  useSidebar,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
 import {
   LayoutDashboard,
@@ -28,9 +32,13 @@ import {
   UserCheck2,
   Receipt,
   FileSignature,
+  ChevronDown,
 } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import Image from 'next/image';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
+import { useState } from 'react';
+import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -44,13 +52,17 @@ const navItems = [
   { href: '/income', icon: TrendingUp, label: 'Income' },
   { href: '/attendance', icon: CalendarCheck, label: 'Attendance' },
   { href: '/teacher-attendance', icon: UserCheck2, label: 'Teacher Attendance' },
-  { href: '/exams', icon: FileSignature, label: 'Exams' },
   { href: '/reports', icon: FileText, label: 'Reports' },
+];
+
+const examSubItems = [
+    { href: '/exams', icon: FileSignature, label: 'Exams' },
 ];
 
 export function SidebarNav() {
   const pathname = usePathname();
   const { settings } = useSettings();
+  const [isExamMenuOpen, setIsExamMenuOpen] = useState(pathname.startsWith('/exams'));
 
   return (
     <>
@@ -85,6 +97,34 @@ export function SidebarNav() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
+          {/* Exam System Dropdown */}
+           <Collapsible open={isExamMenuOpen} onOpenChange={setIsExamMenuOpen}>
+              <SidebarMenuItem>
+                <CollapsibleTrigger asChild>
+                    <SidebarMenuButton tooltip="Exam System" className="justify-between">
+                        <div className="flex items-center gap-2">
+                            <FileSignature />
+                            <span>Exam System</span>
+                        </div>
+                        <ChevronDown className={cn("transition-transform duration-200", isExamMenuOpen && "rotate-180")} />
+                    </SidebarMenuButton>
+                </CollapsibleTrigger>
+              </SidebarMenuItem>
+              <CollapsibleContent>
+                <SidebarMenuSub>
+                    {examSubItems.map((item) => (
+                        <SidebarMenuSubItem key={item.href}>
+                             <SidebarMenuSubButton asChild isActive={pathname.startsWith(item.href)}>
+                                <Link href={item.href}>
+                                    <item.icon />
+                                    <span>{item.label}</span>
+                                </Link>
+                            </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                    ))}
+                </SidebarMenuSub>
+              </CollapsibleContent>
+            </Collapsible>
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
