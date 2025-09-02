@@ -56,6 +56,7 @@ export interface Fee {
   paymentDate: string;
   status: 'Paid' | 'Unpaid';
   originalChallanId?: string; // Used for paid records to link back to the original fee challan
+  paymentMethod?: string;
 }
 
 export interface Class {

@@ -17,10 +17,11 @@ interface FeeReceiptProps {
     paidAmount: number; // The amount paid in THIS transaction
     remainingDues: number; // The remaining dues AFTER this transaction
     settings: SchoolSettings;
+    paymentMethod: string;
 }
 
 export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
-  ({ family, students, fees, totalDues, paidAmount, remainingDues, settings }, ref) => {
+  ({ family, students, fees, totalDues, paidAmount, remainingDues, settings, paymentMethod }, ref) => {
     const date = new Date();
 
     return (
@@ -46,13 +47,15 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
         </header>
 
         {/* Paid Stamp Overlay */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-15 pointer-events-none">
-            <PaidStamp
-                schoolName={settings.schoolName}
-                schoolPhone={settings.schoolPhone}
-                paymentDate={date}
-            />
-        </div>
+        {paidAmount > 0 && (
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-15 pointer-events-none">
+                <PaidStamp
+                    schoolName={settings.schoolName}
+                    schoolPhone={settings.schoolPhone}
+                    paymentDate={date}
+                />
+            </div>
+        )}
         
         <section className="my-6 grid grid-cols-2 gap-4">
            <div>
@@ -60,11 +63,15 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
               <p className="font-bold">{family.fatherName} (Family ID: {family.id})</p>
               <p className="text-sm text-gray-600">{family.address}</p>
               <p className="text-sm text-gray-600">{family.phone}</p>
+              <div className='mt-2'>
+                <h4 className="font-semibold">Students:</h4>
+                <p className="text-sm text-gray-600">{students.map(s => s.name).join(', ')}</p>
+              </div>
            </div>
             <div className="text-right">
               <h3 className="text-lg font-semibold text-gray-700 mb-2">Payment Details:</h3>
-              <p className="text-sm text-gray-600"><span className="font-semibold">Payment Method:</span> Cash/Bank</p>
-              <p className="text-sm text-gray-600"><span className="font-semibold">Status:</span> {remainingDues > 0 ? 'Partially Paid' : 'Paid in Full'}</p>
+              <p className="text-sm text-gray-600"><span className="font-semibold">Payment Method:</span> {paymentMethod}</p>
+              <p className="text-sm text-gray-600"><span className="font-semibold">Status:</span> {paidAmount > 0 ? (remainingDues > 0 ? 'Partially Paid' : 'Paid in Full') : 'Unpaid'}</p>
             </div>
         </section>
 

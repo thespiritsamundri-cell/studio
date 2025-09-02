@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Printer } from 'lucide-react';
 import { renderToString } from 'react-dom/server';
 import type { SchoolSettings } from '@/context/settings-context';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 
 interface FeeDetailsCardProps {
@@ -39,6 +40,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
     const totalDues = unpaidFees.reduce((acc, fee) => acc + fee.amount, 0);
 
     const [paidAmount, setPaidAmount] = useState<number>(0);
+    const [paymentMethod, setPaymentMethod] = useState('By Hand');
     
     useEffect(() => {
         setPaidAmount(totalDues);
@@ -89,6 +91,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
                 status: 'Paid',
                 paymentDate: new Date().toISOString().split('T')[0],
                 originalChallanId: fee.id, 
+                paymentMethod: paymentMethod,
             };
             
             onAddFee(paymentRecord);
@@ -129,10 +132,10 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
         const newDues = updatedLocalFees.filter(f => f.status === 'Unpaid').reduce((acc, fee) => acc + fee.amount, 0);
         setPaidAmount(newDues);
         
-        triggerPrint(newlyPaidFees, collectedAmount, newDues);
+        triggerPrint(newlyPaidFees, collectedAmount, newDues, paymentMethod);
     };
     
-    const triggerPrint = (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number) => {
+    const triggerPrint = (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string) => {
         if (collectedAmount === 0 && unpaidFees.length === 0) {
              toast({ title: 'No Dues', description: 'There are no outstanding fees to generate a receipt for.', variant: 'destructive' });
             return;
@@ -147,6 +150,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
                 paidAmount={collectedAmount}
                 remainingDues={newRemainingDues}
                 settings={settings}
+                paymentMethod={method}
             />
         );
         const printWindow = window.open('', '_blank');
@@ -241,7 +245,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                      <div className="space-y-4 md:col-span-2">
                          <h3 className="text-lg font-semibold">Payment Collection</h3>
-                         <div className="grid grid-cols-3 gap-4">
+                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                              <div className="space-y-2">
                                  <Label>Total Dues (PKR)</Label>
                                  <Input value={totalDues.toLocaleString()} disabled className="font-bold" />
@@ -256,6 +260,20 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
                                     className="font-bold border-primary"
                                     />
                              </div>
+                              <div className="space-y-2">
+                                 <Label htmlFor="payment-method">Payment Method</Label>
+                                 <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                                     <SelectTrigger id="payment-method">
+                                         <SelectValue placeholder="Select method" />
+                                     </SelectTrigger>
+                                     <SelectContent>
+                                         <SelectItem value="By Hand">By Hand</SelectItem>
+                                         <SelectItem value="Easypaisa">Easypaisa</SelectItem>
+                                         <SelectItem value="Jazz Cash">Jazz Cash</SelectItem>
+                                         <SelectItem value="Bank Account">Bank Account</SelectItem>
+                                     </SelectContent>
+                                 </Select>
+                             </div>
                              <div className="space-y-2">
                                  <Label>Remaining Dues (PKR)</Label>
                                  <Input value={remainingDues.toLocaleString()} disabled className="font-bold text-destructive" />
@@ -264,7 +282,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
                      </div>
                      <div className="flex justify-end gap-2">
                         <Button disabled={totalDues === 0 || paidAmount <= 0} onClick={handleCollectFee}>Collect Fee</Button>
-                        <Button variant="outline" onClick={() => triggerPrint([], 0, totalDues)}><Printer className="h-4 w-4 mr-2" />Print Receipt</Button>
+                        <Button variant="outline" onClick={() => triggerPrint([], 0, totalDues, paymentMethod)}><Printer className="h-4 w-4 mr-2" />Print Receipt</Button>
                      </div>
                 </div>
 
