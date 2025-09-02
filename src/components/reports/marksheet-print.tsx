@@ -28,6 +28,22 @@ interface MarksheetPrintReportProps {
 
 export const MarksheetPrintReport = React.forwardRef<HTMLDivElement, MarksheetPrintReportProps>(
   ({ examName, className, subjects, marksheetData, settings }, ref) => {
+    // Style for table cells to ensure borders are visible on print
+    const cellStyle: React.CSSProperties = {
+        border: '1px solid #ccc',
+        padding: '8px',
+        textAlign: 'center'
+    };
+     const headerCellStyle: React.CSSProperties = {
+        ...cellStyle,
+        fontWeight: 'bold',
+        backgroundColor: '#f2f2f2'
+    };
+    const studentNameCellStyle: React.CSSProperties = {
+        ...cellStyle,
+        textAlign: 'left'
+    };
+
 
     return (
       <div ref={ref} className="p-8 font-sans bg-white text-black">
@@ -56,34 +72,34 @@ export const MarksheetPrintReport = React.forwardRef<HTMLDivElement, MarksheetPr
         </div>
 
         <main className="mt-8">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Roll No.</TableHead>
-                <TableHead>Student Name</TableHead>
-                {subjects.map(s => <TableHead key={s} className="text-center">{s}</TableHead>)}
-                <TableHead className="text-center font-bold">Obtained</TableHead>
-                <TableHead className="text-center font-bold">Total</TableHead>
-                <TableHead className="text-center font-bold">%</TableHead>
-                <TableHead className="text-center font-bold">Position</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <th style={headerCellStyle}>Roll No.</th>
+                <th style={{...headerCellStyle, textAlign: 'left'}}>Student Name</th>
+                {subjects.map(s => <th key={s} style={headerCellStyle}>{s}</th>)}
+                <th style={headerCellStyle}>Obtained</th>
+                <th style={headerCellStyle}>Total</th>
+                <th style={headerCellStyle}>%</th>
+                <th style={headerCellStyle}>Position</th>
+              </tr>
+            </thead>
+            <tbody>
               {marksheetData.map((row) => (
-                <TableRow key={row.studentId}>
-                  <TableCell>{row.studentId}</TableCell>
-                  <TableCell className="font-medium">{row.studentName}</TableCell>
+                <tr key={row.studentId}>
+                  <td style={cellStyle}>{row.studentId}</td>
+                  <td style={studentNameCellStyle}>{row.studentName}</td>
                   {subjects.map(subject => (
-                      <TableCell key={subject} className="text-center">{row.marks[subject] || '-'}</TableCell>
+                      <td key={subject} style={cellStyle}>{row.marks[subject] || '-'}</td>
                   ))}
-                  <TableCell className="text-center font-semibold">{row.obtainedMarks}</TableCell>
-                  <TableCell className="text-center">{row.totalMarks}</TableCell>
-                  <TableCell className="text-center font-semibold">{row.percentage.toFixed(2)}%</TableCell>
-                  <TableCell className="text-center font-bold">{row.position}</TableCell>
-                </TableRow>
+                  <td style={{...cellStyle, fontWeight: 'bold'}}>{row.obtainedMarks}</td>
+                  <td style={cellStyle}>{row.totalMarks}</td>
+                  <td style={{...cellStyle, fontWeight: 'bold'}}>{row.percentage.toFixed(2)}%</td>
+                  <td style={{...cellStyle, fontWeight: 'bold'}}>{row.position}</td>
+                </tr>
               ))}
-            </TableBody>
-          </Table>
+            </tbody>
+          </table>
         </main>
         
         <footer className="mt-12 pt-4 border-t border-gray-300 text-center text-xs text-gray-500">
