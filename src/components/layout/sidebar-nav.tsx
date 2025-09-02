@@ -29,6 +29,7 @@ import {
   UserCheck2,
   Receipt,
   FileSignature,
+  FileBadge,
 } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import Image from 'next/image';
@@ -55,7 +56,7 @@ const navItems = [
 export function SidebarNav() {
   const pathname = usePathname();
   const { settings } = useSettings();
-  const [isExamSystemOpen, setIsExamSystemOpen] = useState(pathname.startsWith('/exams'));
+  const [isExamSystemOpen, setIsExamSystemOpen] = useState(pathname.startsWith('/exams') || pathname.startsWith('/result-cards'));
 
 
   return (
@@ -110,10 +111,23 @@ export function SidebarNav() {
                         asChild
                         size="sm"
                         isActive={pathname.startsWith('/exams')}
-                        tooltip="Exams"
+                        tooltip="Marksheets"
                       >
                         <Link href="/exams">
-                          <span>Exams</span>
+                          <span>Marksheets</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </li>
+                    <li>
+                      <SidebarMenuButton
+                        asChild
+                        size="sm"
+                        isActive={pathname.startsWith('/result-cards')}
+                        tooltip="Result Cards"
+                      >
+                        <Link href="/result-cards">
+                          <FileBadge />
+                          <span>Result Cards</span>
                         </Link>
                       </SidebarMenuButton>
                     </li>
@@ -149,3 +163,5 @@ export function SidebarNav() {
     </>
   );
 }
+
+    

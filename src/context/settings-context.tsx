@@ -41,6 +41,7 @@ export interface SchoolSettings {
   schoolAddress: string;
   schoolPhone: string;
   schoolLogo: string;
+  principalSignature: string;
   academicYear: string;
   whatsappApiUrl: string;
   whatsappApiKey: string;
@@ -61,6 +62,7 @@ const defaultSettings: SchoolSettings = {
   schoolAddress: '123 Education Lane, Knowledge City, Pakistan',
   schoolPhone: '+92 300 1234567',
   schoolLogo: '',
+  principalSignature: '',
   academicYear: '2024-2025',
   whatsappApiUrl: '',
   whatsappApiKey: '',
@@ -166,3 +168,5 @@ export function useSettings() {
   }
   return context;
 }
+
+    

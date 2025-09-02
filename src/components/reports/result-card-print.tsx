@@ -7,7 +7,6 @@ import type { Student, Exam } from '@/lib/types';
 import { School } from 'lucide-react';
 import type { SchoolSettings } from '@/context/settings-context';
 import Image from 'next/image';
-import { format } from 'date-fns';
 
 interface ResultCardPrintProps {
   students: Student[];
@@ -18,7 +17,6 @@ interface ResultCardPrintProps {
 const ResultCard = ({ student, exams, settings }: { student: Student, exams: Exam[], settings: SchoolSettings }) => {
     const subjects = settings.subjects?.[student.class] || [];
     
-    // Function to calculate grade based on percentage
     const getGrade = (percentage: number) => {
         if (percentage >= 90) return 'A+';
         if (percentage >= 80) return 'A';
@@ -119,6 +117,7 @@ const ResultCard = ({ student, exams, settings }: { student: Student, exams: Exa
             <div className="mt-6 grid grid-cols-2 items-end">
                 <div>
                     <h4 className="font-bold">Remarks:</h4>
+                    <p className="mt-2">Congratulations on your hard work!</p>
                     <div className="border-b border-gray-500 mt-2"></div>
                     <div className="border-b border-gray-500 mt-2"></div>
                 </div>
@@ -151,3 +150,5 @@ export const ResultCardPrint = React.forwardRef<HTMLDivElement, ResultCardPrintP
 );
 
 ResultCardPrint.displayName = 'ResultCardPrint';
+
+    

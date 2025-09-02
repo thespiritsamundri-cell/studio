@@ -64,7 +64,7 @@ export interface Class {
     id: string;
     name: string;
     sections: string[];
-    subjects?: string[]; // New: List of subjects for the class
+    subjects: string[];
 }
 
 export interface ExamResult {
@@ -83,3 +83,5 @@ export interface Exam {
         [subject: string]: number;
     };
 }
+
+    

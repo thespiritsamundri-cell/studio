@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type } from 'lucide-react';
+import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import { useState, useMemo } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -61,12 +61,12 @@ export default function SettingsPage() {
     setSettings(prev => ({...prev, [id]: value}));
   };
   
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'schoolLogo' | 'principalSignature') => {
     const file = e.target.files?.[0];
     if (file) {
         const reader = new FileReader();
         reader.onloadend = () => {
-            setSettings(prev => ({...prev, schoolLogo: reader.result as string}));
+            setSettings(prev => ({...prev, [field]: reader.result as string}));
         };
         reader.readAsDataURL(file);
     }
@@ -315,18 +315,33 @@ export default function SettingsPage() {
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="schoolLogo">School Logo</Label>
-                        <Input id="schoolLogoInput" name="schoolLogo" type="file" accept="image/*" onChange={handleLogoChange} className="file:text-primary file:font-medium" />
+                        <Input id="schoolLogoInput" name="schoolLogo" type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'schoolLogo')} className="file:text-primary file:font-medium" />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="principalSignature">Principal's Signature</Label>
+                        <Input id="principalSignatureInput" name="principalSignature" type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'principalSignature')} className="file:text-primary file:font-medium" />
                     </div>
                 </div>
-                 {settings.schoolLogo && (
-                    <div className="space-y-2">
-                        <Label>Logo Preview</Label>
-                        <div className="flex items-center gap-4 p-4 border rounded-md">
-                            <Image src={settings.schoolLogo} alt="School Logo Preview" width={60} height={60} className="object-contain rounded-md" />
-                            <Button variant="ghost" size="sm" onClick={() => setSettings(prev => ({...prev, schoolLogo: ''}))}>Remove</Button>
+                 <div className="flex gap-6">
+                    {settings.schoolLogo && (
+                        <div className="space-y-2">
+                            <Label>Logo Preview</Label>
+                            <div className="flex items-center gap-4 p-4 border rounded-md">
+                                <Image src={settings.schoolLogo} alt="School Logo Preview" width={60} height={60} className="object-contain rounded-md" />
+                                <Button variant="ghost" size="sm" onClick={() => setSettings(prev => ({...prev, schoolLogo: ''}))}>Remove</Button>
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )}
+                    {settings.principalSignature && (
+                        <div className="space-y-2">
+                            <Label>Signature Preview</Label>
+                            <div className="flex items-center gap-4 p-4 border rounded-md bg-white">
+                                <Image src={settings.principalSignature} alt="Principal Signature Preview" width={100} height={60} className="object-contain" />
+                                <Button variant="ghost" size="sm" onClick={() => setSettings(prev => ({...prev, principalSignature: ''}))}>Remove</Button>
+                            </div>
+                        </div>
+                    )}
+                 </div>
                 <div className="flex justify-end">
                     <Button onClick={handleSave}>Save Changes</Button>
                 </div>
@@ -594,3 +609,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    

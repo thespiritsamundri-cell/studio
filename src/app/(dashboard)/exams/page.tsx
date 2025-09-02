@@ -55,30 +55,52 @@ export default function ExamsPage() {
   }, [selectedClass, classes]);
   
   useEffect(() => {
-    if (subjects.length > 0) {
+    // Reset subject totals if the selected exam doesn't have any
+    if (selectedExamId) {
+        const exam = exams.find(e => e.id === selectedExamId);
+        if (exam && (!exam.subjectTotals || Object.keys(exam.subjectTotals).length === 0)) {
+            const initialTotals = subjects.reduce((acc, subject) => {
+                acc[subject] = 100;
+                return acc;
+            }, {} as {[subject: string]: number});
+            setSubjectTotals(initialTotals);
+        } else if (exam?.subjectTotals) {
+             setSubjectTotals(exam.subjectTotals);
+        }
+    } else if (subjects.length > 0) {
         const initialTotals = subjects.reduce((acc, subject) => {
-            acc[subject] = 100;
+            acc[subject] = 100; // Default to 100
             return acc;
         }, {} as {[subject: string]: number});
         setSubjectTotals(initialTotals);
     }
-  }, [subjects]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subjects, selectedExamId]);
+
 
   const handleCreateNewExam = () => {
     if (!selectedClass || !newExamName.trim()) {
       toast({ title: 'Error', description: 'Please select a class and enter a name for the new exam.', variant: 'destructive' });
       return;
     }
+    // Initialize default subject totals for the new exam
+    const defaultSubjectTotals = subjects.reduce((acc, subject) => {
+        acc[subject] = 100; // Default total marks
+        return acc;
+    }, {} as {[subject: string]: number});
+
     const newExam: ExamType = {
       id: `EXAM-${Date.now()}`,
       name: newExamName,
       class: selectedClass,
-      subjectTotals,
+      subjectTotals: defaultSubjectTotals,
       results: classStudents.map(s => ({ studentId: s.id, marks: {} })),
     };
+
     addExam(newExam);
     setSelectedExamId(newExam.id);
     setCurrentResults(newExam.results);
+    setSubjectTotals(defaultSubjectTotals); // Set the totals for the new exam
     toast({ title: 'Exam Created', description: `The exam "${newExam.name}" has been created for ${selectedClass}.`});
     setNewExamName('');
   };
@@ -348,3 +370,5 @@ export default function ExamsPage() {
     </div>
   );
 }
+
+    
