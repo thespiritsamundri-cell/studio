@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useData } from '@/context/data-context';
 import type { Class } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Edit, Trash2 } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,11 +22,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 
 
 export default function ClassesPage() {
   const { students: allStudents, classes, addClass, updateClass, deleteClass } = useData();
   const { toast } = useToast();
+
+  // State for class management dialog
+  const [openClassDialog, setOpenClassDialog] = useState(false);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [isEditingClass, setIsEditingClass] = useState(false);
+  const [selectedClassData, setSelectedClassData] = useState<Class | null>(null);
+  const [newClassName, setNewClassName] = useState('');
+  const [sections, setSections] = useState<string[]>([]);
+  const [newSectionName, setNewSectionName] = useState('');
+
 
   // Class management handlers
   const handleOpenClassDialog = (classData: Class | null) => {
@@ -34,13 +45,27 @@ export default function ClassesPage() {
       setIsEditingClass(true);
       setSelectedClassData(classData);
       setNewClassName(classData.name);
+      setSections(classData.sections || []);
     } else {
       setIsEditingClass(false);
       setSelectedClassData(null);
       setNewClassName('');
+      setSections([]);
     }
     setOpenClassDialog(true);
   };
+  
+  const handleAddSection = () => {
+    if (newSectionName.trim() && !sections.includes(newSectionName.trim())) {
+      setSections([...sections, newSectionName.trim()]);
+      setNewSectionName('');
+    }
+  };
+
+  const handleRemoveSection = (sectionToRemove: string) => {
+    setSections(sections.filter(s => s !== sectionToRemove));
+  };
+
 
   const handleSaveClass = () => {
     if (!newClassName.trim()) {
@@ -49,12 +74,13 @@ export default function ClassesPage() {
     }
 
     if (isEditingClass && selectedClassData) {
-      updateClass(selectedClassData.id, { ...selectedClassData, name: newClassName });
-      toast({ title: "Class Updated", description: `Class "${selectedClassData.name}" has been updated to "${newClassName}".` });
+      updateClass(selectedClassData.id, { ...selectedClassData, name: newClassName, sections });
+      toast({ title: "Class Updated", description: `Class "${selectedClassData.name}" has been updated.` });
     } else {
       const newClass: Class = {
         id: `C${Date.now()}`,
         name: newClassName,
+        sections,
       };
       addClass(newClass);
       toast({ title: "Class Added", description: `Class "${newClassName}" has been successfully created.` });
@@ -69,7 +95,6 @@ export default function ClassesPage() {
 
   const handleConfirmDelete = () => {
     if (selectedClassData) {
-      // Optional: Check if class is in use by any student
       const isClassInUse = allStudents.some(s => s.class === selectedClassData.name);
       if (isClassInUse) {
         toast({
@@ -86,12 +111,6 @@ export default function ClassesPage() {
     }
   };
 
-  // State for class management dialog
-  const [openClassDialog, setOpenClassDialog] = useState(false);
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [isEditingClass, setIsEditingClass] = useState(false);
-  const [selectedClassData, setSelectedClassData] = useState<Class | null>(null);
-  const [newClassName, setNewClassName] = useState('');
 
   return (
     <div className="space-y-6">
@@ -113,6 +132,7 @@ export default function ClassesPage() {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Class Name</TableHead>
+                            <TableHead>Sections</TableHead>
                             <TableHead>Students</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
@@ -121,6 +141,11 @@ export default function ClassesPage() {
                         {classes.sort((a, b) => a.name.localeCompare(b.name)).map(c => (
                             <TableRow key={c.id}>
                                 <TableCell className="font-medium">{c.name}</TableCell>
+                                <TableCell>
+                                    <div className="flex flex-wrap gap-1">
+                                        {c.sections?.map(s => <Badge key={s} variant="secondary">{s}</Badge>) || 'No Sections'}
+                                    </div>
+                                </TableCell>
                                 <TableCell>{allStudents.filter(s => s.class === c.name).length}</TableCell>
                                 <TableCell className="text-right">
                                     <Button variant="ghost" size="icon" onClick={() => handleOpenClassDialog(c)}>
@@ -147,9 +172,33 @@ export default function ClassesPage() {
               {isEditingClass ? `Enter the new name for the class "${selectedClassData?.name}".` : 'Enter the name for the new class.'}
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <Label htmlFor="class-name">Class Name</Label>
-            <Input id="class-name" value={newClassName} onChange={(e) => setNewClassName(e.target.value)} />
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+                <Label htmlFor="class-name">Class Name</Label>
+                <Input id="class-name" value={newClassName} onChange={(e) => setNewClassName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+                <Label>Sections</Label>
+                <div className="flex gap-2">
+                    <Input 
+                        placeholder="Enter section name (e.g., A)" 
+                        value={newSectionName} 
+                        onChange={(e) => setNewSectionName(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddSection()}
+                    />
+                    <Button type="button" onClick={handleAddSection}>Add</Button>
+                </div>
+                 <div className="flex flex-wrap gap-2 mt-2">
+                    {sections.map(s => (
+                        <Badge key={s} variant="secondary" className="flex items-center gap-1">
+                            {s}
+                            <button onClick={() => handleRemoveSection(s)} className="rounded-full hover:bg-muted-foreground/20 p-0.5">
+                                <X className="h-3 w-3" />
+                            </button>
+                        </Badge>
+                    ))}
+                </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpenClassDialog(false)}>Cancel</Button>

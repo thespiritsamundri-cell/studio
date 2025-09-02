@@ -41,6 +41,7 @@ export default function AdmissionsPage() {
     const [profession, setProfession] = useState('');
     const [dob, setDob] = useState('');
     const [studentClass, setStudentClass] = useState('');
+    const [studentSection, setStudentSection] = useState('');
     const [phone, setPhone] = useState('');
     const [alternatePhone, setAlternatePhone] = useState('');
     const [address, setAddress] = useState('');
@@ -49,6 +50,8 @@ export default function AdmissionsPage() {
     // State for dynamic fees
     const [customFees, setCustomFees] = useState<CustomFee[]>([]);
     
+    const availableSections = classes.find(c => c.name === studentClass)?.sections || [];
+
     useEffect(() => {
         if (foundFamily) {
             setFatherName(foundFamily.fatherName);
@@ -146,6 +149,7 @@ export default function AdmissionsPage() {
             name: studentName,
             fatherName: fatherName,
             class: studentClass,
+            section: studentSection,
             admissionDate: new Date().toISOString().split('T')[0],
             familyId: familyId,
             status: 'Active',
@@ -220,6 +224,7 @@ export default function AdmissionsPage() {
         setStudentName('');
         setDob('');
         setStudentClass('');
+        setStudentSection('');
         setStudentCnic('');
         setCustomFees([]);
     };
@@ -296,7 +301,7 @@ export default function AdmissionsPage() {
                                 <li key={child.id} className="flex items-center justify-between p-3">
                                     <div>
                                         <p className="font-semibold">{child.name} <span className="font-normal text-muted-foreground">(ID: {child.id})</span></p>
-                                        <p className="text-sm text-muted-foreground">Class: {child.class}</p>
+                                        <p className="text-sm text-muted-foreground">Class: {child.class} {child.section ? `(${child.section})` : ''}</p>
                                     </div>
                                     <div className='flex items-center gap-4'>
                                         <Badge variant={child.status === 'Active' ? 'default' : 'destructive'} className={child.status === 'Active' ? 'bg-green-500/20 text-green-700 border-green-500/30' : ''}>{child.status}</Badge>
@@ -346,18 +351,33 @@ export default function AdmissionsPage() {
                 <Label htmlFor="studentCnic">Student CNIC / B-Form</Label>
                 <Input id="studentCnic" name="studentCnic" placeholder="e.g. 12345-1234567-1" value={studentCnic} onChange={e => setStudentCnic(e.target.value)} />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="class">Class to Admit</Label>
-                <Select name="class" onValueChange={setStudentClass} value={studentClass} required>
-                  <SelectTrigger id="class">
-                    <SelectValue placeholder="Select class" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {classes.map((c) => (
-                      <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="class">Class to Admit</Label>
+                    <Select name="class" onValueChange={setStudentClass} value={studentClass} required>
+                      <SelectTrigger id="class">
+                        <SelectValue placeholder="Select class" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {classes.map((c) => (
+                          <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                   <div className="space-y-2">
+                    <Label htmlFor="section">Section</Label>
+                    <Select name="section" onValueChange={setStudentSection} value={studentSection} disabled={!studentClass || availableSections.length === 0}>
+                        <SelectTrigger id="section">
+                            <SelectValue placeholder="Select section" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {availableSections.map((section) => (
+                                <SelectItem key={section} value={section}>{section}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                  </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Primary Phone</Label>

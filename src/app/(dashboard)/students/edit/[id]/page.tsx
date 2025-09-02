@@ -51,6 +51,9 @@ export default function EditStudentPage() {
     setStudent(prev => prev ? { ...prev, [id]: value } : undefined);
   }
 
+  const availableSections = student ? classes.find(c => c.name === student.class)?.sections || [] : [];
+
+
   if (!student) {
     return <div>Loading...</div>;
   }
@@ -105,6 +108,19 @@ export default function EditStudentPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="section">Section</Label>
+                <Select value={student.section} onValueChange={handleSelectChange('section')} disabled={!student.class || availableSections.length === 0}>
+                    <SelectTrigger id="section">
+                        <SelectValue placeholder="Select section" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {availableSections.map((section) => (
+                            <SelectItem key={section} value={section}>{section}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
              <div className="space-y-2">
               <Label htmlFor="status">Status</Label>

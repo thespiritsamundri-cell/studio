@@ -2,11 +2,11 @@
 import type { Student, Family, Fee, Teacher, TeacherAttendance, Class } from './types';
 
 export const students: Student[] = [
-  { id: '1', name: 'Ali Khan', fatherName: 'Ahmed Khan', class: '5th', admissionDate: '2023-03-15', familyId: '1', status: 'Active', phone: '03001234567', address: '123, Main St, Lahore', dob: '2013-05-20', photoUrl: 'https://picsum.photos/seed/S001/100/100', cnic: '35202-1111111-1' },
-  { id: '2', name: 'Fatima Ahmed', fatherName: 'Zubair Ahmed', class: '3rd', admissionDate: '2022-04-01', familyId: '2', status: 'Active', phone: '03217654321', address: '456, Park Ave, Karachi', dob: '2015-08-10', photoUrl: 'https://picsum.photos/seed/S002/100/100', cnic: '42101-2222222-2' },
-  { id: '3', name: 'Bilal Raza', fatherName: 'Ahmed Khan', class: '8th', admissionDate: '2021-08-20', familyId: '1', status: 'Active', phone: '03001234567', address: '123, Main St, Lahore', dob: '2010-01-30', photoUrl: 'https://picsum.photos/seed/S003/100/100', cnic: '35202-3333333-3' },
-  { id: '4', name: 'Ayesha Malik', fatherName: 'Imran Malik', class: '5th', admissionDate: '2023-09-10', familyId: '3', status: 'Active', phone: '03339876543', address: '789, Gulberg, Lahore', dob: '2013-11-25', photoUrl: 'https://picsum.photos/seed/S004/100/100', cnic: '35202-4444444-4' },
-  { id: '5', name: 'Usman Ali', fatherName: 'Tariq Ali', class: '3rd', admissionDate: '2022-07-22', familyId: '4', status: 'Inactive', phone: '03451122334', address: 'G-10, Islamabad', dob: '2015-02-15', photoUrl: 'https://picsum.photos/seed/S005/100/100', cnic: '17301-5555555-5' },
+  { id: '1', name: 'Ali Khan', fatherName: 'Ahmed Khan', class: '5th', section: 'A', admissionDate: '2023-03-15', familyId: '1', status: 'Active', phone: '03001234567', address: '123, Main St, Lahore', dob: '2013-05-20', photoUrl: 'https://picsum.photos/seed/S001/100/100', cnic: '35202-1111111-1' },
+  { id: '2', name: 'Fatima Ahmed', fatherName: 'Zubair Ahmed', class: '3rd', section: 'Rose', admissionDate: '2022-04-01', familyId: '2', status: 'Active', phone: '03217654321', address: '456, Park Ave, Karachi', dob: '2015-08-10', photoUrl: 'https://picsum.photos/seed/S002/100/100', cnic: '42101-2222222-2' },
+  { id: '3', name: 'Bilal Raza', fatherName: 'Ahmed Khan', class: '8th', section: 'B', admissionDate: '2021-08-20', familyId: '1', status: 'Active', phone: '03001234567', address: '123, Main St, Lahore', dob: '2010-01-30', photoUrl: 'https://picsum.photos/seed/S003/100/100', cnic: '35202-3333333-3' },
+  { id: '4', name: 'Ayesha Malik', fatherName: 'Imran Malik', class: '5th', section: 'B', admissionDate: '2023-09-10', familyId: '3', status: 'Active', phone: '03339876543', address: '789, Gulberg, Lahore', dob: '2013-11-25', photoUrl: 'https://picsum.photos/seed/S004/100/100', cnic: '35202-4444444-4' },
+  { id: '5', name: 'Usman Ali', fatherName: 'Tariq Ali', class: '3rd', section: 'Jasmine', admissionDate: '2022-07-22', familyId: '4', status: 'Inactive', phone: '03451122334', address: 'G-10, Islamabad', dob: '2015-02-15', photoUrl: 'https://picsum.photos/seed/S005/100/100', cnic: '17301-5555555-5' },
 ];
 
 export const families: Family[] = [
@@ -17,18 +17,18 @@ export const families: Family[] = [
 ];
 
 export const classes: Class[] = [
-    { id: 'C01', name: 'Nursery' },
-    { id: 'C02', name: 'KG' },
-    { id: 'C03', name: '1st' },
-    { id: 'C04', name: '2nd' },
-    { id: 'C05', name: '3rd' },
-    { id: 'C06', name: '4th' },
-    { id: 'C07', name: '5th' },
-    { id: 'C08', name: '6th' },
-    { id: 'C09', name: '7th' },
-    { id: 'C10', name: '8th' },
-    { id: 'C11', name: '9th' },
-    { id: 'C12', name: '10th' },
+    { id: 'C01', name: 'Nursery', sections: ['Rose', 'Jasmine'] },
+    { id: 'C02', name: 'KG', sections: ['A', 'B'] },
+    { id: 'C03', name: '1st', sections: ['A', 'B'] },
+    { id: 'C04', name: '2nd', sections: ['A', 'B'] },
+    { id: 'C05', name: '3rd', sections: ['A'] },
+    { id: 'C06', name: '4th', sections: ['A', 'B'] },
+    { id: 'C07', name: '5th', sections: ['A', 'B', 'C'] },
+    { id: 'C08', name: '6th', sections: ['A', 'B'] },
+    { id: 'C09', name: '7th', sections: ['A', 'B'] },
+    { id: 'C10', name: '8th', sections: ['A', 'B'] },
+    { id: 'C11', name: '9th', sections: [] },
+    { id: 'C12', name: '10th', sections: [] },
 ];
 
 export const teachers: Teacher[] = [
@@ -55,5 +55,3 @@ export const fees: Fee[] = [
     { id: 'FEE05', familyId: '2', amount: 3500, month: 'May', year: 2024, paymentDate: '', status: 'Unpaid' },
     { id: 'FEE06', familyId: '4', amount: 3000, month: 'May', year: 2024, status: 'Unpaid', paymentDate: '' },
 ];
-
-    

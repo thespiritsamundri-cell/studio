@@ -99,7 +99,7 @@ export default function StudentsPage() {
       toast({ title: "No students selected", description: "Please select students to export.", variant: "destructive" });
       return;
     }
-    const headers = ['ID', 'Name', 'FatherName', 'Class', 'AdmissionDate', 'FamilyId', 'Status', 'Phone', 'Address', 'DOB'];
+    const headers = ['ID', 'Name', 'FatherName', 'Class', 'Section', 'AdmissionDate', 'FamilyId', 'Status', 'Phone', 'Address', 'DOB'];
     const csvContent = [
       headers.join(','),
       ...studentsToExport.map((student: Student) => 
@@ -108,6 +108,7 @@ export default function StudentsPage() {
           `"${student.name}"`,
           `"${student.fatherName}"`,
           student.class,
+          student.section || '',
           student.admissionDate,
           student.familyId,
           student.status,
@@ -244,7 +245,7 @@ export default function StudentsPage() {
                     />
                   </TableCell>
                   <TableCell className="font-medium">{student.name}</TableCell>
-                  <TableCell>{student.class}</TableCell>
+                  <TableCell>{student.class} {student.section ? `(${student.section})` : ''}</TableCell>
                   <TableCell className="hidden md:table-cell">
                     <Badge variant={student.status === 'Active' ? 'default' : 'destructive'} className={student.status === 'Active' ? 'bg-green-500/20 text-green-700 border-green-500/30' : ''}>{student.status}</Badge>
                   </TableCell>

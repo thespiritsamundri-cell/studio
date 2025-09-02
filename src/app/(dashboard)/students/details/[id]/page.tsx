@@ -95,7 +95,7 @@ export default function StudentDetailsPage() {
             />
             <div className='space-y-1'>
                 <CardTitle className="text-4xl">{student.name}</CardTitle>
-                <CardDescription className="text-lg">Student ID: {student.id} | Class: {student.class}</CardDescription>
+                <CardDescription className="text-lg">Student ID: {student.id} | Class: {student.class} {student.section ? `(${student.section})` : ''}</CardDescription>
                 <Badge variant={student.status === 'Active' ? 'default' : 'destructive'} className={student.status === 'Active' ? 'bg-green-500/20 text-green-700 border-green-500/30 w-fit' : 'w-fit'}>{student.status}</Badge>
             </div>
           </div>

@@ -153,6 +153,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       updateClass,
       deleteClass,
       loadData 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }), [students, families, fees, teachers, teacherAttendances, classes]);
 
 

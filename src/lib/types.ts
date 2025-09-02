@@ -4,6 +4,7 @@ export interface Student {
   name: string;
   fatherName: string;
   class: string;
+  section?: string;
   admissionDate: string;
   familyId: string;
   status: 'Active' | 'Inactive';
@@ -60,4 +61,5 @@ export interface Fee {
 export interface Class {
     id: string;
     name: string;
+    sections: string[];
 }
