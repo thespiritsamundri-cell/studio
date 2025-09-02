@@ -85,28 +85,33 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
             }
         }
         
+        const collectedAmount = paidAmount - amountToSettle;
+        
         toast({
             title: 'Fee Collected',
-            description: `PKR ${paidAmount.toLocaleString()} collected for Family ${family.id}.`,
+            description: `PKR ${collectedAmount.toLocaleString()} collected for Family ${family.id}.`,
         });
         
+        // Update local state to re-render the component with new data
         setFees(updatedLocalFees);
         const newDues = updatedLocalFees.filter(f => f.status === 'Unpaid').reduce((acc, fee) => acc + fee.amount, 0);
         setPaidAmount(newDues);
         
-        triggerPrint(newlyPaidFees, paidAmount, newlyPaidFees.reduce((acc, f) => acc + f.amount, 0), newDues);
+        triggerPrint(newlyPaidFees, collectedAmount, newDues);
     };
 
-    const triggerPrint = (paidFeesForReceipt: Fee[], collectedAmount: number, totalPaid: number, newRemainingDues: number) => {
+    const triggerPrint = (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number) => {
         if (collectedAmount === 0 && unpaidFees.length === 0) {
              toast({ title: 'No Dues', description: 'There are no outstanding fees to generate a receipt for.', variant: 'destructive' });
             return;
         }
+        
+        const totalPaidOnReceipt = paidFeesForReceipt.reduce((acc, f) => acc + f.amount, 0);
 
         const receiptData = {
             fees: paidFeesForReceipt.length > 0 ? paidFeesForReceipt : unpaidFees,
-            paidAmount: collectedAmount > 0 ? totalPaid : paidAmount,
-            totalDues: paidFeesForReceipt.length > 0 ? totalPaid : totalDues,
+            paidAmount: collectedAmount > 0 ? totalPaidOnReceipt : 0,
+            totalDues: paidFeesForReceipt.length > 0 ? totalPaidOnReceipt : totalDues,
             remainingDues: paidFeesForReceipt.length > 0 ? newRemainingDues : remainingDues,
         };
 
@@ -236,7 +241,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
                      </div>
                      <div className="flex justify-end gap-2">
                         <Button disabled={totalDues === 0 || paidAmount <= 0} onClick={handleCollectFee}>Collect Fee</Button>
-                        <Button variant="outline" onClick={() => triggerPrint([], 0, 0, totalDues)}><Printer className="h-4 w-4 mr-2" />Print Receipt</Button>
+                        <Button variant="outline" onClick={() => triggerPrint([], 0, totalDues)}><Printer className="h-4 w-4 mr-2" />Print Receipt</Button>
                      </div>
                 </div>
 
