@@ -28,6 +28,8 @@ interface FeeDetailsCardProps {
     settings: SchoolSettings;
 }
 
+type PrintType = 'normal' | 'thermal';
+
 export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFee, onAddFee, onDeleteFee, settings }: FeeDetailsCardProps) {
     const { toast } = useToast();
     const [fees, setFees] = useState(initialFees);
@@ -41,6 +43,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
 
     const [paidAmount, setPaidAmount] = useState<number>(0);
     const [paymentMethod, setPaymentMethod] = useState('By Hand');
+    const [printType, setPrintType] = useState<PrintType>('normal');
     
     useEffect(() => {
         setPaidAmount(totalDues);
@@ -60,8 +63,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
 
         let amountToSettle = paidAmount;
         const newlyPaidFees: Fee[] = [];
-        let updatedLocalFees = [...fees]; 
-
+        
         const monthOrder = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         const specialFeeOrder = ['Registration', 'Admission', 'Annual'];
         
@@ -109,27 +111,14 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
             amountToSettle -= paymentForThisChallan;
         }
         
-        updatedLocalFees = updatedLocalFees.filter(f => {
-            const paidChallan = newlyPaidFees.find(p => p.originalChallanId === f.id);
-            if (!paidChallan) return true; 
-            return f.amount - paidChallan.amount > 0;
-        }).map(f => {
-            const paidChallan = newlyPaidFees.find(p => p.originalChallanId === f.id);
-            if(paidChallan) {
-                return { ...f, amount: f.amount - paidChallan.amount };
-            }
-            return f;
-        });
-        
         const collectedAmount = paidAmount - amountToSettle;
-        
+        const newDues = totalDues - collectedAmount;
+
         toast({
             title: 'Fee Collected',
             description: `PKR ${collectedAmount.toLocaleString()} collected for Family ${family.id}.`,
         });
         
-        setFees(updatedLocalFees);
-        const newDues = updatedLocalFees.filter(f => f.status === 'Unpaid').reduce((acc, fee) => acc + fee.amount, 0);
         setPaidAmount(newDues);
         
         triggerPrint(newlyPaidFees, collectedAmount, newDues, paymentMethod);
@@ -151,6 +140,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
                 remainingDues={newRemainingDues}
                 settings={settings}
                 paymentMethod={method}
+                printType={printType}
             />
         );
         const printWindow = window.open('', '_blank');
@@ -282,7 +272,16 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
                      </div>
                      <div className="flex justify-end gap-2">
                         <Button disabled={totalDues === 0 || paidAmount <= 0} onClick={handleCollectFee}>Collect Fee</Button>
-                        <Button variant="outline" onClick={() => triggerPrint([], 0, totalDues, paymentMethod)}><Printer className="h-4 w-4 mr-2" />Print Receipt</Button>
+                        <Select value={printType} onValueChange={(value) => setPrintType(value as PrintType)}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Select Print Type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="normal">Normal (A4)</SelectItem>
+                                <SelectItem value="thermal">Thermal (80mm)</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Button variant="outline" onClick={() => triggerPrint([], 0, totalDues, paymentMethod)}><Printer className="h-4 w-4" /></Button>
                      </div>
                 </div>
 
