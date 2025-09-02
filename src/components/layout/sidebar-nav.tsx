@@ -26,6 +26,7 @@ import {
   BookCopy,
   Briefcase,
   UserCheck2,
+  Receipt,
 } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import Image from 'next/image';
@@ -38,6 +39,7 @@ const navItems = [
   { href: '/classes', icon: BookCopy, label: 'Classes' },
   { href: '/teachers', icon: Briefcase, label: 'Teachers' },
   { href: '/fees', icon: Wallet, label: 'Fee Collection' },
+  { href: '/vouchers', icon: Receipt, label: 'Fee Vouchers' },
   { href: '/income', icon: TrendingUp, label: 'Income' },
   { href: '/attendance', icon: CalendarCheck, label: 'Attendance' },
   { href: '/teacher-attendance', icon: UserCheck2, label: 'Teacher Attendance' },
