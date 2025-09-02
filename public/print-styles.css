@@ -1,0 +1,84 @@
+
+@media print {
+    body {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        background-color: #fff; /* Ensure background is white for printing */
+    }
+
+    .voucher-page {
+        page-break-after: always;
+        width: 100%;
+        height: 100%;
+    }
+
+    .voucher-page:last-child {
+        page-break-after: avoid;
+    }
+
+    /* Layout for 3 copies per page (Landscape) */
+    [data-print-copies="3"] .voucher-page {
+        display: flex;
+        flex-direction: row;
+        gap: 0.5rem;
+        height: 210mm; /* A4 Landscape height */
+        width: 297mm; /* A4 Landscape width */
+    }
+    [data-print-copies="3"] .voucher-wrapper {
+        width: 33%;
+        height: 100%;
+    }
+
+    @page {
+        size: A4;
+        margin: 0.5cm;
+    }
+    [data-print-copies="3"] {
+        @page {
+            size: A4 landscape;
+        }
+    }
+
+
+    /* Layout for 2 copies per page (Portrait) */
+     [data-print-copies="2"] .voucher-page {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr;
+        gap: 0.5rem;
+        height: 297mm; /* A4 Portrait height */
+        width: 210mm; /* A4 Portrait width */
+    }
+     [data-print-copies="2"] .voucher-wrapper {
+        width: 100%;
+        height: 100%;
+    }
+    /* Hide the third empty wrapper */
+     [data-print-copies="2"] .voucher-wrapper:nth-child(3) {
+        grid-column: 1 / span 2; /* Span across both columns */
+        margin-top: 1rem;
+    }
+     [data-print-copies="2"] .voucher-page .voucher-wrapper:nth-child(2) {
+        page-break-before: always;
+    }
+
+
+    /* Layout for 1 copy per page (Portrait) */
+    [data-print-copies="1"] .voucher-page {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 297mm;
+        width: 210mm;
+    }
+    [data-print-copies="1"] .voucher-wrapper {
+        width: 80%;
+        height: 100%;
+        page-break-before: always; /* Each copy on a new page */
+    }
+     [data-print-copies="1"] .voucher-page > .voucher-wrapper:first-child {
+        page-break-before: auto;
+    }
+
+}

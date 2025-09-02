@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Search, Printer } from 'lucide-react';
+import { Printer, Loader2 } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import { useSettings } from '@/context/settings-context';
 import { useToast } from '@/hooks/use-toast';
@@ -16,168 +16,153 @@ import { FeeVoucherPrint } from '@/components/reports/fee-voucher-print';
 import { renderToString } from 'react-dom/server';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
+export interface VoucherData {
+  issueDate: string;
+  dueDate: string;
+  feeMonths: string;
+  feeItems: {
+    admissionFee: number;
+    monthlyFee: number;
+    concession: number;
+    annualCharges: number;
+    boardRegFee: number;
+    pendingDues: number;
+    lateFeeFine: number;
+  };
+  grandTotal: number;
+  notes: string;
+}
+
 export default function VouchersPage() {
   const { families, students, fees: allFees } = useData();
   const { settings } = useSettings();
   const { toast } = useToast();
 
-  const [familyId, setFamilyId] = useState('');
-  const [selectedFamily, setSelectedFamily] = useState<Family | null>(null);
-  const [familyStudents, setFamilyStudents] = useState<Student[]>([]);
-  
+  const [isLoading, setIsLoading] = useState(false);
   const [issueDate, setIssueDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [dueDate, setDueDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [dueDate, setDueDate] = useState(format(new Date(new Date().setDate(new Date().getDate() + 10)), 'yyyy-MM-dd'));
   const [feeMonths, setFeeMonths] = useState(format(new Date(), 'MMMM'));
   const [lateFee, setLateFee] = useState(50);
+  const [annualCharges, setAnnualCharges] = useState(0);
+  const [boardRegFee, setBoardRegFee] = useState(0);
+
   const [notes, setNotes] = useState(
     '1. Dues, once paid, are not refundable in any case.\n' +
-    "2. If a student doesn't pay the dues by the due date, a fine of Rs. 50 will be charged per week.\n" +
+    "2. If a student doesn't pay the dues by the due date, a fine will be charged.\n" +
     '3. The amount of fines can only be changed within three days after display of fines on Notice Board.'
   );
 
-  const [feeItems, setFeeItems] = useState({
-    admissionFee: 0,
-    monthlyFee: 0,
-    concession: 0,
-    annualCharges: 0,
-    boardRegFee: 0,
-    pendingDues: 0,
-  });
-
   const [copies, setCopies] = useState('3');
 
-  const handleFamilySearch = () => {
-    const family = families.find(f => f.id === familyId);
-    if (family) {
-      setSelectedFamily(family);
-      const foundStudents = students.filter(s => s.familyId === family.id);
-      setFamilyStudents(foundStudents);
-      
-      const familyUnpaidFees = allFees.filter(fee => fee.familyId === family.id && fee.status === 'Unpaid');
-      
-      // Separate different types of fees
-      const monthlyFeeTotal = familyUnpaidFees
-        .filter(fee => !['Registration', 'Admission', 'Annual'].some(type => fee.month.includes(type)))
-        .reduce((acc, fee) => acc + fee.amount, 0);
+  const handleBulkPrint = () => {
+    setIsLoading(true);
+    toast({ title: "Generating Vouchers...", description: `Please wait while we prepare vouchers for all ${families.length} families.`});
 
-      const admissionFeeTotal = familyUnpaidFees
-        .filter(fee => fee.month.includes('Registration'))
-        .reduce((acc, fee) => acc + fee.amount, 0);
-        
-      const pendingDuesTotal = familyUnpaidFees
-        .filter(fee => !fee.month.includes('Registration') && !['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].includes(fee.month))
-        .reduce((acc, fee) => acc + fee.amount, 0);
+    // Use a timeout to allow the UI to update and show the loading state
+    setTimeout(() => {
+        const allVouchersData: { family: Family; students: Student[]; voucherData: VoucherData }[] = [];
 
+        families.forEach(family => {
+            const familyStudents = students.filter(s => s.familyId === family.id);
+            if (familyStudents.length === 0) return;
 
-      setFeeItems(prev => ({
-          ...prev,
-          monthlyFee: monthlyFeeTotal,
-          admissionFee: admissionFeeTotal,
-          pendingDues: pendingDuesTotal
-      }));
-      
-      toast({ title: 'Family Found', description: `Selected family: ${family.fatherName}. Fees auto-populated.` });
-    } else {
-      setSelectedFamily(null);
-      setFamilyStudents([]);
-      setFeeItems({
-        admissionFee: 0,
-        monthlyFee: 0,
-        concession: 0,
-        annualCharges: 0,
-        boardRegFee: 0,
-        pendingDues: 0,
-      });
-      toast({ title: 'Family Not Found', variant: 'destructive' });
-    }
+            const familyUnpaidFees = allFees.filter(fee => fee.familyId === family.id && fee.status === 'Unpaid');
+            
+            const monthlyFeeTotal = familyUnpaidFees
+                .filter(fee => !['Registration', 'Annual', 'Admission'].some(type => fee.month.includes(type)))
+                .reduce((acc, fee) => acc + fee.amount, 0);
+
+            const admissionFeeTotal = familyUnpaidFees
+                .filter(fee => fee.month.includes('Registration') || fee.month.includes('Admission'))
+                .reduce((acc, fee) => acc + fee.amount, 0);
+                
+            const pendingDuesTotal = familyUnpaidFees
+                .filter(fee => !fee.month.includes('Registration') && !['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].includes(fee.month))
+                .reduce((acc, fee) => acc + fee.amount, 0);
+
+            const feeItems = {
+                monthlyFee: monthlyFeeTotal,
+                admissionFee: admissionFeeTotal,
+                pendingDues: pendingDuesTotal,
+                annualCharges: annualCharges,
+                boardRegFee: boardRegFee,
+                lateFeeFine: lateFee,
+                concession: 0, // Placeholder for future logic
+            };
+            
+            const grandTotal = Object.values(feeItems).reduce((acc, val) => acc + val, 0) - feeItems.concession;
+
+            // Only generate a voucher if there is an amount due
+            if (grandTotal > 0) {
+                 allVouchersData.push({
+                    family,
+                    students: familyStudents,
+                    voucherData: {
+                        issueDate,
+                        dueDate,
+                        feeMonths,
+                        feeItems,
+                        grandTotal,
+                        notes,
+                    }
+                });
+            }
+        });
+
+        if (allVouchersData.length === 0) {
+            toast({ title: "No Dues Found", description: "No families have outstanding fees to generate vouchers for.", variant: "destructive"});
+            setIsLoading(false);
+            return;
+        }
+
+        const printContent = renderToString(
+            <FeeVoucherPrint
+                allVouchersData={allVouchersData}
+                settings={settings}
+                copies={parseInt(copies)}
+            />
+        );
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Fee Vouchers - All Families</title>
+                        <script src="https://cdn.tailwindcss.com"></script>
+                        <link rel="stylesheet" href="/print-styles.css">
+                    </head>
+                    <body>${printContent}</body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.focus();
+        }
+
+        setIsLoading(false);
+        toast({ title: "Vouchers Generated!", description: `Successfully generated vouchers for ${allVouchersData.length} families.`});
+
+    }, 500); // 500ms delay
   };
 
-  const handleFeeItemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setFeeItems(prev => ({ ...prev, [id]: Number(value) }));
-  };
-
-  const grandTotal = Object.values(feeItems).reduce((acc, val) => acc + val, 0) - feeItems.concession;
-
-  const handlePrint = () => {
-    if (!selectedFamily) {
-      toast({ title: 'No family selected', variant: 'destructive' });
-      return;
-    }
-
-    const printContent = renderToString(
-      <FeeVoucherPrint
-        family={selectedFamily}
-        students={familyStudents}
-        settings={settings}
-        voucherData={{
-          issueDate,
-          dueDate,
-          feeMonths,
-          feeItems: { ...feeItems, lateFeeFine: lateFee },
-          grandTotal,
-          notes,
-        }}
-        copies={parseInt(copies)}
-      />
-    );
-
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Fee Voucher - Family ${familyId}</title>
-            <script src="https://cdn.tailwindcss.com"></script>
-            <style>
-              @media print {
-                body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                .voucher-container { page-break-inside: avoid; }
-                .page-break { page-break-before: always; }
-              }
-            </style>
-          </head>
-          <body>${printContent}</body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.focus();
-    }
-  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold font-headline">Fee Vouchers</h1>
+        <h1 className="text-3xl font-bold font-headline">Bulk Fee Vouchers</h1>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Generate Fee Voucher</CardTitle>
-          <CardDescription>Create and print fee vouchers for families. Unpaid fees are loaded automatically.</CardDescription>
+          <CardTitle>Generate Vouchers for All Families</CardTitle>
+          <CardDescription>Set the parameters for the fee challans and generate them for all families with outstanding dues at once.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
-          <div className="flex items-end gap-2 max-w-sm">
-            <div className="flex-grow space-y-2">
-              <Label htmlFor="family-id">Family Number</Label>
-              <Input
-                id="family-id"
-                placeholder="Enter family number"
-                value={familyId}
-                onChange={(e) => setFamilyId(e.target.value)}
-              />
-            </div>
-            <Button type="button" onClick={handleFamilySearch}>
-              <Search className="h-4 w-4 mr-2" /> Search
-            </Button>
-          </div>
-
-          {selectedFamily && (
-            <div className="space-y-6 pt-6 border-t">
+          <div className="space-y-6 pt-6 border-t">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
-                  <Label>Family</Label>
-                  <Input value={`${selectedFamily.fatherName} (ID: ${selectedFamily.id})`} disabled />
+                  <Label htmlFor="feeMonths">Fee Month(s)</Label>
+                  <Input id="feeMonths" placeholder="e.g., Aug, Sep" value={feeMonths} onChange={(e) => setFeeMonths(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="issueDate">Issue Date</Label>
@@ -191,52 +176,27 @@ export default function VouchersPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Fee Particulars</CardTitle>
+                  <CardTitle>Additional Charges (Optional)</CardTitle>
+                  <CardDescription>These charges will be added to every family's voucher. Base fees and pending dues are calculated automatically.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="space-y-2 col-span-2 md:col-span-4">
-                      <Label htmlFor="feeMonths">Fee Month(s)</Label>
-                      <Input id="feeMonths" placeholder="e.g., Aug, Sep" value={feeMonths} onChange={(e) => setFeeMonths(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="monthlyFee">Monthly Fee</Label>
-                      <Input id="monthlyFee" type="number" value={feeItems.monthlyFee || ''} onChange={handleFeeItemChange} />
-                    </div>
-                     <div className="space-y-2">
-                      <Label htmlFor="admissionFee">Admission Fee</Label>
-                      <Input id="admissionFee" type="number" value={feeItems.admissionFee || ''} onChange={handleFeeItemChange} />
-                    </div>
+                <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="annualCharges">Annual Charges</Label>
-                      <Input id="annualCharges" type="number" value={feeItems.annualCharges || ''} onChange={handleFeeItemChange} />
+                      <Input id="annualCharges" type="number" value={annualCharges || ''} onChange={(e) => setAnnualCharges(Number(e.target.value))} />
                     </div>
                      <div className="space-y-2">
                       <Label htmlFor="boardRegFee">Board Reg / Other</Label>
-                      <Input id="boardRegFee" type="number" value={feeItems.boardRegFee || ''} onChange={handleFeeItemChange} />
+                      <Input id="boardRegFee" type="number" value={boardRegFee || ''} onChange={(e) => setBoardRegFee(Number(e.target.value))} />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="pendingDues">Pending Dues</Label>
-                      <Input id="pendingDues" type="number" value={feeItems.pendingDues || ''} onChange={handleFeeItemChange} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="concession">Concession (-)</Label>
-                      <Input id="concession" type="number" value={feeItems.concession || ''} onChange={handleFeeItemChange} className="text-destructive" />
-                    </div>
-                     <div className="space-y-2">
                       <Label htmlFor="lateFee">Late Fee Fine</Label>
                       <Input id="lateFee" type="number" value={lateFee} onChange={(e) => setLateFee(Number(e.target.value))} />
                     </div>
-                    <div className="space-y-2 p-4 rounded-md bg-muted flex items-center justify-between col-span-full">
-                        <Label className="text-lg font-bold">Grand Total</Label>
-                        <span className="text-2xl font-bold">PKR {grandTotal.toLocaleString()}</span>
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
 
               <div className="space-y-2">
-                <Label htmlFor="notes">Notes</Label>
+                <Label htmlFor="notes">Notes Section</Label>
                 <textarea
                   id="notes"
                   value={notes}
@@ -247,24 +207,24 @@ export default function VouchersPage() {
 
               <div className="flex justify-end items-center gap-4 pt-4 border-t">
                 <div className="space-y-2 w-48">
-                    <Label htmlFor="copies">Copies per Page</Label>
+                    <Label htmlFor="copies">Print Layout</Label>
                     <Select value={copies} onValueChange={setCopies}>
                         <SelectTrigger id="copies">
                             <SelectValue placeholder="Select copies" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="1">1 Copy (Page Breaks)</SelectItem>
-                            <SelectItem value="2">2 Copies (Side-by-side)</SelectItem>
-                            <SelectItem value="3">3 Copies (Vertical)</SelectItem>
+                            <SelectItem value="1">1 Copy per Page (Portrait)</SelectItem>
+                            <SelectItem value="2">2 Copies per Page (Portrait)</SelectItem>
+                            <SelectItem value="3">3 Copies per Page (Landscape)</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
-                <Button size="lg" onClick={handlePrint} disabled={!selectedFamily}>
-                  <Printer className="mr-2 h-5 w-5" /> Generate & Print
+                <Button size="lg" onClick={handleBulkPrint} disabled={isLoading}>
+                  {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Printer className="mr-2 h-5 w-5" />}
+                  {isLoading ? 'Generating...' : `Generate Vouchers (${families.length} Families)`}
                 </Button>
               </div>
             </div>
-          )}
         </CardContent>
       </Card>
     </div>

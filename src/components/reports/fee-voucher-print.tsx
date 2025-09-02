@@ -7,29 +7,11 @@ import { School } from 'lucide-react';
 import Image from 'next/image';
 import type { SchoolSettings } from '@/context/settings-context';
 import { format } from 'date-fns';
-
-interface VoucherData {
-  issueDate: string;
-  dueDate: string;
-  feeMonths: string;
-  feeItems: {
-    admissionFee: number;
-    monthlyFee: number;
-    concession: number;
-    annualCharges: number;
-    boardRegFee: number;
-    pendingDues: number;
-    lateFeeFine: number;
-  };
-  grandTotal: number;
-  notes: string;
-}
+import type { VoucherData } from '@/app/(dashboard)/vouchers/page';
 
 interface FeeVoucherPrintProps {
-  family: Family;
-  students: Student[];
+  allVouchersData: { family: Family; students: Student[]; voucherData: VoucherData }[];
   settings: SchoolSettings;
-  voucherData: VoucherData;
   copies: number;
 }
 
@@ -70,59 +52,76 @@ const VoucherCopy = ({ family, students, settings, voucherData, copyType }: { fa
           <h2>Family No: {family.id}</h2>
         </div>
 
-        <div className="grid grid-cols-[auto,1fr] text-sm">
-          <div className="font-bold border-r border-black p-1">Name:</div>
-          <div className="p-1">{studentNames}</div>
-          <div className="font-bold border-t border-r border-black p-1">Father's Name:</div>
-          <div className="border-t border-black p-1">{family.fatherName}</div>
-          <div className="font-bold border-t border-r border-black p-1">Class:</div>
-          <div className="border-t border-black p-1">{studentClasses}</div>
-        </div>
-
-        {/* Fee Details */}
-        <table className="w-full border-t-2 border-black text-sm">
-          <tbody>
-            <tr className="border-b border-black">
-              <td className="font-bold p-1">Admission fee</td>
-              <td className="p-1 text-center" colSpan={2}>{admissionFee || '-'}</td>
-            </tr>
-            <tr className="border-b border-black">
-              <td className="font-bold p-1">Monthly Fee</td>
-              <td className="p-1 text-center">{feeMonths}</td>
-              <td className="p-1 text-center">{monthlyFee || '-'}</td>
-            </tr>
-            <tr className="border-b border-black">
-              <td className="font-bold p-1">Concession by Principal</td>
-              <td className="p-1 text-center" colSpan={2}>{concession > 0 ? -concession : '-'}</td>
-            </tr>
-            <tr className="border-b border-black">
-              <td className="font-bold p-1">Annual Charges</td>
-              <td className="p-1 text-center" colSpan={2}>{annualCharges || '-'}</td>
-            </tr>
-            <tr className="border-b border-black">
-              <td className="font-bold p-1">Late fee Fine</td>
-              <td className="p-1 text-center">{lateFeeFine || '-'}</td>
-              <td className="p-1 text-center"></td>
-            </tr>
-            <tr className="border-b border-black">
-              <td className="font-bold p-1">Board Reg Fee / Other</td>
-              <td className="p-1 text-center" colSpan={2}>{boardRegFee || '-'}</td>
-            </tr>
-             <tr className="border-b-2 border-black">
-              <td className="font-bold p-1">Pending Dues</td>
-              <td className="p-1 text-center" colSpan={2}>{pendingDues || '-'}</td>
-            </tr>
-            <tr className="bg-black text-white font-bold">
-              <td className="p-1">Grand Total</td>
-              <td className="p-1 text-center" colSpan={2}>{grandTotal.toLocaleString()}</td>
-            </tr>
-          </tbody>
+        <table className="w-full text-sm border-b-2 border-black">
+            <tbody>
+                <tr>
+                    <td className="font-bold p-1 w-1/4">Name:</td>
+                    <td className="p-1">{studentNames}</td>
+                </tr>
+                 <tr>
+                    <td className="font-bold p-1 w-1/4 border-t border-black">Father's Name:</td>
+                    <td className="p-1 border-t border-black">{family.fatherName}</td>
+                </tr>
+                 <tr>
+                    <td className="font-bold p-1 w-1/4 border-t border-black">Class:</td>
+                    <td className="p-1 border-t border-black">{studentClasses}</td>
+                </tr>
+            </tbody>
         </table>
 
-        {/* Due Date & Notes */}
-        <div className="flex justify-between py-1 border-b-2 border-black font-bold">
-          <p>Due Date: {format(new Date(dueDate), 'dd-MM-yyyy')}</p>
-        </div>
+        {/* Fee Details */}
+        <table className="w-full border-b-2 border-black text-sm">
+            <thead className="bg-black text-white font-bold">
+                <tr>
+                    <th className="p-1 text-left">Description</th>
+                    <th className="p-1 text-center">Month</th>
+                    <th className="p-1 text-right">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr className="border-b border-black">
+                <td className="font-bold p-1">Admission fee</td>
+                <td className="p-1 text-center"></td>
+                <td className="p-1 text-right">{admissionFee || '-'}</td>
+                </tr>
+                <tr className="border-b border-black">
+                <td className="font-bold p-1">Monthly Fee</td>
+                <td className="p-1 text-center">{feeMonths}</td>
+                <td className="p-1 text-right">{monthlyFee || '-'}</td>
+                </tr>
+                <tr className="border-b border-black">
+                <td className="font-bold p-1">Concession by Principal</td>
+                <td className="p-1 text-center"></td>
+                <td className="p-1 text-right">{concession > 0 ? `-${concession}` : '-'}</td>
+                </tr>
+                <tr className="border-b border-black">
+                <td className="font-bold p-1">Annual Charges</td>
+                <td className="p-1 text-center"></td>
+                <td className="p-1 text-right">{annualCharges || '-'}</td>
+                </tr>
+                <tr className="border-b border-black">
+                <td className="font-bold p-1">Board Reg Fee / Other</td>
+                <td className="p-1 text-center"></td>
+                <td className="p-1 text-right">{boardRegFee || '-'}</td>
+                </tr>
+                <tr className="border-b-2 border-black">
+                <td className="font-bold p-1">Pending Dues</td>
+                <td className="p-1 text-center"></td>
+                <td className="p-1 text-right">{pendingDues || '-'}</td>
+                </tr>
+                <tr className="bg-black text-white font-bold">
+                <td className="p-1">Grand Total (Due by {format(new Date(dueDate), 'dd-MMM')})</td>
+                <td className="p-1 text-center"></td>
+                <td className="p-1 text-right">{grandTotal.toLocaleString()}</td>
+                </tr>
+                 <tr className="border-t-2 border-black">
+                    <td className="font-bold p-1">Total After Due Date</td>
+                    <td className="p-1 text-center"></td>
+                    <td className="p-1 text-right font-bold">{(grandTotal + lateFeeFine).toLocaleString()}</td>
+                </tr>
+            </tbody>
+        </table>
+        
         <div className="text-[9px] py-1 border-b-2 border-black flex-grow">
           <p className="font-bold">Notes:</p>
           <div className="whitespace-pre-wrap">{notes}</div>
@@ -140,59 +139,26 @@ const VoucherCopy = ({ family, students, settings, voucherData, copyType }: { fa
 
 
 export const FeeVoucherPrint = React.forwardRef<HTMLDivElement, FeeVoucherPrintProps>(
-  ({ family, students, settings, voucherData, copies }, ref) => {
+  ({ allVouchersData, settings, copies }, ref) => {
     const copyTypes = ['Admin Office Copy', 'Accounts Office Copy', 'Student Copy'];
-    const vouchersToRender = Array.from({ length: 3 }, (_, i) => (
-      <VoucherCopy 
-        key={i}
-        family={family} 
-        students={students} 
-        settings={settings} 
-        voucherData={voucherData}
-        copyType={copyTypes[i]} 
-      />
-    ));
     
-    // 1 copy per page with page breaks
-    if (copies === 1) {
-        return (
-             <div ref={ref} className="p-4 bg-gray-200 space-y-4 w-[210mm]">
-                {vouchersToRender.map((voucher, index) => (
-                   <React.Fragment key={index}>
-                        <div className="h-[297mm] flex items-center justify-center">
-                            <div className="w-[90%]">{voucher}</div>
-                        </div>
-                        {index < vouchersToRender.length - 1 && <div className="page-break"></div>}
-                   </React.Fragment>
-                ))}
-             </div>
-        )
-    }
-
-    // 2 copies on first page, 1 on second
-    if (copies === 2) {
-       return (
-            <div ref={ref} className="p-4 bg-gray-200 w-[210mm]">
-                <div className="h-[297mm] flex flex-col justify-around">
-                    {vouchersToRender[0]}
-                    {vouchersToRender[1]}
-                </div>
-                <div className="page-break"></div>
-                 <div className="h-[297mm] flex flex-col justify-around">
-                    {vouchersToRender[2]}
-                </div>
-            </div>
-       )
-    }
-    
-    // 3 copies on one page
     return (
-      <div ref={ref} className="p-4 bg-gray-200 w-[210mm]">
-        <div className="h-[297mm] flex flex-col justify-around">
-            {vouchersToRender.map((voucher, index) => (
-                <React.Fragment key={index}>{voucher}</React.Fragment>
-            ))}
-        </div>
+      <div ref={ref} className="bg-gray-200" data-print-copies={copies}>
+        {allVouchersData.map(({ family, students, voucherData }, familyIndex) => (
+            <div key={family.id} className="voucher-page">
+                {copyTypes.map((copyType, copyIndex) => (
+                    <div key={copyIndex} className="voucher-wrapper">
+                        <VoucherCopy 
+                            family={family}
+                            students={students}
+                            settings={settings}
+                            voucherData={voucherData}
+                            copyType={copyType}
+                        />
+                    </div>
+                ))}
+            </div>
+        ))}
       </div>
     );
   }

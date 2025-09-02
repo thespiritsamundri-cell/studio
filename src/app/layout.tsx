@@ -1,6 +1,7 @@
 
 import type { Metadata } from 'next';
 import './globals.css';
+import './print-styles.css';
 import { Toaster } from '@/components/ui/toaster';
 import { SettingsProvider } from '@/context/settings-context';
 import { FontWrapper } from '@/components/layout/font-wrapper';
