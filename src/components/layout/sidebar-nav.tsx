@@ -32,6 +32,10 @@ import {
 } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import Image from 'next/image';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useState } from 'react';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -45,13 +49,14 @@ const navItems = [
   { href: '/income', icon: TrendingUp, label: 'Income' },
   { href: '/attendance', icon: CalendarCheck, label: 'Attendance' },
   { href: '/teacher-attendance', icon: UserCheck2, label: 'Teacher Attendance' },
-  { href: '/exams', icon: FileSignature, label: 'Exams' },
   { href: '/reports', icon: FileText, label: 'Reports' },
 ];
 
 export function SidebarNav() {
   const pathname = usePathname();
   const { settings } = useSettings();
+  const [isExamSystemOpen, setIsExamSystemOpen] = useState(pathname.startsWith('/exams'));
+
 
   return (
     <>
@@ -86,6 +91,35 @@ export function SidebarNav() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
+            <Collapsible open={isExamSystemOpen} onOpenChange={setIsExamSystemOpen}>
+              <SidebarMenuItem>
+                 <CollapsibleTrigger asChild>
+                    <SidebarMenuButton tooltip='Exam System' className="justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileSignature />
+                        <span>Exam System</span>
+                      </div>
+                      <ChevronRight className={cn('h-4 w-4 transition-transform', isExamSystemOpen && 'rotate-90')} />
+                  </SidebarMenuButton>
+                 </CollapsibleTrigger>
+              </SidebarMenuItem>
+              <CollapsibleContent asChild>
+                 <ul className="space-y-1 ml-7 pl-2 border-l">
+                    <li>
+                      <SidebarMenuButton
+                        asChild
+                        size="sm"
+                        isActive={pathname.startsWith('/exams')}
+                        tooltip="Exams"
+                      >
+                        <Link href="/exams">
+                          <span>Exams</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </li>
+                 </ul>
+              </CollapsibleContent>
+            </Collapsible>
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
