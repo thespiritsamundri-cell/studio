@@ -22,10 +22,11 @@ interface FeeDetailsCardProps {
     students: Student[];
     fees: Fee[];
     onUpdateFee: (id: string, fee: Fee) => void;
+    onAddFee: (fee: Fee) => void;
     settings: SchoolSettings;
 }
 
-export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFee, settings }: FeeDetailsCardProps) {
+export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFee, onAddFee, settings }: FeeDetailsCardProps) {
     const { toast } = useToast();
     const [fees, setFees] = useState(initialFees);
     
@@ -58,17 +59,19 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
         const newlyPaidFees: Fee[] = [];
         const updatedLocalFees = [...fees]; 
 
-        // Sort unpaid fees chronologically (by year, then by month)
         const monthOrder = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         const specialFeeOrder = ['Registration', 'Admission', 'Annual'];
         
         const sortedUnpaidFees = [...unpaidFees].sort((a,b) => {
             if (a.year !== b.year) return a.year - b.year;
             
-            const monthAIndex = specialFeeOrder.includes(a.month) ? -1 : monthOrder.indexOf(a.month);
-            const monthBIndex = specialFeeOrder.includes(b.month) ? -1 : monthOrder.indexOf(b.month);
+            const aIsSpecial = specialFeeOrder.some(s => a.month.includes(s));
+            const bIsSpecial = specialFeeOrder.some(s => b.month.includes(s));
 
-            return monthAIndex - monthBIndex;
+            if(aIsSpecial && !bIsSpecial) return -1;
+            if(!aIsSpecial && bIsSpecial) return 1;
+
+            return monthOrder.indexOf(a.month) - monthOrder.indexOf(b.month);
         });
 
         for (const fee of sortedUnpaidFees) {
@@ -77,30 +80,38 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
             const feeIndexInLocal = updatedLocalFees.findIndex(f => f.id === fee.id);
             if (feeIndexInLocal === -1) continue;
 
-            if (amountToSettle >= fee.amount) {
-                // Full payment for this fee
-                amountToSettle -= fee.amount;
-                
-                const paidFee: Fee = { ...fee, status: 'Paid', paymentDate: new Date().toISOString().split('T')[0] };
-                newlyPaidFees.push({ ...paidFee });
+            const paymentForThisChallan = Math.min(amountToSettle, fee.amount);
 
-                updatedLocalFees[feeIndexInLocal] = paidFee;
-                onUpdateFee(fee.id, paidFee);
-
+            // Create a new "Paid" fee record for the income sheet
+            const paymentRecord: Fee = {
+                id: `PAY-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+                familyId: fee.familyId,
+                amount: paymentForThisChallan,
+                month: fee.month,
+                year: fee.year,
+                status: 'Paid',
+                paymentDate: new Date().toISOString().split('T')[0],
+                originalChallanId: fee.id, // Link to the original challan
+            };
+            
+            onAddFee(paymentRecord);
+            newlyPaidFees.push(paymentRecord);
+            
+            // Update the original challan
+            const remainingAmountInChallan = fee.amount - paymentForThisChallan;
+            
+            if (remainingAmountInChallan > 0) {
+                 const updatedChallan: Fee = { ...fee, amount: remainingAmountInChallan };
+                 updatedLocalFees[feeIndexInLocal] = updatedChallan;
+                 onUpdateFee(fee.id, updatedChallan);
             } else {
-                // Partial payment for this fee
-                const remainingAmountInFee = fee.amount - amountToSettle;
-                
-                const partiallyPaidFee: Fee = { ...fee, amount: remainingAmountInFee };
-                
-                // We create a "receipt" copy of the fee showing how much was paid
-                 newlyPaidFees.push({ ...fee, amount: amountToSettle, status: 'Paid', paymentDate: new Date().toISOString().split('T')[0] });
-
-                amountToSettle = 0;
-                
-                updatedLocalFees[feeIndexInLocal] = partiallyPaidFee;
-                onUpdateFee(fee.id, partiallyPaidFee);
+                // If challan is fully paid, mark it as 'Paid' but with 0 amount to remove it from dues
+                 const updatedChallan: Fee = { ...fee, amount: 0, status: 'Paid' };
+                 updatedLocalFees[feeIndexInLocal] = updatedChallan;
+                 onUpdateFee(fee.id, updatedChallan);
             }
+
+            amountToSettle -= paymentForThisChallan;
         }
         
         const collectedAmount = paidAmount - amountToSettle;

@@ -9,20 +9,34 @@ import { Input } from '@/components/ui/input';
 import { DateRange } from 'react-day-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { CalendarIcon, Printer, FileSpreadsheet } from 'lucide-react';
+import { CalendarIcon, Printer, FileSpreadsheet, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { IncomePrintReport } from '@/components/reports/income-report';
 import { renderToString } from 'react-dom/server';
 import { useSettings } from '@/context/settings-context';
+import type { Fee } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 
 export default function IncomePage() {
-  const { fees: allFees, families } = useData();
+  const { fees: allFees, families, deleteFee, updateFee } = useData();
   const { settings } = useSettings();
+  const { toast } = useToast();
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [familyIdFilter, setFamilyIdFilter] = useState('');
+  const [feeToCancel, setFeeToCancel] = useState<Fee | null>(null);
 
   const paidFees = useMemo(() => {
     return allFees
@@ -59,6 +73,47 @@ export default function IncomePage() {
   const totalIncome = useMemo(() => {
       return filteredFees.reduce((acc, fee) => acc + fee.amount, 0);
   }, [filteredFees]);
+
+  const handleOpenCancelDialog = (fee: Fee) => {
+    setFeeToCancel(fee);
+  };
+  
+  const handleConfirmCancel = () => {
+    if (!feeToCancel) return;
+
+    // 1. Find the original challan this payment was for.
+    // The convention is that a payment record has an originalChallanId.
+    const originalChallanId = feeToCancel.originalChallanId;
+    if (!originalChallanId) {
+        toast({ title: 'Error', description: 'Cannot find original challan to revert.', variant: 'destructive' });
+        setFeeToCancel(null);
+        return;
+    }
+
+    const originalChallan = allFees.find(f => f.id === originalChallanId);
+
+    if (originalChallan) {
+        // 2. Add the cancelled amount back to the original challan.
+        const revertedChallan: Fee = {
+            ...originalChallan,
+            amount: originalChallan.amount + feeToCancel.amount,
+            status: 'Unpaid', // It must be unpaid if we're reverting a payment
+        };
+        updateFee(originalChallan.id, revertedChallan);
+    } else {
+         toast({ title: 'Error', description: `Original challan ID ${originalChallanId} not found. Cannot revert payment.`, variant: 'destructive' });
+    }
+
+    // 3. Delete the payment record itself.
+    deleteFee(feeToCancel.id);
+
+    toast({
+        title: 'Payment Cancelled',
+        description: `Payment of PKR ${feeToCancel.amount.toLocaleString()} has been successfully reversed.`,
+    });
+
+    setFeeToCancel(null);
+  };
   
   const triggerPrint = () => {
     const printContent = renderToString(
@@ -83,7 +138,7 @@ export default function IncomePage() {
   };
 
   const handleExportCsv = () => {
-    const headers = ['Challan ID', 'Family ID', "Father's Name", 'Payment Date', 'Month', 'Year', 'Amount'];
+    const headers = ['Payment ID', 'Family ID', "Father's Name", 'Payment Date', 'Description', 'Amount'];
     const csvContent = [
       headers.join(','),
       ...filteredFees.map((fee) => 
@@ -92,8 +147,7 @@ export default function IncomePage() {
           fee.familyId,
           `"${fee.fatherName}"`,
           fee.paymentDate ? format(new Date(fee.paymentDate), 'yyyy-MM-dd') : '',
-          fee.month,
-          fee.year,
+          `${fee.month}, ${fee.year}`,
           fee.amount
         ].join(',')
       )
@@ -178,12 +232,13 @@ export default function IncomePage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Challan ID</TableHead>
+                  <TableHead>Payment ID</TableHead>
                   <TableHead>Family ID</TableHead>
                   <TableHead>Father's Name</TableHead>
                   <TableHead>Payment Date</TableHead>
-                  <TableHead>Month/Year</TableHead>
+                  <TableHead>Description</TableHead>
                   <TableHead className="text-right">Amount (PKR)</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -195,11 +250,17 @@ export default function IncomePage() {
                     <TableCell>{fee.paymentDate && format(new Date(fee.paymentDate), 'PPP')}</TableCell>
                     <TableCell>{fee.month}, {fee.year}</TableCell>
                     <TableCell className="text-right font-semibold text-green-600">{fee.amount.toLocaleString()}</TableCell>
+                     <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => handleOpenCancelDialog(fee)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                            <span className="sr-only">Cancel Payment</span>
+                        </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {filteredFees.length === 0 && (
                   <TableRow>
-                      <TableCell colSpan={6} className='text-center py-10 text-muted-foreground'>No income records found for the selected filters.</TableCell>
+                      <TableCell colSpan={7} className='text-center py-10 text-muted-foreground'>No income records found for the selected filters.</TableCell>
                   </TableRow>
                 )}
               </TableBody>
@@ -207,6 +268,23 @@ export default function IncomePage() {
           </CardContent>
         </Card>
       </div>
+
+       <AlertDialog open={!!feeToCancel} onOpenChange={(open) => !open && setFeeToCancel(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently cancel the payment of <strong>PKR {feeToCancel?.amount.toLocaleString()}</strong> for Family <strong>{feeToCancel?.familyId}</strong> ({feeToCancel?.fatherName}). The amount will be added back to the family's outstanding dues. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setFeeToCancel(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmCancel} className="bg-destructive hover:bg-destructive/90">
+              Yes, cancel payment
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
