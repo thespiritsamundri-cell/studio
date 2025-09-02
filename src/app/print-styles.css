@@ -2,32 +2,42 @@
 @media print {
   @page {
     size: A4;
-    margin: 0.5in;
+    margin: 0.25in;
   }
 
   .voucher-page {
     page-break-after: always;
   }
-
-  [data-print-copies="1"] .voucher-wrapper {
-    page-break-after: always;
-    height: 95vh;
-  }
   
-  [data-print-copies="1"] .voucher-page:last-child .voucher-wrapper:last-child {
+  .voucher-page:last-child {
       page-break-after: auto;
   }
 
+  /* --- 1 Copy per Page --- */
+  [data-print-copies="1"] .voucher-wrapper {
+    page-break-after: always;
+    height: 98vh; /* Full portrait page for each copy */
+    width: 100%;
+  }
+  [data-print-copies="1"] .voucher-page:last-child .voucher-wrapper:last-child {
+    page-break-after: auto;
+  }
+   [data-print-copies="1"] .voucher-wrapper:last-child {
+    page-break-after: auto;
+  }
+
+
+  /* --- 2 Copies per Page --- */
   [data-print-copies="2"] .voucher-page {
     display: flex;
-    flex-wrap: wrap;
     flex-direction: column;
     height: 98vh;
-    justify-content: space-around;
+    justify-content: space-between;
+    gap: 0.25in;
   }
   [data-print-copies="2"] .voucher-wrapper {
+    height: 48%; /* Each copy takes up half the page */
     width: 100%;
-    height: 48%;
     box-sizing: border-box;
   }
    [data-print-copies="2"] .voucher-wrapper:nth-child(2) {
@@ -37,24 +47,27 @@
     page-break-before: always;
   }
 
+  /* --- 3 Copies per Page (Landscape) --- */
+  [data-print-copies="3"] {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  @page {
+    size: A4 landscape;
+  }
   [data-print-copies="3"] .voucher-page {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
-    align-items: center;
+    align-items: stretch;
     width: 100%;
     height: 98vh;
-    gap: 1rem;
-    page-break-after: always;
+    gap: 0.25in;
   }
-  
   [data-print-copies="3"] .voucher-wrapper {
-      width: 32%;
-      height: 100%;
-      box-sizing: border-box;
-  }
-
-  [data-print-copies="3"] .voucher-page:last-child {
-    page-break-after: auto;
+    width: 32%;
+    height: 100%;
+    box-sizing: border-box;
+    display: flex;
   }
 }
