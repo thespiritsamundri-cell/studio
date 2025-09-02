@@ -6,7 +6,7 @@ import type { Student, Family } from '@/lib/types';
 import { School } from 'lucide-react';
 import Image from 'next/image';
 import type { SchoolSettings } from '@/context/settings-context';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import type { VoucherData } from '@/app/(dashboard)/vouchers/page';
 
 interface FeeVoucherPrintProps {
@@ -16,11 +16,15 @@ interface FeeVoucherPrintProps {
 }
 
 const VoucherCopy = ({ family, students, settings, voucherData, copyType }: { family: Family, students: Student[], settings: SchoolSettings, voucherData: VoucherData, copyType: string }) => {
-  const { issueDate, dueDate, feeMonths, feeItems, grandTotal, notes } = voucherData;
+  const { issueDate, dueDate, feeMonths, feeItems, grandTotal } = voucherData;
   const { admissionFee, monthlyFee, concession, annualCharges, boardRegFee, pendingDues, lateFeeFine } = feeItems;
 
   const studentNames = students.map(s => s.name).join(', ');
   const studentClasses = students.map(s => s.class).join(', ');
+
+  // Safely parse dates, assuming they are in 'yyyy-MM-dd' format from the input[type=date]
+  const parsedIssueDate = issueDate ? parseISO(issueDate) : new Date();
+  const parsedDueDate = dueDate ? parseISO(dueDate) : new Date();
 
   return (
     <div className="voucher-container w-full mx-auto bg-white text-black text-xs font-sans">
@@ -41,7 +45,7 @@ const VoucherCopy = ({ family, students, settings, voucherData, copyType }: { fa
           <div className="text-right text-[10px]">
             <p>Ph. {settings.schoolPhone}</p>
             <div className="border-t border-b border-black mt-1 px-2">
-              <p>Issue Date: {format(new Date(issueDate), 'dd-MM-yyyy')}</p>
+              <p>Issue Date: {format(parsedIssueDate, 'dd-MM-yyyy')}</p>
             </div>
           </div>
         </div>
@@ -79,38 +83,15 @@ const VoucherCopy = ({ family, students, settings, voucherData, copyType }: { fa
                 </tr>
             </thead>
             <tbody>
-                <tr className="border-b border-black">
-                <td className="font-bold p-1">Admission fee</td>
-                <td className="p-1 text-center"></td>
-                <td className="p-1 text-right">{admissionFee || '-'}</td>
-                </tr>
-                <tr className="border-b border-black">
-                <td className="font-bold p-1">Monthly Fee</td>
-                <td className="p-1 text-center">{feeMonths}</td>
-                <td className="p-1 text-right">{monthlyFee || '-'}</td>
-                </tr>
-                <tr className="border-b border-black">
-                <td className="font-bold p-1">Concession by Principal</td>
-                <td className="p-1 text-center"></td>
-                <td className="p-1 text-right">{concession > 0 ? `-${concession}` : '-'}</td>
-                </tr>
-                <tr className="border-b border-black">
-                <td className="font-bold p-1">Annual Charges</td>
-                <td className="p-1 text-center"></td>
-                <td className="p-1 text-right">{annualCharges || '-'}</td>
-                </tr>
-                <tr className="border-b border-black">
-                <td className="font-bold p-1">Board Reg Fee / Other</td>
-                <td className="p-1 text-center"></td>
-                <td className="p-1 text-right">{boardRegFee || '-'}</td>
-                </tr>
-                <tr className="border-b-2 border-black">
-                <td className="font-bold p-1">Pending Dues</td>
-                <td className="p-1 text-center"></td>
-                <td className="p-1 text-right">{pendingDues || '-'}</td>
-                </tr>
+                {admissionFee > 0 && <tr className="border-b border-black"><td className="font-bold p-1">Admission fee</td><td className="p-1 text-center"></td><td className="p-1 text-right">{admissionFee.toLocaleString()}</td></tr>}
+                {monthlyFee > 0 && <tr className="border-b border-black"><td className="font-bold p-1">Monthly Fee</td><td className="p-1 text-center">{feeMonths}</td><td className="p-1 text-right">{monthlyFee.toLocaleString()}</td></tr>}
+                {concession > 0 && <tr className="border-b border-black"><td className="font-bold p-1">Concession by Principal</td><td className="p-1 text-center"></td><td className="p-1 text-right text-red-600">-{concession.toLocaleString()}</td></tr>}
+                {annualCharges > 0 && <tr className="border-b border-black"><td className="font-bold p-1">Annual Charges</td><td className="p-1 text-center"></td><td className="p-1 text-right">{annualCharges.toLocaleString()}</td></tr>}
+                {boardRegFee > 0 && <tr className="border-b border-black"><td className="font-bold p-1">Board Reg Fee / Other</td><td className="p-1 text-center"></td><td className="p-1 text-right">{boardRegFee.toLocaleString()}</td></tr>}
+                {pendingDues > 0 && <tr className="border-b-2 border-black"><td className="font-bold p-1">Pending Dues</td><td className="p-1 text-center"></td><td className="p-1 text-right">{pendingDues.toLocaleString()}</td></tr>}
+
                 <tr className="bg-black text-white font-bold">
-                <td className="p-1">Grand Total (Due by {format(new Date(dueDate), 'dd-MMM')})</td>
+                <td className="p-1">Grand Total (Due by {format(parsedDueDate, 'dd-MMM')})</td>
                 <td className="p-1 text-center"></td>
                 <td className="p-1 text-right">{grandTotal.toLocaleString()}</td>
                 </tr>
@@ -124,7 +105,7 @@ const VoucherCopy = ({ family, students, settings, voucherData, copyType }: { fa
         
         <div className="text-[9px] py-1 border-b-2 border-black flex-grow">
           <p className="font-bold">Notes:</p>
-          <div className="whitespace-pre-wrap">{notes}</div>
+          <div className="whitespace-pre-wrap">{voucherData.notes}</div>
         </div>
 
         {/* Footer */}
@@ -144,7 +125,7 @@ export const FeeVoucherPrint = React.forwardRef<HTMLDivElement, FeeVoucherPrintP
     
     return (
       <div ref={ref} className="bg-gray-200" data-print-copies={copies}>
-        {allVouchersData.map(({ family, students, voucherData }, familyIndex) => (
+        {allVouchersData.map(({ family, students, voucherData }) => (
             <div key={family.id} className="voucher-page">
                 {copyTypes.map((copyType, copyIndex) => (
                     <div key={copyIndex} className="voucher-wrapper">
