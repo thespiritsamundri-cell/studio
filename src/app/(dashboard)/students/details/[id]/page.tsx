@@ -4,7 +4,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useData } from '@/context/data-context';
-import { notFound, useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { Student, Family } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
@@ -27,8 +27,6 @@ export default function StudentDetailsPage() {
       setStudent(studentData);
       const familyData = families.find((f) => f.id === studentData.familyId);
       setFamily(familyData);
-    } else {
-      // notFound(); We can't use this as it throws an error. A simple loading/not found state is better.
     }
   }, [params.id, students, families]);
 
