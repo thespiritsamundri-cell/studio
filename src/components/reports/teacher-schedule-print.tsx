@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -18,14 +19,13 @@ interface TeacherSchedulePrintProps {
 export const TeacherSchedulePrint = React.forwardRef<HTMLDivElement, TeacherSchedulePrintProps>(
   ({ teacher, schedule, daysOfWeek, settings }, ref) => {
     
-    const periodHeaders = Array.from({ length: 8 }, (_, i) => `Period ${i + 1}`);
-
     const cellStyle: React.CSSProperties = {
         border: '1px solid #000',
         padding: '4px',
-        height: '60px',
+        height: 'auto',
         textAlign: 'center',
         fontSize: '11px',
+        verticalAlign: 'top'
     };
     
     const headerStyle: React.CSSProperties = {
@@ -57,28 +57,31 @@ export const TeacherSchedulePrint = React.forwardRef<HTMLDivElement, TeacherSche
                 <thead>
                     <tr>
                         <th style={headerStyle}>Day</th>
-                        {periodHeaders.map(header => <th key={header} style={headerStyle}>{header}</th>)}
+                        <th style={headerStyle}>Period / Time</th>
+                        <th style={headerStyle}>Class</th>
+                        <th style={headerStyle}>Subject</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {daysOfWeek.map(day => (
-                        <tr key={day}>
-                            <td style={{...cellStyle, fontWeight: 'bold'}}>{day}</td>
-                            {periodHeaders.map((period, periodIndex) => {
-                                const entry = schedule[day]?.find(e => e.period === (periodIndex + 1));
-                                return (
-                                    <td key={period} style={cellStyle}>
-                                        {entry ? (
-                                            <div>
-                                                <p className="font-bold">{entry.class}</p>
-                                                <p>{entry.subject}</p>
-                                                <p className="text-gray-500 text-xs">{entry.time}</p>
-                                            </div>
-                                        ) : null}
+                     {daysOfWeek.map(day => (
+                        schedule[day].length > 0 ? (
+                            schedule[day].map((entry, index) => (
+                                <tr key={`${day}-${entry.period}`}>
+                                    {index === 0 && <td style={{...cellStyle, fontWeight: 'bold'}} rowSpan={schedule[day].length}>{day}</td>}
+                                    <td style={cellStyle}>
+                                        Period {entry.period}
+                                        {entry.time && <p className="text-xs text-gray-500">({entry.time})</p>}
                                     </td>
-                                );
-                            })}
-                        </tr>
+                                    <td style={cellStyle}>{entry.class}</td>
+                                    <td style={cellStyle}>{entry.subject}</td>
+                                </tr>
+                            ))
+                        ) : (
+                            <tr key={day}>
+                                <td style={{...cellStyle, fontWeight: 'bold'}}>{day}</td>
+                                <td colSpan={3} style={{...cellStyle, color: '#6b7280'}}>No periods scheduled.</td>
+                            </tr>
+                        )
                     ))}
                 </tbody>
             </table>
