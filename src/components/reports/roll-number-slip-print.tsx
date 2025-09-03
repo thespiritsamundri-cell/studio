@@ -24,12 +24,9 @@ const Slip = ({ student, settings, examName, dateSheet, instructions, rollNo, qr
     const formatDate = (dateString: string) => {
         if (!dateString) return '-';
         try {
-            // The input type="date" provides a string in 'YYYY-MM-DD' format.
-            // parseISO handles this format correctly.
             return format(parseISO(dateString), 'dd-MM-yyyy');
         } catch (error) {
             console.error("Date formatting error:", error);
-            // Fallback for any unexpected format.
             return dateString;
         }
     }
@@ -150,18 +147,21 @@ export const RollNumberSlipPrint = React.forwardRef<HTMLDivElement, RollNumberSl
              <div ref={ref} className="roll-number-slips-container" data-print-layout={layout}>
                 {studentPairs.map((pair, pageIndex) => (
                     <div key={pageIndex} className="slip-page-wrapper">
-                        {pair.map((student, studentIndex) => (
-                           <Slip 
-                                key={student.id}
-                                student={student} 
-                                settings={settings}
-                                examName={examName}
-                                dateSheet={dateSheet}
-                                instructions={instructions}
-                                rollNo={startRollNo + (pageIndex * 2 + studentIndex)}
-                                qrCode={qrCodes[student.id]}
-                           />
-                        ))}
+                        {pair.map((student, studentIndex) => {
+                           const overallIndex = pageIndex * 2 + studentIndex;
+                           return (
+                               <Slip 
+                                    key={student.id}
+                                    student={student} 
+                                    settings={settings}
+                                    examName={examName}
+                                    dateSheet={dateSheet}
+                                    instructions={instructions}
+                                    rollNo={startRollNo + overallIndex}
+                                    qrCode={qrCodes[student.id]}
+                               />
+                           );
+                        })}
                     </div>
                 ))}
              </div>
