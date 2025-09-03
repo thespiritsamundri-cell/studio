@@ -64,7 +64,7 @@ export default function SettingsPage() {
     setSettings(prev => ({...prev, [id]: value}));
   };
   
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'schoolLogo' | 'principalSignature') => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'schoolLogo' | 'principalSignature' | 'favicon') => {
     const file = e.target.files?.[0];
     if (file) {
         const reader = new FileReader();
@@ -340,6 +340,10 @@ export default function SettingsPage() {
                         <Label htmlFor="principalSignature">Principal's Signature</Label>
                         <Input id="principalSignatureInput" name="principalSignature" type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'principalSignature')} className="file:text-primary file:font-medium" />
                     </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="favicon">Favicon (Browser Tab Icon)</Label>
+                        <Input id="faviconInput" name="favicon" type="file" accept="image/x-icon,image/png,image/svg+xml" onChange={(e) => handleFileChange(e, 'favicon')} className="file:text-primary file:font-medium" />
+                    </div>
                 </div>
                  <div className="flex gap-6">
                     {settings.schoolLogo && (
@@ -357,6 +361,15 @@ export default function SettingsPage() {
                             <div className="flex items-center gap-4 p-4 border rounded-md bg-white">
                                 <Image src={settings.principalSignature} alt="Principal Signature Preview" width={100} height={60} className="object-contain" />
                                 <Button variant="ghost" size="sm" onClick={() => setSettings(prev => ({...prev, principalSignature: ''}))}>Remove</Button>
+                            </div>
+                        </div>
+                    )}
+                    {settings.favicon && (
+                        <div className="space-y-2">
+                            <Label>Favicon Preview</Label>
+                            <div className="flex items-center gap-4 p-4 border rounded-md">
+                                <Image src={settings.favicon} alt="Favicon Preview" width={32} height={32} className="object-contain" />
+                                <Button variant="ghost" size="sm" onClick={() => setSettings(prev => ({...prev, favicon: ''}))}>Remove</Button>
                             </div>
                         </div>
                     )}

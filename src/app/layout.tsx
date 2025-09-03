@@ -1,15 +1,32 @@
 
-import type { Metadata } from 'next';
+'use client';
+
 import './globals.css';
 import './print-styles.css';
 import { Toaster } from '@/components/ui/toaster';
-import { SettingsProvider } from '@/context/settings-context';
+import { SettingsProvider, useSettings } from '@/context/settings-context';
 import { FontWrapper } from '@/components/layout/font-wrapper';
+import { useEffect } from 'react';
 
-export const metadata: Metadata = {
-  title: 'EduCentral',
-  description: 'Modern School Management System',
-};
+function AppContent({ children }: { children: React.ReactNode }) {
+  const { settings } = useSettings();
+
+  useEffect(() => {
+    document.title = settings.schoolName || 'EduCentral';
+    const link = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
+    if (link) {
+      link.href = settings.favicon || '/favicon.ico';
+    } else {
+        const newLink = document.createElement('link');
+        newLink.rel = 'icon';
+        newLink.href = settings.favicon || '/favicon.ico';
+        document.head.appendChild(newLink);
+    }
+  }, [settings.schoolName, settings.favicon]);
+
+  return <>{children}</>;
+}
+
 
 export default function RootLayout({
   children,
@@ -19,7 +36,9 @@ export default function RootLayout({
   return (
     <SettingsProvider>
       <FontWrapper>
-          {children}
+          <AppContent>
+            {children}
+          </AppContent>
           <Toaster />
       </FontWrapper>
     </SettingsProvider>
