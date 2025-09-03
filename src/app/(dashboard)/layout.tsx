@@ -13,8 +13,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     <SettingsProvider>
       <DataProvider>
         <SidebarProvider>
-          <div className="flex min-h-screen w-full">
-            <Sidebar collapsible="icon">
+          <div className="flex min-h-screen w-full bg-muted/40">
+            <Sidebar>
               <SidebarNav />
             </Sidebar>
             <div className="flex flex-1 flex-col">

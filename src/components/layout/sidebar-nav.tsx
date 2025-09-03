@@ -72,7 +72,7 @@ export function SidebarNav() {
               <School className="w-6 h-6 text-primary-foreground" />
             )}
           </div>
-          <div className="flex flex-col">
+          <div className="flex flex-col group-[[data-collapsible=icon]]:hidden">
             <span className="text-lg font-bold text-primary-foreground font-headline">{settings.schoolName}</span>
             <span className="text-xs text-primary-foreground/70">{settings.academicYear}</span>
           </div>
@@ -89,7 +89,7 @@ export function SidebarNav() {
               >
                 <Link href={item.href}>
                   <item.icon />
-                  <span>{item.label}</span>
+                  <span className="group-[[data-collapsible=icon]]:hidden">{item.label}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -100,14 +100,14 @@ export function SidebarNav() {
                     <SidebarMenuButton tooltip='Exam System' className="justify-between">
                       <div className="flex items-center gap-2">
                         <FileSignature />
-                        <span>Exam System</span>
+                        <span className="group-[[data-collapsible=icon]]:hidden">Exam System</span>
                       </div>
-                      <ChevronRight className={cn('h-4 w-4 transition-transform', isExamSystemOpen && 'rotate-90')} />
+                      <ChevronRight className={cn('h-4 w-4 transition-transform group-[[data-collapsible=icon]]:hidden', isExamSystemOpen && 'rotate-90')} />
                   </SidebarMenuButton>
                  </CollapsibleTrigger>
               </SidebarMenuItem>
               <CollapsibleContent asChild>
-                 <ul className="space-y-1 ml-7 pl-2 border-l">
+                 <ul className="space-y-1 ml-7 pl-2 border-l group-[[data-collapsible=icon]]:hidden">
                     <li>
                       <SidebarMenuButton
                         asChild
@@ -175,7 +175,7 @@ export function SidebarNav() {
               >
                 <Link href="/settings">
                   <Settings />
-                  <span>Settings</span>
+                  <span className="group-[[data-collapsible=icon]]:hidden">Settings</span>
                 </Link>
               </SidebarMenuButton>
           </SidebarMenuItem>
@@ -183,7 +183,7 @@ export function SidebarNav() {
             <SidebarMenuButton asChild tooltip="Logout">
               <Link href="/">
                 <LogOut />
-                <span>Logout</span>
+                <span className="group-[[data-collapsible=icon]]:hidden">Logout</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
