@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle } from 'lucide-react';
+import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import { useState, useMemo } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -20,11 +20,12 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { sendWhatsAppMessage } from '@/services/whatsapp-service';
 import type { Grade } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { format } from 'date-fns';
 
 
 export default function SettingsPage() {
   const { settings, setSettings } = useSettings();
-  const { students, families, fees, loadData } = useData();
+  const { students, families, fees, loadData, addActivityLog, activityLog } = useData();
   const { toast } = useToast();
   
   // Custom Messaging State
@@ -46,6 +47,7 @@ export default function SettingsPage() {
   const classes = useMemo(() => [...Array.from(new Set(students.map(s => s.class)))], [students]);
 
   const handleSave = () => {
+    addActivityLog({ user: 'Admin', action: 'Update Settings', description: 'Updated school information settings.' });
     toast({
       title: 'Settings Saved',
       description: 'Your school information has been updated.',
@@ -53,6 +55,7 @@ export default function SettingsPage() {
   };
   
   const handleAccountSave = () => {
+     addActivityLog({ user: 'Admin', action: 'Update Credentials', description: 'Updated admin login credentials.' });
     toast({
         title: "Account Settings Saved",
         description: "Your login credentials have been updated.",
@@ -94,7 +97,8 @@ export default function SettingsPage() {
         students,
         families,
         fees,
-        settings
+        settings,
+        activityLog
     };
     const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
     const link = document.createElement('a');
@@ -108,6 +112,7 @@ export default function SettingsPage() {
       title: 'Backup Created',
       description: 'Your data has been successfully downloaded.',
     });
+     addActivityLog({ user: 'Admin', action: 'Create Backup', description: 'Downloaded a backup of all application data.' });
   };
 
   const handleRestoreBackup = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -170,10 +175,12 @@ export default function SettingsPage() {
     setIsSending(true);
 
     let recipients: { phone: string, context: Record<string, string> }[] = [];
+    let targetDescription = '';
 
     switch (sendTarget) {
         case 'all':
             recipients = families.map(f => ({ phone: f.phone, context: { '{father_name}': f.fatherName, '{school_name}': settings.schoolName } }));
+            targetDescription = 'all families';
             break;
         case 'class':
             if (!targetClass) {
@@ -194,6 +201,7 @@ export default function SettingsPage() {
                         '{school_name}': settings.schoolName
                     } 
                 }));
+            targetDescription = `families of class ${targetClass}`;
             break;
         case 'family':
              if (!targetFamilyId) {
@@ -216,6 +224,7 @@ export default function SettingsPage() {
                     '{school_name}': settings.schoolName
                 } 
             }];
+            targetDescription = `family ${family.fatherName} (${family.id})`;
             break;
         case 'custom':
             if (!customNumbers) {
@@ -224,6 +233,7 @@ export default function SettingsPage() {
                  return;
             }
             recipients = customNumbers.split(',').map(num => ({ phone: num.trim(), context: {'{school_name}': settings.schoolName} }));
+            targetDescription = 'custom numbers';
             break;
     }
 
@@ -251,7 +261,8 @@ export default function SettingsPage() {
             console.error(`Failed to send message to ${recipient.phone}`, error);
         }
     }
-
+    
+    addActivityLog({ user: 'Admin', action: 'Send Custom Message', description: `Sent message to ${successCount} recipients in ${targetDescription}.` });
     toast({ title: 'Process Complete', description: `Successfully sent messages to ${successCount} out of ${recipients.length} recipients.` });
     setIsSending(false);
   };
@@ -289,12 +300,13 @@ export default function SettingsPage() {
       <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><SettingsIcon className="w-8 h-8" />Settings</h1>
       
       <Tabs defaultValue="school" className="w-full">
-        <TabsList className="grid w-full grid-cols-6 max-w-3xl">
+        <TabsList className="grid w-full grid-cols-7 max-w-4xl">
           <TabsTrigger value="school">School</TabsTrigger>
           <TabsTrigger value="theme">Theme</TabsTrigger>
           <TabsTrigger value="grading">Grading</TabsTrigger>
           <TabsTrigger value="account">Account</TabsTrigger>
           <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
+          <TabsTrigger value="history">History</TabsTrigger>
           <TabsTrigger value="backup">Backup</TabsTrigger>
         </TabsList>
         <TabsContent value="school" className="mt-6">
@@ -445,7 +457,10 @@ export default function SettingsPage() {
                         </div>
                     </div>
                      <div className="flex justify-end">
-                        <Button onClick={() => toast({ title: "Theme Saved", description: "Your new colors have been applied."})}>Save Theme</Button>
+                        <Button onClick={() => {
+                            addActivityLog({ user: 'Admin', action: 'Update Theme', description: 'Customized the application theme colors and fonts.' });
+                            toast({ title: "Theme Saved", description: "Your new colors have been applied."});
+                        }}>Save Theme</Button>
                     </div>
                 </CardContent>
             </Card>
@@ -496,7 +511,10 @@ export default function SettingsPage() {
                     </div>
                     <div className="flex justify-between items-center mt-4">
                         <Button variant="outline" onClick={addGradeRow}><PlusCircle className="mr-2 h-4 w-4" /> Add Grade</Button>
-                        <Button onClick={handleSave}>Save Grading System</Button>
+                        <Button onClick={() => {
+                             addActivityLog({ user: 'Admin', action: 'Update Grading System', description: 'Modified the grading system percentages.' });
+                             handleSave();
+                        }}>Save Grading System</Button>
                     </div>
                 </CardContent>
             </Card>
@@ -663,6 +681,41 @@ export default function SettingsPage() {
                     </div>
                 </CardContent>
             </Card>
+        </TabsContent>
+        <TabsContent value="history" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Activity History</CardTitle>
+              <CardDescription>A log of all important activities performed in the system.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>User</TableHead>
+                    <TableHead>Action</TableHead>
+                    <TableHead>Description</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {activityLog.map((log) => (
+                    <TableRow key={log.id}>
+                      <TableCell className="text-xs text-muted-foreground">{format(new Date(log.timestamp), 'PPP p')}</TableCell>
+                      <TableCell>{log.user}</TableCell>
+                      <TableCell><Badge variant="secondary">{log.action}</Badge></TableCell>
+                      <TableCell>{log.description}</TableCell>
+                    </TableRow>
+                  ))}
+                  {activityLog.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">No activity recorded yet.</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </TabsContent>
         <TabsContent value="backup" className="mt-6">
           <Card>

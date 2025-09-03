@@ -1,5 +1,6 @@
 
-import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam } from './types';
+
+import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog } from './types';
 
 export const students: Student[] = [
   { id: '1', name: 'Ali Khan', fatherName: 'Ahmed Khan', class: '5th', section: 'A', admissionDate: '2023-03-15', familyId: '1', status: 'Active', phone: '03001234567', address: '123, Main St, Lahore', dob: '2013-05-20', photoUrl: 'https://picsum.photos/seed/S001/100/100', cnic: '35202-1111111-1' },
@@ -98,3 +99,5 @@ export const exams: Exam[] = [
         ],
     },
 ];
+
+export const activityLog: ActivityLog[] = [];

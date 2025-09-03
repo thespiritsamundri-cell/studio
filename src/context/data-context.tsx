@@ -1,8 +1,9 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam } from '@/lib/types';
+import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog } from '@/lib/types';
 import { students as initialStudents, families as initialFamilies, fees as initialFees, teachers as initialTeachers, teacherAttendances as initialTeacherAttendances, classes as initialClasses, exams as initialExams } from '@/lib/data';
 
 interface DataContextType {
@@ -13,6 +14,7 @@ interface DataContextType {
   teacherAttendances: TeacherAttendance[];
   classes: Class[];
   exams: Exam[];
+  activityLog: ActivityLog[];
   addStudent: (student: Student) => void;
   updateStudent: (id: string, student: Student) => void;
   deleteStudent: (id: string) => void;
@@ -32,7 +34,8 @@ interface DataContextType {
   addExam: (exam: Exam) => void;
   updateExam: (id: string, exam: Exam) => void;
   deleteExam: (id: string) => void;
-  loadData: (data: { students: Student[], families: Family[], fees: Fee[], teachers: Teacher[], teacherAttendances: TeacherAttendance[], classes: Class[], exams: Exam[] }) => void;
+  addActivityLog: (activity: Omit<ActivityLog, 'id' | 'timestamp'>) => void;
+  loadData: (data: { students: Student[], families: Family[], fees: Fee[], teachers: Teacher[], teacherAttendances: TeacherAttendance[], classes: Class[], exams: Exam[], activityLog?: ActivityLog[] }) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -45,6 +48,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [teacherAttendances, setTeacherAttendances] = useState<TeacherAttendance[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
+  const [activityLog, setActivityLog] = useState<ActivityLog[]>([]);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -57,6 +61,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const savedTeacherAttendances = window.localStorage.getItem('schoolTeacherAttendances');
       const savedClasses = window.localStorage.getItem('schoolClasses');
       const savedExams = window.localStorage.getItem('schoolExams');
+      const savedActivityLog = window.localStorage.getItem('schoolActivityLog');
       
       setStudents(savedStudents ? JSON.parse(savedStudents) : initialStudents);
       setFamilies(savedFamilies ? JSON.parse(savedFamilies) : initialFamilies);
@@ -65,6 +70,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setTeacherAttendances(savedTeacherAttendances ? JSON.parse(savedTeacherAttendances) : initialTeacherAttendances);
       setClasses(savedClasses ? JSON.parse(savedClasses) : initialClasses);
       setExams(savedExams ? JSON.parse(savedExams) : initialExams);
+      setActivityLog(savedActivityLog ? JSON.parse(savedActivityLog) : []);
 
     } catch (error) {
       console.error('Error reading from localStorage', error);
@@ -76,6 +82,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setTeacherAttendances(initialTeacherAttendances);
       setClasses(initialClasses);
       setExams(initialExams);
+      setActivityLog([]);
     }
   }, []);
 
@@ -89,31 +96,81 @@ export function DataProvider({ children }: { children: ReactNode }) {
         window.localStorage.setItem('schoolTeacherAttendances', JSON.stringify(teacherAttendances));
         window.localStorage.setItem('schoolClasses', JSON.stringify(classes));
         window.localStorage.setItem('schoolExams', JSON.stringify(exams));
+        window.localStorage.setItem('schoolActivityLog', JSON.stringify(activityLog));
       } catch (error) {
         console.error('Error writing to localStorage', error);
       }
     }
-  }, [students, families, fees, teachers, teacherAttendances, classes, exams, isClient]);
+  }, [students, families, fees, teachers, teacherAttendances, classes, exams, activityLog, isClient]);
 
-  const addStudent = (student: Student) => setStudents(prev => [...prev, student]);
-  const updateStudent = (id: string, updatedStudent: Student) => setStudents(prev => prev.map(s => s.id === id ? updatedStudent : s));
-  const deleteStudent = (id: string) => setStudents(prev => prev.filter(s => s.id !== id));
+  const addActivityLog = (activity: Omit<ActivityLog, 'id' | 'timestamp'>) => {
+    const newLogEntry: ActivityLog = {
+      ...activity,
+      id: `LOG-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+    };
+    setActivityLog(prev => [newLogEntry, ...prev]);
+  };
 
-  const addFamily = (family: Family) => setFamilies(prev => [...prev, family]);
-  const updateFamily = (id: string, updatedFamily: Family) => setFamilies(prev => prev.map(f => f.id === id ? updatedFamily : f));
+  const addStudent = (student: Student) => {
+    setStudents(prev => [...prev, student]);
+    addActivityLog({ user: 'Admin', action: 'Add Student', description: `Admitted new student: ${student.name} (ID: ${student.id})` });
+  };
+  const updateStudent = (id: string, updatedStudent: Student) => {
+    setStudents(prev => prev.map(s => s.id === id ? updatedStudent : s));
+    addActivityLog({ user: 'Admin', action: 'Update Student', description: `Updated details for student: ${updatedStudent.name} (ID: ${id})` });
+  };
+  const deleteStudent = (id: string) => {
+    const student = students.find(s => s.id === id);
+    setStudents(prev => prev.filter(s => s.id !== id));
+    if (student) {
+        addActivityLog({ user: 'Admin', action: 'Delete Student', description: `Deleted student: ${student.name} (ID: ${id})` });
+    }
+  };
+
+  const addFamily = (family: Family) => {
+    setFamilies(prev => [...prev, family]);
+    addActivityLog({ user: 'Admin', action: 'Add Family', description: `Added new family: ${family.fatherName} (ID: ${family.id})` });
+  };
+  const updateFamily = (id: string, updatedFamily: Family) => {
+    setFamilies(prev => prev.map(f => f.id === id ? updatedFamily : f));
+     addActivityLog({ user: 'Admin', action: 'Update Family', description: `Updated details for family: ${updatedFamily.fatherName} (ID: ${id})` });
+  };
   const deleteFamily = (id: string) => {
+    const family = families.find(f => f.id === id);
     setFamilies(prev => prev.filter(f => f.id !== id));
     setStudents(prev => prev.filter(s => s.familyId !== id));
     setFees(prev => prev.filter(f => f.familyId !== id));
+    if (family) {
+        addActivityLog({ user: 'Admin', action: 'Delete Family', description: `Deleted family: ${family.fatherName} (ID: ${id}) and all associated data.` });
+    }
   };
   
-  const addFee = (fee: Fee) => setFees(prev => [...prev, fee]);
+  const addFee = (fee: Fee) => {
+    setFees(prev => [...prev, fee]);
+    if (fee.status === 'Paid') {
+        const family = families.find(f => f.id === fee.familyId);
+        addActivityLog({ user: 'Admin', action: 'Collect Fee', description: `Collected PKR ${fee.amount} from family ${family?.fatherName} (${fee.familyId}) for ${fee.month}.` });
+    }
+  };
   const updateFee = (id: string, updatedFee: Fee) => setFees(prev => prev.map(f => f.id === id ? updatedFee : f));
   const deleteFee = (id: string) => setFees(prev => prev.filter(f => f.id !== id));
 
-  const addTeacher = (teacher: Teacher) => setTeachers(prev => [...prev, teacher]);
-  const updateTeacher = (id: string, updatedTeacher: Teacher) => setTeachers(prev => prev.map(t => t.id === id ? updatedTeacher : t));
-  const deleteTeacher = (id: string) => setTeachers(prev => prev.filter(t => t.id !== id));
+  const addTeacher = (teacher: Teacher) => {
+    setTeachers(prev => [...prev, teacher]);
+    addActivityLog({ user: 'Admin', action: 'Add Teacher', description: `Added new teacher: ${teacher.name}` });
+  };
+  const updateTeacher = (id: string, updatedTeacher: Teacher) => {
+    setTeachers(prev => prev.map(t => t.id === id ? updatedTeacher : t));
+    addActivityLog({ user: 'Admin', action: 'Update Teacher', description: `Updated details for teacher: ${updatedTeacher.name}` });
+  };
+  const deleteTeacher = (id: string) => {
+    const teacher = teachers.find(t => t.id === id);
+    setTeachers(prev => prev.filter(t => t.id !== id));
+    if (teacher) {
+       addActivityLog({ user: 'Admin', action: 'Delete Teacher', description: `Deleted teacher: ${teacher.name}` });
+    }
+  };
   
   const saveTeacherAttendance = (newAttendances: TeacherAttendance[]) => {
     const date = newAttendances[0]?.date;
@@ -123,17 +180,42 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const otherDateAttendances = prev.filter(att => att.date !== date);
         return [...otherDateAttendances, ...newAttendances];
     });
+    addActivityLog({ user: 'Admin', action: 'Save Teacher Attendance', description: `Saved teacher attendance for date: ${date}` });
   }
 
-  const addClass = (newClass: Class) => setClasses(prev => [...prev, newClass]);
-  const updateClass = (id: string, updatedClass: Class) => setClasses(prev => prev.map(c => c.id === id ? updatedClass : c));
-  const deleteClass = (id: string) => setClasses(prev => prev.filter(c => c.id !== id));
+  const addClass = (newClass: Class) => {
+    setClasses(prev => [...prev, newClass]);
+    addActivityLog({ user: 'Admin', action: 'Add Class', description: `Created new class: ${newClass.name}` });
+  };
+  const updateClass = (id: string, updatedClass: Class) => {
+    setClasses(prev => prev.map(c => c.id === id ? updatedClass : c));
+    addActivityLog({ user: 'Admin', action: 'Update Class', description: `Updated class: ${updatedClass.name}` });
+  };
+  const deleteClass = (id: string) => {
+    const classToDelete = classes.find(c => c.id === id);
+    setClasses(prev => prev.filter(c => c.id !== id));
+    if(classToDelete) {
+        addActivityLog({ user: 'Admin', action: 'Delete Class', description: `Deleted class: ${classToDelete.name}` });
+    }
+  };
   
-  const addExam = (exam: Exam) => setExams(prev => [...prev, exam]);
-  const updateExam = (id: string, updatedExam: Exam) => setExams(prev => prev.map(e => e.id === id ? updatedExam : e));
-  const deleteExam = (id: string) => setExams(prev => prev.filter(e => e.id !== id));
+  const addExam = (exam: Exam) => {
+    setExams(prev => [...prev, exam]);
+    addActivityLog({ user: 'Admin', action: 'Create Exam', description: `Created exam "${exam.name}" for class ${exam.class}` });
+  };
+  const updateExam = (id: string, updatedExam: Exam) => {
+    setExams(prev => prev.map(e => e.id === id ? updatedExam : e));
+    addActivityLog({ user: 'Admin', action: 'Save Exam Results', description: `Saved results for exam: ${updatedExam.name} (${updatedExam.class})` });
+  };
+  const deleteExam = (id: string) => {
+    const exam = exams.find(e => e.id === id);
+    setExams(prev => prev.filter(e => e.id !== id));
+    if (exam) {
+        addActivityLog({ user: 'Admin', action: 'Delete Exam', description: `Deleted exam: ${exam.name} (${exam.class})` });
+    }
+  };
 
-  const loadData = (data: { students: Student[], families: Family[], fees: Fee[], teachers: Teacher[], teacherAttendances: TeacherAttendance[], classes: Class[], exams: Exam[] }) => {
+  const loadData = (data: { students: Student[], families: Family[], fees: Fee[], teachers: Teacher[], teacherAttendances: TeacherAttendance[], classes: Class[], exams: Exam[], activityLog?: ActivityLog[] }) => {
     setStudents(data.students || []);
     setFamilies(data.families || []);
     setFees(data.fees || []);
@@ -141,6 +223,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setTeacherAttendances(data.teacherAttendances || []);
     setClasses(data.classes || []);
     setExams(data.exams || []);
+    setActivityLog(data.activityLog || []);
+    addActivityLog({ user: 'Admin', action: 'Restore Backup', description: 'Restored all application data from a backup file.' });
   };
 
   const contextValue = React.useMemo(() => ({ 
@@ -151,6 +235,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       teacherAttendances,
       classes,
       exams,
+      activityLog,
       addStudent,
       updateStudent, 
       deleteStudent,
@@ -170,9 +255,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       addExam,
       updateExam,
       deleteExam,
+      addActivityLog,
       loadData 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }), [students, families, fees, teachers, teacherAttendances, classes, exams]);
+    }), [students, families, fees, teachers, teacherAttendances, classes, exams, activityLog]);
 
 
   return (

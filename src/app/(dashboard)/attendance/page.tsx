@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -16,11 +17,12 @@ import { Send, Printer } from 'lucide-react';
 import { AttendancePrintReport } from '@/components/reports/attendance-report';
 import { renderToString } from 'react-dom/server';
 import { useSettings } from '@/context/settings-context';
+import { format } from 'date-fns';
 
 type AttendanceStatus = 'Present' | 'Absent' | 'Leave';
 
 export default function AttendancePage() {
-  const { students: allStudents, families, classes } = useData();
+  const { students: allStudents, families, classes, addActivityLog } = useData();
   const { settings } = useSettings();
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
@@ -77,9 +79,13 @@ export default function AttendancePage() {
   };
 
   const saveAttendance = () => {
-    console.log('Saving attendance:', attendance);
     // Here you would typically save to a database.
-    // For now, we just show a toast.
+    addActivityLog({
+      user: 'Admin',
+      action: 'Save Attendance',
+      description: `Saved attendance for class ${selectedClass} on ${format(new Date(), 'PPP')}.`,
+    });
+
     toast({
       title: 'Attendance Saved',
       description: `Attendance for class ${selectedClass} has been successfully saved.`,
@@ -101,6 +107,8 @@ export default function AttendancePage() {
       title: 'Sending Messages...',
       description: `Sending WhatsApp messages to parents of ${absentStudents.length} absent students.`,
     });
+    
+    addActivityLog({ user: 'Admin', action: 'Notify Absentees', description: `Sent WhatsApp absentee notifications for class ${selectedClass}.`});
 
     for (const student of absentStudents) {
       try {

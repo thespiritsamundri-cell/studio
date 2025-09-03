@@ -88,3 +88,11 @@ export interface Grade {
     name: string;
     minPercentage: number;
 }
+
+export interface ActivityLog {
+  id: string;
+  timestamp: string;
+  user: string;
+  action: string;
+  description: string;
+}
