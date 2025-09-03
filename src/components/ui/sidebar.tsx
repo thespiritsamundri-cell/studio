@@ -163,7 +163,7 @@ const Sidebar = React.forwardRef<
           <SheetContent
             data-sidebar="sidebar"
             data-mobile="true"
-            className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
+            className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground"
             style={
               {
                 "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
@@ -171,9 +171,9 @@ const Sidebar = React.forwardRef<
             }
             side="left"
           >
-            <SheetHeader className="sr-only">
-              <SheetTitle>Menu</SheetTitle>
-            </SheetHeader>
+             <SheetHeader className="p-2">
+                <SheetTitle>Menu</SheetTitle>
+             </SheetHeader>
             <div className="flex h-full w-full flex-col">{children}</div>
           </SheetContent>
         </Sheet>
@@ -230,7 +230,19 @@ const SidebarHeader = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div">
 >(({ className, ...props }, ref) => {
-  const { togglePinned, isPinned } = useSidebar();
+  const { togglePinned, isPinned, isMobile } = useSidebar();
+  
+  if(isMobile) {
+     return (
+        <div
+            ref={ref}
+            data-sidebar="header"
+            className={cn("flex flex-col", className)}
+            {...props}
+        />
+     )
+  }
+  
   return (
     <div
       ref={ref}
@@ -366,7 +378,7 @@ const SidebarMenuButton = React.forwardRef<
         data-sidebar="menu-button"
         data-size={size}
         data-active={isActive}
-        className={cn(sidebarMenuButtonVariants({ variant, size }), isPinned ? "justify-start" : "justify-center group-hover/sidebar:justify-start", className)}
+        className={cn(sidebarMenuButtonVariants({ variant, size }), (isPinned || isMobile) ? "justify-start" : "justify-center group-hover/sidebar:justify-start", className)}
         {...props}
         >
             {children}
