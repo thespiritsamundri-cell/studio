@@ -3,8 +3,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense } from '@/lib/types';
-import { students as initialStudents, families as initialFamilies, fees as initialFees, teachers as initialTeachers, teacherAttendances as initialTeacherAttendances, classes as initialClasses, exams as initialExams, expenses as initialExpenses } from '@/lib/data';
+import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData } from '@/lib/types';
+import { students as initialStudents, families as initialFamilies, fees as initialFees, teachers as initialTeachers, teacherAttendances as initialTeacherAttendances, classes as initialClasses, exams as initialExams, expenses as initialExpenses, timetables as initialTimetables } from '@/lib/data';
 
 interface DataContextType {
   students: Student[];
@@ -16,6 +16,7 @@ interface DataContextType {
   exams: Exam[];
   activityLog: ActivityLog[];
   expenses: Expense[];
+  timetables: Timetable[];
   addStudent: (student: Student) => void;
   updateStudent: (id: string, student: Student) => void;
   deleteStudent: (id: string) => void;
@@ -39,7 +40,8 @@ interface DataContextType {
   addExpense: (expense: Expense) => void;
   updateExpense: (id: string, expense: Expense) => void;
   deleteExpense: (id: string) => void;
-  loadData: (data: { students: Student[], families: Family[], fees: Fee[], teachers: Teacher[], teacherAttendances: TeacherAttendance[], classes: Class[], exams: Exam[], expenses: Expense[], activityLog?: ActivityLog[] }) => void;
+  updateTimetable: (classId: string, data: TimetableData) => void;
+  loadData: (data: { students: Student[], families: Family[], fees: Fee[], teachers: Teacher[], teacherAttendances: TeacherAttendance[], classes: Class[], exams: Exam[], expenses: Expense[], timetables?: Timetable[], activityLog?: ActivityLog[] }) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -54,6 +56,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [exams, setExams] = useState<Exam[]>([]);
   const [activityLog, setActivityLog] = useState<ActivityLog[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [timetables, setTimetables] = useState<Timetable[]>([]);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -68,6 +71,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const savedExams = window.localStorage.getItem('schoolExams');
       const savedActivityLog = window.localStorage.getItem('schoolActivityLog');
       const savedExpenses = window.localStorage.getItem('schoolExpenses');
+      const savedTimetables = window.localStorage.getItem('schoolTimetables');
       
       setStudents(savedStudents ? JSON.parse(savedStudents) : initialStudents);
       setFamilies(savedFamilies ? JSON.parse(savedFamilies) : initialFamilies);
@@ -78,6 +82,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setExams(savedExams ? JSON.parse(savedExams) : initialExams);
       setActivityLog(savedActivityLog ? JSON.parse(savedActivityLog) : []);
       setExpenses(savedExpenses ? JSON.parse(savedExpenses) : initialExpenses);
+      setTimetables(savedTimetables ? JSON.parse(savedTimetables) : initialTimetables);
 
     } catch (error) {
       console.error('Error reading from localStorage', error);
@@ -91,6 +96,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setExams(initialExams);
       setActivityLog([]);
       setExpenses(initialExpenses);
+      setTimetables(initialTimetables);
     }
   }, []);
 
@@ -106,11 +112,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
         window.localStorage.setItem('schoolExams', JSON.stringify(exams));
         window.localStorage.setItem('schoolActivityLog', JSON.stringify(activityLog));
         window.localStorage.setItem('schoolExpenses', JSON.stringify(expenses));
+        window.localStorage.setItem('schoolTimetables', JSON.stringify(timetables));
       } catch (error) {
         console.error('Error writing to localStorage', error);
       }
     }
-  }, [students, families, fees, teachers, teacherAttendances, classes, exams, activityLog, expenses, isClient]);
+  }, [students, families, fees, teachers, teacherAttendances, classes, exams, activityLog, expenses, timetables, isClient]);
 
   const addActivityLog = (activity: Omit<ActivityLog, 'id' | 'timestamp'>) => {
     const newLogEntry: ActivityLog = {
@@ -240,7 +247,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const loadData = (data: { students: Student[], families: Family[], fees: Fee[], teachers: Teacher[], teacherAttendances: TeacherAttendance[], classes: Class[], exams: Exam[], expenses: Expense[], activityLog?: ActivityLog[] }) => {
+  const updateTimetable = (classId: string, data: TimetableData) => {
+    setTimetables(prev => {
+        const existing = prev.find(t => t.classId === classId);
+        if (existing) {
+            return prev.map(t => t.classId === classId ? { ...t, data } : t);
+        }
+        return [...prev, { classId, data }];
+    });
+    addActivityLog({ user: 'Admin', action: 'Update Timetable', description: `Updated timetable for class ID ${classId}.` });
+  };
+
+  const loadData = (data: { students: Student[], families: Family[], fees: Fee[], teachers: Teacher[], teacherAttendances: TeacherAttendance[], classes: Class[], exams: Exam[], expenses: Expense[], timetables?: Timetable[], activityLog?: ActivityLog[] }) => {
     setStudents(data.students || []);
     setFamilies(data.families || []);
     setFees(data.fees || []);
@@ -249,6 +267,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setClasses(data.classes || []);
     setExams(data.exams || []);
     setExpenses(data.expenses || []);
+    setTimetables(data.timetables || []);
     setActivityLog(data.activityLog || []);
     addActivityLog({ user: 'Admin', action: 'Restore Backup', description: 'Restored all application data from a backup file.' });
   };
@@ -263,6 +282,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       exams,
       activityLog,
       expenses,
+      timetables,
       addStudent,
       updateStudent, 
       deleteStudent,
@@ -286,9 +306,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       addExpense,
       updateExpense,
       deleteExpense,
+      updateTimetable,
       loadData 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }), [students, families, fees, teachers, teacherAttendances, classes, exams, activityLog, expenses]);
+    }), [students, families, fees, teachers, teacherAttendances, classes, exams, activityLog, expenses, timetables]);
 
 
   return (

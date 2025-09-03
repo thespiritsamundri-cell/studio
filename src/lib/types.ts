@@ -105,3 +105,12 @@ export interface Expense {
   amount: number;
   vendor?: string;
 }
+
+export type TimetableCell = string;
+export type TimetableRow = TimetableCell[];
+export type TimetableData = TimetableRow[];
+
+export interface Timetable {
+  classId: string;
+  data: TimetableData;
+}
