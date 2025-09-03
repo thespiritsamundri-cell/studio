@@ -11,6 +11,7 @@ import {
   SidebarFooter,
   SidebarContent,
   useSidebar,
+  CollapsibleSidebarMenuItem
 } from '@/components/ui/sidebar';
 import {
   LayoutDashboard,
@@ -55,6 +56,13 @@ const navItems = [
   { href: '/reports', icon: FileText, label: 'Reports' },
 ];
 
+const examSystemItems = [
+    { href: "/exams", icon: FileSignature, label: "Marksheets" },
+    { href: "/result-cards", icon: FileBadge, label: "Result Cards" },
+    { href: "/roll-number-slips", icon: Ticket, label: "Roll No. Slips" },
+    { href: "/seating-plan", icon: Grid3x3, label: "Seating Plan" },
+];
+
 export function SidebarNav() {
   const pathname = usePathname();
   const { settings } = useSettings();
@@ -64,21 +72,21 @@ export function SidebarNav() {
   return (
     <>
       <SidebarHeader>
-        <div className="flex items-center gap-2.5 p-2">
-           <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary-foreground/10">
+        <div className="flex items-center gap-2.5 p-2 whitespace-nowrap overflow-hidden">
+           <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary-foreground/10 flex-shrink-0">
             {settings.schoolLogo && typeof settings.schoolLogo === 'string' && settings.schoolLogo.length > 0 ? (
               <Image src={settings.schoolLogo} alt="School Logo" width={40} height={40} className="rounded-full object-cover"/>
             ) : (
               <School className="w-6 h-6 text-primary-foreground" />
             )}
           </div>
-          <div className="flex flex-col group-[[data-collapsible=icon]]:hidden">
+          <div className="flex flex-col opacity-100 group-hover/sidebar:opacity-100 transition-opacity duration-200 group-[[data-sidebar-hidden=true]]:opacity-0">
             <span className="text-lg font-bold text-primary-foreground font-headline">{settings.schoolName}</span>
             <span className="text-xs text-primary-foreground/70">{settings.academicYear}</span>
           </div>
         </div>
       </SidebarHeader>
-      <SidebarContent className="p-2">
+      <SidebarContent>
         <SidebarMenu>
           {navItems.map((item) => (
             <SidebarMenuItem key={item.label}>
@@ -89,79 +97,42 @@ export function SidebarNav() {
               >
                 <Link href={item.href}>
                   <item.icon />
-                  <span className="group-[[data-collapsible=icon]]:hidden">{item.label}</span>
+                  <span className="truncate min-w-0">{item.label}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
-            <Collapsible open={isExamSystemOpen} onOpenChange={setIsExamSystemOpen}>
-              <SidebarMenuItem>
+            <Collapsible asChild open={isExamSystemOpen} onOpenChange={setIsExamSystemOpen}>
+              <CollapsibleSidebarMenuItem>
                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton tooltip='Exam System' className="justify-between">
-                      <div className="flex items-center gap-2">
+                    <SidebarMenuButton tooltip='Exam System' className="justify-between w-full">
+                      <div className="flex items-center gap-3">
                         <FileSignature />
-                        <span className="group-[[data-collapsible=icon]]:hidden">Exam System</span>
+                        <span className="truncate min-w-0">Exam System</span>
                       </div>
-                      <ChevronRight className={cn('h-4 w-4 transition-transform group-[[data-collapsible=icon]]:hidden', isExamSystemOpen && 'rotate-90')} />
+                      <ChevronRight className={cn('h-4 w-4 transition-transform ml-auto', isExamSystemOpen && 'rotate-90')} />
                   </SidebarMenuButton>
                  </CollapsibleTrigger>
-              </SidebarMenuItem>
-              <CollapsibleContent asChild>
-                 <ul className="space-y-1 ml-7 pl-2 border-l group-[[data-collapsible=icon]]:hidden">
-                    <li>
-                      <SidebarMenuButton
-                        asChild
-                        size="sm"
-                        isActive={pathname.startsWith('/exams')}
-                        tooltip="Marksheets"
-                      >
-                        <Link href="/exams">
-                          <FileSignature />
-                          <span>Marksheets</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </li>
-                    <li>
-                      <SidebarMenuButton
-                        asChild
-                        size="sm"
-                        isActive={pathname.startsWith('/result-cards')}
-                        tooltip="Result Cards"
-                      >
-                        <Link href="/result-cards">
-                          <FileBadge />
-                          <span>Result Cards</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </li>
-                     <li>
-                      <SidebarMenuButton
-                        asChild
-                        size="sm"
-                        isActive={pathname.startsWith('/roll-number-slips')}
-                        tooltip="Roll Number Slips"
-                      >
-                        <Link href="/roll-number-slips">
-                          <Ticket />
-                          <span>Roll No. Slips</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </li>
-                     <li>
-                      <SidebarMenuButton
-                        asChild
-                        size="sm"
-                        isActive={pathname.startsWith('/seating-plan')}
-                        tooltip="Seating Plan"
-                      >
-                        <Link href="/seating-plan">
-                          <Grid3x3 />
-                          <span>Seating Plan</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </li>
-                 </ul>
-              </CollapsibleContent>
+                <CollapsibleContent asChild>
+                    <ul className="space-y-1 ml-4 pl-5 py-1 border-l border-sidebar-border/50">
+                        {examSystemItems.map(item => (
+                             <li key={item.label}>
+                                <SidebarMenuButton
+                                    asChild
+                                    size="sm"
+                                    isActive={pathname.startsWith(item.href)}
+                                    tooltip={item.label}
+                                >
+                                    <Link href={item.href}>
+                                    <item.icon />
+                                    <span className="truncate min-w-0">{item.label}</span>
+                                    </Link>
+                                </SidebarMenuButton>
+                             </li>
+                        ))}
+                    </ul>
+                </CollapsibleContent>
+              </CollapsibleSidebarMenuItem>
             </Collapsible>
         </SidebarMenu>
       </SidebarContent>
@@ -175,7 +146,7 @@ export function SidebarNav() {
               >
                 <Link href="/settings">
                   <Settings />
-                  <span className="group-[[data-collapsible=icon]]:hidden">Settings</span>
+                  <span className="truncate min-w-0">Settings</span>
                 </Link>
               </SidebarMenuButton>
           </SidebarMenuItem>
@@ -183,7 +154,7 @@ export function SidebarNav() {
             <SidebarMenuButton asChild tooltip="Logout">
               <Link href="/">
                 <LogOut />
-                <span className="group-[[data-collapsible=icon]]:hidden">Logout</span>
+                <span className="truncate min-w-0">Logout</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
