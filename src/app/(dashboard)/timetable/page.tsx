@@ -233,7 +233,7 @@ export default function TimetablePage() {
                     <Select onValueChange={(subject) => handleSelect(subject, '')}>
                         <SelectTrigger><SelectValue placeholder="Select Subject" /></SelectTrigger>
                         <SelectContent>
-                             {classInfo?.subjects.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                             {classInfo?.subjects && classInfo.subjects.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                         </SelectContent>
                     </Select>
                     {cellData?.subject && (
