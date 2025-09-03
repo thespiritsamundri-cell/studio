@@ -39,7 +39,6 @@ export default function RollNumberSlipsPage() {
   const [instructions, setInstructions] = useState('1. Reach the examination hall 15 minutes before the start time.\n2. Mobile phones are strictly prohibited.\n3. Bring your own stationery. Sharing is not allowed.');
   const [dateSheet, setDateSheet] = useState<DateSheetItem[]>([]);
   const [startRollNo, setStartRollNo] = useState(1001);
-  const [printLayout, setPrintLayout] = useState<'1' | '2'>('2');
 
   const subjects = useMemo(() => {
     if (!selectedClass) return [];
@@ -120,7 +119,6 @@ export default function RollNumberSlipsPage() {
           dateSheet={dateSheet}
           instructions={instructions}
           startRollNo={startRollNo}
-          layout={printLayout}
           qrCodes={qrCodes}
         />
       );
@@ -269,7 +267,7 @@ export default function RollNumberSlipsPage() {
           </div>
           
           <div className="mt-6 pt-6 border-t">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1">
                   <div className="space-y-2">
                      <h3 className="font-semibold text-lg">5. Instructions</h3>
                       <Textarea 
@@ -279,18 +277,6 @@ export default function RollNumberSlipsPage() {
                         rows={4}
                         className="font-urdu"
                       />
-                  </div>
-                  <div className="space-y-2">
-                     <h3 className="font-semibold text-lg">6. Print Layout</h3>
-                      <Select value={printLayout} onValueChange={(value) => setPrintLayout(value as '1'|'2')}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Layout"/>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="1">1 Slip per Page</SelectItem>
-                          <SelectItem value="2">2 Slips per Page</SelectItem>
-                        </SelectContent>
-                      </Select>
                   </div>
               </div>
            <div className="flex justify-end mt-8 pt-6 border-t">

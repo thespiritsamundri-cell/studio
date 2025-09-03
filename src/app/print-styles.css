@@ -20,39 +20,11 @@
   }
 
   /* --- FOR ROLL NUMBER SLIPS --- */
-  
-  /* --- Layout for 1 Slip per Page --- */
-  .roll-number-slips-container[data-print-layout="1"] .slip-wrapper {
+  .slip-wrapper {
       page-break-after: always;
   }
-  .roll-number-slips-container[data-print-layout="1"] .slip-wrapper:last-child {
+  .slip-wrapper:last-child {
       page-break-after: auto;
-  }
-  
-  /* --- Layout for 2 Slips per Page --- */
-  .roll-number-slips-container[data-print-layout="2"] .slip-page-wrapper {
-      display: flex;
-      flex-direction: column;
-      height: 10.9in; /* A4 height is ~11.7in, leaving room for 0.25in top/bottom margins */
-      width: 100%;
-      page-break-after: always;
-      box-sizing: border-box;
-  }
-   .roll-number-slips-container[data-print-layout="2"] .slip-page-wrapper:last-child {
-      page-break-after: auto;
-   }
-
-  .roll-number-slips-container[data-print-layout="2"] .slip-wrapper {
-      height: 50%;
-      box-sizing: border-box;
-      flex-shrink: 0;
-      display: flex;
-      flex-direction: column;
-      padding-bottom: 0.25in; /* Gutter between slips */
-  }
-
-  .roll-number-slips-container[data-print-layout="2"] .slip-page-wrapper .slip-wrapper:last-child {
-      padding-bottom: 0; /* No gutter after the second slip */
   }
 
 

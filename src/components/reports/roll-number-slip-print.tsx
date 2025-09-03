@@ -15,7 +15,6 @@ interface RollNumberSlipPrintProps {
   dateSheet: DateSheetItem[];
   instructions: string;
   startRollNo: number;
-  layout: '1' | '2';
   qrCodes: Record<string, string>;
 }
 
@@ -24,9 +23,11 @@ const Slip = ({ student, settings, examName, dateSheet, instructions, rollNo, qr
     const formatDate = (dateString: string) => {
         if (!dateString) return '-';
         try {
+            // The input type="date" provides 'YYYY-MM-DD' which parseISO handles correctly.
             return format(parseISO(dateString), 'dd-MM-yyyy');
         } catch (error) {
             console.error("Date formatting error:", error);
+            // Fallback for any other unexpected format
             return dateString;
         }
     }
@@ -135,42 +136,10 @@ const Slip = ({ student, settings, examName, dateSheet, instructions, rollNo, qr
 }
 
 export const RollNumberSlipPrint = React.forwardRef<HTMLDivElement, RollNumberSlipPrintProps>(
-  ({ students, settings, examName, dateSheet, instructions, startRollNo, layout, qrCodes }, ref) => {
+  ({ students, settings, examName, dateSheet, instructions, startRollNo, qrCodes }, ref) => {
     
-    if (layout === '2') {
-        const studentPairs: Student[][] = [];
-        for (let i = 0; i < students.length; i += 2) {
-            studentPairs.push(students.slice(i, i + 2));
-        }
-
-        return (
-             <div ref={ref} className="roll-number-slips-container" data-print-layout={layout}>
-                {studentPairs.map((pair, pageIndex) => (
-                    <div key={pageIndex} className="slip-page-wrapper">
-                        {pair.map((student, studentIndex) => {
-                           const overallIndex = pageIndex * 2 + studentIndex;
-                           return (
-                               <Slip 
-                                    key={student.id}
-                                    student={student} 
-                                    settings={settings}
-                                    examName={examName}
-                                    dateSheet={dateSheet}
-                                    instructions={instructions}
-                                    rollNo={startRollNo + overallIndex}
-                                    qrCode={qrCodes[student.id]}
-                               />
-                           );
-                        })}
-                    </div>
-                ))}
-             </div>
-        )
-    }
-
-    // Default layout (1 per page)
     return (
-      <div ref={ref} data-print-layout={layout}>
+      <div ref={ref}>
         {students.map((student, index) => (
             <Slip 
                 key={student.id}
