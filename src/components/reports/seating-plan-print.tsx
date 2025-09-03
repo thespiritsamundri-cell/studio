@@ -62,7 +62,7 @@ export const SeatingPlanPrint = React.forwardRef<HTMLDivElement, SeatingPlanPrin
             <thead>
                 <tr>
                     {seatingGrid[0]?.map((_, colIndex) => (
-                        <th key={colIndex} style={headerCellStyle}>Column {colIndex + 1}</th>
+                        <th key={colIndex} style={headerCellStyle}>Line {colIndex + 1}</th>
                     ))}
                 </tr>
             </thead>
