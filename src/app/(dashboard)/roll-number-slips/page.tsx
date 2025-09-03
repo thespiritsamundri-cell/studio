@@ -233,7 +233,7 @@ export default function RollNumberSlipsPage() {
                                          <TableCell>
                                             <div className="relative">
                                                 <Clock className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                                <Input type="time" value={item.time} onChange={e => handleDateSheetChange(index, 'time', e.target.value)} className="pl-8" />
+                                                <Input type="text" placeholder="e.g., 9:00 AM" value={item.time} onChange={e => handleDateSheetChange(index, 'time', e.target.value)} className="pl-8" />
                                             </div>
                                         </TableCell>
                                     </TableRow>
