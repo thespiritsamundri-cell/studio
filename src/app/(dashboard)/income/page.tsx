@@ -161,11 +161,11 @@ export default function IncomePage() {
            updateFee(existingChallan.id, { ...existingChallan, amount: existingChallan.amount + difference });
        } else {
             let lastFeeId = allFees.reduce((max, f) => {
-                const idNum = parseInt(f.id.replace('A', ''), 10);
+                const idNum = parseInt(f.id.replace('FEE', ''));
                 return !isNaN(idNum) && idNum > max ? idNum : max;
             }, 0);
            addFee({
-               id: `A${String(++lastFeeId).padStart(3, '0')}`,
+               id: `FEE${String(++lastFeeId).padStart(3, '0')}`,
                familyId: feeToEdit.familyId,
                amount: difference,
                month: feeToEdit.month,

@@ -49,7 +49,7 @@ export default function TeacherAttendancePage() {
 
 
   const handleAttendanceChange = (teacherId: string, status: AttendanceStatus) => {
-    setAttendance((prev) => ({ ...prev, teacherId: status }));
+    setAttendance((prev) => ({ ...prev, [teacherId]: status }));
   };
 
   const handleSaveAttendance = () => {
