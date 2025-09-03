@@ -39,7 +39,12 @@ const ResultCard = ({ student, exams, settings, classes, remarks, printOrientati
     };
     
     const grandTotalMarks = exams.reduce((total, exam) => {
-        return total + subjects.reduce((subTotal, subject) => subTotal + (exam.subjectTotals[subject] || 0), 0);
+        const result = exam.results.find(r => r.studentId === student.id);
+        if (!result) return total;
+        return total + subjects.reduce((subTotal, subject) => {
+            const subjectTotal = exam.subjectTotals[subject] || 0;
+            return subTotal + subjectTotal;
+        }, 0);
     }, 0);
 
     const grandObtainedMarks = exams.reduce((total, exam) => {
@@ -67,11 +72,21 @@ const ResultCard = ({ student, exams, settings, classes, remarks, printOrientati
                     <h2 className="text-2xl font-semibold mt-2 underline">Progress Report Card</h2>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1 border-y-2 border-gray-800 py-2 my-4 text-sm">
-                    <div><span className="font-bold">Student Name:</span> {student.name}</div>
-                    <div><span className="font-bold">Father's Name:</span> {student.fatherName}</div>
-                    <div><span className="font-bold">Student ID:</span> {student.id}</div>
-                    <div><span className="font-bold">Class:</span> {student.class}</div>
+                <div className="flex justify-between items-center my-4 border-y-2 border-gray-800 py-2">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                        <div><span className="font-bold">Student Name:</span> {student.name}</div>
+                        <div><span className="font-bold">Father's Name:</span> {student.fatherName}</div>
+                        <div><span className="font-bold">Student ID:</span> {student.id}</div>
+                        <div><span className="font-bold">Class:</span> {student.class}</div>
+                    </div>
+                    <Image
+                        src={student.photoUrl}
+                        alt="Student Photo"
+                        width={80}
+                        height={80}
+                        className="object-cover rounded-md border-2 border-gray-300"
+                        data-ai-hint="student photo"
+                    />
                 </div>
 
                 <table className="w-full border-collapse border border-gray-400 text-sm">
@@ -92,7 +107,7 @@ const ResultCard = ({ student, exams, settings, classes, remarks, printOrientati
                                     <th className="font-bold border border-gray-400 p-1">Total</th>
                                 </React.Fragment>
                            ))}
-                             <th className="font-bold border border-gray-400 p-1">Obtained / Total</th>
+                             <th className="font-bold border border-gray-400 p-1">Obt. / Total</th>
                              <th className="font-bold border border-gray-400 p-1">%</th>
                              <th className="font-bold border border-gray-400 p-1">Grade</th>
                         </tr>
