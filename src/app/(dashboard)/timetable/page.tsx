@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useData } from '@/context/data-context';
 import { useToast } from '@/hooks/use-toast';
-import { Printer, CalendarClock, User, BookOpen, Save } from 'lucide-react';
+import { Printer, CalendarClock, User, BookOpen, Save, Users } from 'lucide-react';
 import type { Timetable, TimetableData, TimetableCell } from '@/lib/types';
 import { useSettings } from '@/context/settings-context';
 import { renderToString } from 'react-dom/server';
@@ -234,7 +234,7 @@ export default function TimetablePage() {
     return (
         <div className="h-24 w-full p-0.5 flex flex-col border-t-2 border-double border-gray-300">
             <Select
-                value={cellData?.teacherId || ''}
+                value={cellData?.teacherId || 'none'}
                 onValueChange={(teacherId) => handleMasterCellChange(classId, periodIndex, 'teacherId', teacherId)}
             >
                 <SelectTrigger className="h-12 text-xs border-0 rounded-b-none focus:ring-0 bg-transparent justify-center font-semibold">
@@ -249,7 +249,7 @@ export default function TimetablePage() {
             <div className="border-t border-dashed border-gray-300 mx-1"></div>
 
             <Select
-                value={cellData?.subject || ''}
+                value={cellData?.subject || 'none'}
                 onValueChange={(subject) => handleMasterCellChange(classId, periodIndex, 'subject', subject)}
             >
                 <SelectTrigger className="h-12 text-xs border-0 rounded-t-none focus:ring-0 bg-transparent justify-center">
