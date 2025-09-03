@@ -42,8 +42,54 @@ export const MasterTimetablePrint = React.forwardRef<HTMLDivElement, MasterTimet
         backgroundColor: '#d1fae5', // green-200
         writingMode: 'vertical-rl',
         transform: 'rotate(180deg)',
-        width: '3%'
     };
+    
+    const renderHeaders = () => {
+        const headers = [];
+        for (let i = 0; i < numPeriods; i++) {
+            headers.push(
+                <th key={`header-period-${i}`} style={headerStyle}>
+                    {`Period ${i + 1}`}<br/>({timeSlots[i] || 'N/A'})
+                </th>
+            );
+            if ((i + 1) === breakAfterPeriod) {
+                headers.push(
+                     <th key="break-header" style={breakStyle} rowSpan={classes.length + 1}>
+                        BREAK ({breakDuration})
+                    </th>
+                );
+            }
+        }
+        return headers;
+    };
+    
+    const renderBody = () => {
+      return classes.map((cls) => (
+        <tr key={cls.id}>
+            <td style={{...cellStyle, fontWeight: 'bold', width: '10%'}}>{cls.name}</td>
+            {Array.from({ length: numPeriods }).map((_, periodIndex) => {
+                const isBreakNext = (periodIndex + 1) === breakAfterPeriod;
+                const cell = masterTimetableData[cls.id]?.[periodIndex];
+                const teacher = teachers.find(t => t.id === cell?.teacherId);
+
+                return (
+                    <React.Fragment key={`cell-frag-${cls.id}-${periodIndex}`}>
+                        <td style={cellStyle}>
+                            {cell?.subject ? (
+                                <div>
+                                    <p className="font-bold">{teacher?.name || 'N/A'}</p>
+                                    <p>{cell.subject}</p>
+                                </div>
+                            ) : null}
+                        </td>
+                        {isBreakNext && <td style={cellStyle} rowSpan={classes.length}></td> /* This should be empty but the break header will span over it */}
+                    </React.Fragment>
+                );
+            })}
+        </tr>
+      ));
+    };
+
 
     return (
       <div ref={ref} className="p-4 font-sans bg-white text-black">
@@ -66,53 +112,11 @@ export const MasterTimetablePrint = React.forwardRef<HTMLDivElement, MasterTimet
                 <thead>
                     <tr>
                         <th style={{...headerStyle, width: '10%'}}>Class</th>
-                        {Array.from({ length: numPeriods }).map((_, index) => {
-                            const periodNumber = index + 1;
-                            const isBreakTime = periodNumber === breakAfterPeriod;
-
-                            return (
-                                <React.Fragment key={`header-frag-${index}`}>
-                                    <th style={{...headerStyle}}>
-                                        {`Period ${periodNumber}`}<br/>({timeSlots[index] || 'N/A'})
-                                    </th>
-                                    {isBreakTime && (
-                                        <th style={breakStyle} rowSpan={classes.length + 1}>
-                                            BREAK ({breakDuration})
-                                        </th>
-                                    )}
-                                </React.Fragment>
-                            );
-                        })}
+                        {renderHeaders()}
                     </tr>
                 </thead>
                 <tbody>
-                     {classes.map((cls) => {
-                        return (
-                             <tr key={cls.id}>
-                                 <td style={{...cellStyle, fontWeight: 'bold'}}>{cls.name}</td>
-                                 {Array.from({ length: numPeriods }).map((_, periodIndex) => {
-                                      const periodNumber = periodIndex + 1;
-                                      const isBreakTime = periodNumber === breakAfterPeriod;
-                                      const cell = masterTimetableData[cls.id]?.[periodIndex];
-                                      const teacher = teachers.find(t => t.id === cell?.teacherId);
-                                      
-                                      return (
-                                        <React.Fragment key={`cell-frag-${cls.id}-${periodIndex}`}>
-                                            <td style={cellStyle}>
-                                                {cell?.subject ? (
-                                                    <div>
-                                                        <p className="font-bold">{teacher?.name || 'N/A'}</p>
-                                                        <p>{cell.subject}</p>
-                                                    </div>
-                                                ) : null}
-                                            </td>
-                                            {isBreakTime && <td style={cellStyle} rowSpan={classes.length + 1}></td> /* This should be empty but the break header will span over it */}
-                                        </React.Fragment>
-                                      );
-                                 })}
-                             </tr>
-                        );
-                     })}
+                    {renderBody()}
                 </tbody>
             </table>
         </main>
