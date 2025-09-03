@@ -1,11 +1,11 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, PlusCircle, MoreHorizontal, Trash2, Users } from 'lucide-react';
+import { Search, PlusCircle, MoreHorizontal, Trash2, Users, Upload, Download } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   DropdownMenu,
@@ -47,7 +47,7 @@ const professions = [
 ];
 
 export default function FamiliesPage() {
-  const { families: allFamilies, students: allStudents, addFamily, updateFamily, deleteFamily } = useData();
+  const { families: allFamilies, students: allStudents, addFamily, updateFamily, deleteFamily, addActivityLog } = useData();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredFamilies, setFilteredFamilies] = useState<Family[]>(allFamilies);
@@ -60,6 +60,7 @@ export default function FamiliesPage() {
   // State for select dropdowns
   const [newProfession, setNewProfession] = useState('');
   const [editProfession, setEditProfession] = useState('');
+  const importInputRef = useRef<HTMLInputElement>(null);
 
 
   useEffect(() => {
@@ -192,60 +193,153 @@ export default function FamiliesPage() {
   const getStudentCountForFamily = (familyId: string) => {
     return allStudents.filter(student => student.familyId === familyId).length;
   };
+  
+  const handleExportCsv = () => {
+    const headers = ['id', 'fatherName', 'profession', 'cnic', 'phone', 'address'];
+    const csvContent = [
+      headers.join(','),
+      ...allFamilies.map((family) =>
+        [
+          family.id,
+          `"${family.fatherName}"`,
+          `"${family.profession || ''}"`,
+          `"${family.cnic || ''}"`,
+          `"${family.phone}"`,
+          `"${family.address.replace(/"/g, '""')}"`,
+        ].join(',')
+      ),
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', 'families_template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+    toast({ title: 'Export Successful', description: 'Families data has been exported as families_template.csv.' });
+  };
+  
+  const handleImportCsv = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      toast({ title: 'No file selected', variant: 'destructive' });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const lines = content.split('\n').slice(1); // Skip header row
+        
+        let lastIdNumber = allFamilies.reduce((maxId, family) => {
+            const currentId = parseInt(family.id);
+            return isNaN(currentId) ? maxId : Math.max(maxId, currentId);
+        }, 0);
+        
+        let importedCount = 0;
+        lines.forEach((line) => {
+            if (line.trim() === '') return;
+            const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+            const [id, fatherName, profession, cnic, phone, address] = values;
+
+            if (fatherName && phone && address) {
+              const newId = (++lastIdNumber).toString();
+              const newFamily: Family = { id: newId, fatherName, profession, cnic, phone, address };
+              addFamily(newFamily);
+              importedCount++;
+            }
+        });
+
+        if (importedCount > 0) {
+            toast({
+                title: 'Import Successful',
+                description: `${importedCount} new families have been imported.`,
+            });
+            addActivityLog({ user: 'Admin', action: 'Import Families', description: `Imported ${importedCount} families from CSV file.`});
+        } else {
+            toast({ title: 'Import Failed', description: 'No valid families were found in the file to import.', variant: 'destructive' });
+        }
+
+      } catch (error) {
+        toast({ title: 'Import Failed', description: 'Could not read or parse the CSV file. Please check the format.', variant: 'destructive' });
+        console.error('Error importing CSV:', error);
+      } finally {
+        if(importInputRef.current) {
+            importInputRef.current.value = '';
+        }
+      }
+    };
+    reader.readAsText(file);
+  };
+
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold font-headline">Families</h1>
-        <Dialog open={openAddDialog} onOpenChange={setOpenAddDialog}>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusCircle className="w-4 h-4 mr-2" /> Add New Family
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Add New Family</DialogTitle>
-              <DialogDescription>
-                Enter the details for the new family. The Family ID will be generated automatically. Click save when you're done.
-              </DialogDescription>
-            </DialogHeader>
-            <form id="add-family-form" onSubmit={handleAddFamily}>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="fatherName" className="text-right">Father's Name</Label>
-                  <Input id="fatherName" name="fatherName" className="col-span-3" required />
+        <div className="flex items-center gap-2">
+            <input
+                type="file"
+                ref={importInputRef}
+                className="hidden"
+                accept=".csv"
+                onChange={handleImportCsv}
+            />
+            <Button variant="outline" onClick={() => importInputRef.current?.click()}><Upload className="w-4 h-4 mr-2" /> Import</Button>
+            <Button variant="outline" onClick={handleExportCsv}><Download className="w-4 h-4 mr-2" /> Export</Button>
+            <Dialog open={openAddDialog} onOpenChange={setOpenAddDialog}>
+            <DialogTrigger asChild>
+                <Button>
+                <PlusCircle className="w-4 h-4 mr-2" /> Add New Family
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                <DialogTitle>Add New Family</DialogTitle>
+                <DialogDescription>
+                    Enter the details for the new family. The Family ID will be generated automatically. Click save when you're done.
+                </DialogDescription>
+                </DialogHeader>
+                <form id="add-family-form" onSubmit={handleAddFamily}>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="fatherName" className="text-right">Father's Name</Label>
+                    <Input id="fatherName" name="fatherName" className="col-span-3" required />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="profession" className="text-right">Profession</Label>
+                    <Select name="profession" onValueChange={setNewProfession} value={newProfession}>
+                        <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="Select profession" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {professions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="cnic" className="text-right">Father's CNIC</Label>
+                    <Input id="cnic" name="cnic" className="col-span-3" />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="phone" className="text-right">Phone</Label>
+                    <Input id="phone" name="phone" type="tel" className="col-span-3" required />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="address" className="text-right">Address</Label>
+                    <Input id="address" name="address" className="col-span-3" required />
+                    </div>
                 </div>
-                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="profession" className="text-right">Profession</Label>
-                  <Select name="profession" onValueChange={setNewProfession} value={newProfession}>
-                    <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select profession" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {professions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="cnic" className="text-right">Father's CNIC</Label>
-                  <Input id="cnic" name="cnic" className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="phone" className="text-right">Phone</Label>
-                  <Input id="phone" name="phone" type="tel" className="col-span-3" required />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="address" className="text-right">Address</Label>
-                  <Input id="address" name="address" className="col-span-3" required />
-                </div>
-              </div>
-               <DialogFooter>
-                <Button type="submit" form="add-family-form">Save Family</Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+                <DialogFooter>
+                    <Button type="submit" form="add-family-form">Save Family</Button>
+                </DialogFooter>
+                </form>
+            </DialogContent>
+            </Dialog>
+        </div>
       </div>
 
       <Card>
