@@ -31,6 +31,7 @@ import {
   FileSignature,
   FileBadge,
   Ticket,
+  Grid3x3,
 } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import Image from 'next/image';
@@ -57,7 +58,7 @@ const navItems = [
 export function SidebarNav() {
   const pathname = usePathname();
   const { settings } = useSettings();
-  const [isExamSystemOpen, setIsExamSystemOpen] = useState(pathname.startsWith('/exams') || pathname.startsWith('/result-cards') || pathname.startsWith('/roll-number-slips'));
+  const [isExamSystemOpen, setIsExamSystemOpen] = useState(pathname.startsWith('/exams') || pathname.startsWith('/result-cards') || pathname.startsWith('/roll-number-slips') || pathname.startsWith('/seating-plan'));
 
 
   return (
@@ -142,6 +143,19 @@ export function SidebarNav() {
                         <Link href="/roll-number-slips">
                           <Ticket />
                           <span>Roll No. Slips</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </li>
+                     <li>
+                      <SidebarMenuButton
+                        asChild
+                        size="sm"
+                        isActive={pathname.startsWith('/seating-plan')}
+                        tooltip="Seating Plan"
+                      >
+                        <Link href="/seating-plan">
+                          <Grid3x3 />
+                          <span>Seating Plan</span>
                         </Link>
                       </SidebarMenuButton>
                     </li>
