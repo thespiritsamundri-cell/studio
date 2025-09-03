@@ -14,6 +14,7 @@ import { TrendingUp, TrendingDown, Scale, BookCheck, Printer } from 'lucide-reac
 import { useSettings } from '@/context/settings-context';
 import { FinancialsPrintReport } from '@/components/reports/financials-print-report';
 import { renderToString } from 'react-dom/server';
+import { cn } from '@/lib/utils';
 
 
 export default function AccountsPage() {
