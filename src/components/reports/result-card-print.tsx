@@ -2,7 +2,7 @@
 'use client';
 
 import React from 'react';
-import type { Student, Exam, Class } from '@/lib/types';
+import type { Student, Exam, Class, Grade } from '@/lib/types';
 import type { SchoolSettings } from '@/context/settings-context';
 import Image from 'next/image';
 
@@ -29,14 +29,13 @@ const ResultCard = ({ student, exams, settings, classes, remarks, printOrientati
             if (percentage >= 40) return 'E';
             return 'F';
         }
-        // Sort grades by minPercentage descending to find the correct grade
         const sortedGrades = [...settings.gradingSystem].sort((a, b) => b.minPercentage - a.minPercentage);
         for (const grade of sortedGrades) {
             if (percentage >= grade.minPercentage) {
                 return grade.name;
             }
         }
-        return 'F'; // Default fallback
+        return 'F'; 
     };
     
     const grandTotalMarks = exams.reduce((total, exam) => {
@@ -53,15 +52,13 @@ const ResultCard = ({ student, exams, settings, classes, remarks, printOrientati
 
 
     return (
-        <div className="p-6 font-sans bg-white text-black border-4 border-double border-gray-800 w-full mx-auto relative" data-orientation={printOrientation} style={{ breakAfter: 'page', pageBreakAfter: 'always' }}>
-            {/* Watermark */}
-            {settings.schoolLogo && (
+        <div className="p-6 font-sans bg-white text-black border-4 border-double border-gray-800 w-full mx-auto relative" style={{ breakAfter: 'page', pageBreakAfter: 'always' }}>
+             {settings.schoolLogo && (
                 <div className="absolute inset-0 flex items-center justify-center z-0">
                     <Image src={settings.schoolLogo} alt="Watermark" width={300} height={300} className="object-contain opacity-10" />
                 </div>
             )}
             <div className="relative z-10">
-                {/* Header */}
                 <div className="text-center mb-4">
                     {settings.schoolLogo && <Image src={settings.schoolLogo} alt="School Logo" width={80} height={80} className="object-contain mx-auto mb-2" />}
                     <h1 className="text-3xl font-bold text-gray-800">{settings.schoolName}</h1>
@@ -70,7 +67,6 @@ const ResultCard = ({ student, exams, settings, classes, remarks, printOrientati
                     <h2 className="text-2xl font-semibold mt-2 underline">Progress Report Card</h2>
                 </div>
                 
-                {/* Student Info */}
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 border-y-2 border-gray-800 py-2 my-4 text-sm">
                     <div><span className="font-bold">Student Name:</span> {student.name}</div>
                     <div><span className="font-bold">Father's Name:</span> {student.fatherName}</div>
@@ -78,7 +74,6 @@ const ResultCard = ({ student, exams, settings, classes, remarks, printOrientati
                     <div><span className="font-bold">Class:</span> {student.class}</div>
                 </div>
 
-                {/* Marks Table */}
                 <table className="w-full border-collapse border border-gray-400 text-sm">
                     <thead>
                         <tr className="bg-gray-200">
@@ -93,11 +88,11 @@ const ResultCard = ({ student, exams, settings, classes, remarks, printOrientati
                         <tr className="bg-gray-200">
                            {exams.map(exam => (
                                 <React.Fragment key={exam.id}>
-                                    <th className="font-bold border border-gray-400 p-1">Marks</th>
+                                    <th className="font-bold border border-gray-400 p-1">Obtained</th>
                                     <th className="font-bold border border-gray-400 p-1">Total</th>
                                 </React.Fragment>
                            ))}
-                             <th className="font-bold border border-gray-400 p-1">Total</th>
+                             <th className="font-bold border border-gray-400 p-1">Obtained / Total</th>
                              <th className="font-bold border border-gray-400 p-1">%</th>
                              <th className="font-bold border border-gray-400 p-1">Grade</th>
                         </tr>
@@ -140,7 +135,6 @@ const ResultCard = ({ student, exams, settings, classes, remarks, printOrientati
                     </tbody>
                 </table>
                 
-                 {/* Summary Section */}
                 <div className="mt-6 grid grid-cols-4 gap-4 text-center">
                     <div className="border border-gray-400 p-2 rounded-lg">
                         <h4 className="font-bold text-sm">Grand Total</h4>
@@ -160,7 +154,6 @@ const ResultCard = ({ student, exams, settings, classes, remarks, printOrientati
                     </div>
                 </div>
                 
-                {/* Remarks and Signature */}
                 <div className="mt-6 grid grid-cols-2 items-end gap-4">
                     <div className="space-y-2">
                         <div>
@@ -168,10 +161,10 @@ const ResultCard = ({ student, exams, settings, classes, remarks, printOrientati
                             <p className="mt-1 border-b border-gray-500 min-h-6">{remarks}</p>
                         </div>
                         {settings.gradingSystem && settings.gradingSystem.length > 0 && (
-                            <div className="border p-2 rounded-md">
+                             <div className="border p-2 rounded-md">
                                 <h4 className="font-bold text-center mb-1">Grading System</h4>
                                 <div className="grid grid-cols-3 text-center text-xs">
-                                    {settings.gradingSystem.map((g, i) => (
+                                    {settings.gradingSystem.map((g: Grade, i: number) => (
                                         <span key={i}><b>{g.name}</b>: {g.minPercentage}%+</span>
                                     ))}
                                 </div>
@@ -198,9 +191,11 @@ const ResultCard = ({ student, exams, settings, classes, remarks, printOrientati
 export const ResultCardPrint = React.forwardRef<HTMLDivElement, ResultCardPrintProps>(
   ({ students, exams, settings, classes, remarks, printOrientation }, ref) => {
     return (
-      <div ref={ref}>
+      <div ref={ref} data-orientation={printOrientation}>
         {students.map(student => (
-            <ResultCard key={student.id} student={student} exams={exams} settings={settings} classes={classes} remarks={remarks} printOrientation={printOrientation} />
+            <div key={student.id} className="printable-page">
+              <ResultCard student={student} exams={exams} settings={settings} classes={classes} remarks={remarks} printOrientation={printOrientation} />
+            </div>
         ))}
       </div>
     );

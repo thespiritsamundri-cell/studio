@@ -10,6 +10,14 @@
         size: A4 landscape;
     }
   }
+  
+  .printable-page {
+    page-break-after: always;
+  }
+  
+  .printable-page:last-child {
+      page-break-after: auto;
+  }
 
   .voucher-page {
     page-break-after: always;
