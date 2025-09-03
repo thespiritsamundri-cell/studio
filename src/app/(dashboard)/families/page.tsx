@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, PlusCircle, MoreHorizontal, Trash2, Users, Upload, Download, UserPlus } from 'lucide-react';
+import { Search, PlusCircle, MoreHorizontal, Trash2, Users, Upload, Download } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   DropdownMenu,
@@ -36,7 +36,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { useData } from '@/context/data-context';
-import type { Family, Student, Fee } from '@/lib/types';
+import type { Family } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -47,14 +47,13 @@ const professions = [
 ];
 
 export default function FamiliesPage() {
-  const { families: allFamilies, students: allStudents, addFamily, updateFamily, deleteFamily, addActivityLog, addStudent, addFee, classes, fees } = useData();
+  const { families: allFamilies, students: allStudents, addFamily, updateFamily, deleteFamily, addActivityLog } = useData();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredFamilies, setFilteredFamilies] = useState<Family[]>(allFamilies);
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [openAddStudentDialog, setOpenAddStudentDialog] = useState(false);
   const [selectedFamily, setSelectedFamily] = useState<Family | null>(null);
   const { toast } = useToast();
   
@@ -62,13 +61,6 @@ export default function FamiliesPage() {
   const [newProfession, setNewProfession] = useState('');
   const [editProfession, setEditProfession] = useState('');
   const importInputRef = useRef<HTMLInputElement>(null);
-
-  // State for Add Student Dialog
-  const [studentName, setStudentName] = useState('');
-  const [studentDob, setStudentDob] = useState('');
-  const [studentClass, setStudentClass] = useState('');
-  const [monthlyFee, setMonthlyFee] = useState<number | ''>('');
-
 
   useEffect(() => {
     setFilteredFamilies(allFamilies);
@@ -180,75 +172,6 @@ export default function FamiliesPage() {
     setSelectedFamily(family);
     setOpenDeleteDialog(true);
   };
-  
-  const handleAddStudentClick = (family: Family) => {
-    setSelectedFamily(family);
-    setStudentName('');
-    setStudentDob('');
-    setStudentClass('');
-    setMonthlyFee('');
-    setOpenAddStudentDialog(true);
-  };
-
-  const handleAddStudentSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedFamily || !studentName || !studentDob || !studentClass || !monthlyFee) {
-        toast({
-            title: "Missing Information",
-            description: "Please fill all student details.",
-            variant: "destructive"
-        });
-        return;
-    }
-
-    const lastStudentId = allStudents.reduce((max, s) => {
-        const idNum = parseInt(s.id, 10);
-        return !isNaN(idNum) && idNum > max ? idNum : max;
-    }, 0);
-    const newStudentId = (lastStudentId + 1).toString();
-
-    const newStudent: Student = {
-        id: newStudentId,
-        name: studentName,
-        fatherName: selectedFamily.fatherName,
-        class: studentClass,
-        admissionDate: new Date().toISOString().split('T')[0],
-        familyId: selectedFamily.id,
-        status: 'Active',
-        phone: selectedFamily.phone,
-        address: selectedFamily.address,
-        dob: studentDob,
-        photoUrl: `https://picsum.photos/seed/${newStudentId}/100/100`
-    };
-    
-    let lastFeeId = fees.reduce((max, f) => {
-        const idNum = parseInt(f.id.replace('FEE', '').replace('PAY-', ''));
-        return !isNaN(idNum) && idNum > max ? idNum : max;
-    }, 0);
-
-    const feeChallanId = `A${String(++lastFeeId).padStart(3, '0')}`;
-    
-    const newFee: Fee = {
-        id: feeChallanId,
-        familyId: selectedFamily.id,
-        amount: monthlyFee,
-        month: new Date().toLocaleString('default', { month: 'long' }),
-        year: new Date().getFullYear(),
-        status: 'Unpaid',
-        paymentDate: ''
-    };
-
-    addStudent(newStudent);
-    addFee(newFee);
-    
-    toast({
-        title: "Student Added!",
-        description: `${studentName} has been successfully admitted to ${studentClass}.`
-    });
-    
-    setOpenAddStudentDialog(false);
-  };
-
 
   const confirmDelete = () => {
     if (!selectedFamily) return;
@@ -476,9 +399,6 @@ export default function FamiliesPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => handleEditClick(family)}>Edit Family</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleAddStudentClick(family)}>
-                            <UserPlus className="mr-2 h-4 w-4" /> Add Student
-                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleViewStudents(family.id)}>View Students</DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(family)}>
@@ -566,54 +486,7 @@ export default function FamiliesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
-      {/* Add Student Dialog */}
-      <Dialog open={openAddStudentDialog} onOpenChange={setOpenAddStudentDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Student to Family: {selectedFamily?.fatherName}</DialogTitle>
-            <DialogDescription>
-              Quickly add a new student to this existing family.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleAddStudentSubmit}>
-            <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                    <Label htmlFor="student-name">Student Full Name</Label>
-                    <Input id="student-name" value={studentName} onChange={(e) => setStudentName(e.target.value)} required />
-                </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="student-dob">Date of Birth</Label>
-                    <Input id="student-dob" type="date" value={studentDob} onChange={(e) => setStudentDob(e.target.value)} required />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="student-class">Class to Admit</Label>
-                        <Select value={studentClass} onValueChange={setStudentClass} required>
-                            <SelectTrigger id="student-class">
-                                <SelectValue placeholder="Select class"/>
-                            </SelectTrigger>
-                            <SelectContent>
-                                {classes.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="monthly-fee">Monthly Fee (PKR)</Label>
-                        <Input id="monthly-fee" type="number" value={monthlyFee} onChange={(e) => setMonthlyFee(e.target.value === '' ? '' : Number(e.target.value))} required />
-                    </div>
-                </div>
-            </div>
-            <DialogFooter>
-                <Button type="button" variant="ghost" onClick={() => setOpenAddStudentDialog(false)}>Cancel</Button>
-                <Button type="submit">Add Student</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
     </div>
   );
 }
-
-    
