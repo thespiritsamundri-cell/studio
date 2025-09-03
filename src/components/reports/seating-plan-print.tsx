@@ -26,6 +26,13 @@ export const SeatingPlanPrint = React.forwardRef<HTMLDivElement, SeatingPlanPrin
         overflow: 'hidden'
     };
     
+    const headerCellStyle: React.CSSProperties = {
+      ...cellStyle,
+      fontWeight: 'bold',
+      height: 'auto',
+      backgroundColor: '#f2f2f2'
+    };
+
     return (
       <div ref={ref} className="p-8 font-sans bg-white text-black">
         <header className="flex items-center justify-between pb-4 border-b-2 border-black">
@@ -36,6 +43,7 @@ export const SeatingPlanPrint = React.forwardRef<HTMLDivElement, SeatingPlanPrin
             <div>
               <h1 className="text-3xl font-bold">{settings.schoolName}</h1>
               <p className="text-sm">{settings.schoolAddress}</p>
+              <p className="text-sm">Phone: {settings.schoolPhone}</p>
             </div>
           </div>
           <div className="text-right">
@@ -51,6 +59,13 @@ export const SeatingPlanPrint = React.forwardRef<HTMLDivElement, SeatingPlanPrin
 
         <main className="mt-8">
           <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+            <thead>
+                <tr>
+                    {seatingGrid[0]?.map((_, colIndex) => (
+                        <th key={colIndex} style={headerCellStyle}>Column {colIndex + 1}</th>
+                    ))}
+                </tr>
+            </thead>
             <tbody>
               {seatingGrid.map((row, rowIndex) => (
                 <tr key={rowIndex}>

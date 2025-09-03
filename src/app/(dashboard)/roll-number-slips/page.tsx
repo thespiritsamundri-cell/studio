@@ -130,14 +130,6 @@ export default function RollNumberSlipsPage() {
             <head>
               <title>Roll Number Slips - ${selectedClass}</title>
               <script src="https://cdn.tailwindcss.com"></script>
-              <style>
-                 body {
-                    font-family: sans-serif;
-                 }
-                 .font-urdu {
-                    font-family: "Jameel Noori Nastaleeq", "Noto Nastaliq Urdu", "Urdu Typesetting", sans-serif;
-                 }
-              </style>
                <link rel="stylesheet" href="/print-styles.css">
             </head>
             <body>${printContent}</body>

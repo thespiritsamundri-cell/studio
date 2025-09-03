@@ -1,6 +1,7 @@
 
 
 
+
 @media print {
   @page {
     margin: 0.25in;
@@ -102,4 +103,3 @@
     display: flex; /* Ensure inner content can grow */
   }
 }
-
