@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -33,7 +34,7 @@ import { Label } from '@/components/ui/label';
 
 
 export default function IncomePage() {
-  const { fees: allFees, families, deleteFee, updateFee, addFee } = useData();
+  const { fees: allFees, families, deleteFee, updateFee, addFee, addActivityLog } = useData();
   const { settings } = useSettings();
   const { toast } = useToast();
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
@@ -117,6 +118,8 @@ export default function IncomePage() {
     }
 
     deleteFee(feeToCancel.id);
+    
+    addActivityLog({ user: 'Admin', action: 'Cancel Payment', description: `Cancelled payment of PKR ${feeToCancel.amount} for family ${feeToCancel.fatherName} (${feeToCancel.familyId}).`});
 
     toast({
         title: 'Payment Cancelled',
@@ -178,6 +181,8 @@ export default function IncomePage() {
 
     updateFee(feeToEdit.id, { ...feeToEdit, amount: editAmount });
     
+    addActivityLog({ user: 'Admin', action: 'Edit Payment', description: `Edited payment for family ${feeToEdit.fatherName} (${feeToEdit.familyId}). Original: ${feeToEdit.amount}, New: ${editAmount}.`});
+
     toast({ title: "Payment Updated", description: `Payment has been adjusted to PKR ${editAmount.toLocaleString()}`});
     setOpenEditDialog(false);
   };

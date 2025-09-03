@@ -109,32 +109,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
       id: `LOG-${Date.now()}`,
       timestamp: new Date().toISOString(),
     };
-    setActivityLog(prev => [newLogEntry, ...prev]);
+    setActivityLog(prev => [newLogEntry, ...prev].slice(0, 200)); // Keep last 200 logs
   };
 
   const addStudent = (student: Student) => {
     setStudents(prev => [...prev, student]);
-    addActivityLog({ user: 'Admin', action: 'Add Student', description: `Admitted new student: ${student.name} (ID: ${student.id})` });
+    addActivityLog({ user: 'Admin', action: 'Add Student', description: `Admitted new student: ${student.name} (ID: ${student.id}) in Class ${student.class}.` });
   };
   const updateStudent = (id: string, updatedStudent: Student) => {
     setStudents(prev => prev.map(s => s.id === id ? updatedStudent : s));
-    addActivityLog({ user: 'Admin', action: 'Update Student', description: `Updated details for student: ${updatedStudent.name} (ID: ${id})` });
+    addActivityLog({ user: 'Admin', action: 'Update Student', description: `Updated details for student: ${updatedStudent.name} (ID: ${id}).` });
   };
   const deleteStudent = (id: string) => {
     const student = students.find(s => s.id === id);
     setStudents(prev => prev.filter(s => s.id !== id));
     if (student) {
-        addActivityLog({ user: 'Admin', action: 'Delete Student', description: `Deleted student: ${student.name} (ID: ${id})` });
+        addActivityLog({ user: 'Admin', action: 'Delete Student', description: `Deleted student: ${student.name} (ID: ${id}).` });
     }
   };
 
   const addFamily = (family: Family) => {
     setFamilies(prev => [...prev, family]);
-    addActivityLog({ user: 'Admin', action: 'Add Family', description: `Added new family: ${family.fatherName} (ID: ${family.id})` });
+    addActivityLog({ user: 'Admin', action: 'Add Family', description: `Added new family: ${family.fatherName} (ID: ${family.id}).` });
   };
   const updateFamily = (id: string, updatedFamily: Family) => {
     setFamilies(prev => prev.map(f => f.id === id ? updatedFamily : f));
-     addActivityLog({ user: 'Admin', action: 'Update Family', description: `Updated details for family: ${updatedFamily.fatherName} (ID: ${id})` });
+     addActivityLog({ user: 'Admin', action: 'Update Family', description: `Updated details for family: ${updatedFamily.fatherName} (ID: ${id}).` });
   };
   const deleteFamily = (id: string) => {
     const family = families.find(f => f.id === id);
@@ -158,17 +158,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const addTeacher = (teacher: Teacher) => {
     setTeachers(prev => [...prev, teacher]);
-    addActivityLog({ user: 'Admin', action: 'Add Teacher', description: `Added new teacher: ${teacher.name}` });
+    addActivityLog({ user: 'Admin', action: 'Add Teacher', description: `Added new teacher: ${teacher.name}.` });
   };
   const updateTeacher = (id: string, updatedTeacher: Teacher) => {
     setTeachers(prev => prev.map(t => t.id === id ? updatedTeacher : t));
-    addActivityLog({ user: 'Admin', action: 'Update Teacher', description: `Updated details for teacher: ${updatedTeacher.name}` });
+    addActivityLog({ user: 'Admin', action: 'Update Teacher', description: `Updated details for teacher: ${updatedTeacher.name}.` });
   };
   const deleteTeacher = (id: string) => {
     const teacher = teachers.find(t => t.id === id);
     setTeachers(prev => prev.filter(t => t.id !== id));
     if (teacher) {
-       addActivityLog({ user: 'Admin', action: 'Delete Teacher', description: `Deleted teacher: ${teacher.name}` });
+       addActivityLog({ user: 'Admin', action: 'Delete Teacher', description: `Deleted teacher: ${teacher.name}.` });
     }
   };
   
@@ -180,38 +180,38 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const otherDateAttendances = prev.filter(att => att.date !== date);
         return [...otherDateAttendances, ...newAttendances];
     });
-    addActivityLog({ user: 'Admin', action: 'Save Teacher Attendance', description: `Saved teacher attendance for date: ${date}` });
+    addActivityLog({ user: 'Admin', action: 'Save Teacher Attendance', description: `Saved teacher attendance for date: ${date}.` });
   }
 
   const addClass = (newClass: Class) => {
     setClasses(prev => [...prev, newClass]);
-    addActivityLog({ user: 'Admin', action: 'Add Class', description: `Created new class: ${newClass.name}` });
+    addActivityLog({ user: 'Admin', action: 'Add Class', description: `Created new class: ${newClass.name}.` });
   };
   const updateClass = (id: string, updatedClass: Class) => {
     setClasses(prev => prev.map(c => c.id === id ? updatedClass : c));
-    addActivityLog({ user: 'Admin', action: 'Update Class', description: `Updated class: ${updatedClass.name}` });
+    addActivityLog({ user: 'Admin', action: 'Update Class', description: `Updated class: ${updatedClass.name}.` });
   };
   const deleteClass = (id: string) => {
     const classToDelete = classes.find(c => c.id === id);
     setClasses(prev => prev.filter(c => c.id !== id));
     if(classToDelete) {
-        addActivityLog({ user: 'Admin', action: 'Delete Class', description: `Deleted class: ${classToDelete.name}` });
+        addActivityLog({ user: 'Admin', action: 'Delete Class', description: `Deleted class: ${classToDelete.name}.` });
     }
   };
   
   const addExam = (exam: Exam) => {
     setExams(prev => [...prev, exam]);
-    addActivityLog({ user: 'Admin', action: 'Create Exam', description: `Created exam "${exam.name}" for class ${exam.class}` });
+    addActivityLog({ user: 'Admin', action: 'Create Exam', description: `Created exam "${exam.name}" for class ${exam.class}.` });
   };
   const updateExam = (id: string, updatedExam: Exam) => {
     setExams(prev => prev.map(e => e.id === id ? updatedExam : e));
-    addActivityLog({ user: 'Admin', action: 'Save Exam Results', description: `Saved results for exam: ${updatedExam.name} (${updatedExam.class})` });
+    addActivityLog({ user: 'Admin', action: 'Save Exam Results', description: `Saved results for exam: ${updatedExam.name} (${updatedExam.class}).` });
   };
   const deleteExam = (id: string) => {
     const exam = exams.find(e => e.id === id);
     setExams(prev => prev.filter(e => e.id !== id));
     if (exam) {
-        addActivityLog({ user: 'Admin', action: 'Delete Exam', description: `Deleted exam: ${exam.name} (${exam.class})` });
+        addActivityLog({ user: 'Admin', action: 'Delete Exam', description: `Deleted exam: ${exam.name} (${exam.class}).` });
     }
   };
 
