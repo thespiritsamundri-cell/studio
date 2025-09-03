@@ -33,7 +33,7 @@
   .roll-number-slips-container[data-print-layout="2"] .slip-page-wrapper {
       display: flex;
       flex-direction: column;
-      height: 10.9in; /* A4 height is ~11.69in, leaving room for margins */
+      height: 10.9in; /* A4 height is ~11.7in, leaving room for 0.25in top/bottom margins */
       width: 100%;
       page-break-after: always;
       box-sizing: border-box;
