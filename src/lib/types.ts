@@ -96,3 +96,12 @@ export interface ActivityLog {
   action: string;
   description: string;
 }
+
+export interface Expense {
+  id: string;
+  date: string;
+  category: string;
+  description: string;
+  amount: number;
+  vendor?: string;
+}

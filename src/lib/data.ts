@@ -1,6 +1,6 @@
 
 
-import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog } from './types';
+import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense } from './types';
 
 export const students: Student[] = [
   { id: '1', name: 'Ali Khan', fatherName: 'Ahmed Khan', class: '5th', section: 'A', admissionDate: '2023-03-15', familyId: '1', status: 'Active', phone: '03001234567', address: '123, Main St, Lahore', dob: '2013-05-20', photoUrl: 'https://picsum.photos/seed/S001/100/100', cnic: '35202-1111111-1' },
@@ -47,14 +47,13 @@ export const teacherAttendances: TeacherAttendance[] = [
     { teacherId: 'T02', date: '2024-05-22', status: 'Present' },
 ];
 
-
 export const fees: Fee[] = [
-    { id: 'FEE01', familyId: '1', amount: 5000, month: 'April', year: 2024, paymentDate: '', status: 'Unpaid' },
-    { id: 'FEE02', familyId: '2', amount: 3500, month: 'April', year: 2024, paymentDate: '', status: 'Unpaid' },
-    { id: 'FEE03', familyId: '1', amount: 5000, month: 'May', year: 2024, status: 'Unpaid', paymentDate: '' },
-    { id: 'FEE04', familyId: '3', amount: 4000, month: 'May', year: 2024, status: 'Unpaid', paymentDate: '' },
-    { id: 'FEE05', familyId: '2', amount: 3500, month: 'May', year: 2024, paymentDate: '', status: 'Unpaid' },
-    { id: 'FEE06', familyId: '4', amount: 3000, month: 'May', year: 2024, status: 'Unpaid', paymentDate: '' },
+    { id: 'A001', familyId: '1', amount: 5000, month: 'April', year: 2024, paymentDate: '', status: 'Unpaid' },
+    { id: 'A002', familyId: '2', amount: 3500, month: 'April', year: 2024, paymentDate: '', status: 'Unpaid' },
+    { id: 'A003', familyId: '1', amount: 5000, month: 'May', year: 2024, status: 'Unpaid', paymentDate: '' },
+    { id: 'A004', familyId: '3', amount: 4000, month: 'May', year: 2024, status: 'Unpaid', paymentDate: '' },
+    { id: 'A005', familyId: '2', amount: 3500, month: 'May', year: 2024, paymentDate: '', status: 'Unpaid' },
+    { id: 'A006', familyId: '4', amount: 3000, month: 'May', year: 2024, status: 'Unpaid', paymentDate: '' },
 ];
 
 export const exams: Exam[] = [
@@ -101,3 +100,9 @@ export const exams: Exam[] = [
 ];
 
 export const activityLog: ActivityLog[] = [];
+
+export const expenses: Expense[] = [
+    { id: 'EXP001', date: '2024-05-20', category: 'Salaries', description: 'Teacher salaries for May', amount: 115000, vendor: 'Staff' },
+    { id: 'EXP002', date: '2024-05-18', category: 'Utilities', description: 'Electricity Bill', amount: 15000, vendor: 'WAPDA' },
+    { id: 'EXP003', date: '2024-05-15', category: 'Supplies', description: 'Stationery purchase', amount: 8000, vendor: 'Lahore Book Depot' },
+];

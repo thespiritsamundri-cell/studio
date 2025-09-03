@@ -33,6 +33,7 @@ import {
   FileBadge,
   Ticket,
   Grid3x3,
+  Landmark,
 } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import Image from 'next/image';
@@ -51,6 +52,7 @@ const navItems = [
   { href: '/fees', icon: Wallet, label: 'Fee Collection' },
   { href: '/vouchers', icon: Receipt, label: 'Fee Vouchers' },
   { href: '/income', icon: TrendingUp, label: 'Income' },
+  { href: '/expenses', icon: Landmark, label: 'Expenses' },
   { href: '/attendance', icon: CalendarCheck, label: 'Attendance' },
   { href: '/teacher-attendance', icon: UserCheck2, label: 'Teacher Attendance' },
   { href: '/reports', icon: FileText, label: 'Reports' },

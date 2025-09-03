@@ -1,7 +1,7 @@
 
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Users, Wallet, UserCheck, UserPlus, History } from 'lucide-react';
+import { Users, Wallet, UserCheck, UserPlus, History, Landmark, DollarSign } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, PieChart, Pie, Cell, Line, LineChart, Tooltip } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { useData } from '@/context/data-context';
@@ -10,7 +10,6 @@ import { subMonths, format, formatDistanceToNow } from 'date-fns';
 import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
 import Autoplay from "embla-carousel-autoplay";
 import { Badge } from '@/components/ui/badge';
-
 
 const chartConfig = {
   attendance: {
@@ -24,10 +23,12 @@ const chartConfig = {
 };
 
 export default function DashboardPage() {
-    const { students, fees, activityLog } = useData();
+    const { students, fees, activityLog, expenses } = useData();
 
     const totalStudents = students.length;
-    const feeCollected = fees.filter(f => f.status === 'Paid').reduce((acc, fee) => acc + fee.amount, 0);
+    const totalIncome = fees.filter(f => f.status === 'Paid').reduce((acc, fee) => acc + fee.amount, 0);
+    const totalExpenses = expenses.reduce((acc, exp) => acc + exp.amount, 0);
+    const netProfit = totalIncome - totalExpenses;
     
     const newAdmissions = useMemo(() => {
         const oneMonthAgo = subMonths(new Date(), 1);
@@ -85,7 +86,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
         <Card className="bg-card shadow-lg border-l-4 border-primary">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Total Students</CardTitle>
@@ -100,38 +101,50 @@ export default function DashboardPage() {
         </Card>
         <Card className="bg-card shadow-lg border-l-4 border-green-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Total Fee Collection</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Income</CardTitle>
              <div className="p-2 rounded-full bg-green-500/10">
                 <Wallet className="w-5 h-5 text-green-500" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">PKR {feeCollected.toLocaleString()}</div>
+            <div className="text-3xl font-bold">PKR {totalIncome.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">+15% from last month</p>
           </CardContent>
         </Card>
-        <Card className="bg-card shadow-lg border-l-4 border-yellow-500">
+         <Card className="bg-card shadow-lg border-l-4 border-red-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Attendance (Today)</CardTitle>
-            <div className="p-2 rounded-full bg-yellow-500/10">
-                <UserCheck className="w-5 h-5 text-yellow-500" />
+            <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+             <div className="p-2 rounded-full bg-red-500/10">
+                <Landmark className="w-5 h-5 text-red-500" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{attendanceToday}%</div>
-            <p className="text-xs text-muted-foreground">+1.2% from yesterday</p>
+            <div className="text-3xl font-bold">PKR {totalExpenses.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">+5% from last month</p>
           </CardContent>
         </Card>
-        <Card className="bg-card shadow-lg border-l-4 border-red-500">
+         <Card className="bg-card shadow-lg border-l-4 border-yellow-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">New Admissions (Month)</CardTitle>
-            <div className="p-2 rounded-full bg-red-500/10">
-                <UserPlus className="w-5 h-5 text-red-500" />
+            <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
+             <div className="p-2 rounded-full bg-yellow-500/10">
+                <DollarSign className="w-5 h-5 text-yellow-500" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">PKR {netProfit.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">This fiscal year</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-card shadow-lg border-l-4 border-blue-500">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium">New Admissions</CardTitle>
+            <div className="p-2 rounded-full bg-blue-500/10">
+                <UserPlus className="w-5 h-5 text-blue-500" />
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{newAdmissions}</div>
-            <p className="text-xs text-muted-foreground">+5 this week</p>
+            <p className="text-xs text-muted-foreground">In the last 30 days</p>
           </CardContent>
         </Card>
       </div>

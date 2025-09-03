@@ -3,8 +3,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog } from '@/lib/types';
-import { students as initialStudents, families as initialFamilies, fees as initialFees, teachers as initialTeachers, teacherAttendances as initialTeacherAttendances, classes as initialClasses, exams as initialExams } from '@/lib/data';
+import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense } from '@/lib/types';
+import { students as initialStudents, families as initialFamilies, fees as initialFees, teachers as initialTeachers, teacherAttendances as initialTeacherAttendances, classes as initialClasses, exams as initialExams, expenses as initialExpenses } from '@/lib/data';
 
 interface DataContextType {
   students: Student[];
@@ -15,6 +15,7 @@ interface DataContextType {
   classes: Class[];
   exams: Exam[];
   activityLog: ActivityLog[];
+  expenses: Expense[];
   addStudent: (student: Student) => void;
   updateStudent: (id: string, student: Student) => void;
   deleteStudent: (id: string) => void;
@@ -35,7 +36,10 @@ interface DataContextType {
   updateExam: (id: string, exam: Exam) => void;
   deleteExam: (id: string) => void;
   addActivityLog: (activity: Omit<ActivityLog, 'id' | 'timestamp'>) => void;
-  loadData: (data: { students: Student[], families: Family[], fees: Fee[], teachers: Teacher[], teacherAttendances: TeacherAttendance[], classes: Class[], exams: Exam[], activityLog?: ActivityLog[] }) => void;
+  addExpense: (expense: Expense) => void;
+  updateExpense: (id: string, expense: Expense) => void;
+  deleteExpense: (id: string) => void;
+  loadData: (data: { students: Student[], families: Family[], fees: Fee[], teachers: Teacher[], teacherAttendances: TeacherAttendance[], classes: Class[], exams: Exam[], expenses: Expense[], activityLog?: ActivityLog[] }) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -49,6 +53,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [classes, setClasses] = useState<Class[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
   const [activityLog, setActivityLog] = useState<ActivityLog[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -62,6 +67,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const savedClasses = window.localStorage.getItem('schoolClasses');
       const savedExams = window.localStorage.getItem('schoolExams');
       const savedActivityLog = window.localStorage.getItem('schoolActivityLog');
+      const savedExpenses = window.localStorage.getItem('schoolExpenses');
       
       setStudents(savedStudents ? JSON.parse(savedStudents) : initialStudents);
       setFamilies(savedFamilies ? JSON.parse(savedFamilies) : initialFamilies);
@@ -71,6 +77,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setClasses(savedClasses ? JSON.parse(savedClasses) : initialClasses);
       setExams(savedExams ? JSON.parse(savedExams) : initialExams);
       setActivityLog(savedActivityLog ? JSON.parse(savedActivityLog) : []);
+      setExpenses(savedExpenses ? JSON.parse(savedExpenses) : initialExpenses);
 
     } catch (error) {
       console.error('Error reading from localStorage', error);
@@ -83,6 +90,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setClasses(initialClasses);
       setExams(initialExams);
       setActivityLog([]);
+      setExpenses(initialExpenses);
     }
   }, []);
 
@@ -97,11 +105,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
         window.localStorage.setItem('schoolClasses', JSON.stringify(classes));
         window.localStorage.setItem('schoolExams', JSON.stringify(exams));
         window.localStorage.setItem('schoolActivityLog', JSON.stringify(activityLog));
+        window.localStorage.setItem('schoolExpenses', JSON.stringify(expenses));
       } catch (error) {
         console.error('Error writing to localStorage', error);
       }
     }
-  }, [students, families, fees, teachers, teacherAttendances, classes, exams, activityLog, isClient]);
+  }, [students, families, fees, teachers, teacherAttendances, classes, exams, activityLog, expenses, isClient]);
 
   const addActivityLog = (activity: Omit<ActivityLog, 'id' | 'timestamp'>) => {
     const newLogEntry: ActivityLog = {
@@ -215,7 +224,23 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const loadData = (data: { students: Student[], families: Family[], fees: Fee[], teachers: Teacher[], teacherAttendances: TeacherAttendance[], classes: Class[], exams: Exam[], activityLog?: ActivityLog[] }) => {
+  const addExpense = (expense: Expense) => {
+    setExpenses(prev => [...prev, expense]);
+    addActivityLog({ user: 'Admin', action: 'Add Expense', description: `Added expense of PKR ${expense.amount} for ${expense.category}: ${expense.description}.` });
+  };
+  const updateExpense = (id: string, updatedExpense: Expense) => {
+    setExpenses(prev => prev.map(e => e.id === id ? updatedExpense : e));
+    addActivityLog({ user: 'Admin', action: 'Update Expense', description: `Updated expense for ${updatedExpense.category}.` });
+  };
+  const deleteExpense = (id: string) => {
+    const expense = expenses.find(e => e.id === id);
+    setExpenses(prev => prev.filter(e => e.id !== id));
+     if (expense) {
+        addActivityLog({ user: 'Admin', action: 'Delete Expense', description: `Deleted expense of PKR ${expense.amount} for ${expense.category}.` });
+    }
+  };
+
+  const loadData = (data: { students: Student[], families: Family[], fees: Fee[], teachers: Teacher[], teacherAttendances: TeacherAttendance[], classes: Class[], exams: Exam[], expenses: Expense[], activityLog?: ActivityLog[] }) => {
     setStudents(data.students || []);
     setFamilies(data.families || []);
     setFees(data.fees || []);
@@ -223,6 +248,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setTeacherAttendances(data.teacherAttendances || []);
     setClasses(data.classes || []);
     setExams(data.exams || []);
+    setExpenses(data.expenses || []);
     setActivityLog(data.activityLog || []);
     addActivityLog({ user: 'Admin', action: 'Restore Backup', description: 'Restored all application data from a backup file.' });
   };
@@ -236,6 +262,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       classes,
       exams,
       activityLog,
+      expenses,
       addStudent,
       updateStudent, 
       deleteStudent,
@@ -256,9 +283,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
       updateExam,
       deleteExam,
       addActivityLog,
+      addExpense,
+      updateExpense,
+      deleteExpense,
       loadData 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }), [students, families, fees, teachers, teacherAttendances, classes, exams, activityLog]);
+    }), [students, families, fees, teachers, teacherAttendances, classes, exams, activityLog, expenses]);
 
 
   return (
