@@ -1,4 +1,5 @@
 
+
 @media print {
   @page {
     size: A4;
@@ -19,6 +20,36 @@
       page-break-after: auto;
   }
 
+  /* --- FOR ROLL NUMBER SLIPS --- */
+  [data-print-layout="1"] .slip-wrapper {
+      page-break-after: always;
+  }
+  [data-print-layout="1"] .slip-wrapper:last-child {
+      page-break-after: auto;
+  }
+  [data-print-layout="2"] {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.25in;
+  }
+  [data-print-layout="2"] .slip-wrapper {
+      height: 48vh;
+      box-sizing: border-box;
+      page-break-after: avoid;
+      page-break-inside: avoid;
+  }
+  [data-print-layout="2"] .slip-wrapper:nth-child(odd) {
+      margin-bottom: 0.25in;
+  }
+  [data-print-layout="2"] .slip-wrapper:nth-child(even) {
+      page-break-after: always;
+  }
+  [data-print-layout="2"] .slip-wrapper:last-child {
+      page-break-after: auto;
+  }
+
+
+  /* --- FOR VOUCHERS --- */
   .voucher-page {
     page-break-after: always;
   }

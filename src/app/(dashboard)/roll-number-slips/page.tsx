@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useData } from '@/context/data-context';
 import { useToast } from '@/hooks/use-toast';
-import { Printer, Loader2, Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { Printer, Loader2, Calendar as CalendarIcon, Clock, Hash } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import { renderToString } from 'react-dom/server';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -37,6 +37,8 @@ export default function RollNumberSlipsPage() {
   const [examName, setExamName] = useState('Final Term Examination 2024');
   const [instructions, setInstructions] = useState('1. Reach the examination hall 15 minutes before the start time.\n2. Mobile phones are strictly prohibited.\n3. Bring your own stationery. Sharing is not allowed.');
   const [dateSheet, setDateSheet] = useState<DateSheetItem[]>([]);
+  const [startRollNo, setStartRollNo] = useState(1001);
+  const [printLayout, setPrintLayout] = useState<'1' | '2'>('2');
 
   const subjects = useMemo(() => {
     if (!selectedClass) return [];
@@ -98,6 +100,8 @@ export default function RollNumberSlipsPage() {
           examName={examName}
           dateSheet={dateSheet}
           instructions={instructions}
+          startRollNo={startRollNo}
+          layout={printLayout}
         />
       );
 
@@ -116,6 +120,7 @@ export default function RollNumberSlipsPage() {
                     font-family: "Jameel Noori Nastaleeq", "Noto Nastaliq Urdu", "Urdu Typesetting", sans-serif;
                  }
               </style>
+               <link rel="stylesheet" href="/print-styles.css">
             </head>
             <body>${printContent}</body>
           </html>
@@ -196,7 +201,13 @@ export default function RollNumberSlipsPage() {
             <div className="lg:col-span-2 space-y-6">
                 <div className="space-y-2">
                     <h3 className="font-semibold text-lg">3. Exam Details</h3>
-                    <Input placeholder="e.g., Final Term Examination 2024" value={examName} onChange={e => setExamName(e.target.value)} />
+                    <div className="grid grid-cols-2 gap-4">
+                      <Input placeholder="e.g., Final Term Examination 2024" value={examName} onChange={e => setExamName(e.target.value)} />
+                       <div className="relative">
+                          <Hash className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input type="number" placeholder="Starting Roll No." value={startRollNo} onChange={e => setStartRollNo(Number(e.target.value))} className="pl-8"/>
+                       </div>
+                    </div>
                 </div>
                  <div className="space-y-2">
                     <h3 className="font-semibold text-lg">4. Create Date Sheet</h3>
@@ -238,15 +249,29 @@ export default function RollNumberSlipsPage() {
           </div>
           
           <div className="mt-6 pt-6 border-t">
-              <div className="space-y-2">
-                 <h3 className="font-semibold text-lg">5. Instructions</h3>
-                  <Textarea 
-                    value={instructions} 
-                    onChange={(e) => setInstructions(e.target.value)} 
-                    placeholder="Enter instructions for the exam. You can write in Urdu or English." 
-                    rows={4}
-                    className="font-urdu"
-                  />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-2">
+                     <h3 className="font-semibold text-lg">5. Instructions</h3>
+                      <Textarea 
+                        value={instructions} 
+                        onChange={(e) => setInstructions(e.target.value)} 
+                        placeholder="Enter instructions for the exam. You can write in Urdu or English." 
+                        rows={4}
+                        className="font-urdu"
+                      />
+                  </div>
+                  <div className="space-y-2">
+                     <h3 className="font-semibold text-lg">6. Print Layout</h3>
+                      <Select value={printLayout} onValueChange={(value) => setPrintLayout(value as '1'|'2')}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Layout"/>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1 Slip per Page</SelectItem>
+                          <SelectItem value="2">2 Slips per Page</SelectItem>
+                        </SelectContent>
+                      </Select>
+                  </div>
               </div>
            <div className="flex justify-end mt-8 pt-6 border-t">
               <Button size="lg" onClick={handlePrint} disabled={isLoading || selectedStudentIds.length === 0}>
