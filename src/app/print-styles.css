@@ -12,22 +12,24 @@
 
   .printable-page {
     page-break-after: always;
+    display: flex;
+    flex-direction: column;
+    height: 98vh; /* Use viewport height to approximate page height */
+    justify-content: space-between;
+    box-sizing: border-box;
   }
   
   .printable-page:last-child {
       page-break-after: auto;
   }
 
-  /* --- FOR ROLL NUMBER SLIPS --- */
   .slip-wrapper {
-    page-break-after: always;
-    height: 98vh; /* Ensure it takes full page height */
+    height: 49%; /* Each slip takes up just under half the page */
+    width: 100%;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-  }
-  .slip-wrapper:last-child {
-      page-break-after: auto;
+    overflow: hidden; /* Prevent content from overflowing the container */
   }
   
   .slip-page-wrapper {

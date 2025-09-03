@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -23,17 +24,15 @@ const Slip = ({ student, settings, examName, dateSheet, instructions, rollNo, qr
     const formatDate = (dateString: string) => {
         if (!dateString) return '-';
         try {
-            // The input type="date" provides 'YYYY-MM-DD' which parseISO handles correctly.
             return format(parseISO(dateString), 'dd-MM-yyyy');
         } catch (error) {
             console.error("Date formatting error:", error);
-            // Fallback for any other unexpected format
             return dateString;
         }
     }
     
     return (
-        <div className="p-4 font-sans bg-white text-black border-2 border-black w-full mx-auto relative slip-wrapper flex flex-col h-full">
+        <div className="p-4 font-sans bg-white text-black border-2 border-black w-full mx-auto relative slip-wrapper">
             {/* Watermark */}
             {settings.schoolLogo && (
                 <div className="absolute inset-0 flex items-center justify-center z-0">
@@ -138,19 +137,34 @@ const Slip = ({ student, settings, examName, dateSheet, instructions, rollNo, qr
 export const RollNumberSlipPrint = React.forwardRef<HTMLDivElement, RollNumberSlipPrintProps>(
   ({ students, settings, examName, dateSheet, instructions, startRollNo, qrCodes }, ref) => {
     
+    // Group students into pairs for printing
+    const studentPairs: (Student[])[] = [];
+    for (let i = 0; i < students.length; i += 2) {
+      studentPairs.push(students.slice(i, i + 2));
+    }
+
     return (
       <div ref={ref}>
-        {students.map((student, index) => (
-            <Slip 
-                key={student.id}
-                student={student} 
-                settings={settings}
-                examName={examName}
-                dateSheet={dateSheet}
-                instructions={instructions}
-                rollNo={startRollNo + index}
-                qrCode={qrCodes[student.id]}
-            />
+        {studentPairs.map((pair, pageIndex) => (
+          <div key={pageIndex} className="printable-page">
+            {pair.map((student, studentIndexInPair) => {
+                const overallIndex = pageIndex * 2 + studentIndexInPair;
+                return (
+                    <Slip 
+                        key={student.id}
+                        student={student} 
+                        settings={settings}
+                        examName={examName}
+                        dateSheet={dateSheet}
+                        instructions={instructions}
+                        rollNo={startRollNo + overallIndex}
+                        qrCode={qrCodes[student.id]}
+                    />
+                )
+            })}
+             {/* If there's only one student in the pair (last page), add a placeholder to maintain layout */}
+            {pair.length === 1 && <div className="slip-wrapper"></div>}
+          </div>
         ))}
       </div>
     );
