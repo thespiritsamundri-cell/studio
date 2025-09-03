@@ -14,10 +14,12 @@ interface TimetablePrintProps {
   timetableData: TimetableData;
   timeSlots: string[];
   daysOfWeek: string[];
+  breakAfterPeriod: number;
+  breakDuration: string;
 }
 
 export const TimetablePrint = React.forwardRef<HTMLDivElement, TimetablePrintProps>(
-  ({ settings, classInfo, timetableData, timeSlots, daysOfWeek }, ref) => {
+  ({ settings, classInfo, timetableData, timeSlots, daysOfWeek, breakAfterPeriod, breakDuration }, ref) => {
     
     const { teachers } = useData();
     const periodHeaders = Array.from({ length: 8 }, (_, i) => `Period ${i + 1}`);
@@ -58,22 +60,32 @@ export const TimetablePrint = React.forwardRef<HTMLDivElement, TimetablePrintPro
                 <thead>
                     <tr>
                         <th style={headerStyle}>Day</th>
-                        {periodHeaders.map((header, index) => <th key={header} style={headerStyle}>{header}<br/>{timeSlots[index]}</th>)}
+                        {periodHeaders.map((header, index) => {
+                            if (index + 1 === breakAfterPeriod) {
+                                return (
+                                    <React.Fragment key={header}>
+                                        <th style={headerStyle}>{header}<br/>({timeSlots[index]})</th>
+                                        <th style={{...headerStyle, backgroundColor: '#d1fae5', writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontSize: '20px' }} rowSpan={daysOfWeek.length + 1}>
+                                            BREAK ({breakDuration})
+                                        </th>
+                                    </React.Fragment>
+                                )
+                            }
+                            if (index + 1 > breakAfterPeriod) {
+                               return <th key={header} style={headerStyle}>{`Period ${index}`}<br/>({timeSlots[index-1]})</th>
+                            }
+                            return <th key={header} style={headerStyle}>{header}<br/>({timeSlots[index]})</th>
+                        })}
                     </tr>
                 </thead>
                 <tbody>
                      {daysOfWeek.map((day, dayIndex) => {
-                         const breakIndex = 4;
-                         const breakCell = <td style={{...cellStyle, writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontWeight: 'bold', fontSize: '20px', backgroundColor: '#374151', color: 'white'}} rowSpan={daysOfWeek.length}>BREAK</td>;
-
+                         const classTemplate = timetableData[dayIndex] || [];
                          return (
                              <tr key={`${day}`}>
                                  <td style={{...cellStyle, fontWeight: 'bold'}}>{day}</td>
                                  {Array.from({ length: 8 }).map((_, colIndex) => {
-                                      if (colIndex === breakIndex) {
-                                        return dayIndex === 0 ? breakCell : null;
-                                      }
-                                      const cell = timetableData[dayIndex]?.[colIndex];
+                                      const cell = classTemplate[colIndex];
                                       const teacher = teachers.find(t => t.id === cell?.teacherId);
                                       return (
                                         <td key={colIndex} style={cellStyle}>
@@ -81,13 +93,13 @@ export const TimetablePrint = React.forwardRef<HTMLDivElement, TimetablePrintPro
                                                 {cell ? (
                                                   <>
                                                     <p className="font-bold">{cell.subject}</p>
-                                                    <p className="text-muted-foreground">{teacher?.name}</p>
+                                                    <p className="text-gray-600">{teacher?.name}</p>
                                                   </>
                                                 ): ''}
                                             </div>
                                         </td>
                                       )
-                                 })}
+                                 }).filter((_, i) => i !== breakAfterPeriod)}
                              </tr>
                          )
                      })}

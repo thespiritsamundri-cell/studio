@@ -112,11 +112,12 @@ export interface TimetableCell {
     teacherId: string;
 }
 export type TimetableRow = (TimetableCell | null)[];
-export type TimetableDay = TimetableRow[];
-export type TimetableData = TimetableDay[];
+export type TimetableData = TimetableRow;
 
 export interface Timetable {
   classId: string;
   data: TimetableData;
   timeSlots?: string[];
+  breakAfterPeriod?: number;
+  breakDuration?: string;
 }
