@@ -73,7 +73,7 @@ export function SidebarNav() {
   return (
     <>
       <SidebarHeader>
-        <div className="flex items-center justify-center p-2 h-20">
+        <div className="flex flex-col items-center justify-center p-2 h-24">
            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary-foreground/10 flex-shrink-0">
             {settings.schoolLogo && typeof settings.schoolLogo === 'string' && settings.schoolLogo.length > 0 ? (
               <Image src={settings.schoolLogo} alt="School Logo" width={48} height={48} className="rounded-full object-cover"/>
@@ -81,6 +81,7 @@ export function SidebarNav() {
               <School className="w-8 h-8 text-primary-foreground" />
             )}
           </div>
+          <span className={cn("text-xs text-sidebar-foreground/80 mt-2 min-w-0 transition-opacity duration-200", isPinned ? "opacity-100" : "opacity-0 group-hover/sidebar:opacity-100")}>{settings.academicYear}</span>
         </div>
       </SidebarHeader>
       <SidebarContent>
