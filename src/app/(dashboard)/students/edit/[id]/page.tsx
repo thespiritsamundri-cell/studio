@@ -51,6 +51,17 @@ export default function EditStudentPage() {
     setStudent(prev => prev ? { ...prev, [id]: value } : undefined);
   }
 
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setStudent(prev => prev ? { ...prev, photoUrl: reader.result as string } : undefined);
+        };
+        reader.readAsDataURL(file);
+    }
+  };
+
   const availableSections = student ? classes.find(c => c.name === student.class)?.sections || [] : [];
 
 
@@ -147,8 +158,8 @@ export default function EditStudentPage() {
               <Input id="address" value={student.address} onChange={handleInputChange} placeholder="Enter residential address" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="photoUrl">Student Photo URL</Label>
-              <Input id="photoUrl" value={student.photoUrl} onChange={handleInputChange} placeholder="Enter photo URL" />
+              <Label htmlFor="photoUrl">Student Photo</Label>
+              <Input id="photoUrl" type="file" className="file:text-primary file:font-medium" onChange={handlePhotoChange} accept="image/*" />
             </div>
             <div className="flex justify-end gap-2 md:col-span-2">
               <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
