@@ -114,48 +114,52 @@ export default function ResultCardsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Result Card Generator</CardTitle>
-          <CardDescription>Generate and print final result cards for students. Select a class to begin.</CardDescription>
+          <CardDescription>Generate and print final result cards for students. Follow the steps below.</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="space-y-2">
-              <h3 className="font-semibold text-lg">1. Select Class</h3>
-              <Select onValueChange={handleClassChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {classes.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-               <h3 className="font-semibold text-lg">2. Select Exams to Include</h3>
-               <div className="p-3 border rounded-md min-h-[100px] space-y-2">
-                  {selectedClass ? (
-                    classExams.length > 0 ? (
-                      classExams.map(exam => (
-                        <div key={exam.id} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`exam-${exam.id}`}
-                            checked={selectedExamIds.includes(exam.id)}
-                            onCheckedChange={() => handleExamSelection(exam.id)}
-                          />
-                          <label htmlFor={`exam-${exam.id}`} className="text-sm font-medium leading-none">
-                            {exam.name}
-                          </label>
-                        </div>
-                      ))
+        <CardContent className="space-y-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left Column: Selections */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className="space-y-2">
+                <h3 className="font-semibold text-lg">1. Select Class</h3>
+                <Select onValueChange={handleClassChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a class" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classes.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                 <h3 className="font-semibold text-lg">2. Select Exams to Include</h3>
+                 <div className="p-3 border rounded-md min-h-[100px] grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {selectedClass ? (
+                      classExams.length > 0 ? (
+                        classExams.map(exam => (
+                          <div key={exam.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`exam-${exam.id}`}
+                              checked={selectedExamIds.includes(exam.id)}
+                              onCheckedChange={() => handleExamSelection(exam.id)}
+                            />
+                            <label htmlFor={`exam-${exam.id}`} className="text-sm font-medium leading-none">
+                              {exam.name}
+                            </label>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center col-span-full pt-5">No exams found for this class.</p>
+                      )
                     ) : (
-                      <p className="text-sm text-muted-foreground text-center pt-5">No exams found for this class.</p>
-                    )
-                  ) : (
-                    <p className="text-sm text-muted-foreground text-center pt-5">Select a class first.</p>
-                  )}
-               </div>
+                      <p className="text-sm text-muted-foreground text-center col-span-full pt-5">Select a class first.</p>
+                    )}
+                 </div>
+              </div>
             </div>
 
+            {/* Right Column: Student Selection */}
             <div className="space-y-2">
               <h3 className="font-semibold text-lg">3. Select Students</h3>
                <ScrollArea className="border rounded-md h-[250px]">
@@ -186,6 +190,13 @@ export default function ResultCardsPage() {
                                 <TableCell>{student.name} ({student.id})</TableCell>
                             </TableRow>
                         ))}
+                         {classStudents.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={2} className="h-24 text-center">
+                                    No students in this class.
+                                </TableCell>
+                            </TableRow>
+                         )}
                     </TableBody>
                    </Table>
                 ) : (
@@ -196,34 +207,38 @@ export default function ResultCardsPage() {
                </ScrollArea>
             </div>
           </div>
-          <div className="mt-6 pt-6 border-t grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                 <h3 className="font-semibold text-lg">4. Remarks</h3>
-                  <div className="mt-2">
-                      <Textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="e.g. Congratulations on your hard work!" />
-                  </div>
+          
+          {/* Bottom Section */}
+          <div className="mt-6 pt-6 border-t">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                   <h3 className="font-semibold text-lg">4. Remarks</h3>
+                    <div className="mt-2">
+                        <Textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="e.g. Congratulations on your hard work!" />
+                    </div>
+                </div>
+                 <div>
+                   <h3 className="font-semibold text-lg">5. Print Options</h3>
+                    <div className="mt-2">
+                       <Select value={printOrientation} onValueChange={(value) => setPrintOrientation(value as 'portrait' | 'landscape')}>
+                          <SelectTrigger>
+                              <SelectValue placeholder="Select Orientation" />
+                          </SelectTrigger>
+                          <SelectContent>
+                              <SelectItem value="portrait">Portrait</SelectItem>
+                              <SelectItem value="landscape">Landscape</SelectItem>
+                          </SelectContent>
+                      </Select>
+                    </div>
+                </div>
               </div>
-               <div>
-                 <h3 className="font-semibold text-lg">5. Print Options</h3>
-                  <div className="mt-2">
-                     <Select value={printOrientation} onValueChange={(value) => setPrintOrientation(value as 'portrait' | 'landscape')}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select Orientation" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="portrait">Portrait</SelectItem>
-                            <SelectItem value="landscape">Landscape</SelectItem>
-                        </SelectContent>
-                    </Select>
-                  </div>
-              </div>
-          </div>
-           <div className="flex justify-end mt-6 pt-6 border-t">
+           <div className="flex justify-end mt-8 pt-6 border-t">
               <Button size="lg" onClick={handlePrint} disabled={isLoading || selectedStudentIds.length === 0 || selectedExamIds.length === 0}>
                 {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Printer className="mr-2 h-4 w-4"/>}
                 Print Result Cards ({selectedStudentIds.length} Selected)
               </Button>
            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
