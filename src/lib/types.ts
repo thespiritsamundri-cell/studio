@@ -35,6 +35,10 @@ export interface Teacher {
   salary: number;
   photoUrl: string;
   assignedSubjects?: string[];
+  // Props for printing, not stored in DB
+  schoolName?: string;
+  schoolAddress?: string;
+  schoolLogo?: string;
 }
 
 export interface Attendance {
@@ -66,6 +70,10 @@ export interface Class {
     name: string;
     sections: string[];
     subjects: string[];
+    // Props for printing, not stored in DB
+    schoolName?: string;
+    schoolAddress?: string;
+    schoolLogo?: string;
 }
 
 export interface ExamResult {

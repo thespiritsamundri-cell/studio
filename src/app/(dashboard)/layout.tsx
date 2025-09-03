@@ -5,12 +5,10 @@ import type { ReactNode } from 'react';
 import { SidebarProvider, Sidebar } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/layout/sidebar-nav';
 import { Header } from '@/components/layout/header';
-import { SettingsProvider } from '@/context/settings-context';
 import { DataProvider } from '@/context/data-context';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <SettingsProvider>
       <DataProvider>
         <SidebarProvider>
           <div className="flex min-h-screen w-full bg-muted/40">
@@ -26,6 +24,5 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </div>
         </SidebarProvider>
       </DataProvider>
-    </SettingsProvider>
   );
 }
