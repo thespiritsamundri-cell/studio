@@ -23,7 +23,8 @@ const Slip = ({ student, settings, examName, dateSheet, instructions, rollNo }: 
     const formatDate = (dateString: string) => {
         if (!dateString) return '-';
         try {
-            const date = parseISO(dateString);
+            // Input type="date" gives 'YYYY-MM-DD'. Adding 'T00:00:00' helps parse it consistently across timezones.
+            const date = new Date(dateString + 'T00:00:00');
             return format(date, 'dd-MM-yyyy');
         } catch (error) {
             return dateString; // Return original string if parsing fails
@@ -31,7 +32,7 @@ const Slip = ({ student, settings, examName, dateSheet, instructions, rollNo }: 
     }
     
     return (
-        <div className="p-4 font-sans bg-white text-black border-2 border-black w-full mx-auto relative slip-wrapper">
+        <div className="p-4 font-sans bg-white text-black border-2 border-black w-full mx-auto relative slip-wrapper flex flex-col h-full">
             {settings.schoolLogo && (
                 <div className="absolute inset-0 flex items-center justify-center z-0">
                     <Image src={settings.schoolLogo} alt="Watermark" width={300} height={300} className="object-contain opacity-10" />
