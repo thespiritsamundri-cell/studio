@@ -3,14 +3,14 @@
 
 import React from 'react';
 import type { SchoolSettings } from '@/context/settings-context';
-import type { Class, Timetable, TimetableCell } from '@/lib/types';
+import type { Class, Teacher, Timetable } from '@/lib/types';
 import { School } from 'lucide-react';
 import Image from 'next/image';
-import { useData } from '@/context/data-context';
 
 interface MasterTimetablePrintProps {
   settings: SchoolSettings;
   classes: Class[];
+  teachers: Teacher[];
   masterTimetableData: Record<string, Timetable>;
   timeSlots: string[];
   breakAfterPeriod: number;
@@ -18,9 +18,8 @@ interface MasterTimetablePrintProps {
 }
 
 export const MasterTimetablePrint = React.forwardRef<HTMLDivElement, MasterTimetablePrintProps>(
-  ({ settings, classes, masterTimetableData, timeSlots, breakAfterPeriod, breakDuration }, ref) => {
+  ({ settings, classes, teachers, masterTimetableData, timeSlots, breakAfterPeriod, breakDuration }, ref) => {
     
-    const { teachers } = useData();
     const periodHeaders = Array.from({ length: 8 }, (_, i) => `Period ${i + 1}`);
 
     const cellStyle: React.CSSProperties = {

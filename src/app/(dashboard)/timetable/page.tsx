@@ -213,6 +213,7 @@ export default function TimetablePage() {
         <MasterTimetablePrint
             settings={settings}
             classes={classes}
+            teachers={teachers}
             masterTimetableData={masterTimetableData}
             timeSlots={getMasterTimeSlots()}
             breakAfterPeriod={breakAfterPeriod}
@@ -413,7 +414,7 @@ export default function TimetablePage() {
                         <tr key={cls.id}>
                           <td className="border p-2 w-32 font-medium text-center sticky left-0 bg-background z-10">{cls.name}</td>
                           {Array.from({length: NUM_PERIODS}).map((_, periodIndex) => {
-                             if (periodIndex === breakAfterPeriod) return null; // Skip rendering the break column
+                             if (periodIndex + 1 === breakAfterPeriod + 1) return null; // Skip rendering the break column
                              return (
                                 <td key={periodIndex} className="border p-0 align-middle">
                                     <MasterTimetableCell classId={cls.id} periodIndex={periodIndex} />
