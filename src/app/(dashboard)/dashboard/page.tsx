@@ -1,12 +1,16 @@
 
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Users, Wallet, UserCheck, UserPlus } from 'lucide-react';
+import { Users, Wallet, UserCheck, UserPlus, History } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, PieChart, Pie, Cell, Line, LineChart, Tooltip } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { useData } from '@/context/data-context';
 import { useMemo } from 'react';
-import { subMonths, format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from 'date-fns';
+import { subMonths, format, formatDistanceToNow } from 'date-fns';
+import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
+import Autoplay from "embla-carousel-autoplay";
+import { Badge } from '@/components/ui/badge';
+
 
 const chartConfig = {
   attendance: {
@@ -20,7 +24,7 @@ const chartConfig = {
 };
 
 export default function DashboardPage() {
-    const { students, fees } = useData();
+    const { students, fees, activityLog } = useData();
 
     const totalStudents = students.length;
     const feeCollected = fees.filter(f => f.status === 'Paid').reduce((acc, fee) => acc + fee.amount, 0);
@@ -54,7 +58,7 @@ export default function DashboardPage() {
             .map(([name, value], i) => ({
                 name,
                 value,
-                fill: chartColors[i],
+                fill: chartColors[i % chartColors.length],
             }));
     }, [students]);
 
@@ -134,6 +138,70 @@ export default function DashboardPage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
+            <CardTitle>New Admissions Trend</CardTitle>
+            <CardDescription>Monthly new admissions for the last 6 months.</CardDescription>
+          </CardHeader>
+          <CardContent className="h-[300px]">
+            <ChartContainer config={chartConfig} className="w-full h-full">
+              <LineChart data={newAdmissionsData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={10} />
+                <YAxis allowDecimals={false} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Line type="monotone" dataKey="count" stroke="var(--color-count)" strokeWidth={3} dot={{ r: 6 }} />
+              </LineChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <History className="w-6 h-6" />
+                    Recent Activities
+                </CardTitle>
+                <CardDescription>A live feed of recent actions in the system.</CardDescription>
+            </CardHeader>
+            <CardContent className="h-[300px] p-0">
+                <Carousel
+                    className="w-full h-full"
+                    opts={{ align: "start", loop: true, direction: "vertical" }}
+                    plugins={[Autoplay({ delay: 3000, stopOnInteraction: false })]}
+                    orientation="vertical"
+                >
+                    <CarouselContent className="h-full -mt-0">
+                        {activityLog.length > 0 ? (
+                            activityLog.slice(0, 10).map((log, index) => (
+                                <CarouselItem key={index} className="pt-2 basis-auto">
+                                    <div className="p-4">
+                                        <div className="flex items-start gap-4">
+                                            <div className="text-sm">
+                                                <p className="font-medium">{log.description}</p>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <Badge variant="secondary">{log.action}</Badge>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {formatDistanceToNow(new Date(log.timestamp), { addSuffix: true })} by {log.user}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </CarouselItem>
+                            ))
+                        ) : (
+                             <CarouselItem className="pt-0">
+                                <div className="flex items-center justify-center h-full text-muted-foreground">
+                                    No recent activities.
+                                </div>
+                            </CarouselItem>
+                        )}
+                    </CarouselContent>
+                </Carousel>
+            </CardContent>
+        </Card>
+      </div>
+       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+         <Card className="lg:col-span-2">
+          <CardHeader>
             <CardTitle>Weekly Attendance Trend</CardTitle>
             <CardDescription>Attendance percentage for the current week.</CardDescription>
           </CardHeader>
@@ -158,9 +226,9 @@ export default function DashboardPage() {
                 <ChartContainer config={{}} className="w-full h-full">
                     <PieChart>
                          <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                        <Pie data={classDistributionData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80} strokeWidth={2}>
-                             {classDistributionData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.fill} />
+                        <Pie data={classDistributionData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80} strokeWidth={2} labelLine={false} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                             {classDistributionData.map((entry) => (
+                                <Cell key={`cell-${entry.name}`} fill={entry.fill} />
                             ))}
                         </Pie>
                     </PieChart>
@@ -168,23 +236,6 @@ export default function DashboardPage() {
             </CardContent>
         </Card>
       </div>
-       <Card>
-          <CardHeader>
-            <CardTitle>New Admissions Trend</CardTitle>
-            <CardDescription>Monthly new admissions for the last 6 months.</CardDescription>
-          </CardHeader>
-          <CardContent className="h-[300px]">
-            <ChartContainer config={chartConfig} className="w-full h-full">
-              <LineChart data={newAdmissionsData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={10} />
-                <YAxis />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Line type="monotone" dataKey="count" stroke="var(--color-count)" strokeWidth={3} dot={{ r: 6 }} />
-              </LineChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
     </div>
   );
 }
