@@ -3,7 +3,7 @@
 
 import React from 'react';
 import type { SchoolSettings } from '@/context/settings-context';
-import type { Class, Teacher, Timetable } from '@/lib/types';
+import type { Class, Teacher, Timetable, TimetableData } from '@/lib/types';
 import { School } from 'lucide-react';
 import Image from 'next/image';
 
@@ -11,7 +11,7 @@ interface MasterTimetablePrintProps {
   settings: SchoolSettings;
   classes: Class[];
   teachers: Teacher[];
-  masterTimetableData: Record<string, Timetable>;
+  masterTimetableData: Record<string, TimetableData>;
   timeSlots: string[];
   breakAfterPeriod: number;
   breakDuration: string;
@@ -20,8 +20,6 @@ interface MasterTimetablePrintProps {
 export const MasterTimetablePrint = React.forwardRef<HTMLDivElement, MasterTimetablePrintProps>(
   ({ settings, classes, teachers, masterTimetableData, timeSlots, breakAfterPeriod, breakDuration }, ref) => {
     
-    const periodHeaders = Array.from({ length: 8 }, (_, i) => `Period ${i + 1}`);
-
     const cellStyle: React.CSSProperties = {
         border: '1px solid #000',
         padding: '2px',
@@ -58,22 +56,20 @@ export const MasterTimetablePrint = React.forwardRef<HTMLDivElement, MasterTimet
             <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                 <thead>
                     <tr>
-                        <th style={headerStyle}>Class</th>
-                        {periodHeaders.map((header, index) => {
-                             if (index + 1 === breakAfterPeriod) {
+                        <th style={{...headerStyle, width: '8%'}}>Class</th>
+                        {Array.from({ length: 8 }).map((_, index) => {
+                            if (index === breakAfterPeriod) {
                                 return (
-                                    <React.Fragment key={header}>
-                                        <th style={headerStyle}>{header}<br/>({timeSlots[index]})</th>
-                                        <th style={{...headerStyle, backgroundColor: '#d1fae5', writingMode: 'vertical-rl', transform: 'rotate(180deg)' }} rowSpan={classes.length + 1}>
+                                    <React.Fragment key={`break-header-${index}`}>
+                                        <th style={{...headerStyle, width: '11%'}}>{`Period ${index+1}`}<br/>({timeSlots[index]})</th>
+                                        <th style={{...headerStyle, backgroundColor: '#d1fae5', writingMode: 'vertical-rl', transform: 'rotate(180deg)', width: '3%' }} rowSpan={classes.length + 1}>
                                             BREAK ({breakDuration})
                                         </th>
                                     </React.Fragment>
                                 )
                             }
-                             if (index + 1 > breakAfterPeriod) {
-                               return <th key={header} style={headerStyle}>{`Period ${index}`}<br/>({timeSlots[index-1]})</th>
-                            }
-                            return <th key={header} style={headerStyle}>{header}<br/>({timeSlots[index]})</th>
+                            const periodNumber = index < breakAfterPeriod ? index + 1 : index;
+                            return <th key={`period-header-${index}`} style={{...headerStyle, width: '11%'}}>{`Period ${periodNumber}`}<br/>({timeSlots[index]})</th>
                         })}
                     </tr>
                 </thead>
@@ -84,7 +80,8 @@ export const MasterTimetablePrint = React.forwardRef<HTMLDivElement, MasterTimet
                              <tr key={cls.id}>
                                  <td style={{...cellStyle, fontWeight: 'bold'}}>{cls.name}</td>
                                  {Array.from({ length: 8 }).map((_, periodIndex) => {
-                                      const cell = timetable?.data[periodIndex];
+                                     if (periodIndex === breakAfterPeriod) return null;
+                                      const cell = timetable?.[periodIndex];
                                       const teacher = teachers.find(t => t.id === cell?.teacherId);
                                       return (
                                         <td key={periodIndex} style={cellStyle}>
@@ -96,7 +93,7 @@ export const MasterTimetablePrint = React.forwardRef<HTMLDivElement, MasterTimet
                                             ) : null}
                                         </td>
                                       )
-                                 }).filter((_, i) => i !== breakAfterPeriod)}
+                                 })}
                              </tr>
                         )
                      })}

@@ -3,6 +3,7 @@
 
 import React from 'react';
 import type { Teacher } from '@/lib/types';
+import type { SchoolSettings } from '@/context/settings-context';
 import { School } from 'lucide-react';
 import Image from 'next/image';
 import { format } from 'date-fns';
@@ -11,10 +12,11 @@ interface TeacherSchedulePrintProps {
   teacher: Teacher;
   schedule: { [day: string]: { period: number; class: string; subject: string; section?: string, time: string }[] };
   daysOfWeek: string[];
+  settings: SchoolSettings;
 }
 
 export const TeacherSchedulePrint = React.forwardRef<HTMLDivElement, TeacherSchedulePrintProps>(
-  ({ teacher, schedule, daysOfWeek }, ref) => {
+  ({ teacher, schedule, daysOfWeek, settings }, ref) => {
     
     const periodHeaders = Array.from({ length: 8 }, (_, i) => `Period ${i + 1}`);
 
@@ -37,10 +39,10 @@ export const TeacherSchedulePrint = React.forwardRef<HTMLDivElement, TeacherSche
       <div ref={ref} className="p-8 font-sans bg-white text-black">
         <header className="flex items-center justify-between pb-4 border-b-2 border-black">
           <div className="flex items-center gap-4">
-            {teacher.schoolLogo && <Image src={teacher.schoolLogo} alt="School Logo" width={64} height={64} className="object-contain" />}
+            {settings.schoolLogo && <Image src={settings.schoolLogo} alt="School Logo" width={64} height={64} className="object-contain" />}
             <div>
-              <h1 className="text-3xl font-bold">{teacher.schoolName}</h1>
-              <p className="text-sm">{teacher.schoolAddress}</p>
+              <h1 className="text-3xl font-bold">{settings.schoolName}</h1>
+              <p className="text-sm">{settings.schoolAddress}</p>
             </div>
           </div>
           <div className="text-right">
@@ -87,7 +89,7 @@ export const TeacherSchedulePrint = React.forwardRef<HTMLDivElement, TeacherSche
                 <p className="border-t-2 border-black pt-1">Teacher Signature</p>
             </div>
             <div className="w-1/3 text-center">
-                <p>&copy; {new Date().getFullYear()} {teacher.schoolName}</p>
+                <p>&copy; {new Date().getFullYear()} {settings.schoolName}</p>
             </div>
             <div className="w-1/3 text-center">
                  <p className="border-t-2 border-black pt-1">Principal Signature</p>
