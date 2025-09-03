@@ -155,7 +155,7 @@ export default function ResultCardsPage() {
                         <TableRow>
                            <TableHead className="w-[50px]">
                              <Checkbox
-                                onCheckedChange={handleSelectAllStudents}
+                                onCheckedChange={(checked) => handleSelectAllStudents(!!checked)}
                                 checked={isAllStudentsSelected}
                                 aria-label="Select all students"
                              />
@@ -197,5 +197,3 @@ export default function ResultCardsPage() {
     </div>
   );
 }
-
-    

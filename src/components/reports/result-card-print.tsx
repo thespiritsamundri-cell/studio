@@ -3,19 +3,21 @@
 
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { Student, Exam } from '@/lib/types';
-import { School } from 'lucide-react';
+import type { Student, Exam, Class } from '@/lib/types';
 import type { SchoolSettings } from '@/context/settings-context';
 import Image from 'next/image';
+import { useData } from '@/context/data-context';
 
 interface ResultCardPrintProps {
   students: Student[];
   exams: Exam[];
   settings: SchoolSettings;
+  classes: Class[];
 }
 
-const ResultCard = ({ student, exams, settings }: { student: Student, exams: Exam[], settings: SchoolSettings }) => {
-    const subjects = settings.subjects?.[student.class] || [];
+const ResultCard = ({ student, exams, settings, classes }: { student: Student, exams: Exam[], settings: SchoolSettings, classes: Class[] }) => {
+    const studentClassInfo = classes.find(c => c.name === student.class);
+    const subjects = studentClassInfo?.subjects || [];
     
     const getGrade = (percentage: number) => {
         if (percentage >= 90) return 'A+';
@@ -26,6 +28,20 @@ const ResultCard = ({ student, exams, settings }: { student: Student, exams: Exa
         if (percentage >= 40) return 'E';
         return 'F';
     };
+
+    const overall = exams.map(exam => {
+        const total = Object.values(exam.subjectTotals).reduce((a,b) => a+b, 0);
+        const result = exam.results.find(r => r.studentId === student.id);
+        const obtained = result ? Object.values(result.marks).reduce((a,b) => a+b, 0) : 0;
+        const percentage = total > 0 ? ((obtained / total) * 100) : 0;
+        const grade = getGrade(percentage);
+        return { total, obtained, percentage: percentage.toFixed(2), grade };
+    });
+    
+    const grandTotalMarks = overall.reduce((acc, curr) => acc + curr.total, 0);
+    const grandObtainedMarks = overall.reduce((acc, curr) => acc + curr.obtained, 0);
+    const grandPercentage = grandTotalMarks > 0 ? (grandObtainedMarks / grandTotalMarks * 100) : 0;
+
 
     return (
         <div className="p-6 font-sans bg-white text-black border-4 border-double border-gray-800 w-full mx-auto" style={{ breakAfter: 'page', pageBreakAfter: 'always' }}>
@@ -47,77 +63,54 @@ const ResultCard = ({ student, exams, settings }: { student: Student, exams: Exa
             </div>
 
             {/* Marks Table */}
-            <Table className="border">
-                <TableHeader>
-                    <TableRow className="bg-gray-200">
-                        <TableHead className="font-bold border-r">Subjects</TableHead>
+            <table className="w-full border-collapse border border-gray-400">
+                <thead>
+                    <tr className="bg-gray-200">
+                        <th className="font-bold border border-gray-400 p-2">Subjects</th>
                         {exams.map(exam => (
-                            <TableHead key={exam.id} className="text-center font-bold border-r">{exam.name}</TableHead>
+                             <th key={exam.id} className="text-center font-bold border border-gray-400 p-2">{exam.name}</th>
                         ))}
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
+                    </tr>
+                </thead>
+                <tbody>
                     {subjects.map(subject => (
-                        <TableRow key={subject}>
-                            <TableCell className="font-medium border-r">{subject}</TableCell>
+                        <tr key={subject}>
+                            <td className="font-medium border border-gray-400 p-2">{subject}</td>
                             {exams.map(exam => {
                                 const result = exam.results.find(r => r.studentId === student.id);
                                 const marks = result?.marks[subject] ?? '-';
-                                return <TableCell key={exam.id} className="text-center border-r">{marks}</TableCell>;
+                                return <td key={exam.id} className="text-center border border-gray-400 p-2">{marks}</td>;
                             })}
-                        </TableRow>
+                        </tr>
                     ))}
-                </TableBody>
-            </Table>
+                </tbody>
+            </table>
             
-            {/* Summary Section */}
-            <div className="mt-4">
-                 <Table className="border">
-                    <TableBody>
-                        <TableRow>
-                            <TableCell className="font-bold">Total Marks</TableCell>
-                            {exams.map(exam => {
-                                const total = Object.values(exam.subjectTotals).reduce((a,b) => a+b, 0);
-                                return <TableCell key={exam.id} className="text-center font-bold">{total}</TableCell>;
-                            })}
-                        </TableRow>
-                        <TableRow>
-                            <TableCell className="font-bold">Obtained Marks</TableCell>
-                            {exams.map(exam => {
-                                const result = exam.results.find(r => r.studentId === student.id);
-                                const obtained = result ? Object.values(result.marks).reduce((a,b) => a+b, 0) : 0;
-                                return <TableCell key={exam.id} className="text-center font-bold">{obtained}</TableCell>;
-                            })}
-                        </TableRow>
-                        <TableRow>
-                            <TableCell className="font-bold">Percentage</TableCell>
-                            {exams.map(exam => {
-                                const total = Object.values(exam.subjectTotals).reduce((a,b) => a+b, 0);
-                                const result = exam.results.find(r => r.studentId === student.id);
-                                const obtained = result ? Object.values(result.marks).reduce((a,b) => a+b, 0) : 0;
-                                const percentage = total > 0 ? ((obtained / total) * 100).toFixed(2) : 0;
-                                return <TableCell key={exam.id} className="text-center font-bold">{percentage}%</TableCell>;
-                            })}
-                        </TableRow>
-                        <TableRow>
-                            <TableCell className="font-bold">Grade</TableCell>
-                             {exams.map(exam => {
-                                const total = Object.values(exam.subjectTotals).reduce((a,b) => a+b, 0);
-                                const result = exam.results.find(r => r.studentId === student.id);
-                                const obtained = result ? Object.values(result.marks).reduce((a,b) => a+b, 0) : 0;
-                                const percentage = total > 0 ? ((obtained / total) * 100) : 0;
-                                return <TableCell key={exam.id} className="text-center font-bold">{getGrade(percentage)}</TableCell>;
-                            })}
-                        </TableRow>
-                    </TableBody>
-                </Table>
+             {/* Summary Section */}
+            <div className="mt-6 grid grid-cols-4 gap-4 text-center">
+                <div className="border border-gray-400 p-2 rounded-lg">
+                    <h4 className="font-bold text-sm">Total Marks</h4>
+                    <p className="text-lg font-semibold">{grandTotalMarks}</p>
+                </div>
+                 <div className="border border-gray-400 p-2 rounded-lg">
+                    <h4 className="font-bold text-sm">Obtained Marks</h4>
+                    <p className="text-lg font-semibold">{grandObtainedMarks}</p>
+                </div>
+                 <div className="border border-gray-400 p-2 rounded-lg">
+                    <h4 className="font-bold text-sm">Percentage</h4>
+                    <p className="text-lg font-semibold">{grandPercentage.toFixed(2)}%</p>
+                </div>
+                 <div className="border border-gray-400 p-2 rounded-lg">
+                    <h4 className="font-bold text-sm">Overall Grade</h4>
+                    <p className="text-lg font-semibold">{getGrade(grandPercentage)}</p>
+                </div>
             </div>
             
             {/* Remarks and Signature */}
-            <div className="mt-6 grid grid-cols-2 items-end">
+            <div className="mt-8 grid grid-cols-2 items-end">
                 <div>
                     <h4 className="font-bold">Remarks:</h4>
-                    <p className="mt-2">Congratulations on your hard work!</p>
+                    <p className="mt-1">Congratulations on your hard work!</p>
                     <div className="border-b border-gray-500 mt-2"></div>
                     <div className="border-b border-gray-500 mt-2"></div>
                 </div>
@@ -137,12 +130,13 @@ const ResultCard = ({ student, exams, settings }: { student: Student, exams: Exa
 };
 
 
-export const ResultCardPrint = React.forwardRef<HTMLDivElement, ResultCardPrintProps>(
+export const ResultCardPrint = React.forwardRef<HTMLDivElement, Omit<ResultCardPrintProps, 'classes'>>(
   ({ students, exams, settings }, ref) => {
+    const { classes } = useData();
     return (
       <div ref={ref}>
         {students.map(student => (
-            <ResultCard key={student.id} student={student} exams={exams} settings={settings} />
+            <ResultCard key={student.id} student={student} exams={exams} settings={settings} classes={classes} />
         ))}
       </div>
     );
@@ -150,5 +144,3 @@ export const ResultCardPrint = React.forwardRef<HTMLDivElement, ResultCardPrintP
 );
 
 ResultCardPrint.displayName = 'ResultCardPrint';
-
-    
