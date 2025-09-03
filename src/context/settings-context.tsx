@@ -3,6 +3,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import type { Grade } from '@/lib/types';
 
 type HexColor = string;
 
@@ -50,6 +51,7 @@ export interface SchoolSettings {
   themeColors?: Partial<ThemeColors>;
   font: 'inter' | 'roboto' | 'open-sans' | 'lato' | 'montserrat' | 'poppins';
   subjects?: { [className: string]: string[] };
+  gradingSystem?: Grade[];
 }
 
 interface SettingsContextType {
@@ -70,6 +72,15 @@ const defaultSettings: SchoolSettings = {
   messageDelay: 2,
   themeColors: {},
   font: 'inter',
+  gradingSystem: [
+    { name: 'A+', minPercentage: 90 },
+    { name: 'A', minPercentage: 80 },
+    { name: 'B', minPercentage: 70 },
+    { name: 'C', minPercentage: 60 },
+    { name: 'D', minPercentage: 50 },
+    { name: 'E', minPercentage: 40 },
+    { name: 'F', minPercentage: 0 },
+  ]
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -122,6 +133,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       const savedSettings = window.localStorage.getItem('schoolSettings');
       if (savedSettings) {
         const parsedSettings = JSON.parse(savedSettings);
+        // Ensure gradingSystem is part of the loaded settings, if not, apply default
+        if (!parsedSettings.gradingSystem) {
+          parsedSettings.gradingSystem = defaultSettings.gradingSystem;
+        }
         setSettings(parsedSettings);
         // Apply theme colors on initial load
         if (parsedSettings.themeColors) {
@@ -168,5 +183,3 @@ export function useSettings() {
   }
   return context;
 }
-
-    

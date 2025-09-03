@@ -11,13 +11,16 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare } from 'lucide-react';
+import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import { useState, useMemo } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { sendWhatsAppMessage } from '@/services/whatsapp-service';
+import type { Grade } from '@/lib/types';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
 
 export default function SettingsPage() {
   const { settings, setSettings } = useSettings();
@@ -264,6 +267,21 @@ export default function SettingsPage() {
             }
         }));
     };
+    
+    const handleGradeChange = (index: number, field: keyof Grade, value: string | number) => {
+        const newGrades = [...(settings.gradingSystem || [])];
+        newGrades[index] = { ...newGrades[index], [field]: value };
+        setSettings(prev => ({...prev, gradingSystem: newGrades }));
+    };
+
+    const addGradeRow = () => {
+        const newGrade: Grade = { name: '', minPercentage: 0 };
+        setSettings(prev => ({...prev, gradingSystem: [...(prev.gradingSystem || []), newGrade]}));
+    };
+
+    const removeGradeRow = (index: number) => {
+        setSettings(prev => ({...prev, gradingSystem: (prev.gradingSystem || []).filter((_, i) => i !== index)}));
+    };
 
 
   return (
@@ -271,9 +289,10 @@ export default function SettingsPage() {
       <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><SettingsIcon className="w-8 h-8" />Settings</h1>
       
       <Tabs defaultValue="school" className="w-full">
-        <TabsList className="grid w-full grid-cols-5 max-w-2xl">
+        <TabsList className="grid w-full grid-cols-6 max-w-3xl">
           <TabsTrigger value="school">School</TabsTrigger>
           <TabsTrigger value="theme">Theme</TabsTrigger>
+          <TabsTrigger value="grading">Grading</TabsTrigger>
           <TabsTrigger value="account">Account</TabsTrigger>
           <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
           <TabsTrigger value="backup">Backup</TabsTrigger>
@@ -414,6 +433,57 @@ export default function SettingsPage() {
                     </div>
                      <div className="flex justify-end">
                         <Button onClick={() => toast({ title: "Theme Saved", description: "Your new colors have been applied."})}>Save Theme</Button>
+                    </div>
+                </CardContent>
+            </Card>
+        </TabsContent>
+         <TabsContent value="grading" className="mt-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Grading System</CardTitle>
+                    <CardDescription>Define the grades and their corresponding percentage ranges. These will be used on result cards.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="border rounded-lg">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Grade Name (e.g., A+)</TableHead>
+                                    <TableHead>Minimum Percentage (%)</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {(settings.gradingSystem || []).map((grade, index) => (
+                                    <TableRow key={index}>
+                                        <TableCell>
+                                            <Input 
+                                                value={grade.name} 
+                                                onChange={(e) => handleGradeChange(index, 'name', e.target.value)}
+                                                placeholder="e.g., A+"
+                                            />
+                                        </TableCell>
+                                        <TableCell>
+                                            <Input 
+                                                type="number" 
+                                                value={grade.minPercentage} 
+                                                onChange={(e) => handleGradeChange(index, 'minPercentage', Number(e.target.value))}
+                                                placeholder="e.g., 90"
+                                            />
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="icon" onClick={() => removeGradeRow(index)}>
+                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                    <div className="flex justify-between items-center mt-4">
+                        <Button variant="outline" onClick={addGradeRow}><PlusCircle className="mr-2 h-4 w-4" /> Add Grade</Button>
+                        <Button onClick={handleSave}>Save Grading System</Button>
                     </div>
                 </CardContent>
             </Card>
@@ -609,5 +679,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    

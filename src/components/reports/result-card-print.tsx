@@ -2,7 +2,7 @@
 'use client';
 
 import React from 'react';
-import type { Student, Exam, Class } from '@/lib/types';
+import type { Student, Exam, Class, Grade } from '@/lib/types';
 import type { SchoolSettings } from '@/context/settings-context';
 import Image from 'next/image';
 
@@ -19,21 +19,35 @@ const ResultCard = ({ student, exams, settings, classes, remarks }: { student: S
     const subjects = studentClassInfo?.subjects || [];
     
     const getGrade = (percentage: number) => {
-        if (percentage >= 90) return 'A+';
-        if (percentage >= 80) return 'A';
-        if (percentage >= 70) return 'B';
-        if (percentage >= 60) return 'C';
-        if (percentage >= 50) return 'D';
-        if (percentage >= 40) return 'E';
-        return 'F';
+        if (!settings.gradingSystem || settings.gradingSystem.length === 0) {
+            if (percentage >= 90) return 'A+';
+            if (percentage >= 80) return 'A';
+            if (percentage >= 70) return 'B';
+            if (percentage >= 60) return 'C';
+            if (percentage >= 50) return 'D';
+            if (percentage >= 40) return 'E';
+            return 'F';
+        }
+        // Sort grades by minPercentage descending to find the correct grade
+        const sortedGrades = [...settings.gradingSystem].sort((a, b) => b.minPercentage - a.minPercentage);
+        for (const grade of sortedGrades) {
+            if (percentage >= grade.minPercentage) {
+                return grade.name;
+            }
+        }
+        return 'F'; // Default fallback
     };
     
-    const grandTotalMarks = exams.reduce((acc, exam) => acc + Object.values(exam.subjectTotals).reduce((a,b) => a+b, 0), 0);
-    const grandObtainedMarks = exams.reduce((acc, exam) => {
-        const result = exam.results.find(r => r.studentId === student.id);
-        const obtained = result ? Object.values(result.marks).reduce((a,b) => a+b, 0) : 0;
-        return acc + obtained;
+    const grandTotalMarks = exams.reduce((total, exam) => {
+        return total + subjects.reduce((subTotal, subject) => subTotal + (exam.subjectTotals[subject] || 0), 0);
     }, 0);
+
+    const grandObtainedMarks = exams.reduce((total, exam) => {
+        const result = exam.results.find(r => r.studentId === student.id);
+        if (!result) return total;
+        return total + subjects.reduce((subTotal, subject) => subTotal + (result.marks[subject] || 0), 0);
+    }, 0);
+
     const grandPercentage = grandTotalMarks > 0 ? (grandObtainedMarks / grandTotalMarks * 100) : 0;
 
 
@@ -71,7 +85,6 @@ const ResultCard = ({ student, exams, settings, classes, remarks }: { student: S
                             {exams.map(exam => (
                                  <th key={exam.id} className="text-center font-bold border border-gray-400 p-1">
                                      {exam.name}
-                                     <span className="font-normal block"> (out of {Object.values(exam.subjectTotals).reduce((a, b) => a + b, 0)})</span>
                                  </th>
                             ))}
                             <th className="text-center font-bold border border-gray-400 p-1">Total</th>
@@ -84,6 +97,16 @@ const ResultCard = ({ student, exams, settings, classes, remarks }: { student: S
                             let subjectTotalMarks = 0;
                             let subjectObtainedMarks = 0;
                             
+                            exams.forEach(exam => {
+                                const result = exam.results.find(r => r.studentId === student.id);
+                                const marks = result?.marks[subject] ?? 0;
+                                const total = exam.subjectTotals[subject] || 0;
+                                subjectTotalMarks += total;
+                                subjectObtainedMarks += marks;
+                            });
+
+                            const subjectPercentage = subjectTotalMarks > 0 ? (subjectObtainedMarks / subjectTotalMarks * 100) : 0;
+                            
                             return (
                                 <tr key={subject}>
                                     <td className="font-medium border border-gray-400 p-1">{subject}</td>
@@ -91,13 +114,11 @@ const ResultCard = ({ student, exams, settings, classes, remarks }: { student: S
                                         const result = exam.results.find(r => r.studentId === student.id);
                                         const marks = result?.marks[subject] ?? '-';
                                         const total = exam.subjectTotals[subject] || 0;
-                                        subjectTotalMarks += total;
-                                        subjectObtainedMarks += (typeof marks === 'number' ? marks : 0);
                                         return <td key={exam.id} className="text-center border border-gray-400 p-1">{marks} / {total}</td>;
                                     })}
                                     <td className="text-center border border-gray-400 p-1 font-semibold">{subjectObtainedMarks} / {subjectTotalMarks}</td>
-                                    <td className="text-center border border-gray-400 p-1 font-semibold">{subjectTotalMarks > 0 ? ((subjectObtainedMarks/subjectTotalMarks) * 100).toFixed(1) : '0'}%</td>
-                                    <td className="text-center border border-gray-400 p-1 font-semibold">{getGrade(subjectTotalMarks > 0 ? (subjectObtainedMarks/subjectTotalMarks) * 100 : 0)}</td>
+                                    <td className="text-center border border-gray-400 p-1 font-semibold">{subjectPercentage.toFixed(1)}%</td>
+                                    <td className="text-center border border-gray-400 p-1 font-semibold">{getGrade(subjectPercentage)}</td>
                                 </tr>
                             );
                         })}
@@ -107,7 +128,7 @@ const ResultCard = ({ student, exams, settings, classes, remarks }: { student: S
                  {/* Summary Section */}
                 <div className="mt-6 grid grid-cols-4 gap-4 text-center">
                     <div className="border border-gray-400 p-2 rounded-lg">
-                        <h4 className="font-bold text-sm">Grand Total Marks</h4>
+                        <h4 className="font-bold text-sm">Grand Total</h4>
                         <p className="text-lg font-semibold">{grandTotalMarks}</p>
                     </div>
                      <div className="border border-gray-400 p-2 rounded-lg">
@@ -115,21 +136,32 @@ const ResultCard = ({ student, exams, settings, classes, remarks }: { student: S
                         <p className="text-lg font-semibold">{grandObtainedMarks}</p>
                     </div>
                      <div className="border border-gray-400 p-2 rounded-lg">
-                        <h4 className="font-bold text-sm">Overall Percentage</h4>
+                        <h4 className="font-bold text-sm">Percentage</h4>
                         <p className="text-lg font-semibold">{grandPercentage.toFixed(2)}%</p>
                     </div>
                      <div className="border border-gray-400 p-2 rounded-lg">
-                        <h4 className="font-bold text-sm">Overall Grade</h4>
+                        <h4 className="font-bold text-sm">Grade</h4>
                         <p className="text-lg font-semibold">{getGrade(grandPercentage)}</p>
                     </div>
                 </div>
                 
                 {/* Remarks and Signature */}
-                <div className="mt-8 grid grid-cols-2 items-end">
-                    <div>
-                        <h4 className="font-bold">Remarks:</h4>
-                        <p className="mt-1 border-b border-gray-500 min-h-6">{remarks}</p>
-                        <div className="border-b border-gray-500 mt-2"></div>
+                <div className="mt-6 grid grid-cols-2 items-end gap-4">
+                    <div className="space-y-2">
+                        <div>
+                            <h4 className="font-bold">Remarks:</h4>
+                            <p className="mt-1 border-b border-gray-500 min-h-6">{remarks}</p>
+                        </div>
+                        {settings.gradingSystem && settings.gradingSystem.length > 0 && (
+                            <div className="border p-2 rounded-md">
+                                <h4 className="font-bold text-center mb-1">Grading System</h4>
+                                <div className="grid grid-cols-3 text-center text-xs">
+                                    {settings.gradingSystem.map((g, i) => (
+                                        <span key={i}><b>{g.name}</b>: {g.minPercentage}%+</span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                      <div className="flex flex-col items-center">
                         {settings.principalSignature ? (

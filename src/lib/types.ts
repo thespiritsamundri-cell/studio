@@ -84,4 +84,7 @@ export interface Exam {
     };
 }
 
-    
+export interface Grade {
+    name: string;
+    minPercentage: number;
+}
