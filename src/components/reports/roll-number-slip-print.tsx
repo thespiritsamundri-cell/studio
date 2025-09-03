@@ -24,7 +24,6 @@ const Slip = ({ student, settings, examName, dateSheet, instructions, rollNo, qr
     const formatDate = (dateString: string) => {
         if (!dateString) return '-';
         try {
-            // The input type="date" returns 'YYYY-MM-DD'. No need for time adjustments.
             return format(parseISO(dateString), 'dd-MM-yyyy');
         } catch (error) {
             console.error("Date formatting error:", error);
@@ -137,6 +136,36 @@ const Slip = ({ student, settings, examName, dateSheet, instructions, rollNo, qr
 
 export const RollNumberSlipPrint = React.forwardRef<HTMLDivElement, RollNumberSlipPrintProps>(
   ({ students, settings, examName, dateSheet, instructions, startRollNo, layout, qrCodes }, ref) => {
+    
+    if (layout === '2') {
+        const studentPairs: Student[][] = [];
+        for (let i = 0; i < students.length; i += 2) {
+            studentPairs.push(students.slice(i, i + 2));
+        }
+
+        return (
+             <div ref={ref} className="roll-number-slips-container" data-print-layout={layout}>
+                {studentPairs.map((pair, pageIndex) => (
+                    <div key={pageIndex} className="slip-page-wrapper">
+                        {pair.map((student, studentIndex) => (
+                           <Slip 
+                                key={student.id}
+                                student={student} 
+                                settings={settings}
+                                examName={examName}
+                                dateSheet={dateSheet}
+                                instructions={instructions}
+                                rollNo={startRollNo + (pageIndex * 2 + studentIndex)}
+                                qrCode={qrCodes[student.id]}
+                           />
+                        ))}
+                    </div>
+                ))}
+             </div>
+        )
+    }
+
+    // Default layout (1 per page)
     return (
       <div ref={ref} data-print-layout={layout}>
         {students.map((student, index) => (

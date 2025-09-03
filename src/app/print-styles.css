@@ -6,12 +6,11 @@
     margin: 0.25in;
   }
   
-  [data-orientation="landscape"] {
-    @page {
-        size: A4 landscape;
-    }
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
-  
+
   .printable-page {
     page-break-after: always;
   }
@@ -27,25 +26,32 @@
   [data-print-layout="1"] .slip-wrapper:last-child {
       page-break-after: auto;
   }
-  [data-print-layout="2"] {
+  
+  .roll-number-slips-container[data-print-layout="2"] {
+      display: block;
+  }
+  .slip-page-wrapper {
       display: flex;
       flex-direction: column;
-      gap: 0.25in;
-      height: 98vh; /* Occupy full printable height */
+      height: 10.7in; /* A4 height is ~11.69in, minus margins */
+      width: 100%;
+      page-break-after: always;
   }
-  [data-print-layout="2"] .slip-wrapper {
-      height: 48%; /* Each slip takes up slightly less than half the page */
+   .slip-page-wrapper:last-child {
+      page-break-after: auto;
+   }
+
+  .slip-page-wrapper .slip-wrapper {
+      height: 50%;
       box-sizing: border-box;
-      page-break-inside: avoid;
+      flex-shrink: 0;
       display: flex;
       flex-direction: column;
+      padding-bottom: 0.25in;
   }
-  /* This ensures that every set of two slips gets a page break after */
-  [data-print-layout="2"] .slip-wrapper:nth-child(2n) {
-    page-break-after: always;
-  }
-  [data-print-layout="2"] .slip-wrapper:last-child {
-    page-break-after: auto;
+
+  .slip-page-wrapper .slip-wrapper:last-child {
+      padding-bottom: 0;
   }
 
 
