@@ -30,6 +30,7 @@ import {
   Receipt,
   FileSignature,
   FileBadge,
+  Ticket,
 } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import Image from 'next/image';
@@ -56,7 +57,7 @@ const navItems = [
 export function SidebarNav() {
   const pathname = usePathname();
   const { settings } = useSettings();
-  const [isExamSystemOpen, setIsExamSystemOpen] = useState(pathname.startsWith('/exams') || pathname.startsWith('/result-cards'));
+  const [isExamSystemOpen, setIsExamSystemOpen] = useState(pathname.startsWith('/exams') || pathname.startsWith('/result-cards') || pathname.startsWith('/roll-number-slips'));
 
 
   return (
@@ -131,6 +132,19 @@ export function SidebarNav() {
                         </Link>
                       </SidebarMenuButton>
                     </li>
+                     <li>
+                      <SidebarMenuButton
+                        asChild
+                        size="sm"
+                        isActive={pathname.startsWith('/roll-number-slips')}
+                        tooltip="Roll Number Slips"
+                      >
+                        <Link href="/roll-number-slips">
+                          <Ticket />
+                          <span>Roll No. Slips</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </li>
                  </ul>
               </CollapsibleContent>
             </Collapsible>
@@ -163,5 +177,3 @@ export function SidebarNav() {
     </>
   );
 }
-
-    
