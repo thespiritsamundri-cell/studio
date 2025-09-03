@@ -15,6 +15,8 @@ import { ResultCardPrint } from '@/components/reports/result-card-print';
 import { useSettings } from '@/context/settings-context';
 import { renderToString } from 'react-dom/server';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function ResultCardsPage() {
   const { classes, students: allStudents, exams: allExams } = useData();
@@ -24,6 +26,7 @@ export default function ResultCardsPage() {
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [selectedExamIds, setSelectedExamIds] = useState<string[]>([]);
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [remarks, setRemarks] = useState('Congratulations on your hard work! Keep it up.');
   const [isLoading, setIsLoading] = useState(false);
 
   const classExams = useMemo(() => {
@@ -76,7 +79,7 @@ export default function ResultCardsPage() {
 
     setTimeout(() => {
       const printContent = renderToString(
-        <ResultCardPrint students={studentsToPrint} exams={examsToPrint} settings={settings} classes={classes} />
+        <ResultCardPrint students={studentsToPrint} exams={examsToPrint} settings={settings} classes={classes} remarks={remarks} />
       );
 
       const printWindow = window.open('', '_blank');
@@ -107,9 +110,9 @@ export default function ResultCardsPage() {
           <CardDescription>Generate and print final result cards for students. Select a class to begin.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="space-y-2">
-              <h3 className="font-semibold">1. Select Class</h3>
+              <h3 className="font-semibold text-lg">1. Select Class</h3>
               <Select onValueChange={handleClassChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a class" />
@@ -121,7 +124,7 @@ export default function ResultCardsPage() {
             </div>
             
             <div className="space-y-2">
-               <h3 className="font-semibold">2. Select Exams to Include</h3>
+               <h3 className="font-semibold text-lg">2. Select Exams to Include</h3>
                <div className="p-3 border rounded-md min-h-[100px] space-y-2">
                   {selectedClass ? (
                     classExams.length > 0 ? (
@@ -147,11 +150,11 @@ export default function ResultCardsPage() {
             </div>
 
             <div className="space-y-2">
-              <h3 className="font-semibold">3. Select Students</h3>
+              <h3 className="font-semibold text-lg">3. Select Students</h3>
                <ScrollArea className="border rounded-md h-[250px]">
                 {selectedClass ? (
                    <Table>
-                    <TableHeader className="sticky top-0 bg-secondary">
+                    <TableHeader className="sticky top-0 bg-secondary z-10">
                         <TableRow>
                            <TableHead className="w-[50px]">
                              <Checkbox
@@ -185,6 +188,12 @@ export default function ResultCardsPage() {
                 )}
                </ScrollArea>
             </div>
+          </div>
+          <div className="mt-6 pt-6 border-t">
+              <h3 className="font-semibold text-lg">4. Remarks</h3>
+              <div className="max-w-xl mt-2">
+                  <Textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="e.g. Congratulations on your hard work!" />
+              </div>
           </div>
            <div className="flex justify-end mt-6 pt-6 border-t">
               <Button size="lg" onClick={handlePrint} disabled={isLoading || selectedStudentIds.length === 0 || selectedExamIds.length === 0}>
