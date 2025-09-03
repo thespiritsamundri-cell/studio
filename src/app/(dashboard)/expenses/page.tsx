@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useData } from '@/context/data-context';
@@ -32,13 +32,9 @@ import { ExpenseVoucherPrint } from '@/components/reports/expense-voucher-print'
 import { renderToString } from 'react-dom/server';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const expenseCategories = [
-    'Salaries', 'Utilities', 'Rent', 'Maintenance', 'Supplies', 'Marketing', 'Transportation', 'Miscellaneous'
-];
-
 export default function ExpensesPage() {
   const { expenses, addExpense, updateExpense, deleteExpense } = useData();
-  const { settings } = useSettings();
+  const { settings, setSettings } = useSettings();
   const { toast } = useToast();
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -49,6 +45,45 @@ export default function ExpensesPage() {
   
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
+
+  const [openCategoryDialog, setOpenCategoryDialog] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+
+
+  const expenseCategories = useMemo(() => settings.expenseCategories || ['Salaries', 'Utilities', 'Rent', 'Maintenance', 'Supplies', 'Marketing', 'Transportation', 'Miscellaneous'], [settings.expenseCategories]);
+
+  const handleAddCategory = () => {
+    if (newCategoryName.trim() && !expenseCategories.includes(newCategoryName.trim())) {
+      const updatedCategories = [...expenseCategories, newCategoryName.trim()];
+      setSettings(prev => ({...prev, expenseCategories: updatedCategories}));
+      setNewCategoryName('');
+      toast({ title: 'Category Added', description: `"${newCategoryName}" has been added.`});
+    }
+  };
+
+  const handleUpdateCategory = () => {
+    if (editingCategory && newCategoryName.trim()) {
+      const updatedCategories = expenseCategories.map(cat => cat === editingCategory ? newCategoryName.trim() : cat);
+      setSettings(prev => ({ ...prev, expenseCategories: updatedCategories }));
+      setNewCategoryName('');
+      setEditingCategory(null);
+      toast({ title: 'Category Updated', description: `"${editingCategory}" has been updated to "${newCategoryName.trim()}".`});
+    }
+  };
+  
+  const handleDeleteCategory = (category: string) => {
+      // Optional: Check if category is in use
+      const isUsed = expenses.some(exp => exp.category === category);
+      if(isUsed) {
+        toast({ title: 'Cannot Delete', description: `Category "${category}" is currently in use.`, variant: 'destructive'});
+        return;
+      }
+      const updatedCategories = expenseCategories.filter(cat => cat !== category);
+      setSettings(prev => ({...prev, expenseCategories: updatedCategories}));
+      toast({ title: 'Category Deleted', description: `"${category}" has been removed.`});
+  }
+
 
   const filteredExpenses = useMemo(() => {
     let filtered = expenses;
@@ -155,7 +190,10 @@ export default function ExpensesPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold font-headline">Expenses</h1>
-        <Button onClick={() => handleOpenDialog(null)}><PlusCircle className="mr-2 h-4 w-4"/> Add Expense</Button>
+        <div className='flex gap-2'>
+            <Button variant="outline" onClick={() => setOpenCategoryDialog(true)}>Manage Categories</Button>
+            <Button onClick={() => handleOpenDialog(null)}><PlusCircle className="mr-2 h-4 w-4"/> Add Expense</Button>
+        </div>
       </div>
 
         <Card>
@@ -303,6 +341,52 @@ export default function ExpensesPage() {
             </form>
         </DialogContent>
       </Dialog>
+      
+       <Dialog open={openCategoryDialog} onOpenChange={setOpenCategoryDialog}>
+        <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+                <DialogTitle>Manage Expense Categories</DialogTitle>
+                <DialogDescription>Add, edit, or remove expense categories.</DialogDescription>
+            </DialogHeader>
+            <div className="py-4 space-y-4">
+                <div className="flex gap-2">
+                    <Input
+                        placeholder="Enter new category name"
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                editingCategory ? handleUpdateCategory() : handleAddCategory();
+                            }
+                        }}
+                    />
+                    <Button onClick={editingCategory ? handleUpdateCategory : handleAddCategory}>
+                        {editingCategory ? 'Update' : 'Add'}
+                    </Button>
+                     {editingCategory && <Button variant="ghost" onClick={() => { setEditingCategory(null); setNewCategoryName(''); }}>Cancel</Button>}
+                </div>
+                <div className="border rounded-md max-h-60 overflow-y-auto">
+                    <Table>
+                        <TableBody>
+                            {expenseCategories.map(cat => (
+                                <TableRow key={cat}>
+                                    <TableCell className="font-medium">{cat}</TableCell>
+                                    <TableCell className="text-right">
+                                        <Button variant="ghost" size="icon" onClick={() => { setEditingCategory(cat); setNewCategoryName(cat); }}>
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" onClick={() => handleDeleteCategory(cat)}>
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+            </div>
+        </DialogContent>
+       </Dialog>
     </div>
   );
 }

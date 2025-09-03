@@ -53,6 +53,7 @@ export interface SchoolSettings {
   font: 'inter' | 'roboto' | 'open-sans' | 'lato' | 'montserrat' | 'poppins';
   subjects?: { [className: string]: string[] };
   gradingSystem?: Grade[];
+  expenseCategories?: string[];
 }
 
 interface SettingsContextType {
@@ -82,6 +83,9 @@ const defaultSettings: SchoolSettings = {
     { name: 'D', minPercentage: 50 },
     { name: 'E', minPercentage: 40 },
     { name: 'F', minPercentage: 0 },
+  ],
+  expenseCategories: [
+    'Salaries', 'Utilities', 'Rent', 'Maintenance', 'Supplies', 'Marketing', 'Transportation', 'Miscellaneous'
   ]
 };
 
@@ -135,14 +139,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       const savedSettings = window.localStorage.getItem('schoolSettings');
       if (savedSettings) {
         const parsedSettings = JSON.parse(savedSettings);
-        // Ensure gradingSystem is part of the loaded settings, if not, apply default
-        if (!parsedSettings.gradingSystem) {
-          parsedSettings.gradingSystem = defaultSettings.gradingSystem;
-        }
-        setSettings(parsedSettings);
+        // Merge with defaults to ensure all keys are present
+        const mergedSettings = { ...defaultSettings, ...parsedSettings };
+        setSettings(mergedSettings);
+        
         // Apply theme colors on initial load
-        if (parsedSettings.themeColors) {
-            Object.entries(parsedSettings.themeColors).forEach(([key, value]) => {
+        if (mergedSettings.themeColors) {
+            Object.entries(mergedSettings.themeColors).forEach(([key, value]) => {
                 document.documentElement.style.setProperty(`--${key}`, hexToHsl(value as string));
             });
         }
