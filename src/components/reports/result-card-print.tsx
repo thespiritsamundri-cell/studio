@@ -6,7 +6,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import type { Student, Exam, Class } from '@/lib/types';
 import type { SchoolSettings } from '@/context/settings-context';
 import Image from 'next/image';
-import { useData } from '@/context/data-context';
 
 interface ResultCardPrintProps {
   students: Student[];
@@ -130,9 +129,8 @@ const ResultCard = ({ student, exams, settings, classes }: { student: Student, e
 };
 
 
-export const ResultCardPrint = React.forwardRef<HTMLDivElement, Omit<ResultCardPrintProps, 'classes'>>(
-  ({ students, exams, settings }, ref) => {
-    const { classes } = useData();
+export const ResultCardPrint = React.forwardRef<HTMLDivElement, ResultCardPrintProps>(
+  ({ students, exams, settings, classes }, ref) => {
     return (
       <div ref={ref}>
         {students.map(student => (

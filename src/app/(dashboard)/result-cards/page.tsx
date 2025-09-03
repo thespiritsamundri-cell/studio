@@ -76,7 +76,7 @@ export default function ResultCardsPage() {
 
     setTimeout(() => {
       const printContent = renderToString(
-        <ResultCardPrint students={studentsToPrint} exams={examsToPrint} settings={settings} />
+        <ResultCardPrint students={studentsToPrint} exams={examsToPrint} settings={settings} classes={classes} />
       );
 
       const printWindow = window.open('', '_blank');
