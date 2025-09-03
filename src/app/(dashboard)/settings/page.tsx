@@ -21,6 +21,7 @@ import { sendWhatsAppMessage } from '@/services/whatsapp-service';
 import type { Grade } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
 
 
 export default function SettingsPage() {
