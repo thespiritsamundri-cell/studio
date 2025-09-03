@@ -24,9 +24,12 @@ const Slip = ({ student, settings, examName, dateSheet, instructions, rollNo, qr
     const formatDate = (dateString: string) => {
         if (!dateString) return '-';
         try {
+            // The input type="date" provides a string in 'YYYY-MM-DD' format.
+            // parseISO handles this format correctly.
             return format(parseISO(dateString), 'dd-MM-yyyy');
         } catch (error) {
             console.error("Date formatting error:", error);
+            // Fallback for any unexpected format.
             return dateString;
         }
     }
