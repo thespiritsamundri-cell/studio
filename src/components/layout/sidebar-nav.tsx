@@ -116,6 +116,7 @@ export function SidebarNav() {
                         tooltip="Marksheets"
                       >
                         <Link href="/exams">
+                          <FileSignature />
                           <span>Marksheets</span>
                         </Link>
                       </SidebarMenuButton>
