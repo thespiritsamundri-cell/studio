@@ -37,6 +37,14 @@ export const MasterTimetablePrint = React.forwardRef<HTMLDivElement, MasterTimet
         backgroundColor: '#e5e7eb' // gray-200
     };
 
+    const breakStyle: React.CSSProperties = {
+        ...headerStyle,
+        backgroundColor: '#d1fae5', // green-200
+        writingMode: 'vertical-rl',
+        transform: 'rotate(180deg)',
+        width: '3%'
+    };
+
     return (
       <div ref={ref} className="p-4 font-sans bg-white text-black">
         <header className="flex items-center justify-between pb-2 border-b-2 border-black">
@@ -59,44 +67,51 @@ export const MasterTimetablePrint = React.forwardRef<HTMLDivElement, MasterTimet
                     <tr>
                         <th style={{...headerStyle, width: '10%'}}>Class</th>
                         {Array.from({ length: numPeriods }).map((_, index) => {
-                            if (index + 1 === breakAfterPeriod) {
-                                return (
-                                    <React.Fragment key={`header-frag-${index}`}>
-                                        <th style={{...headerStyle}}>{`Period ${index + 1}`}<br/>({timeSlots[index]})</th>
-                                        <th style={{...headerStyle, backgroundColor: '#d1fae5', writingMode: 'vertical-rl', transform: 'rotate(180deg)', width: '3%' }} rowSpan={classes.length + 1}>
+                            const periodNumber = index + 1;
+                            const isBreakTime = periodNumber === breakAfterPeriod;
+
+                            return (
+                                <React.Fragment key={`header-frag-${index}`}>
+                                    <th style={{...headerStyle}}>
+                                        {`Period ${periodNumber}`}<br/>({timeSlots[index] || 'N/A'})
+                                    </th>
+                                    {isBreakTime && (
+                                        <th style={breakStyle} rowSpan={classes.length + 1}>
                                             BREAK ({breakDuration})
                                         </th>
-                                    </React.Fragment>
-                                )
-                            }
-                            return <th key={`period-header-${index}`} style={{...headerStyle}}>{`Period ${index + 1}`}<br/>({timeSlots[index]})</th>
+                                    )}
+                                </React.Fragment>
+                            );
                         })}
                     </tr>
                 </thead>
                 <tbody>
                      {classes.map((cls) => {
-                        const timetable = masterTimetableData[cls.id];
                         return (
                              <tr key={cls.id}>
                                  <td style={{...cellStyle, fontWeight: 'bold'}}>{cls.name}</td>
                                  {Array.from({ length: numPeriods }).map((_, periodIndex) => {
-                                      if (periodIndex + 1 === breakAfterPeriod) return null;
-                                      
-                                      const cell = timetable?.[periodIndex];
+                                      const periodNumber = periodIndex + 1;
+                                      const isBreakTime = periodNumber === breakAfterPeriod;
+                                      const cell = masterTimetableData[cls.id]?.[periodIndex];
                                       const teacher = teachers.find(t => t.id === cell?.teacherId);
+                                      
                                       return (
-                                        <td key={periodIndex} style={cellStyle}>
-                                            {cell ? (
-                                                <div>
-                                                    <p className="font-bold">{teacher?.name || 'N/A'}</p>
-                                                    <p>{cell.subject}</p>
-                                                </div>
-                                            ) : null}
-                                        </td>
-                                      )
+                                        <React.Fragment key={`cell-frag-${cls.id}-${periodIndex}`}>
+                                            <td style={cellStyle}>
+                                                {cell?.subject ? (
+                                                    <div>
+                                                        <p className="font-bold">{teacher?.name || 'N/A'}</p>
+                                                        <p>{cell.subject}</p>
+                                                    </div>
+                                                ) : null}
+                                            </td>
+                                            {isBreakTime && <td style={cellStyle} rowSpan={classes.length + 1}></td> /* This should be empty but the break header will span over it */}
+                                        </React.Fragment>
+                                      );
                                  })}
                              </tr>
-                        )
+                        );
                      })}
                 </tbody>
             </table>
