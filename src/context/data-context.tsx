@@ -40,7 +40,7 @@ interface DataContextType {
   addExpense: (expense: Expense) => void;
   updateExpense: (id: string, expense: Expense) => void;
   deleteExpense: (id: string) => void;
-  updateTimetable: (classId: string, data: TimetableData) => void;
+  updateTimetable: (classId: string, data: TimetableData, timeSlots?: string[]) => void;
   loadData: (data: { students: Student[], families: Family[], fees: Fee[], teachers: Teacher[], teacherAttendances: TeacherAttendance[], classes: Class[], exams: Exam[], expenses: Expense[], timetables?: Timetable[], activityLog?: ActivityLog[] }) => void;
 }
 
@@ -247,15 +247,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const updateTimetable = (classId: string, data: TimetableData) => {
+  const updateTimetable = (classId: string, data: TimetableData, timeSlots?: string[]) => {
     setTimetables(prev => {
         const existing = prev.find(t => t.classId === classId);
         if (existing) {
-            return prev.map(t => t.classId === classId ? { ...t, data } : t);
+            return prev.map(t => t.classId === classId ? { ...t, data, timeSlots } : t);
         }
-        return [...prev, { classId, data }];
+        return [...prev, { classId, data, timeSlots }];
     });
-    addActivityLog({ user: 'Admin', action: 'Update Timetable', description: `Updated timetable for class ID ${classId}.` });
+    const className = classes.find(c => c.id === classId)?.name || classId;
+    addActivityLog({ user: 'Admin', action: 'Update Timetable', description: `Updated timetable for class ${className}.` });
   };
 
   const loadData = (data: { students: Student[], families: Family[], fees: Fee[], teachers: Teacher[], teacherAttendances: TeacherAttendance[], classes: Class[], exams: Exam[], expenses: Expense[], timetables?: Timetable[], activityLog?: ActivityLog[] }) => {

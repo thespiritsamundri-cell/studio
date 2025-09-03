@@ -34,6 +34,7 @@ export interface Teacher {
   education: string;
   salary: number;
   photoUrl: string;
+  assignedSubjects?: string[];
 }
 
 export interface Attendance {
@@ -106,11 +107,16 @@ export interface Expense {
   vendor?: string;
 }
 
-export type TimetableCell = string;
-export type TimetableRow = TimetableCell[];
-export type TimetableData = TimetableRow[];
+export interface TimetableCell {
+    subject: string;
+    teacherId: string;
+}
+export type TimetableRow = (TimetableCell | null)[];
+export type TimetableDay = TimetableRow[];
+export type TimetableData = TimetableDay[];
 
 export interface Timetable {
   classId: string;
   data: TimetableData;
+  timeSlots?: string[];
 }

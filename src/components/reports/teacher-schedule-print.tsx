@@ -11,7 +11,7 @@ import { format } from 'date-fns';
 interface TeacherSchedulePrintProps {
   settings: SchoolSettings;
   teacher: Teacher;
-  schedule: { [day: string]: { period: string; class: string; subject: string }[] };
+  schedule: { [day: string]: { period: number; class: string; subject: string; section?: string }[] };
   daysOfWeek: string[];
 }
 
@@ -64,14 +64,14 @@ export const TeacherSchedulePrint = React.forwardRef<HTMLDivElement, TeacherSche
                     {daysOfWeek.map(day => (
                         <tr key={day}>
                             <td style={{...cellStyle, fontWeight: 'bold'}}>{day}</td>
-                            {periodHeaders.map(period => {
-                                const entry = schedule[day]?.find(e => e.period === period);
+                            {periodHeaders.map((period, periodIndex) => {
+                                const entry = schedule[day]?.find(e => e.period === (periodIndex + 1));
                                 return (
                                     <td key={period} style={cellStyle}>
                                         {entry ? (
                                             <div>
                                                 <p className="font-bold">{entry.class}</p>
-                                                <p>{entry.subject.replace(teacher.name, '').trim()}</p>
+                                                <p>{entry.subject}</p>
                                             </div>
                                         ) : null}
                                     </td>

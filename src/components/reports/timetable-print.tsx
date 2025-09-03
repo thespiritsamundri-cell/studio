@@ -3,24 +3,25 @@
 
 import React from 'react';
 import type { SchoolSettings } from '@/context/settings-context';
-import type { Class, TimetableData } from '@/lib/types';
+import type { Class, TimetableData, TimetableCell } from '@/lib/types';
 import { School } from 'lucide-react';
 import Image from 'next/image';
+import { useData } from '@/context/data-context';
 
 interface TimetablePrintProps {
   settings: SchoolSettings;
   classInfo: Class;
   timetableData: TimetableData;
-  periodHeaders: string[];
+  timeSlots: string[];
   daysOfWeek: string[];
 }
 
 export const TimetablePrint = React.forwardRef<HTMLDivElement, TimetablePrintProps>(
-  ({ settings, classInfo, timetableData, periodHeaders, daysOfWeek }, ref) => {
+  ({ settings, classInfo, timetableData, timeSlots, daysOfWeek }, ref) => {
     
-    const sections = classInfo.sections.length > 0 ? classInfo.sections : [classInfo.name];
-    let rowIndex = 0;
-    
+    const { teachers } = useData();
+    const periodHeaders = Array.from({ length: 8 }, (_, i) => `Period ${i + 1}`);
+
     const cellStyle: React.CSSProperties = {
         border: '1px solid #000',
         padding: '4px',
@@ -57,34 +58,39 @@ export const TimetablePrint = React.forwardRef<HTMLDivElement, TimetablePrintPro
                 <thead>
                     <tr>
                         <th style={headerStyle}>Day</th>
-                         {sections.length > 1 && <th style={headerStyle}>Section</th>}
-                        {periodHeaders.map(header => <th key={header} style={headerStyle}>{header}</th>)}
+                        {periodHeaders.map((header, index) => <th key={header} style={headerStyle}>{header}<br/>{timeSlots[index]}</th>)}
                     </tr>
                 </thead>
                 <tbody>
-                     {sections.map(section => (
-                        daysOfWeek.map((day, dayIndex) => {
-                            const currentRow = rowIndex;
-                            rowIndex++;
-                             // Special handling for Break
-                            const breakIndex = 4; // Assuming 5th period is break
-                            const breakCell = <td style={{...cellStyle, writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontWeight: 'bold', fontSize: '20px', backgroundColor: '#374151', color: 'white'}} rowSpan={daysOfWeek.length * sections.length}>BREAK</td>;
+                     {daysOfWeek.map((day, dayIndex) => {
+                         const breakIndex = 4;
+                         const breakCell = <td style={{...cellStyle, writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontWeight: 'bold', fontSize: '20px', backgroundColor: '#374151', color: 'white'}} rowSpan={daysOfWeek.length}>BREAK</td>;
 
-                            return (
-                                <tr key={`${section}-${day}`}>
-                                    {dayIndex === 0 && sections.length > 1 && <td style={{...cellStyle, fontWeight: 'bold'}} rowSpan={daysOfWeek.length}>{section}</td>}
-                                    <td style={{...cellStyle, fontWeight: 'bold'}}>{day}</td>
-                                    {Array.from({ length: 8 }).map((_, colIndex) => (
-                                         colIndex === breakIndex && currentRow === 0 ? breakCell : colIndex !== breakIndex && (
-                                            <td key={colIndex} style={cellStyle}>
-                                                <div className="whitespace-pre-wrap">{timetableData[currentRow]?.[colIndex] || ''}</div>
-                                            </td>
-                                         )
-                                    ))}
-                                </tr>
-                            )
-                        })
-                    ))}
+                         return (
+                             <tr key={`${day}`}>
+                                 <td style={{...cellStyle, fontWeight: 'bold'}}>{day}</td>
+                                 {Array.from({ length: 8 }).map((_, colIndex) => {
+                                      if (colIndex === breakIndex) {
+                                        return dayIndex === 0 ? breakCell : null;
+                                      }
+                                      const cell = timetableData[dayIndex]?.[colIndex];
+                                      const teacher = teachers.find(t => t.id === cell?.teacherId);
+                                      return (
+                                        <td key={colIndex} style={cellStyle}>
+                                            <div className="whitespace-pre-wrap">
+                                                {cell ? (
+                                                  <>
+                                                    <p className="font-bold">{cell.subject}</p>
+                                                    <p className="text-muted-foreground">{teacher?.name}</p>
+                                                  </>
+                                                ): ''}
+                                            </div>
+                                        </td>
+                                      )
+                                 })}
+                             </tr>
+                         )
+                     })}
                 </tbody>
             </table>
         </main>

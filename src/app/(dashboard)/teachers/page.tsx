@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -31,15 +32,24 @@ import type { Teacher } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function TeachersPage() {
-  const { teachers, addTeacher, updateTeacher, deleteTeacher } = useData();
+  const { teachers, addTeacher, updateTeacher, deleteTeacher, classes } = useData();
   const [openDialog, setOpenDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const { toast } = useToast();
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [assignedSubjects, setAssignedSubjects] = useState<string[]>([]);
+  
+  const allSubjects = useMemo(() => {
+    const subjectSet = new Set<string>();
+    classes.forEach(c => c.subjects.forEach(s => subjectSet.add(s)));
+    return Array.from(subjectSet).sort();
+  }, [classes]);
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -65,6 +75,7 @@ export default function TeachersPage() {
       education: formData.get('education') as string,
       salary: Number(formData.get('salary') as string),
       photoUrl: photoPreview || selectedTeacher?.photoUrl || `https://picsum.photos/seed/${teacherId}/200`,
+      assignedSubjects: assignedSubjects,
     };
 
     if(!teacherData.name || !teacherData.phone || !teacherData.education || !teacherData.salary) {
@@ -86,6 +97,7 @@ export default function TeachersPage() {
   const handleEditClick = (teacher: Teacher) => {
     setSelectedTeacher(teacher);
     setPhotoPreview(teacher.photoUrl);
+    setAssignedSubjects(teacher.assignedSubjects || []);
     setIsEditing(true);
     setOpenDialog(true);
   };
@@ -108,8 +120,15 @@ export default function TeachersPage() {
         setIsEditing(false);
         setSelectedTeacher(null);
         setPhotoPreview(null);
+        setAssignedSubjects([]);
       }
       setOpenDialog(isOpen);
+  }
+  
+  const handleSubjectToggle = (subject: string) => {
+    setAssignedSubjects(prev => 
+        prev.includes(subject) ? prev.filter(s => s !== subject) : [...prev, subject]
+    );
   }
 
   return (
@@ -122,53 +141,70 @@ export default function TeachersPage() {
               <PlusCircle className="w-4 h-4 mr-2" /> Add New Teacher
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[480px]">
+          <DialogContent className="sm:max-w-4xl grid-rows-[auto,1fr,auto]">
             <DialogHeader>
               <DialogTitle>{isEditing ? 'Edit Teacher' : 'Add New Teacher'}</DialogTitle>
               <DialogDescription>
                 {isEditing ? "Update the teacher's details." : "Enter the details for the new teacher."}
               </DialogDescription>
             </DialogHeader>
-            <form id="teacher-form" onSubmit={handleAddOrEditTeacher}>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">Name</Label>
-                  <Input id="name" name="name" className="col-span-3" defaultValue={selectedTeacher?.name} required />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="fatherName" className="text-right">Father's Name</Label>
-                  <Input id="fatherName" name="fatherName" className="col-span-3" defaultValue={selectedTeacher?.fatherName} />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="phone" className="text-right">Phone</Label>
-                  <Input id="phone" name="phone" type="tel" className="col-span-3" defaultValue={selectedTeacher?.phone} required />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="education" className="text-right">Education</Label>
-                  <Input id="education" name="education" className="col-span-3" defaultValue={selectedTeacher?.education} required />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="salary" className="text-right">Salary (PKR)</Label>
-                  <Input id="salary" name="salary" type="number" className="col-span-3" defaultValue={selectedTeacher?.salary} required />
-                </div>
-                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="photo" className="text-right">Photo</Label>
-                  <Input id="photo" name="photo" type="file" className="col-span-3" onChange={handlePhotoChange} accept="image/*" />
-                </div>
-                {photoPreview && (
-                  <div className="grid grid-cols-4 items-center gap-4">
-                      <Label className="text-right">Preview</Label>
-                      <div className="col-span-3">
+            <form id="teacher-form" onSubmit={handleAddOrEditTeacher} className="grid md:grid-cols-2 gap-6 overflow-y-auto pr-4">
+               <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Name</Label>
+                    <Input id="name" name="name" defaultValue={selectedTeacher?.name} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="fatherName">Father's Name</Label>
+                    <Input id="fatherName" name="fatherName" defaultValue={selectedTeacher?.fatherName} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input id="phone" name="phone" type="tel" defaultValue={selectedTeacher?.phone} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="education">Education</Label>
+                    <Input id="education" name="education" defaultValue={selectedTeacher?.education} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="salary">Salary (PKR)</Label>
+                    <Input id="salary" name="salary" type="number" defaultValue={selectedTeacher?.salary} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="photo">Photo</Label>
+                    <Input id="photo" name="photo" type="file" onChange={handlePhotoChange} accept="image/*" />
+                  </div>
+                  {photoPreview && (
+                      <div className="space-y-2">
+                          <Label>Preview</Label>
                           <Image src={photoPreview} alt="New photo preview" width={80} height={80} className="rounded-full aspect-square object-cover" />
                       </div>
-                  </div>
-                )}
-              </div>
-               <DialogFooter>
-                <Button type="button" variant="ghost" onClick={() => handleDialogClose(false)}>Cancel</Button>
-                <Button type="submit" form="teacher-form">{isEditing ? 'Save Changes' : 'Add Teacher'}</Button>
-              </DialogFooter>
+                  )}
+               </div>
+               <div className="space-y-2">
+                   <Label>Assign Subjects</Label>
+                   <ScrollArea className="h-96 w-full rounded-md border p-4">
+                        <div className="grid grid-cols-2 gap-2">
+                        {allSubjects.map(subject => (
+                            <div key={subject} className="flex items-center space-x-2">
+                                <Checkbox 
+                                    id={`subject-${subject}`} 
+                                    checked={assignedSubjects.includes(subject)}
+                                    onCheckedChange={() => handleSubjectToggle(subject)}
+                                />
+                                <label htmlFor={`subject-${subject}`} className="text-sm font-medium leading-none">
+                                    {subject}
+                                </label>
+                            </div>
+                        ))}
+                        </div>
+                   </ScrollArea>
+               </div>
             </form>
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => handleDialogClose(false)}>Cancel</Button>
+              <Button type="submit" form="teacher-form">{isEditing ? 'Save Changes' : 'Add Teacher'}</Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
