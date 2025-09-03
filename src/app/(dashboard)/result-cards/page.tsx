@@ -8,14 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useData } from '@/context/data-context';
-import type { Student, Exam } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Printer, Loader2 } from 'lucide-react';
 import { ResultCardPrint } from '@/components/reports/result-card-print';
 import { useSettings } from '@/context/settings-context';
 import { renderToString } from 'react-dom/server';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
 export default function ResultCardsPage() {
@@ -28,6 +26,8 @@ export default function ResultCardsPage() {
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [remarks, setRemarks] = useState('Congratulations on your hard work! Keep it up.');
   const [isLoading, setIsLoading] = useState(false);
+  const [printOrientation, setPrintOrientation] = useState<'portrait' | 'landscape'>('portrait');
+
 
   const classExams = useMemo(() => {
     return selectedClass ? allExams.filter(e => e.class === selectedClass) : [];
@@ -79,7 +79,14 @@ export default function ResultCardsPage() {
 
     setTimeout(() => {
       const printContent = renderToString(
-        <ResultCardPrint students={studentsToPrint} exams={examsToPrint} settings={settings} classes={classes} remarks={remarks} />
+        <ResultCardPrint 
+          students={studentsToPrint} 
+          exams={examsToPrint} 
+          settings={settings} 
+          classes={classes} 
+          remarks={remarks}
+          printOrientation={printOrientation}
+        />
       );
 
       const printWindow = window.open('', '_blank');
@@ -189,10 +196,26 @@ export default function ResultCardsPage() {
                </ScrollArea>
             </div>
           </div>
-          <div className="mt-6 pt-6 border-t">
-              <h3 className="font-semibold text-lg">4. Remarks</h3>
-              <div className="max-w-xl mt-2">
-                  <Textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="e.g. Congratulations on your hard work!" />
+          <div className="mt-6 pt-6 border-t grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                 <h3 className="font-semibold text-lg">4. Remarks</h3>
+                  <div className="mt-2">
+                      <Textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="e.g. Congratulations on your hard work!" />
+                  </div>
+              </div>
+               <div>
+                 <h3 className="font-semibold text-lg">5. Print Options</h3>
+                  <div className="mt-2">
+                     <Select value={printOrientation} onValueChange={(value) => setPrintOrientation(value as 'portrait' | 'landscape')}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select Orientation" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="portrait">Portrait</SelectItem>
+                            <SelectItem value="landscape">Landscape</SelectItem>
+                        </SelectContent>
+                    </Select>
+                  </div>
               </div>
           </div>
            <div className="flex justify-end mt-6 pt-6 border-t">

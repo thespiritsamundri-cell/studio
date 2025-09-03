@@ -4,6 +4,12 @@
     size: A4;
     margin: 0.25in;
   }
+  
+  [data-orientation="landscape"] {
+    @page {
+        size: A4 landscape;
+    }
+  }
 
   .voucher-page {
     page-break-after: always;

@@ -2,7 +2,7 @@
 'use client';
 
 import React from 'react';
-import type { Student, Exam, Class, Grade } from '@/lib/types';
+import type { Student, Exam, Class } from '@/lib/types';
 import type { SchoolSettings } from '@/context/settings-context';
 import Image from 'next/image';
 
@@ -12,9 +12,10 @@ interface ResultCardPrintProps {
   settings: SchoolSettings;
   classes: Class[];
   remarks: string;
+  printOrientation: 'portrait' | 'landscape';
 }
 
-const ResultCard = ({ student, exams, settings, classes, remarks }: { student: Student, exams: Exam[], settings: SchoolSettings, classes: Class[], remarks: string }) => {
+const ResultCard = ({ student, exams, settings, classes, remarks, printOrientation }: { student: Student, exams: Exam[], settings: SchoolSettings, classes: Class[], remarks: string, printOrientation: 'portrait' | 'landscape' }) => {
     const studentClassInfo = classes.find(c => c.name === student.class);
     const subjects = studentClassInfo?.subjects || [];
     
@@ -52,7 +53,7 @@ const ResultCard = ({ student, exams, settings, classes, remarks }: { student: S
 
 
     return (
-        <div className="p-6 font-sans bg-white text-black border-4 border-double border-gray-800 w-full mx-auto relative" style={{ breakAfter: 'page', pageBreakAfter: 'always' }}>
+        <div className="p-6 font-sans bg-white text-black border-4 border-double border-gray-800 w-full mx-auto relative" data-orientation={printOrientation} style={{ breakAfter: 'page', pageBreakAfter: 'always' }}>
             {/* Watermark */}
             {settings.schoolLogo && (
                 <div className="absolute inset-0 flex items-center justify-center z-0">
@@ -81,15 +82,24 @@ const ResultCard = ({ student, exams, settings, classes, remarks }: { student: S
                 <table className="w-full border-collapse border border-gray-400 text-sm">
                     <thead>
                         <tr className="bg-gray-200">
-                            <th className="font-bold border border-gray-400 p-1">Subjects</th>
+                            <th rowSpan={2} className="font-bold border border-gray-400 p-1 align-bottom">Subjects</th>
                             {exams.map(exam => (
-                                 <th key={exam.id} className="text-center font-bold border border-gray-400 p-1">
+                                 <th key={exam.id} colSpan={2} className="text-center font-bold border border-gray-400 p-1">
                                      {exam.name}
                                  </th>
                             ))}
-                            <th className="text-center font-bold border border-gray-400 p-1">Total</th>
-                            <th className="text-center font-bold border border-gray-400 p-1">%</th>
-                            <th className="text-center font-bold border border-gray-400 p-1">Grade</th>
+                            <th colSpan={3} className="text-center font-bold border border-gray-400 p-1">Grand Total</th>
+                        </tr>
+                        <tr className="bg-gray-200">
+                           {exams.map(exam => (
+                                <React.Fragment key={exam.id}>
+                                    <th className="font-bold border border-gray-400 p-1">Marks</th>
+                                    <th className="font-bold border border-gray-400 p-1">Total</th>
+                                </React.Fragment>
+                           ))}
+                             <th className="font-bold border border-gray-400 p-1">Total</th>
+                             <th className="font-bold border border-gray-400 p-1">%</th>
+                             <th className="font-bold border border-gray-400 p-1">Grade</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -114,9 +124,14 @@ const ResultCard = ({ student, exams, settings, classes, remarks }: { student: S
                                         const result = exam.results.find(r => r.studentId === student.id);
                                         const marks = result?.marks[subject] ?? '-';
                                         const total = exam.subjectTotals[subject] || 0;
-                                        return <td key={exam.id} className="text-center border border-gray-400 p-1">{marks} / {total}</td>;
+                                        return (
+                                            <React.Fragment key={exam.id}>
+                                                <td className="text-center border border-gray-400 p-1">{marks}</td>
+                                                <td className="text-center border border-gray-400 p-1">{total}</td>
+                                            </React.Fragment>
+                                        );
                                     })}
-                                    <td className="text-center border border-gray-400 p-1 font-semibold">{subjectObtainedMarks} / {subjectTotalMarks}</td>
+                                    <td className="text-center border border-gray-400 p-1 font-semibold">{subjectObtainedMarks}/{subjectTotalMarks}</td>
                                     <td className="text-center border border-gray-400 p-1 font-semibold">{subjectPercentage.toFixed(1)}%</td>
                                     <td className="text-center border border-gray-400 p-1 font-semibold">{getGrade(subjectPercentage)}</td>
                                 </tr>
@@ -181,11 +196,11 @@ const ResultCard = ({ student, exams, settings, classes, remarks }: { student: S
 
 
 export const ResultCardPrint = React.forwardRef<HTMLDivElement, ResultCardPrintProps>(
-  ({ students, exams, settings, classes, remarks }, ref) => {
+  ({ students, exams, settings, classes, remarks, printOrientation }, ref) => {
     return (
       <div ref={ref}>
         {students.map(student => (
-            <ResultCard key={student.id} student={student} exams={exams} settings={settings} classes={classes} remarks={remarks} />
+            <ResultCard key={student.id} student={student} exams={exams} settings={settings} classes={classes} remarks={remarks} printOrientation={printOrientation} />
         ))}
       </div>
     );
