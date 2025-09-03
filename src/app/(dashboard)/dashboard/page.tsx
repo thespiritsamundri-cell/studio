@@ -24,7 +24,11 @@ export default function DashboardPage() {
 
     const totalStudents = students.length;
     const feeCollected = fees.filter(f => f.status === 'Paid').reduce((acc, fee) => acc + fee.amount, 0);
-    const newAdmissions = students.filter(s => new Date(s.admissionDate) > subMonths(new Date(), 1)).length;
+    
+    const newAdmissions = useMemo(() => {
+        const oneMonthAgo = subMonths(new Date(), 1);
+        return students.filter(s => new Date(s.admissionDate) > oneMonthAgo).length;
+    }, [students]);
 
     // Dummy data for attendance as we don't have historical attendance data in context
     const attendanceToday = 95.5;

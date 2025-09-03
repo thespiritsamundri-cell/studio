@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -26,23 +26,33 @@ export default function TeacherAttendancePage() {
   const { teachers, teacherAttendances, saveTeacherAttendance } = useData();
   const { settings } = useSettings();
   const { toast } = useToast();
-  const [today, setToday] = useState(new Date());
+  const [today, setToday] = useState<Date | null>(null);
 
-  const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>(() => {
-    const initialState: Record<string, AttendanceStatus> = {};
-    const todayStr = format(today, 'yyyy-MM-dd');
-    teachers.forEach((t) => {
-        const todaysRecord = teacherAttendances.find(a => a.teacherId === t.id && a.date === todayStr);
-        initialState[t.id] = todaysRecord?.status || 'Present';
-    });
-    return initialState;
-  });
+  useEffect(() => {
+    setToday(new Date());
+  }, []);
+
+  const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
+
+  useEffect(() => {
+    if (today) {
+        const initialState: Record<string, AttendanceStatus> = {};
+        const todayStr = format(today, 'yyyy-MM-dd');
+        teachers.forEach((t) => {
+            const todaysRecord = teacherAttendances.find(a => a.teacherId === t.id && a.date === todayStr);
+            initialState[t.id] = todaysRecord?.status || 'Present';
+        });
+        setAttendance(initialState);
+    }
+  }, [today, teachers, teacherAttendances]);
+
 
   const handleAttendanceChange = (teacherId: string, status: AttendanceStatus) => {
     setAttendance((prev) => ({ ...prev, [teacherId]: status }));
   };
 
   const handleSaveAttendance = () => {
+    if (!today) return;
     const todayStr = format(today, 'yyyy-MM-dd');
     const newAttendances: TeacherAttendance[] = teachers.map(teacher => ({
         teacherId: teacher.id,
@@ -142,7 +152,7 @@ export default function TeacherAttendancePage() {
                 <div className="flex justify-between items-center">
                     <div>
                         <CardTitle>Daily Attendance</CardTitle>
-                        <CardDescription>Mark attendance for all teachers for today, {format(today, 'PPP')}.</CardDescription>
+                        <CardDescription>Mark attendance for all teachers for today, {today ? format(today, 'PPP') : '...'}.</CardDescription>
                     </div>
                     <Button onClick={handleSaveAttendance}>Save Attendance</Button>
                 </div>

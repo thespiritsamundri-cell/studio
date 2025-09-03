@@ -6,6 +6,7 @@ import type { Student, Family } from '@/lib/types';
 import { School } from 'lucide-react';
 import Image from 'next/image';
 import type { SchoolSettings } from '@/context/settings-context';
+import { format } from 'date-fns';
 
 interface StudentDetailsPrintProps {
   student: Student;
@@ -40,7 +41,7 @@ export const StudentDetailsPrint = React.forwardRef<HTMLDivElement, StudentDetai
           </div>
           <div className="text-right">
             <h2 className="text-2xl font-semibold text-gray-700">Student Profile</h2>
-            <p className="text-sm text-gray-500">Date: {new Date().toLocaleDateString()}</p>
+            <p className="text-sm text-gray-500">Date: {format(new Date(), 'PPP')}</p>
           </div>
         </header>
 
