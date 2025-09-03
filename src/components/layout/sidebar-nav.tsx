@@ -72,17 +72,17 @@ export function SidebarNav() {
   return (
     <>
       <SidebarHeader>
-        <div className="flex items-center gap-2.5 p-2 whitespace-nowrap overflow-hidden">
-           <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary-foreground/10 flex-shrink-0">
+        <div className="flex items-center justify-center p-2 whitespace-nowrap overflow-hidden h-20">
+           <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary-foreground/10 flex-shrink-0">
             {settings.schoolLogo && typeof settings.schoolLogo === 'string' && settings.schoolLogo.length > 0 ? (
-              <Image src={settings.schoolLogo} alt="School Logo" width={40} height={40} className="rounded-full object-cover"/>
+              <Image src={settings.schoolLogo} alt="School Logo" width={48} height={48} className="rounded-full object-cover"/>
             ) : (
-              <School className="w-6 h-6 text-primary-foreground" />
+              <School className="w-8 h-8 text-primary-foreground" />
             )}
           </div>
-          <div className="flex flex-col opacity-100 group-hover/sidebar:opacity-100 transition-opacity duration-200 group-[[data-sidebar-hidden=true]]:opacity-0">
-            <span className="text-lg font-bold text-primary-foreground font-headline">{settings.schoolName}</span>
-            <span className="text-xs text-primary-foreground/70">{settings.academicYear}</span>
+          <div className="flex flex-col opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 ml-3">
+            <span className="text-lg font-bold text-primary-foreground font-headline truncate">{settings.schoolName}</span>
+            <span className="text-xs text-primary-foreground/70 truncate">{settings.academicYear}</span>
           </div>
         </div>
       </SidebarHeader>
@@ -97,7 +97,7 @@ export function SidebarNav() {
               >
                 <Link href={item.href}>
                   <item.icon />
-                  <span className="truncate min-w-0">{item.label}</span>
+                  <span className="truncate min-w-0 opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">{item.label}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -108,13 +108,13 @@ export function SidebarNav() {
                     <SidebarMenuButton tooltip='Exam System' className="justify-between w-full">
                       <div className="flex items-center gap-3">
                         <FileSignature />
-                        <span className="truncate min-w-0">Exam System</span>
+                        <span className="truncate min-w-0 opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Exam System</span>
                       </div>
-                      <ChevronRight className={cn('h-4 w-4 transition-transform ml-auto', isExamSystemOpen && 'rotate-90')} />
+                      <ChevronRight className={cn('h-4 w-4 transition-transform ml-auto opacity-0 group-hover/sidebar:opacity-100', isExamSystemOpen && 'rotate-90')} />
                   </SidebarMenuButton>
                  </CollapsibleTrigger>
                 <CollapsibleContent asChild>
-                    <ul className="space-y-1 ml-4 pl-5 py-1 border-l border-sidebar-border/50">
+                    <ul className="space-y-1 ml-4 pl-5 py-1 border-l border-sidebar-border/50 group-hover/sidebar:block hidden">
                         {examSystemItems.map(item => (
                              <li key={item.label}>
                                 <SidebarMenuButton
@@ -146,7 +146,7 @@ export function SidebarNav() {
               >
                 <Link href="/settings">
                   <Settings />
-                  <span className="truncate min-w-0">Settings</span>
+                  <span className="truncate min-w-0 opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Settings</span>
                 </Link>
               </SidebarMenuButton>
           </SidebarMenuItem>
@@ -154,7 +154,7 @@ export function SidebarNav() {
             <SidebarMenuButton asChild tooltip="Logout">
               <Link href="/">
                 <LogOut />
-                <span className="truncate min-w-0">Logout</span>
+                <span className="truncate min-w-0 opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Logout</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
