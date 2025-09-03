@@ -6,6 +6,7 @@ import type { Student } from '@/lib/types';
 import type { SchoolSettings } from '@/context/settings-context';
 import Image from 'next/image';
 import type { DateSheetItem } from '@/app/(dashboard)/roll-number-slips/page';
+import { format, parseISO } from 'date-fns';
 
 interface RollNumberSlipPrintProps {
   students: Student[];
@@ -18,8 +19,19 @@ interface RollNumberSlipPrintProps {
 }
 
 const Slip = ({ student, settings, examName, dateSheet, instructions, rollNo }: { student: Student, settings: SchoolSettings, examName: string, dateSheet: DateSheetItem[], instructions: string, rollNo: number }) => {
+    
+    const formatDate = (dateString: string) => {
+        if (!dateString) return '-';
+        try {
+            const date = parseISO(dateString);
+            return format(date, 'dd-MM-yyyy');
+        } catch (error) {
+            return dateString; // Return original string if parsing fails
+        }
+    }
+    
     return (
-        <div className="p-4 font-sans bg-white text-black border-2 border-black w-full mx-auto relative slip-wrapper" style={{ breakInside: 'avoid' }}>
+        <div className="p-4 font-sans bg-white text-black border-2 border-black w-full mx-auto relative slip-wrapper">
             {settings.schoolLogo && (
                 <div className="absolute inset-0 flex items-center justify-center z-0">
                     <Image src={settings.schoolLogo} alt="Watermark" width={300} height={300} className="object-contain opacity-10" />
@@ -55,7 +67,7 @@ const Slip = ({ student, settings, examName, dateSheet, instructions, rollNo }: 
                     />
                 </section>
 
-                <section className="flex-grow">
+                <section>
                     <h3 className="text-base font-bold text-center mb-1 underline">Date Sheet</h3>
                     <table className="w-full border-collapse border border-black text-xs">
                         <thead className="bg-gray-200">
@@ -69,7 +81,7 @@ const Slip = ({ student, settings, examName, dateSheet, instructions, rollNo }: 
                             {dateSheet.map(item => (
                                 <tr key={item.subject}>
                                     <td className="border border-black p-1 font-medium">{item.subject}</td>
-                                    <td className="border border-black p-1 text-center">{item.date || '-'}</td>
+                                    <td className="border border-black p-1 text-center">{formatDate(item.date)}</td>
                                     <td className="border border-black p-1 text-center">{item.time || '-'}</td>
                                 </tr>
                             ))}
@@ -77,7 +89,7 @@ const Slip = ({ student, settings, examName, dateSheet, instructions, rollNo }: 
                     </table>
                 </section>
 
-                <section className="mt-2">
+                <section className="mt-auto pt-2">
                     <h3 className="text-base font-bold underline">Instructions:</h3>
                     <div className="whitespace-pre-wrap text-xs mt-1 p-1 border rounded-md font-urdu">{instructions}</div>
                 </section>

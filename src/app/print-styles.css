@@ -28,24 +28,24 @@
       page-break-after: auto;
   }
   [data-print-layout="2"] {
-      display: grid;
-      grid-template-columns: 1fr;
+      display: flex;
+      flex-direction: column;
       gap: 0.25in;
+      height: 98vh; /* Occupy full printable height */
   }
   [data-print-layout="2"] .slip-wrapper {
-      height: 48vh;
+      height: 48%; /* Each slip takes up slightly less than half the page */
       box-sizing: border-box;
-      page-break-after: avoid;
       page-break-inside: avoid;
+      display: flex;
+      flex-direction: column;
   }
-  [data-print-layout="2"] .slip-wrapper:nth-child(odd) {
-      margin-bottom: 0.25in;
-  }
-  [data-print-layout="2"] .slip-wrapper:nth-child(even) {
-      page-break-after: always;
+  /* This ensures that every set of two slips gets a page break after */
+  [data-print-layout="2"] .slip-wrapper:nth-child(2n) {
+    page-break-after: always;
   }
   [data-print-layout="2"] .slip-wrapper:last-child {
-      page-break-after: auto;
+    page-break-after: auto;
   }
 
 
