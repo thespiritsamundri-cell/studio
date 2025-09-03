@@ -18,13 +18,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RollNumberSlipPrint } from '@/components/reports/roll-number-slip-print';
 import type { Student } from '@/lib/types';
-import { Jameel_Noori_Nastaleeq } from 'next/font/google';
-
-const jameelNoori = Jameel_Noori_Nastaleeq({
-    subsets: ['arabic'],
-    weight: ['400'],
-    variable: '--font-jameel-noori'
-});
 
 
 export interface DateSheetItem {
@@ -99,15 +92,13 @@ export default function RollNumberSlipsPage() {
 
     setTimeout(() => {
       const printContent = renderToString(
-        <div className={jameelNoori.variable}>
-            <RollNumberSlipPrint 
-              students={studentsToPrint} 
-              settings={settings}
-              examName={examName}
-              dateSheet={dateSheet}
-              instructions={instructions}
-            />
-        </div>
+        <RollNumberSlipPrint 
+          students={studentsToPrint} 
+          settings={settings}
+          examName={examName}
+          dateSheet={dateSheet}
+          instructions={instructions}
+        />
       );
 
       const printWindow = window.open('', '_blank');
@@ -118,14 +109,11 @@ export default function RollNumberSlipsPage() {
               <title>Roll Number Slips - ${selectedClass}</title>
               <script src="https://cdn.tailwindcss.com"></script>
               <style>
-                :root {
-                  --font-jameel-noori: ${jameelNoori.style.fontFamily};
-                }
                  body {
                     font-family: sans-serif;
                  }
                  .font-urdu {
-                    font-family: var(--font-jameel-noori), sans-serif;
+                    font-family: "Jameel Noori Nastaleeq", "Noto Nastaliq Urdu", "Urdu Typesetting", sans-serif;
                  }
               </style>
             </head>
