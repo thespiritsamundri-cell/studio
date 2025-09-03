@@ -67,6 +67,7 @@ export function SidebarNav() {
   const pathname = usePathname();
   const { settings } = useSettings();
   const [isExamSystemOpen, setIsExamSystemOpen] = useState(pathname.startsWith('/exams') || pathname.startsWith('/result-cards') || pathname.startsWith('/roll-number-slips') || pathname.startsWith('/seating-plan'));
+  const { isPinned } = useSidebar();
 
 
   return (
@@ -80,7 +81,7 @@ export function SidebarNav() {
               <School className="w-8 h-8 text-primary-foreground" />
             )}
           </div>
-          <div className="flex flex-col opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 ml-3">
+          <div className={cn("flex flex-col ml-3 transition-opacity duration-200", isPinned ? "opacity-100" : "opacity-0 group-hover/sidebar:opacity-100")}>
             <span className="text-lg font-bold text-primary-foreground font-headline truncate">{settings.schoolName}</span>
             <span className="text-xs text-primary-foreground/70 truncate">{settings.academicYear}</span>
           </div>
@@ -97,7 +98,7 @@ export function SidebarNav() {
               >
                 <Link href={item.href}>
                   <item.icon />
-                  <span className="truncate min-w-0 opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">{item.label}</span>
+                  <span className={cn("truncate min-w-0 transition-opacity duration-200", isPinned ? "opacity-100" : "opacity-0 group-hover/sidebar:opacity-100")}>{item.label}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -108,13 +109,13 @@ export function SidebarNav() {
                     <SidebarMenuButton tooltip='Exam System' className="justify-between w-full">
                       <div className="flex items-center gap-3">
                         <FileSignature />
-                        <span className="truncate min-w-0 opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Exam System</span>
+                        <span className={cn("truncate min-w-0 transition-opacity duration-200", isPinned ? "opacity-100" : "opacity-0 group-hover/sidebar:opacity-100")}>Exam System</span>
                       </div>
-                      <ChevronRight className={cn('h-4 w-4 transition-transform ml-auto opacity-0 group-hover/sidebar:opacity-100', isExamSystemOpen && 'rotate-90')} />
+                      <ChevronRight className={cn('h-4 w-4 transition-all duration-200 ml-auto', isPinned ? "opacity-100" : "opacity-0 group-hover/sidebar:opacity-100", isExamSystemOpen && 'rotate-90')} />
                   </SidebarMenuButton>
                  </CollapsibleTrigger>
                 <CollapsibleContent asChild>
-                    <ul className="space-y-1 ml-4 pl-5 py-1 border-l border-sidebar-border/50 group-hover/sidebar:block hidden">
+                    <ul className={cn("space-y-1 ml-4 pl-5 py-1 border-l border-sidebar-border/50 transition-all", isPinned ? "block" : "hidden group-hover/sidebar:block")}>
                         {examSystemItems.map(item => (
                              <li key={item.label}>
                                 <SidebarMenuButton
@@ -146,7 +147,7 @@ export function SidebarNav() {
               >
                 <Link href="/settings">
                   <Settings />
-                  <span className="truncate min-w-0 opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Settings</span>
+                  <span className={cn("truncate min-w-0 transition-opacity duration-200", isPinned ? "opacity-100" : "opacity-0 group-hover/sidebar:opacity-100")}>Settings</span>
                 </Link>
               </SidebarMenuButton>
           </SidebarMenuItem>
@@ -154,7 +155,7 @@ export function SidebarNav() {
             <SidebarMenuButton asChild tooltip="Logout">
               <Link href="/">
                 <LogOut />
-                <span className="truncate min-w-0 opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Logout</span>
+                <span className={cn("truncate min-w-0 transition-opacity duration-200", isPinned ? "opacity-100" : "opacity-0 group-hover/sidebar:opacity-100")}>Logout</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

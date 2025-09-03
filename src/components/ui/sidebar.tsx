@@ -4,7 +4,7 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
-import { PanelLeft } from "lucide-react"
+import { PanelLeft, Pin, PinOff } from "lucide-react"
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
@@ -25,6 +25,9 @@ type SidebarContext = {
   setOpenMobile: (open: boolean) => void
   isMobile: boolean
   toggleMobile: () => void
+  isPinned: boolean
+  setIsPinned: (pinned: boolean) => void
+  togglePinned: () => void
 }
 
 const SidebarContext = React.createContext<SidebarContext | null>(null)
@@ -37,6 +40,36 @@ function useSidebar() {
 
   return context
 }
+
+const useLocalStorage = <T,>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] => {
+  const [storedValue, setStoredValue] = React.useState<T>(() => {
+    if (typeof window === 'undefined') {
+      return initialValue;
+    }
+    try {
+      const item = window.localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
+    } catch (error) {
+      console.log(error);
+      return initialValue;
+    }
+  });
+
+  const setValue = (value: T | ((val: T) => T)) => {
+    try {
+      const valueToStore = value instanceof Function ? value(storedValue) : value;
+      setStoredValue(valueToStore);
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(key, JSON.stringify(valueToStore));
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  return [storedValue, setValue];
+}
+
 
 const SidebarProvider = React.forwardRef<
   HTMLDivElement,
@@ -53,10 +86,16 @@ const SidebarProvider = React.forwardRef<
   ) => {
     const isMobile = useIsMobile()
     const [openMobile, setOpenMobile] = React.useState(false)
+    const [isPinned, setIsPinned] = useLocalStorage("sidebar-pinned", false);
+
 
     const toggleMobile = React.useCallback(() => {
       setOpenMobile((open) => !open)
     }, [])
+
+    const togglePinned = React.useCallback(() => {
+      setIsPinned((pinned) => !pinned)
+    }, [setIsPinned])
 
     const contextValue = React.useMemo<SidebarContext>(
       () => ({
@@ -64,8 +103,11 @@ const SidebarProvider = React.forwardRef<
         openMobile,
         setOpenMobile,
         toggleMobile,
+        isPinned,
+        setIsPinned,
+        togglePinned
       }),
-      [isMobile, openMobile, setOpenMobile, toggleMobile]
+      [isMobile, openMobile, setOpenMobile, toggleMobile, isPinned, setIsPinned, togglePinned]
     )
 
     return (
@@ -113,7 +155,7 @@ const Sidebar = React.forwardRef<
     },
     ref
   ) => {
-    const { isMobile, openMobile, setOpenMobile } = useSidebar()
+    const { isMobile, openMobile, setOpenMobile, isPinned } = useSidebar()
 
     if (isMobile) {
       return (
@@ -139,9 +181,10 @@ const Sidebar = React.forwardRef<
       <div
         ref={ref}
         data-sidebar="sidebar"
+        data-pinned={isPinned}
         className={cn(
             "group/sidebar hidden md:flex flex-col h-screen bg-sidebar text-sidebar-foreground sticky top-0 transition-all duration-300 ease-in-out",
-            "w-[--sidebar-width-icon] hover:w-[--sidebar-width]",
+            isPinned ? "w-[--sidebar-width]" : "w-[--sidebar-width-icon] hover:w-[--sidebar-width] hover:shadow-lg",
             className
         )}
         {...props}
@@ -184,13 +227,25 @@ const SidebarHeader = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div">
 >(({ className, ...props }, ref) => {
+  const { togglePinned, isPinned } = useSidebar();
   return (
     <div
       ref={ref}
       data-sidebar="header"
-      className={cn("flex flex-col gap-2", className)}
+      className={cn("flex flex-col", className)}
       {...props}
-    />
+    >
+      {props.children}
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        className="absolute top-4 right-2 h-7 w-7 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 opacity-0 group-hover/sidebar:opacity-100 data-[pinned=true]:opacity-100 transition-opacity"
+        onClick={togglePinned}
+        data-pinned={isPinned}
+      >
+        <Pin className={cn("h-4 w-4 transition-transform duration-300", isPinned && "rotate-45")} />
+      </Button>
+    </div>
   )
 })
 SidebarHeader.displayName = "SidebarHeader"
@@ -300,7 +355,7 @@ const SidebarMenuButton = React.forwardRef<
     ref
   ) => {
     const Comp = asChild ? Slot : "button"
-    const { isMobile } = useSidebar()
+    const { isMobile, isPinned } = useSidebar()
     
     const content = (
         <Comp
@@ -308,7 +363,7 @@ const SidebarMenuButton = React.forwardRef<
         data-sidebar="menu-button"
         data-size={size}
         data-active={isActive}
-        className={cn(sidebarMenuButtonVariants({ variant, size }), "justify-center group-hover/sidebar:justify-start", className)}
+        className={cn(sidebarMenuButtonVariants({ variant, size }), isPinned ? "justify-start" : "justify-center group-hover/sidebar:justify-start", className)}
         {...props}
         >
             {children}
@@ -331,7 +386,7 @@ const SidebarMenuButton = React.forwardRef<
         <TooltipContent
           side="right"
           align="center"
-          className="group-hover/sidebar:hidden"
+          className={cn(isPinned ? "hidden" : "group-hover/sidebar:hidden")}
           {...tooltip}
         />
       </Tooltip>
