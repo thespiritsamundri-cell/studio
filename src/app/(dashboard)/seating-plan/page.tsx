@@ -27,7 +27,7 @@ export default function SeatingPlanPage() {
   const [rows, setRows] = useState(10);
   const [isLoading, setIsLoading] = useState(false);
   const [examName, setExamName] = useState('Final Term Examination');
-  const [instructions, setInstructions] = useState('1. Mobile phones are strictly prohibited.\n2. Do not use unfair means during the exam.\n3. Bring your own stationery.');
+  const [instructions, setInstructions] = useState('1. Reach the examination hall 15 minutes before the start time.\n2. Mobile phones are strictly prohibited.\n3. Bring your own stationery. Sharing is not allowed.');
 
   const classStudents = useMemo(() => {
     return selectedClass ? allStudents.filter(s => s.class === selectedClass) : [];
@@ -80,6 +80,7 @@ export default function SeatingPlanPage() {
             <head>
               <title>Seating Plan - ${selectedClass}</title>
               <script src="https://cdn.tailwindcss.com"></script>
+               <link rel="stylesheet" href="/print-styles.css">
             </head>
             <body>${printContent}</body>
           </html>
@@ -137,6 +138,7 @@ export default function SeatingPlanPage() {
               onChange={e => setInstructions(e.target.value)}
               placeholder="Enter exam instructions here..."
               rows={4}
+              className="font-urdu"
             />
           </div>
           

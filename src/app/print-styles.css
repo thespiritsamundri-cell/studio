@@ -1,5 +1,6 @@
 
 
+
 @media print {
   @page {
     margin: 0.25in;
@@ -30,6 +31,10 @@
     display: flex;
     flex-direction: column;
     overflow: hidden; /* Prevent content from overflowing the container */
+  }
+
+  .font-urdu {
+    font-family: "Jameel Noori Nastaleeq", "Noto Nastaliq Urdu", "Urdu Typesetting", sans-serif;
   }
 
 

@@ -26,20 +26,6 @@ export const SeatingPlanPrint = React.forwardRef<HTMLDivElement, SeatingPlanPrin
         overflow: 'hidden'
     };
     
-    const headerCellStyle: React.CSSProperties = {
-        ...cellStyle,
-        height: 'auto',
-        fontWeight: 'bold',
-        backgroundColor: '#f2f2f2'
-    };
-
-    const rowLabelCellStyle: React.CSSProperties = {
-        ...cellStyle,
-        fontWeight: 'bold',
-        backgroundColor: '#f2f2f2',
-        width: '100px'
-    };
-
     return (
       <div ref={ref} className="p-8 font-sans bg-white text-black">
         <header className="flex items-center justify-between pb-4 border-b-2 border-black">
@@ -65,20 +51,9 @@ export const SeatingPlanPrint = React.forwardRef<HTMLDivElement, SeatingPlanPrin
 
         <main className="mt-8">
           <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
-            <thead>
-              <tr>
-                <th style={{...headerCellStyle, border: 'none'}}></th>
-                {seatingGrid[0]?.map((_, colIndex) => (
-                  <th key={colIndex} style={headerCellStyle}>
-                    Column {colIndex + 1}
-                  </th>
-                ))}
-              </tr>
-            </thead>
             <tbody>
               {seatingGrid.map((row, rowIndex) => (
                 <tr key={rowIndex}>
-                  <td style={rowLabelCellStyle}>Row {rowIndex + 1}</td>
                   {row.map((student, colIndex) => (
                     <td key={colIndex} style={cellStyle}>
                       {student ? (
@@ -99,7 +74,7 @@ export const SeatingPlanPrint = React.forwardRef<HTMLDivElement, SeatingPlanPrin
         
         <div className="mt-8 border-t-2 border-black pt-4">
             <h4 className="font-bold mb-2">Instructions:</h4>
-            <div className="whitespace-pre-wrap text-sm border p-2 rounded-md">{instructions}</div>
+            <div className="whitespace-pre-wrap text-sm border p-2 rounded-md font-urdu">{instructions}</div>
         </div>
 
          <footer className="mt-12 pt-4 flex justify-end">
