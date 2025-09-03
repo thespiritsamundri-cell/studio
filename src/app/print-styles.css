@@ -31,10 +31,6 @@
     flex-direction: column;
     overflow: hidden; /* Prevent content from overflowing the container */
   }
-  
-  .slip-page-wrapper {
-      display: none; /* Hide wrappers not in use */
-  }
 
 
   /* --- FOR VOUCHERS --- */
@@ -101,3 +97,4 @@
     display: flex; /* Ensure inner content can grow */
   }
 }
+
