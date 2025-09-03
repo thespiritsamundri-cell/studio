@@ -12,10 +12,11 @@ interface SeatingPlanPrintProps {
   examName: string;
   className: string;
   seatingGrid: (Student | null)[][];
+  instructions: string;
 }
 
 export const SeatingPlanPrint = React.forwardRef<HTMLDivElement, SeatingPlanPrintProps>(
-  ({ settings, examName, className, seatingGrid }, ref) => {
+  ({ settings, examName, className, seatingGrid, instructions }, ref) => {
     
     const cellStyle: React.CSSProperties = {
         border: '1px solid #000',
@@ -96,6 +97,11 @@ export const SeatingPlanPrint = React.forwardRef<HTMLDivElement, SeatingPlanPrin
           </table>
         </main>
         
+        <div className="mt-8 border-t-2 border-black pt-4">
+            <h4 className="font-bold mb-2">Instructions:</h4>
+            <div className="whitespace-pre-wrap text-sm border p-2 rounded-md">{instructions}</div>
+        </div>
+
          <footer className="mt-12 pt-4 flex justify-end">
             <div className="flex flex-col items-center">
                 {settings.principalSignature ? (

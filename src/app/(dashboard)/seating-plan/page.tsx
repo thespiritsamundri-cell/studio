@@ -14,6 +14,7 @@ import { SeatingPlanPrint } from '@/components/reports/seating-plan-print';
 import { useSettings } from '@/context/settings-context';
 import { renderToString } from 'react-dom/server';
 import type { Student } from '@/lib/types';
+import { Textarea } from '@/components/ui/textarea';
 
 
 export default function SeatingPlanPage() {
@@ -26,6 +27,7 @@ export default function SeatingPlanPage() {
   const [rows, setRows] = useState(10);
   const [isLoading, setIsLoading] = useState(false);
   const [examName, setExamName] = useState('Final Term Examination');
+  const [instructions, setInstructions] = useState('1. Mobile phones are strictly prohibited.\n2. Do not use unfair means during the exam.\n3. Bring your own stationery.');
 
   const classStudents = useMemo(() => {
     return selectedClass ? allStudents.filter(s => s.class === selectedClass) : [];
@@ -67,6 +69,7 @@ export default function SeatingPlanPage() {
           examName={examName}
           className={selectedClass}
           seatingGrid={seatingGrid}
+          instructions={instructions}
         />
       );
 
@@ -125,6 +128,17 @@ export default function SeatingPlanPage() {
                 <Input id="rows" type="number" value={rows} onChange={e => setRows(Number(e.target.value))} min="1" />
             </div>
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="instructions">5. Instructions</Label>
+            <Textarea
+              id="instructions"
+              value={instructions}
+              onChange={e => setInstructions(e.target.value)}
+              placeholder="Enter exam instructions here..."
+              rows={4}
+            />
+          </div>
           
            <div className="flex justify-end items-center gap-4 pt-6 border-t">
               <div className="text-sm text-muted-foreground">
@@ -140,4 +154,3 @@ export default function SeatingPlanPage() {
     </div>
   );
 }
-
