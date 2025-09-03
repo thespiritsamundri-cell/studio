@@ -42,18 +42,19 @@ function useSidebar() {
 }
 
 const useLocalStorage = <T,>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] => {
-  const [storedValue, setStoredValue] = React.useState<T>(() => {
-    if (typeof window === 'undefined') {
-      return initialValue;
-    }
+  const [storedValue, setStoredValue] = React.useState<T>(initialValue);
+
+  React.useEffect(() => {
+    // This effect runs only on the client, after hydration
     try {
       const item = window.localStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
+      setStoredValue(item ? JSON.parse(item) : initialValue);
     } catch (error) {
       console.log(error);
-      return initialValue;
+      setStoredValue(initialValue);
     }
-  });
+  }, [key, initialValue]);
+
 
   const setValue = (value: T | ((val: T) => T)) => {
     try {
@@ -172,7 +173,7 @@ const Sidebar = React.forwardRef<
             side="left"
           >
              <SheetHeader className="p-2">
-                <SheetTitle>Menu</SheetTitle>
+                <SheetTitle className="sr-only">Menu</SheetTitle>
              </SheetHeader>
             <div className="flex h-full w-full flex-col">{children}</div>
           </SheetContent>
