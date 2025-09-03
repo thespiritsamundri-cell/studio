@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -5,7 +6,7 @@ import type { Student } from '@/lib/types';
 import type { SchoolSettings } from '@/context/settings-context';
 import Image from 'next/image';
 import type { DateSheetItem } from '@/app/(dashboard)/roll-number-slips/page';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 
 interface RollNumberSlipPrintProps {
   students: Student[];
@@ -15,16 +16,18 @@ interface RollNumberSlipPrintProps {
   instructions: string;
   startRollNo: number;
   layout: '1' | '2';
+  qrCodes: Record<string, string>;
 }
 
-const Slip = ({ student, settings, examName, dateSheet, instructions, rollNo }: { student: Student, settings: SchoolSettings, examName:string, dateSheet: DateSheetItem[], instructions: string, rollNo: number }) => {
+const Slip = ({ student, settings, examName, dateSheet, instructions, rollNo, qrCode }: { student: Student, settings: SchoolSettings, examName:string, dateSheet: DateSheetItem[], instructions: string, rollNo: number, qrCode?: string }) => {
     
     const formatDate = (dateString: string) => {
         if (!dateString) return '-';
         try {
-            const date = new Date(dateString + 'T00:00:00');
-            return format(date, 'dd-MM-yyyy');
+            // The input type="date" returns 'YYYY-MM-DD'. No need for time adjustments.
+            return format(parseISO(dateString), 'dd-MM-yyyy');
         } catch (error) {
+            console.error("Date formatting error:", error);
             return dateString;
         }
     }
@@ -105,6 +108,15 @@ const Slip = ({ student, settings, examName, dateSheet, instructions, rollNo }: 
                     <div className="flex justify-between items-end pt-2 border-t-2 border-black">
                          <div className="text-[10px] text-gray-600">
                             <p>Generated on: {new Date().toLocaleDateString()}</p>
+                            {qrCode && (
+                                <Image
+                                    src={qrCode}
+                                    alt="QR Code"
+                                    width={60}
+                                    height={60}
+                                    className="mt-1"
+                                />
+                            )}
                          </div>
                          <div className="flex flex-col items-center">
                             {settings.principalSignature ? (
@@ -124,7 +136,7 @@ const Slip = ({ student, settings, examName, dateSheet, instructions, rollNo }: 
 }
 
 export const RollNumberSlipPrint = React.forwardRef<HTMLDivElement, RollNumberSlipPrintProps>(
-  ({ students, settings, examName, dateSheet, instructions, startRollNo, layout }, ref) => {
+  ({ students, settings, examName, dateSheet, instructions, startRollNo, layout, qrCodes }, ref) => {
     return (
       <div ref={ref} data-print-layout={layout}>
         {students.map((student, index) => (
@@ -136,6 +148,7 @@ export const RollNumberSlipPrint = React.forwardRef<HTMLDivElement, RollNumberSl
                 dateSheet={dateSheet}
                 instructions={instructions}
                 rollNo={startRollNo + index}
+                qrCode={qrCodes[student.id]}
             />
         ))}
       </div>

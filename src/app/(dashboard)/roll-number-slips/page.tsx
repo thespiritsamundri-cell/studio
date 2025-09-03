@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RollNumberSlipPrint } from '@/components/reports/roll-number-slip-print';
 import type { Student } from '@/lib/types';
+import { generateQrCode } from '@/ai/flows/generate-qr-code';
 
 
 export interface DateSheetItem {
@@ -77,7 +78,7 @@ export default function RollNumberSlipsPage() {
   
   const isAllStudentsSelected = classStudents.length > 0 && selectedStudentIds.length === classStudents.length;
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (!selectedClass || selectedStudentIds.length === 0) {
       toast({
         title: 'Selection Incomplete',
@@ -91,6 +92,24 @@ export default function RollNumberSlipsPage() {
     toast({ title: "Generating Roll Number Slips..." });
 
     const studentsToPrint = allStudents.filter(s => selectedStudentIds.includes(s.id));
+    
+    // Generate QR Codes
+    const qrCodes: Record<string, string> = {};
+    try {
+      await Promise.all(studentsToPrint.map(async (student) => {
+        const content = `ID: ${student.id}, Name: ${student.name}, Father: ${student.fatherName}, Class: ${student.class}`;
+        const result = await generateQrCode({ content });
+        qrCodes[student.id] = result.qrCodeDataUri;
+      }));
+    } catch (error) {
+       console.error("Failed to generate QR codes", error);
+       toast({
+        title: 'QR Code Generation Failed',
+        description: 'Could not generate QR codes for the slips. Printing without them.',
+        variant: 'destructive',
+      });
+    }
+
 
     setTimeout(() => {
       const printContent = renderToString(
@@ -102,6 +121,7 @@ export default function RollNumberSlipsPage() {
           instructions={instructions}
           startRollNo={startRollNo}
           layout={printLayout}
+          qrCodes={qrCodes}
         />
       );
 
@@ -233,7 +253,7 @@ export default function RollNumberSlipsPage() {
                                          <TableCell>
                                             <div className="relative">
                                                 <Clock className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                                <Input type="text" placeholder="e.g., 9:00 AM" value={item.time} onChange={e => handleDateSheetChange(index, 'time', e.target.value)} className="pl-8" />
+                                                <Input type="text" placeholder="e.g., 9:00 AM - 11:00 AM" value={item.time} onChange={e => handleDateSheetChange(index, 'time', e.target.value)} className="pl-8" />
                                             </div>
                                         </TableCell>
                                     </TableRow>
