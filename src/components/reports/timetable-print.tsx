@@ -10,15 +10,17 @@ interface TimetablePrintProps {
   classInfo: Class;
   timetableData: TimetableData;
   timeSlots: string[];
-  daysOfWeek: string[];
   breakAfterPeriod: number;
   breakDuration: string;
+  numPeriods: number;
   settings: SchoolSettings;
   teachers: Teacher[];
 }
 
 export const TimetablePrint = React.forwardRef<HTMLDivElement, TimetablePrintProps>(
-  ({ classInfo, timetableData, timeSlots, daysOfWeek, breakAfterPeriod, breakDuration, settings, teachers }, ref) => {
+  ({ classInfo, timetableData, timeSlots, breakAfterPeriod, breakDuration, numPeriods, settings, teachers }, ref) => {
+    
+    const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     
     const cellStyle: React.CSSProperties = {
         border: '1px solid #000',
@@ -56,19 +58,19 @@ export const TimetablePrint = React.forwardRef<HTMLDivElement, TimetablePrintPro
                 <thead>
                     <tr>
                         <th style={headerStyle}>Day</th>
-                        {Array.from({ length: 8 }).map((_, i) => {
-                            const periodNumber = i < breakAfterPeriod ? i + 1 : i;
+                        {Array.from({ length: numPeriods }).map((_, i) => {
                             if (i === breakAfterPeriod) {
                                 return (
                                     <React.Fragment key={`header-break-${i}`}>
-                                        <th style={headerStyle}>{`Period ${periodNumber}`}<br/>({timeSlots[i]})</th>
-                                        <th style={{...headerStyle, backgroundColor: '#d1fae5', writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontSize: '20px' }} rowSpan={daysOfWeek.length + 1}>
+                                        <th style={headerStyle}>{`Period ${i + 1}`}<br/>({timeSlots[i]})</th>
+                                        <th style={{...headerStyle, backgroundColor: '#d1fae5', writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontSize: '16px' }} rowSpan={daysOfWeek.length + 1}>
                                             BREAK ({breakDuration})
                                         </th>
                                     </React.Fragment>
                                 )
                             }
-                            return <th key={`header-period-${i}`} style={headerStyle}>{`Period ${periodNumber}`}<br/>({timeSlots[i]})</th>
+                             const actualPeriodNumber = i < breakAfterPeriod ? i + 1 : i;
+                            return <th key={`header-period-${i}`} style={headerStyle}>{`Period ${actualPeriodNumber}`}<br/>({timeSlots[i]})</th>
                         })}
                     </tr>
                 </thead>
@@ -76,7 +78,7 @@ export const TimetablePrint = React.forwardRef<HTMLDivElement, TimetablePrintPro
                      {daysOfWeek.map((day) => (
                          <tr key={day}>
                              <td style={{...cellStyle, fontWeight: 'bold'}}>{day}</td>
-                             {Array.from({ length: 8 }).map((_, colIndex) => {
+                             {Array.from({ length: numPeriods }).map((_, colIndex) => {
                                   if (colIndex === breakAfterPeriod) return null; // Don't render cell for break column
                                   const cell = timetableData[colIndex];
                                   const teacher = teachers.find(t => t.id === cell?.teacherId);

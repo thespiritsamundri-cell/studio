@@ -3,7 +3,7 @@
 
 import React from 'react';
 import type { SchoolSettings } from '@/context/settings-context';
-import type { Class, Teacher, Timetable, TimetableData } from '@/lib/types';
+import type { Class, Teacher, TimetableData } from '@/lib/types';
 import { School } from 'lucide-react';
 import Image from 'next/image';
 
@@ -15,10 +15,11 @@ interface MasterTimetablePrintProps {
   timeSlots: string[];
   breakAfterPeriod: number;
   breakDuration: string;
+  numPeriods: number;
 }
 
 export const MasterTimetablePrint = React.forwardRef<HTMLDivElement, MasterTimetablePrintProps>(
-  ({ settings, classes, teachers, masterTimetableData, timeSlots, breakAfterPeriod, breakDuration }, ref) => {
+  ({ settings, classes, teachers, masterTimetableData, timeSlots, breakAfterPeriod, breakDuration, numPeriods }, ref) => {
     
     const cellStyle: React.CSSProperties = {
         border: '1px solid #000',
@@ -57,7 +58,7 @@ export const MasterTimetablePrint = React.forwardRef<HTMLDivElement, MasterTimet
                 <thead>
                     <tr>
                         <th style={{...headerStyle, width: '8%'}}>Class</th>
-                        {Array.from({ length: 8 }).map((_, index) => {
+                        {Array.from({ length: numPeriods }).map((_, index) => {
                             if (index === breakAfterPeriod) {
                                 return (
                                     <React.Fragment key={`break-header-${index}`}>
@@ -79,9 +80,10 @@ export const MasterTimetablePrint = React.forwardRef<HTMLDivElement, MasterTimet
                         return (
                              <tr key={cls.id}>
                                  <td style={{...cellStyle, fontWeight: 'bold'}}>{cls.name}</td>
-                                 {Array.from({ length: 8 }).map((_, periodIndex) => {
+                                 {Array.from({ length: numPeriods }).map((_, periodIndex) => {
                                      if (periodIndex === breakAfterPeriod) return null;
-                                      const cell = timetable?.[periodIndex];
+                                      const actualPeriodIndex = periodIndex < breakAfterPeriod ? periodIndex : periodIndex - 1;
+                                      const cell = timetable?.[actualPeriodIndex];
                                       const teacher = teachers.find(t => t.id === cell?.teacherId);
                                       return (
                                         <td key={periodIndex} style={cellStyle}>

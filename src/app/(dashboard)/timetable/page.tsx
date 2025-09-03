@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -9,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useData } from '@/context/data-context';
 import { useToast } from '@/hooks/use-toast';
 import { Printer, CalendarClock, User, BookOpen, Save, Users, PlusCircle, MinusCircle } from 'lucide-react';
-import type { Timetable as TimetableType, TimetableData } from '@/lib/types';
+import type { TimetableData } from '@/lib/types';
 import { useSettings } from '@/context/settings-context';
 import { renderToString } from 'react-dom/server';
 import { MasterTimetablePrint } from '@/components/reports/master-timetable-print';
@@ -18,8 +17,6 @@ import { TeacherSchedulePrint } from '@/components/reports/teacher-schedule-prin
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-
-const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export default function TimetablePage() {
   const { classes, timetables, updateTimetable, teachers } = useData();
@@ -62,8 +59,10 @@ export default function TimetablePage() {
   const handleNumPeriodsChange = (newNumPeriods: number) => {
     if (newNumPeriods < 1 || newNumPeriods > 12) return;
 
+    setNumPeriods(newNumPeriods);
+
     if (breakAfterPeriod >= newNumPeriods) {
-        setBreakAfterPeriod(newNumPeriods - 1);
+        setBreakAfterPeriod(newNumPeriods > 1 ? newNumPeriods - 1 : 1);
     }
     
     setTimeSlots(prev => {
@@ -81,8 +80,6 @@ export default function TimetablePage() {
         }
         return newData;
     });
-
-    setNumPeriods(newNumPeriods);
   };
 
   const handleMasterCellChange = (classId: string, periodIndex: number, field: 'teacherId' | 'subject', value: string) => {
@@ -150,7 +147,7 @@ export default function TimetablePage() {
     let isLandscape = false;
     
     if (type === 'master') {
-        printContent = renderToString(<MasterTimetablePrint settings={settings} teachers={teachers} classes={classes} masterTimetableData={masterTimetableData} timeSlots={timeSlots} breakAfterPeriod={breakAfterPeriod} breakDuration={breakDuration} />);
+        printContent = renderToString(<MasterTimetablePrint settings={settings} teachers={teachers} classes={classes} masterTimetableData={masterTimetableData} timeSlots={timeSlots} breakAfterPeriod={breakAfterPeriod} breakDuration={breakDuration} numPeriods={numPeriods} />);
         printTitle = 'Master Timetable';
         isLandscape = true;
     } else if (type === 'class') {
@@ -159,7 +156,7 @@ export default function TimetablePage() {
             toast({ title: "Please select a class.", variant: "destructive" });
             return;
         }
-        printContent = renderToString(<TimetablePrint classInfo={classInfo} timetableData={masterTimetableData[selectedClassId] || []} timeSlots={timeSlots} daysOfWeek={daysOfWeek} breakAfterPeriod={breakAfterPeriod} breakDuration={breakDuration} settings={settings} teachers={teachers} />);
+        printContent = renderToString(<TimetablePrint classInfo={classInfo} timetableData={masterTimetableData[selectedClassId] || []} timeSlots={timeSlots} breakAfterPeriod={breakAfterPeriod} breakDuration={breakDuration} numPeriods={numPeriods} settings={settings} teachers={teachers} />);
         printTitle = `Timetable - ${classInfo.name}`;
         isLandscape = true;
     } else if (type === 'teacher') {
@@ -227,7 +224,7 @@ export default function TimetablePage() {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {Array.from({length: numPeriods - 1}).map((_, i) => (
+                                        {Array.from({length: numPeriods}).map((_, i) => (
                                             <SelectItem key={i+1} value={String(i+1)}>After Period {i+1}</SelectItem>
                                         ))}
                                     </SelectContent>
@@ -244,38 +241,17 @@ export default function TimetablePage() {
                             <thead>
                                 <tr className="bg-muted">
                                     <th className="border p-2 font-semibold w-32 sticky left-0 bg-muted z-10">Class</th>
-                                    {Array.from({ length: numPeriods }).map((_, i) => {
-                                        const periodNumber = i + 1;
-                                        if (i + 1 === breakAfterPeriod + 1) {
-                                            return (
-                                                <React.Fragment key={`break-header-${i}`}>
-                                                    <th className="border p-2 font-semibold w-48">
-                                                        <p>Period {periodNumber}</p>
-                                                        <Input
-                                                            placeholder="e.g., 8:00"
-                                                            className="h-7 text-xs mt-1"
-                                                            value={timeSlots[i] || ''}
-                                                            onChange={(e) => handleTimeSlotChange(i, e.target.value)}
-                                                        />
-                                                    </th>
-                                                    <th className="border p-2 font-bold bg-green-200 text-center align-middle [writing-mode:vertical-rl] transform rotate-180" rowSpan={classes.length + 2}>
-                                                        BREAK ({breakDuration})
-                                                    </th>
-                                                </React.Fragment>
-                                            );
-                                        }
-                                        return (
-                                            <th key={i} className="border p-2 font-semibold w-48">
-                                                <p>Period {periodNumber}</p>
-                                                <Input
-                                                    placeholder="e.g., 8:00"
-                                                    className="h-7 text-xs mt-1"
-                                                    value={timeSlots[i] || ''}
-                                                    onChange={(e) => handleTimeSlotChange(i, e.target.value)}
-                                                />
-                                            </th>
-                                        );
-                                    })}
+                                    {Array.from({ length: numPeriods }).map((_, i) => (
+                                        <th key={i} className="border p-2 font-semibold w-48">
+                                            <p>Period {i + 1}</p>
+                                            <Input
+                                                placeholder="e.g., 8:00"
+                                                className="h-7 text-xs mt-1"
+                                                value={timeSlots[i] || ''}
+                                                onChange={(e) => handleTimeSlotChange(i, e.target.value)}
+                                            />
+                                        </th>
+                                    ))}
                                 </tr>
                             </thead>
                             <tbody>
@@ -283,15 +259,28 @@ export default function TimetablePage() {
                                     <tr key={cls.id}>
                                         <td className="border p-2 font-semibold sticky left-0 bg-background z-10">{cls.name}</td>
                                         {Array.from({ length: numPeriods }).map((_, periodIndex) => {
-                                            if (periodIndex + 1 === breakAfterPeriod + 1) return null;
+                                            if (periodIndex === breakAfterPeriod) {
+                                                if (cls.id === classes[0].id) { // Render the break cell only for the first row
+                                                    return (
+                                                         <td key="break" className="border p-2 font-bold bg-green-200 text-center align-middle" rowSpan={classes.length}>
+                                                            <div className="[writing-mode:vertical-rl] transform rotate-180 h-full flex items-center justify-center">
+                                                                BREAK ({breakDuration})
+                                                            </div>
+                                                        </td>
+                                                    )
+                                                }
+                                                return null; // Don't render anything for other rows in the break column
+                                            }
                                             
-                                            const cellData = masterTimetableData[cls.id]?.[periodIndex];
+                                            const actualPeriodIndex = periodIndex < breakAfterPeriod ? periodIndex : periodIndex -1;
+                                            const cellData = masterTimetableData[cls.id]?.[actualPeriodIndex];
+
                                             return (
                                                 <td key={periodIndex} className="border p-0 align-top">
                                                     <div className="h-24 w-full flex flex-col">
                                                         <Select
                                                             value={cellData?.teacherId || 'none'}
-                                                            onValueChange={(teacherId) => handleMasterCellChange(cls.id, periodIndex, 'teacherId', teacherId)}
+                                                            onValueChange={(teacherId) => handleMasterCellChange(cls.id, actualPeriodIndex, 'teacherId', teacherId)}
                                                         >
                                                             <SelectTrigger className="h-12 text-xs border-0 border-b rounded-none focus:ring-0 bg-transparent justify-center font-semibold">
                                                                 <SelectValue placeholder="- Teacher -" />
@@ -305,7 +294,7 @@ export default function TimetablePage() {
                                                             className="h-12 text-xs text-center border-0 rounded-none focus-visible:ring-0 bg-transparent"
                                                             placeholder="- Subject -"
                                                             value={cellData?.subject || ''}
-                                                            onChange={(e) => handleMasterCellChange(cls.id, periodIndex, 'subject', e.target.value)}
+                                                            onChange={(e) => handleMasterCellChange(cls.id, actualPeriodIndex, 'subject', e.target.value)}
                                                         />
                                                     </div>
                                                 </td>
@@ -344,7 +333,7 @@ export default function TimetablePage() {
             <CardContent>
               {selectedClassId ? (
                  <div className="border rounded-lg overflow-x-auto">
-                    <TimetablePrint classInfo={classes.find(c => c.id === selectedClassId)!} timetableData={masterTimetableData[selectedClassId] || []} timeSlots={timeSlots} daysOfWeek={daysOfWeek} breakAfterPeriod={breakAfterPeriod} breakDuration={breakDuration} settings={settings} teachers={teachers} />
+                    <TimetablePrint classInfo={classes.find(c => c.id === selectedClassId)!} timetableData={masterTimetableData[selectedClassId] || []} timeSlots={timeSlots} breakAfterPeriod={breakAfterPeriod} breakDuration={breakDuration} numPeriods={numPeriods} settings={settings} teachers={teachers} />
                  </div>
               ) : (
                  <div className="flex items-center justify-center h-64 border rounded-lg bg-gray-50">
@@ -390,13 +379,20 @@ export default function TimetablePage() {
                         </thead>
                         <tbody>
                             {teacherSchedule.length > 0 ? (
-                                teacherSchedule.map((entry) => (
-                                    <tr key={`${entry.period}-${entry.class}`}>
-                                        <td className="border p-2 text-center">{entry.period}</td>
-                                        <td className="border p-2 text-center">{entry.time || '-'}</td>
-                                        <td className="border p-2 text-center">{entry.class}</td>
-                                        <td className="border p-2 text-center">{entry.subject}</td>
-                                    </tr>
+                                teacherSchedule.map((entry, index) => (
+                                    <React.Fragment key={`${entry.period}-${entry.class}`}>
+                                        {index > 0 && entry.period === breakAfterPeriod + 1 && (
+                                            <tr className="bg-green-100 font-semibold">
+                                                <td colSpan={4} className="border p-2 text-center">Break ({breakDuration})</td>
+                                            </tr>
+                                        )}
+                                        <tr>
+                                            <td className="border p-2 text-center">{entry.period > breakAfterPeriod ? entry.period - 1 : entry.period}</td>
+                                            <td className="border p-2 text-center">{entry.time || '-'}</td>
+                                            <td className="border p-2 text-center">{entry.class}</td>
+                                            <td className="border p-2 text-center">{entry.subject}</td>
+                                        </tr>
+                                    </React.Fragment>
                                 ))
                             ) : (
                                 <tr>
