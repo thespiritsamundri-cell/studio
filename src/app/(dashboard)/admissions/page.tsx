@@ -46,6 +46,7 @@ export default function AdmissionsPage() {
     const [alternatePhone, setAlternatePhone] = useState('');
     const [address, setAddress] = useState('');
     const [studentCnic, setStudentCnic] = useState('');
+    const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
 
     // State for dynamic fees
     const [customFees, setCustomFees] = useState<CustomFee[]>([]);
@@ -112,6 +113,17 @@ export default function AdmissionsPage() {
             printWindow.focus();
         }
     };
+    
+    const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPhotoDataUrl(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const handleAdmission = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -158,7 +170,7 @@ export default function AdmissionsPage() {
             address: address,
             dob: dob,
             cnic: studentCnic,
-            photoUrl: `https://picsum.photos/seed/${newStudentId}/100/100`
+            photoUrl: photoDataUrl || `https://picsum.photos/seed/${newStudentId}/100/100`
         };
 
         let lastFeeId = fees.reduce((max, f) => {
@@ -227,6 +239,7 @@ export default function AdmissionsPage() {
         setStudentSection('');
         setStudentCnic('');
         setCustomFees([]);
+        setPhotoDataUrl(null);
     };
 
     const addCustomFeeField = () => {
@@ -389,7 +402,7 @@ export default function AdmissionsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="photo">Student Photo</Label>
-                <Input id="photo" type="file" className="file:text-primary file:font-medium" />
+                <Input id="photo" type="file" className="file:text-primary file:font-medium" onChange={handlePhotoChange} accept="image/*" />
               </div>
               <div className="space-y-2 md:col-span-3">
                 <Label htmlFor="address">Address</Label>
