@@ -14,7 +14,7 @@ import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert } from 'lucide-react';
 import { useData } from '@/context/data-context';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -26,7 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { auth } from '@/lib/firebase';
-import { EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 
 
 export default function SettingsPage() {
@@ -44,7 +44,13 @@ export default function SettingsPage() {
   const [isTesting, setIsTesting] = useState(false);
 
   // Account settings state
-  const [email, setEmail] = useState('admin@example.com');
+  const [email, setEmail] = useState('');
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (user && user.email) {
+      setEmail(user.email);
+    }
+  }, []);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -79,40 +85,59 @@ export default function SettingsPage() {
     }
     
     const user = auth.currentUser;
-    if (!user || !currentPassword) {
+    if (!user) {
+        toast({ title: 'You must be logged in to change settings.', variant: 'destructive' });
+        return;
+    }
+    if (!currentPassword) {
         toast({ title: 'Please enter your current password to save changes.', variant: 'destructive' });
         return;
     }
 
     const credential = EmailAuthProvider.credential(user.email!, currentPassword);
+    
+    let changesMade = false;
 
     try {
         await reauthenticateWithCredential(user, credential);
         // User re-authenticated. Now we can change things.
         
         if (newPassword) {
-            // This part is a placeholder. In a real app, you'd call Firebase's updateUserPassword function.
-            console.log("Simulating password change.");
+            await updatePassword(user, newPassword);
+            changesMade = true;
         }
         
         if (newPin) {
             setSettings(prev => ({ ...prev, historyClearPin: newPin }));
             setNewPin('');
             setConfirmPin('');
+            changesMade = true;
         }
         
+        if (changesMade) {
+             addActivityLog({ user: 'Admin', action: 'Update Credentials', description: 'Updated admin login credentials or PIN.' });
+             toast({
+                title: "Account Settings Saved",
+                description: "Your changes have been saved successfully.",
+             });
+        } else {
+             toast({
+                title: "No Changes",
+                description: "No new information was provided to save.",
+             });
+        }
+        
+        // Clear password fields after operation
         setCurrentPassword('');
         setNewPassword('');
 
-        addActivityLog({ user: 'Admin', action: 'Update Credentials', description: 'Updated admin login credentials or PIN.' });
-        toast({
-            title: "Account Settings Saved",
-            description: "Your changes have been saved successfully.",
-        });
-
-    } catch (error) {
+    } catch (error: any) {
         console.error(error);
-        toast({ title: 'Authentication Failed', description: 'The password you entered is incorrect.', variant: 'destructive' });
+        if (error.code === 'auth/wrong-password') {
+             toast({ title: 'Authentication Failed', description: 'The password you entered is incorrect.', variant: 'destructive' });
+        } else {
+             toast({ title: 'An error occurred', description: error.message, variant: 'destructive' });
+        }
     }
   }
 
@@ -874,4 +899,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
