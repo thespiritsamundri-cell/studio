@@ -4,7 +4,7 @@
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useData } from '@/context/data-context';
-import { getYear, format } from 'date-fns';
+import { getYear, getMonth, format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TrendingUp, TrendingDown, Scale, Users, FileSignature, PieChart as PieChartIcon, BarChart3, Medal } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -44,7 +44,8 @@ export default function YearbookPage() {
         }));
 
         yearlyIncome.forEach(f => {
-            const month = getMonth(new Date(f.paymentDate!));
+            if (!f.paymentDate) return;
+            const month = getMonth(new Date(f.paymentDate));
             monthlyBreakdown[month].income += f.amount;
         });
 
@@ -132,6 +133,20 @@ export default function YearbookPage() {
         };
     }, [exams, students, selectedYear]);
 
+    const financialChartConfig = {
+        income: { label: "Income", color: "hsl(var(--chart-2))" },
+        expenses: { label: "Expenses", color: "hsl(var(--chart-5))" },
+    };
+
+    const admissionsChartConfig = {
+        count: { label: "Admissions", color: "hsl(var(--chart-1))" },
+    };
+    
+    const classDistributionChartConfig = yearlyAdmissionsData.classDistributionChartData.reduce((acc, item) => {
+        acc[item.name] = { label: item.name, color: item.fill };
+        return acc;
+    }, {} as any);
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -193,17 +208,17 @@ export default function YearbookPage() {
                                 <CardDescription>Income vs. expenses for each month of {selectedYear}.</CardDescription>
                             </CardHeader>
                             <CardContent className="h-[350px]">
-                                 <ResponsiveContainer width="100%" height="100%">
+                                <ChartContainer config={financialChartConfig} className="w-full h-full">
                                     <BarChart data={yearlyFinancialData.monthlyBreakdown}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                    <XAxis dataKey="name" />
-                                    <YAxis tickFormatter={(value) => `${(value as number / 1000).toFixed(0)}k`} />
-                                    <Tooltip content={<ChartTooltipContent formatter={(value) => `PKR ${value.toLocaleString()}`} />} />
-                                    <Legend />
-                                    <Bar dataKey="income" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} name="Income" />
-                                    <Bar dataKey="expenses" fill="hsl(var(--chart-5))" radius={[4, 4, 0, 0]} name="Expenses" />
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                        <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} />
+                                        <YAxis tickFormatter={(value) => `${(value as number / 1000).toFixed(0)}k`} />
+                                        <ChartTooltip content={<ChartTooltipContent formatter={(value) => `PKR ${value.toLocaleString()}`} />} />
+                                        <Legend />
+                                        <Bar dataKey="income" fill="var(--color-income)" radius={[4, 4, 0, 0]} name="Income" />
+                                        <Bar dataKey="expenses" fill="var(--color-expenses)" radius={[4, 4, 0, 0]} name="Expenses" />
                                     </BarChart>
-                                </ResponsiveContainer>
+                                </ChartContainer>
                             </CardContent>
                          </Card>
                     </div>
@@ -227,15 +242,15 @@ export default function YearbookPage() {
                                     <CardTitle className="flex items-center gap-2"><BarChart3 />Monthly Admissions</CardTitle>
                                 </CardHeader>
                                 <CardContent className="h-[300px]">
-                                     <ResponsiveContainer width="100%" height="100%">
+                                     <ChartContainer config={admissionsChartConfig} className="w-full h-full">
                                         <BarChart data={yearlyAdmissionsData.monthlyAdmissions}>
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                            <XAxis dataKey="name" />
+                                            <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} />
                                             <YAxis allowDecimals={false} />
-                                            <Tooltip content={<ChartTooltipContent />} />
-                                            <Bar dataKey="count" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} name="Admissions" />
+                                            <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                                            <Bar dataKey="count" fill="var(--color-count)" radius={[4, 4, 0, 0]} name="Admissions" />
                                         </BarChart>
-                                    </ResponsiveContainer>
+                                    </ChartContainer>
                                 </CardContent>
                             </Card>
                              <Card>
@@ -243,16 +258,16 @@ export default function YearbookPage() {
                                     <CardTitle className="flex items-center gap-2"><PieChartIcon />Admissions by Class</CardTitle>
                                 </CardHeader>
                                 <CardContent className="h-[300px]">
-                                     <ResponsiveContainer width="100%" height="100%">
+                                     <ChartContainer config={classDistributionChartConfig} className="w-full h-full">
                                         <PieChart>
                                              <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
                                             <Pie data={yearlyAdmissionsData.classDistributionChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
-                                                 {yearlyAdmissionsData.classDistributionChartData.map((entry) => (
-                                                    <Cell key={`cell-${entry.name}`} fill={entry.fill} />
+                                                 {yearlyAdmissionsData.classDistributionChartData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={entry.fill} />
                                                 ))}
                                             </Pie>
                                         </PieChart>
-                                    </ResponsiveContainer>
+                                    </ChartContainer>
                                 </CardContent>
                             </Card>
                          </div>
@@ -321,3 +336,4 @@ export default function YearbookPage() {
     );
 }
 
+    
