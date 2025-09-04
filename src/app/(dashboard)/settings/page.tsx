@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -11,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History } from 'lucide-react';
+import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import { useState, useMemo } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -26,7 +27,7 @@ import { Badge } from '@/components/ui/badge';
 
 export default function SettingsPage() {
   const { settings, setSettings } = useSettings();
-  const { students, families, fees, loadData, addActivityLog, activityLog } = useData();
+  const { students, families, fees, loadData, addActivityLog, activityLog, seedDatabase } = useData();
   const { toast } = useToast();
   
   // Custom Messaging State
@@ -724,20 +725,27 @@ export default function SettingsPage() {
               <CardTitle>Backup & Restore</CardTitle>
               <CardDescription>Manage your application data backups.</CardDescription>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                    <h3 className="font-medium">Create Backup</h3>
-                    <p className="text-sm text-muted-foreground">Download a complete backup of your school data (students, fees, etc.) as a JSON file.</p>
-                    <Button variant="outline" onClick={handleCreateBackup}><Download className="mr-2"/>Download Backup</Button>
-                </div>
-                <div className="space-y-2">
-                    <h3 className="font-medium">Restore from Backup</h3>
-                    <p className="text-sm text-muted-foreground">Upload a JSON backup file to restore your school data. This will overwrite existing data.</p>
-                    <div className="flex items-center gap-2">
-                        <Label htmlFor="backup-file" className="sr-only">Restore</Label>
-                        <Input id="backup-file" type="file" accept=".json" className="hidden" onChange={handleRestoreBackup} />
-                        <Button onClick={() => document.getElementById('backup-file')?.click()}><Upload className="mr-2"/>Restore Data</Button>
+            <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                    <div className="space-y-2">
+                        <h3 className="font-medium">Create Backup</h3>
+                        <p className="text-sm text-muted-foreground">Download a complete backup of your school data (students, fees, etc.) as a JSON file.</p>
+                        <Button variant="outline" onClick={handleCreateBackup}><Download className="mr-2"/>Download Backup</Button>
                     </div>
+                    <div className="space-y-2">
+                        <h3 className="font-medium">Restore from Backup</h3>
+                        <p className="text-sm text-muted-foreground">Upload a JSON backup file to restore your school data. This will overwrite existing data.</p>
+                        <div className="flex items-center gap-2">
+                            <Label htmlFor="backup-file" className="sr-only">Restore</Label>
+                            <Input id="backup-file" type="file" accept=".json" className="hidden" onChange={handleRestoreBackup} />
+                            <Button onClick={() => document.getElementById('backup-file')?.click()}><Upload className="mr-2"/>Restore Data</Button>
+                        </div>
+                    </div>
+                </div>
+                 <div className="border-t pt-6 space-y-2">
+                    <h3 className="font-medium">Seed Database</h3>
+                    <p className="text-sm text-muted-foreground">Populate the database with initial sample data. This is useful for first-time setup or for testing purposes. This will overwrite any existing data with the same IDs.</p>
+                    <Button variant="destructive" onClick={seedDatabase}><Database className="mr-2"/>Seed Sample Data</Button>
                 </div>
             </CardContent>
           </Card>

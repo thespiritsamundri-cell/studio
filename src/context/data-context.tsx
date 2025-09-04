@@ -4,7 +4,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, writeBatch, query, where, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, writeBatch, query, where, getDocs, setDoc } from 'firebase/firestore';
 import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData } from '@/lib/types';
 import { students as initialStudents, families as initialFamilies, fees as initialFees, teachers as initialTeachers, teacherAttendances as initialTeacherAttendances, classes as initialClasses, exams as initialExams, expenses as initialExpenses, timetables as initialTimetables } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
@@ -46,6 +46,7 @@ interface DataContextType {
   deleteExpense: (id: string) => Promise<void>;
   updateTimetable: (classId: string, data: TimetableData, timeSlots?: string[], breakAfterPeriod?: number, breakDuration?: string) => Promise<void>;
   loadData: (data: any) => Promise<void>;
+  seedDatabase: () => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -232,6 +233,44 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const seedDatabase = async () => {
+    toast({ title: "Seeding Database...", description: "This may take a moment."});
+    try {
+        const batch = writeBatch(db);
+
+        // A helper function to add a dataset to the batch
+        const addToBatch = (data: any[], collectionName: string) => {
+            data.forEach(item => {
+                const { id, ...rest } = item;
+                const docRef = doc(db, collectionName, id);
+                batch.set(docRef, rest);
+            });
+        };
+
+        addToBatch(initialStudents, 'students');
+        addToBatch(initialFamilies, 'families');
+        addToBatch(initialFees, 'fees');
+        addToBatch(initialTeachers, 'teachers');
+        addToBatch(initialTeacherAttendances, 'teacherAttendances');
+        addToBatch(initialClasses, 'classes');
+        addToBatch(initialExams, 'exams');
+        addToBatch(initialExpenses, 'expenses');
+        initialTimetables.forEach(item => {
+             const { classId, ...rest } = item;
+             const docRef = doc(db, 'timetables', classId);
+             batch.set(docRef, rest);
+        })
+
+        await batch.commit();
+        toast({ title: "Database Seeded", description: "Sample data has been added to your database."});
+        addActivityLog({ user: 'Admin', action: 'Seed Database', description: 'Populated Firestore with initial sample data.'});
+    } catch (error) {
+        console.error("Error seeding database: ", error);
+        toast({ title: "Seeding Failed", description: "Could not add sample data to the database.", variant: "destructive" });
+    }
+  };
+
+
   // This function is for manual data import, e.g., from a backup file.
   // It's a placeholder and needs robust implementation based on backup structure.
   const loadData = async (data: any) => {
@@ -274,7 +313,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       updateExpense,
       deleteExpense,
       updateTimetable,
-      loadData 
+      loadData,
+      seedDatabase,
   };
 
 
