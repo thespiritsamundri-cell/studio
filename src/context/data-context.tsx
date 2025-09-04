@@ -3,8 +3,12 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, writeBatch, query, where, getDocs } from 'firebase/firestore';
 import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData } from '@/lib/types';
 import { students as initialStudents, families as initialFamilies, fees as initialFees, teachers as initialTeachers, teacherAttendances as initialTeacherAttendances, classes as initialClasses, exams as initialExams, expenses as initialExpenses, timetables as initialTimetables } from '@/lib/data';
+import { useToast } from '@/hooks/use-toast';
+
 
 interface DataContextType {
   students: Student[];
@@ -17,36 +21,37 @@ interface DataContextType {
   activityLog: ActivityLog[];
   expenses: Expense[];
   timetables: Timetable[];
-  addStudent: (student: Student) => void;
-  updateStudent: (id: string, student: Student) => void;
-  deleteStudent: (id: string) => void;
-  addFamily: (family: Family) => void;
-  updateFamily: (id: string, family: Family) => void;
-  deleteFamily: (id: string) => void;
-  addFee: (fee: Fee) => void;
-  updateFee: (id: string, fee: Fee) => void;
-  deleteFee: (id: string) => void;
-  addTeacher: (teacher: Teacher) => void;
-  updateTeacher: (id: string, teacher: Teacher) => void;
-  deleteTeacher: (id: string) => void;
-  saveTeacherAttendance: (attendances: TeacherAttendance[]) => void;
-  addClass: (newClass: Class) => void;
-  updateClass: (id: string, updatedClass: Class) => void;
-  deleteClass: (id: string) => void;
-  addExam: (exam: Exam) => void;
-  updateExam: (id: string, exam: Exam) => void;
-  deleteExam: (id: string) => void;
-  addActivityLog: (activity: Omit<ActivityLog, 'id' | 'timestamp'>) => void;
-  addExpense: (expense: Expense) => void;
-  updateExpense: (id: string, expense: Expense) => void;
-  deleteExpense: (id: string) => void;
-  updateTimetable: (classId: string, data: TimetableData, timeSlots?: string[], breakAfterPeriod?: number, breakDuration?: string) => void;
-  loadData: (data: { students: Student[], families: Family[], fees: Fee[], teachers: Teacher[], teacherAttendances: TeacherAttendance[], classes: Class[], exams: Exam[], expenses: Expense[], timetables?: Timetable[], activityLog?: ActivityLog[] }) => void;
+  addStudent: (student: Omit<Student, 'id'>) => Promise<void>;
+  updateStudent: (id: string, student: Partial<Student>) => Promise<void>;
+  deleteStudent: (id: string) => Promise<void>;
+  addFamily: (family: Omit<Family, 'id'>) => Promise<void>;
+  updateFamily: (id: string, family: Partial<Family>) => Promise<void>;
+  deleteFamily: (id: string) => Promise<void>;
+  addFee: (fee: Omit<Fee, 'id'>) => Promise<void>;
+  updateFee: (id: string, fee: Partial<Fee>) => Promise<void>;
+  deleteFee: (id: string) => Promise<void>;
+  addTeacher: (teacher: Omit<Teacher, 'id'>) => Promise<void>;
+  updateTeacher: (id: string, teacher: Partial<Teacher>) => Promise<void>;
+  deleteTeacher: (id: string) => Promise<void>;
+  saveTeacherAttendance: (attendances: TeacherAttendance[]) => Promise<void>;
+  addClass: (newClass: Omit<Class, 'id'>) => Promise<void>;
+  updateClass: (id: string, updatedClass: Partial<Class>) => Promise<void>;
+  deleteClass: (id: string) => Promise<void>;
+  addExam: (exam: Omit<Exam, 'id'>) => Promise<void>;
+  updateExam: (id: string, exam: Partial<Exam>) => Promise<void>;
+  deleteExam: (id: string) => Promise<void>;
+  addActivityLog: (activity: Omit<ActivityLog, 'id' | 'timestamp'>) => Promise<void>;
+  addExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
+  updateExpense: (id: string, expense: Partial<Expense>) => Promise<void>;
+  deleteExpense: (id: string) => Promise<void>;
+  updateTimetable: (classId: string, data: TimetableData, timeSlots?: string[], breakAfterPeriod?: number, breakDuration?: string) => Promise<void>;
+  loadData: (data: any) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: ReactNode }) {
+  const { toast } = useToast();
   const [students, setStudents] = useState<Student[]>([]);
   const [families, setFamilies] = useState<Family[]>([]);
   const [fees, setFees] = useState<Fee[]>([]);
@@ -57,223 +62,184 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [activityLog, setActivityLog] = useState<ActivityLog[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [timetables, setTimetables] = useState<Timetable[]>([]);
-  const [isClient, setIsClient] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setIsClient(true);
-    try {
-      const savedStudents = window.localStorage.getItem('schoolStudents');
-      const savedFamilies = window.localStorage.getItem('schoolFamilies');
-      const savedFees = window.localStorage.getItem('schoolFees');
-      const savedTeachers = window.localStorage.getItem('schoolTeachers');
-      const savedTeacherAttendances = window.localStorage.getItem('schoolTeacherAttendances');
-      const savedClasses = window.localStorage.getItem('schoolClasses');
-      const savedExams = window.localStorage.getItem('schoolExams');
-      const savedActivityLog = window.localStorage.getItem('schoolActivityLog');
-      const savedExpenses = window.localStorage.getItem('schoolExpenses');
-      const savedTimetables = window.localStorage.getItem('schoolTimetables');
-      
-      setStudents(savedStudents ? JSON.parse(savedStudents) : initialStudents);
-      setFamilies(savedFamilies ? JSON.parse(savedFamilies) : initialFamilies);
-      setFees(savedFees ? JSON.parse(savedFees) : initialFees);
-      setTeachers(savedTeachers ? JSON.parse(savedTeachers) : initialTeachers);
-      setTeacherAttendances(savedTeacherAttendances ? JSON.parse(savedTeacherAttendances) : initialTeacherAttendances);
-      setClasses(savedClasses ? JSON.parse(savedClasses) : initialClasses);
-      setExams(savedExams ? JSON.parse(savedExams) : initialExams);
-      setActivityLog(savedActivityLog ? JSON.parse(savedActivityLog) : []);
-      setExpenses(savedExpenses ? JSON.parse(savedExpenses) : initialExpenses);
-      setTimetables(savedTimetables ? JSON.parse(savedTimetables) : initialTimetables);
-
-    } catch (error) {
-      console.error('Error reading from localStorage', error);
-      // Set initial data if localStorage fails
-      setStudents(initialStudents);
-      setFamilies(initialFamilies);
-      setFees(initialFees);
-      setTeachers(initialTeachers);
-      setTeacherAttendances(initialTeacherAttendances);
-      setClasses(initialClasses);
-      setExams(initialExams);
-      setActivityLog([]);
-      setExpenses(initialExpenses);
-      setTimetables(initialTimetables);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isClient) {
-      try {
-        window.localStorage.setItem('schoolStudents', JSON.stringify(students));
-        window.localStorage.setItem('schoolFamilies', JSON.stringify(families));
-        window.localStorage.setItem('schoolFees', JSON.stringify(fees));
-        window.localStorage.setItem('schoolTeachers', JSON.stringify(teachers));
-        window.localStorage.setItem('schoolTeacherAttendances', JSON.stringify(teacherAttendances));
-        window.localStorage.setItem('schoolClasses', JSON.stringify(classes));
-        window.localStorage.setItem('schoolExams', JSON.stringify(exams));
-        window.localStorage.setItem('schoolActivityLog', JSON.stringify(activityLog));
-        window.localStorage.setItem('schoolExpenses', JSON.stringify(expenses));
-        window.localStorage.setItem('schoolTimetables', JSON.stringify(timetables));
-      } catch (error) {
-        console.error('Error writing to localStorage', error);
-      }
-    }
-  }, [students, families, fees, teachers, teacherAttendances, classes, exams, activityLog, expenses, timetables, isClient]);
-
-  const addActivityLog = (activity: Omit<ActivityLog, 'id' | 'timestamp'>) => {
-    const newLogEntry: ActivityLog = {
-      ...activity,
-      id: `LOG-${Date.now()}`,
-      timestamp: new Date().toISOString(),
+    const collections = {
+      students: setStudents,
+      families: setFamilies,
+      fees: setFees,
+      teachers: setTeachers,
+      teacherAttendances: setTeacherAttendances,
+      classes: setClasses,
+      exams: setExams,
+      activityLog: setActivityLog,
+      expenses: setExpenses,
+      timetables: setTimetables,
     };
-    setActivityLog(prev => [newLogEntry, ...prev].slice(0, 200)); // Keep last 200 logs
-  };
 
-  const addStudent = (student: Student) => {
-    setStudents(prev => [...prev, student]);
-    addActivityLog({ user: 'Admin', action: 'Add Student', description: `Admitted new student: ${student.name} (ID: ${student.id}) in Class ${student.class}.` });
-  };
-  const updateStudent = (id: string, updatedStudent: Student) => {
-    setStudents(prev => prev.map(s => s.id === id ? updatedStudent : s));
-    addActivityLog({ user: 'Admin', action: 'Update Student', description: `Updated details for student: ${updatedStudent.name} (ID: ${id}).` });
-  };
-  const deleteStudent = (id: string) => {
-    const student = students.find(s => s.id === id);
-    setStudents(prev => prev.filter(s => s.id !== id));
-    if (student) {
-        addActivityLog({ user: 'Admin', action: 'Delete Student', description: `Deleted student: ${student.name} (ID: ${id}).` });
-    }
-  };
-
-  const addFamily = (family: Family) => {
-    setFamilies(prev => [...prev, family]);
-    addActivityLog({ user: 'Admin', action: 'Add Family', description: `Added new family: ${family.fatherName} (ID: ${family.id}).` });
-  };
-  const updateFamily = (id: string, updatedFamily: Family) => {
-    setFamilies(prev => prev.map(f => f.id === id ? updatedFamily : f));
-     addActivityLog({ user: 'Admin', action: 'Update Family', description: `Updated details for family: ${updatedFamily.fatherName} (ID: ${id}).` });
-  };
-  const deleteFamily = (id: string) => {
-    const family = families.find(f => f.id === id);
-    setFamilies(prev => prev.filter(f => f.id !== id));
-    setStudents(prev => prev.filter(s => s.familyId !== id));
-    setFees(prev => prev.filter(f => f.familyId !== id));
-    if (family) {
-        addActivityLog({ user: 'Admin', action: 'Delete Family', description: `Deleted family: ${family.fatherName} (ID: ${id}) and all associated data.` });
-    }
-  };
-  
-  const addFee = (fee: Fee) => {
-    setFees(prev => [...prev, fee]);
-    if (fee.status === 'Paid') {
-        const family = families.find(f => f.id === fee.familyId);
-        addActivityLog({ user: 'Admin', action: 'Collect Fee', description: `Collected PKR ${fee.amount} from family ${family?.fatherName} (${fee.familyId}) for ${fee.month}.` });
-    }
-  };
-  const updateFee = (id: string, updatedFee: Fee) => setFees(prev => prev.map(f => f.id === id ? updatedFee : f));
-  const deleteFee = (id: string) => setFees(prev => prev.filter(f => f.id !== id));
-
-  const addTeacher = (teacher: Teacher) => {
-    setTeachers(prev => [...prev, teacher]);
-    addActivityLog({ user: 'Admin', action: 'Add Teacher', description: `Added new teacher: ${teacher.name}.` });
-  };
-  const updateTeacher = (id: string, updatedTeacher: Teacher) => {
-    setTeachers(prev => prev.map(t => t.id === id ? updatedTeacher : t));
-    addActivityLog({ user: 'Admin', action: 'Update Teacher', description: `Updated details for teacher: ${updatedTeacher.name}.` });
-  };
-  const deleteTeacher = (id: string) => {
-    const teacher = teachers.find(t => t.id === id);
-    setTeachers(prev => prev.filter(t => t.id !== id));
-    if (teacher) {
-       addActivityLog({ user: 'Admin', action: 'Delete Teacher', description: `Deleted teacher: ${teacher.name}.` });
-    }
-  };
-  
-  const saveTeacherAttendance = (newAttendances: TeacherAttendance[]) => {
-    const date = newAttendances[0]?.date;
-    if (!date) return;
-    
-    setTeacherAttendances(prev => {
-        const otherDateAttendances = prev.filter(att => att.date !== date);
-        return [...otherDateAttendances, ...newAttendances];
+    const unsubscribers = Object.entries(collections).map(([name, setter]) => {
+      const collRef = collection(db, name);
+      return onSnapshot(collRef, (snapshot) => {
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
+        if(name === 'activityLog') {
+            data.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        }
+        setter(data);
+      }, (error) => {
+        console.error(`Error fetching ${name}:`, error);
+        toast({ title: `Error Fetching ${name}`, description: "Could not connect to the database. Please check your Firebase setup and security rules.", variant: "destructive"});
+      });
     });
-    addActivityLog({ user: 'Admin', action: 'Save Teacher Attendance', description: `Saved teacher attendance for date: ${date}.` });
+    
+    setLoading(false);
+
+    // Unsubscribe from all listeners on cleanup
+    return () => unsubscribers.forEach(unsub => unsub());
+  }, [toast]);
+
+  const addActivityLog = async (activity: Omit<ActivityLog, 'id' | 'timestamp'>) => {
+    try {
+        const newLogEntry = {
+            ...activity,
+            timestamp: new Date().toISOString(),
+        };
+        await addDoc(collection(db, 'activityLog'), newLogEntry);
+    } catch(e) {
+        console.error("Error adding activity log: ", e);
+    }
+  };
+
+  // Generic CRUD Functions
+  const addDocFactory = <T extends { id: string }>(collectionName: string, actionName: string, descriptionFn: (doc: T) => string) => async (docData: Omit<T, 'id'>) => {
+    try {
+        const docRef = await addDoc(collection(db, collectionName), docData);
+        await addActivityLog({ user: 'Admin', action: actionName, description: descriptionFn({ ...docData, id: docRef.id } as T) });
+    } catch (e) {
+        console.error(`Error adding ${collectionName}:`, e);
+        toast({ title: `Error adding ${collectionName}`, variant: "destructive" });
+    }
   }
 
-  const addClass = (newClass: Class) => {
-    setClasses(prev => [...prev, newClass]);
-    addActivityLog({ user: 'Admin', action: 'Add Class', description: `Created new class: ${newClass.name}.` });
+  const updateDocFactory = <T extends {}>(collectionName: string, actionName: string, descriptionFn: (doc: T & {id: string}) => string) => async (id: string, docData: Partial<T>) => {
+     try {
+        await updateDoc(doc(db, collectionName, id), docData);
+        await addActivityLog({ user: 'Admin', action: actionName, description: descriptionFn({ ...docData, id } as T & {id: string}) });
+    } catch (e) {
+        console.error(`Error updating ${collectionName}:`, e);
+        toast({ title: `Error updating ${collectionName}`, variant: "destructive" });
+    }
+  }
+  
+  const deleteDocFactory = (collectionName: string, actionName: string, descriptionFn: (doc: any) => string, preDeleteState: any[]) => async (id: string) => {
+    try {
+        const docToDelete = preDeleteState.find(d => d.id === id);
+        await deleteDoc(doc(db, collectionName, id));
+        if (docToDelete) {
+           await addActivityLog({ user: 'Admin', action: actionName, description: descriptionFn(docToDelete) });
+        }
+    } catch (e) {
+        console.error(`Error deleting ${collectionName}:`, e);
+        toast({ title: `Error deleting ${collectionName}`, variant: "destructive" });
+    }
+  }
+
+  const addStudent = addDocFactory<Student>('students', 'Add Student', d => `Admitted new student: ${d.name} (ID: ${d.id}) in Class ${d.class}.`);
+  const updateStudent = updateDocFactory<Student>('students', 'Update Student', d => `Updated details for student: ${d.name || ''} (ID: ${d.id}).`);
+  const deleteStudent = deleteDocFactory('students', 'Delete Student', d => `Deleted student: ${d.name} (ID: ${d.id}).`, students);
+  
+  const addFamily = addDocFactory<Family>('families', 'Add Family', d => `Added new family: ${d.fatherName} (ID: ${d.id}).`);
+  const updateFamily = updateDocFactory<Family>('families', 'Update Family', d => `Updated details for family: ${d.fatherName || ''} (ID: ${d.id}).`);
+  const deleteFamily = async (id: string) => {
+      const family = families.find(f => f.id === id);
+      if (!family) return;
+      try {
+        const batch = writeBatch(db);
+        // Delete family doc
+        batch.delete(doc(db, "families", id));
+
+        // Find and delete associated students
+        const studentsQuery = query(collection(db, "students"), where("familyId", "==", id));
+        const studentDocs = await getDocs(studentsQuery);
+        studentDocs.forEach(doc => batch.delete(doc.ref));
+
+        // Find and delete associated fees
+        const feesQuery = query(collection(db, "fees"), where("familyId", "==", id));
+        const feeDocs = await getDocs(feesQuery);
+        feeDocs.forEach(doc => batch.delete(doc.ref));
+
+        await batch.commit();
+        await addActivityLog({ user: 'Admin', action: 'Delete Family', description: `Deleted family: ${family.fatherName} (ID: ${id}) and all associated data.` });
+
+      } catch(e) {
+        console.error("Error deleting family and associated data:", e);
+        toast({ title: 'Error Deleting Family', description: 'Could not delete family and their students/fees.', variant: 'destructive' });
+      }
   };
-  const updateClass = (id: string, updatedClass: Class) => {
-    setClasses(prev => prev.map(c => c.id === id ? updatedClass : c));
-    addActivityLog({ user: 'Admin', action: 'Update Class', description: `Updated class: ${updatedClass.name}.` });
-  };
-  const deleteClass = (id: string) => {
-    const classToDelete = classes.find(c => c.id === id);
-    setClasses(prev => prev.filter(c => c.id !== id));
-    if(classToDelete) {
-        addActivityLog({ user: 'Admin', action: 'Delete Class', description: `Deleted class: ${classToDelete.name}.` });
+
+  const addFee = addDocFactory<Fee>('fees', 'Add Fee', d => `Fee generated for family ${d.familyId} for ${d.month} ${d.year}.`);
+  const updateFee = updateDocFactory<Fee>('fees', 'Update Fee', d => `Fee ${d.id} updated.`);
+  const deleteFee = deleteDocFactory('fees', 'Delete Fee', d => `Fee ${d.id} deleted.`, fees);
+  
+  const addTeacher = addDocFactory<Teacher>('teachers', 'Add Teacher', d => `Added new teacher: ${d.name}.`);
+  const updateTeacher = updateDocFactory<Teacher>('teachers', 'Update Teacher', d => `Updated teacher: ${d.name || ''}.`);
+  const deleteTeacher = deleteDocFactory('teachers', 'Delete Teacher', d => `Deleted teacher: ${d.name}.`, teachers);
+  
+  const addClass = addDocFactory<Class>('classes', 'Add Class', d => `Created new class: ${d.name}.`);
+  const updateClass = updateDocFactory<Class>('classes', 'Update Class', d => `Updated class: ${d.name || ''}.`);
+  const deleteClass = deleteDocFactory('classes', 'Delete Class', d => `Deleted class: ${d.name}.`, classes);
+  
+  const addExam = addDocFactory<Exam>('exams', 'Create Exam', d => `Created exam "${d.name}" for class ${d.class}.`);
+  const updateExam = updateDocFactory<Exam>('exams', 'Save Exam Results', d => `Saved results for exam: ${d.name || ''} (${d.class || ''}).`);
+  const deleteExam = deleteDocFactory('exams', 'Delete Exam', d => `Deleted exam: ${d.name} (${d.class}).`, exams);
+  
+  const addExpense = addDocFactory<Expense>('expenses', 'Add Expense', d => `Added expense of PKR ${d.amount} for ${d.category}.`);
+  const updateExpense = updateDocFactory<Expense>('expenses', 'Update Expense', d => `Updated expense for ${d.category || ''}.`);
+  const deleteExpense = deleteDocFactory('expenses', 'Delete Expense', d => `Deleted expense of PKR ${d.amount} for ${d.category}.`, expenses);
+
+  const saveTeacherAttendance = async (newAttendances: TeacherAttendance[]) => {
+    const date = newAttendances[0]?.date;
+    if (!date) return;
+
+    try {
+        const batch = writeBatch(db);
+        const q = query(collection(db, "teacherAttendances"), where("date", "==", date));
+        const existingDocs = await getDocs(q);
+        existingDocs.forEach(doc => batch.delete(doc.ref)); // Delete old records for the day
+
+        newAttendances.forEach(att => {
+            const docRef = doc(collection(db, "teacherAttendances"));
+            batch.set(docRef, att);
+        });
+
+        await batch.commit();
+        await addActivityLog({ user: 'Admin', action: 'Save Teacher Attendance', description: `Saved teacher attendance for date: ${date}.` });
+    } catch(e) {
+        console.error("Error saving teacher attendance: ", e);
+        toast({ title: 'Error Saving Attendance', variant: 'destructive' });
     }
   };
   
-  const addExam = (exam: Exam) => {
-    setExams(prev => [...prev, exam]);
-    addActivityLog({ user: 'Admin', action: 'Create Exam', description: `Created exam "${exam.name}" for class ${exam.class}.` });
-  };
-  const updateExam = (id: string, updatedExam: Exam) => {
-    setExams(prev => prev.map(e => e.id === id ? updatedExam : e));
-    addActivityLog({ user: 'Admin', action: 'Save Exam Results', description: `Saved results for exam: ${updatedExam.name} (${updatedExam.class}).` });
-  };
-  const deleteExam = (id: string) => {
-    const exam = exams.find(e => e.id === id);
-    setExams(prev => prev.filter(e => e.id !== id));
-    if (exam) {
-        addActivityLog({ user: 'Admin', action: 'Delete Exam', description: `Deleted exam: ${exam.name} (${exam.class}).` });
+  const updateTimetable = async (classId: string, data: TimetableData, timeSlots?: string[], breakAfterPeriod?: number, breakDuration?: string) => {
+    try {
+        const timetableRef = doc(db, 'timetables', classId);
+        await updateDoc(timetableRef, { classId, data, timeSlots, breakAfterPeriod, breakDuration });
+        const className = classes.find(c => c.id === classId)?.name || classId;
+        await addActivityLog({ user: 'Admin', action: 'Update Timetable', description: `Updated timetable for class ${className}.` });
+    } catch (e) {
+        console.error('Error updating timetable', e);
+        toast({ title: 'Error saving timetable', variant: 'destructive'});
     }
   };
 
-  const addExpense = (expense: Expense) => {
-    setExpenses(prev => [...prev, expense]);
-    addActivityLog({ user: 'Admin', action: 'Add Expense', description: `Added expense of PKR ${expense.amount} for ${expense.category}: ${expense.description}.` });
-  };
-  const updateExpense = (id: string, updatedExpense: Expense) => {
-    setExpenses(prev => prev.map(e => e.id === id ? updatedExpense : e));
-    addActivityLog({ user: 'Admin', action: 'Update Expense', description: `Updated expense for ${updatedExpense.category}.` });
-  };
-  const deleteExpense = (id: string) => {
-    const expense = expenses.find(e => e.id === id);
-    setExpenses(prev => prev.filter(e => e.id !== id));
-     if (expense) {
-        addActivityLog({ user: 'Admin', action: 'Delete Expense', description: `Deleted expense of PKR ${expense.amount} for ${expense.category}.` });
-    }
+  // This function is for manual data import, e.g., from a backup file.
+  // It's a placeholder and needs robust implementation based on backup structure.
+  const loadData = async (data: any) => {
+      console.log("Load data function called, but it's a placeholder.", data);
+      toast({ title: "Data Loading Not Implemented", description: "This functionality requires a robust implementation to avoid data corruption."});
   };
 
-  const updateTimetable = (classId: string, data: TimetableData, timeSlots?: string[], breakAfterPeriod?: number, breakDuration?: string) => {
-    setTimetables(prev => {
-        const existing = prev.find(t => t.classId === classId);
-        if (existing) {
-            return prev.map(t => t.classId === classId ? { ...t, data, timeSlots, breakAfterPeriod, breakDuration } : t);
-        }
-        return [...prev, { classId, data, timeSlots, breakAfterPeriod, breakDuration }];
-    });
-    const className = classes.find(c => c.id === classId)?.name || classId;
-    addActivityLog({ user: 'Admin', action: 'Update Timetable', description: `Updated timetable for class ${className}.` });
-  };
-
-  const loadData = (data: { students: Student[], families: Family[], fees: Fee[], teachers: Teacher[], teacherAttendances: TeacherAttendance[], classes: Class[], exams: Exam[], expenses: Expense[], timetables?: Timetable[], activityLog?: ActivityLog[] }) => {
-    setStudents(data.students || []);
-    setFamilies(data.families || []);
-    setFees(data.fees || []);
-    setTeachers(data.teachers || []);
-    setTeacherAttendances(data.teacherAttendances || []);
-    setClasses(data.classes || []);
-    setExams(data.exams || []);
-    setExpenses(data.expenses || []);
-    setTimetables(data.timetables || []);
-    setActivityLog(data.activityLog || []);
-    addActivityLog({ user: 'Admin', action: 'Restore Backup', description: 'Restored all application data from a backup file.' });
-  };
-
-  const contextValue = React.useMemo(() => ({ 
+  const contextValue = {
       students, 
       families, 
       fees,
@@ -309,8 +275,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       deleteExpense,
       updateTimetable,
       loadData 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }), [students, families, fees, teachers, teacherAttendances, classes, exams, activityLog, expenses, timetables]);
+  };
 
 
   return (
