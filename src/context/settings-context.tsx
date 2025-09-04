@@ -49,6 +49,7 @@ export interface SchoolSettings {
   whatsappApiKey: string;
   whatsappActive: boolean;
   messageDelay: number;
+  historyClearPin?: string;
   themeColors?: Partial<ThemeColors>;
   font: 'inter' | 'roboto' | 'open-sans' | 'lato' | 'montserrat' | 'poppins';
   subjects?: { [className: string]: string[] };
@@ -73,6 +74,7 @@ const defaultSettings: SchoolSettings = {
   whatsappApiKey: '',
   whatsappActive: false,
   messageDelay: 2,
+  historyClearPin: '',
   themeColors: {},
   font: 'inter',
   gradingSystem: [

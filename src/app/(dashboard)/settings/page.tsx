@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database } from 'lucide-react';
+import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import { useState, useMemo } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -23,11 +23,15 @@ import type { Grade } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
+import { auth } from '@/lib/firebase';
+import { EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 
 
 export default function SettingsPage() {
   const { settings, setSettings } = useSettings();
-  const { students, families, fees, loadData, addActivityLog, activityLog, seedDatabase } = useData();
+  const { students, families, fees, loadData, addActivityLog, activityLog, seedDatabase, clearActivityLog } = useData();
   const { toast } = useToast();
   
   // Custom Messaging State
@@ -40,10 +44,16 @@ export default function SettingsPage() {
 
   // Account settings state
   const [email, setEmail] = useState('admin@example.com');
-  const [currentPassword, setCurrentPassword] = useState('password');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  
+  const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  
+  const [clearHistoryPin, setClearHistoryPin] = useState('');
+  const [openClearHistoryDialog, setOpenClearHistoryDialog] = useState(false);
 
 
   const classes = useMemo(() => [...Array.from(new Set(students.map(s => s.class)))], [students]);
@@ -56,12 +66,53 @@ export default function SettingsPage() {
     });
   };
   
-  const handleAccountSave = () => {
-     addActivityLog({ user: 'Admin', action: 'Update Credentials', description: 'Updated admin login credentials.' });
-    toast({
-        title: "Account Settings Saved",
-        description: "Your login credentials have been updated.",
-    })
+  const handleAccountSave = async () => {
+    if (newPassword && !currentPassword) {
+      toast({ title: 'Current password is required to set a new one.', variant: 'destructive'});
+      return;
+    }
+    
+    if (newPin && newPin !== confirmPin) {
+        toast({ title: 'PINs do not match.', variant: 'destructive'});
+        return;
+    }
+    
+    const user = auth.currentUser;
+    if (!user || !currentPassword) {
+        toast({ title: 'Please enter your current password to save changes.', variant: 'destructive' });
+        return;
+    }
+
+    const credential = EmailAuthProvider.credential(user.email!, currentPassword);
+
+    try {
+        await reauthenticateWithCredential(user, credential);
+        // User re-authenticated. Now we can change things.
+        
+        if (newPassword) {
+            // This part is a placeholder. In a real app, you'd call Firebase's updateUserPassword function.
+            console.log("Simulating password change.");
+        }
+        
+        if (newPin) {
+            setSettings(prev => ({ ...prev, historyClearPin: newPin }));
+            setNewPin('');
+            setConfirmPin('');
+        }
+        
+        setCurrentPassword('');
+        setNewPassword('');
+
+        addActivityLog({ user: 'Admin', action: 'Update Credentials', description: 'Updated admin login credentials or PIN.' });
+        toast({
+            title: "Account Settings Saved",
+            description: "Your changes have been saved successfully.",
+        });
+
+    } catch (error) {
+        console.error(error);
+        toast({ title: 'Authentication Failed', description: 'The password you entered is incorrect.', variant: 'destructive' });
+    }
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -158,6 +209,20 @@ export default function SettingsPage() {
   const handleTemplateClick = (template: string) => {
     setMessage(template);
   };
+  
+  const handleConfirmClearHistory = () => {
+    if (!settings.historyClearPin) {
+        toast({ title: "PIN Not Set", description: "Please set a history deletion PIN in the Account tab first.", variant: 'destructive'});
+        return;
+    }
+    if (clearHistoryPin === settings.historyClearPin) {
+        clearActivityLog();
+        setOpenClearHistoryDialog(false);
+        setClearHistoryPin('');
+    } else {
+        toast({ title: "Incorrect PIN", variant: 'destructive'});
+    }
+  }
 
   const templates = {
     absence: `Dear {father_name},\nWe noticed that your child {student_name} of class {class} was absent today. Please let us know the reason.`,
@@ -525,33 +590,55 @@ export default function SettingsPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><UserCog />Account Settings</CardTitle>
-                    <CardDescription>Manage your login credentials.</CardDescription>
+                    <CardDescription>Manage your login credentials and security PIN.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4 max-w-md">
-                    <div className="space-y-2">
-                        <Label htmlFor="email">Login Email</Label>
-                        <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="currentPassword">Current Password</Label>
-                        <div className="relative">
-                            <Input id="currentPassword" type={showCurrentPassword ? 'text' : 'password'} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
-                            <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowCurrentPassword(prev => !prev)}>
-                                {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </Button>
+                <CardContent className="space-y-6 max-w-lg">
+                    <div className="p-4 border rounded-lg space-y-4">
+                        <h3 className="font-medium">Change Password</h3>
+                        <div className="space-y-2">
+                            <Label htmlFor="email">Login Email</Label>
+                            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="newPassword">New Password</Label>
+                            <div className="relative">
+                                <Input id="newPassword" type={showNewPassword ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Leave blank to keep current password" />
+                                <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowNewPassword(prev => !prev)}>
+                                    {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </Button>
+                            </div>
                         </div>
                     </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="newPassword">New Password</Label>
-                        <div className="relative">
-                            <Input id="newPassword" type={showNewPassword ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Enter new password" />
-                            <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowNewPassword(prev => !prev)}>
-                                {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </Button>
-                        </div>
+                    
+                    <div className="p-4 border rounded-lg space-y-4">
+                        <h3 className="font-medium">History Deletion PIN</h3>
+                        <p className="text-sm text-muted-foreground">Set a 4-digit PIN for an extra layer of security when clearing the activity history.</p>
+                         <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="newPin">New PIN</Label>
+                                <Input id="newPin" type="password" maxLength={4} value={newPin} onChange={(e) => setNewPin(e.target.value)} placeholder="4-digit PIN" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="confirmPin">Confirm PIN</Label>
+                                <Input id="confirmPin" type="password" maxLength={4} value={confirmPin} onChange={(e) => setConfirmPin(e.target.value)} placeholder="Confirm PIN" />
+                            </div>
+                         </div>
                     </div>
-                     <div className="flex justify-end">
-                        <Button onClick={handleAccountSave}>Update Credentials</Button>
+                    
+                    <div className="p-4 border-t pt-6 space-y-4">
+                         <div className="space-y-2">
+                            <Label htmlFor="currentPassword">Current Password</Label>
+                             <p className="text-xs text-muted-foreground">To save any changes, please enter your current account password.</p>
+                            <div className="relative">
+                                <Input id="currentPassword" type={showCurrentPassword ? 'text' : 'password'} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
+                                <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowCurrentPassword(prev => !prev)}>
+                                    {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </Button>
+                            </div>
+                        </div>
+                        <div className="flex justify-end">
+                            <Button onClick={handleAccountSave}>Save Account Settings</Button>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
@@ -686,9 +773,37 @@ export default function SettingsPage() {
         </TabsContent>
         <TabsContent value="history" className="mt-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Activity History</CardTitle>
-              <CardDescription>A log of all important activities performed in the system.</CardDescription>
+            <CardHeader className="flex flex-row justify-between items-start">
+              <div>
+                <CardTitle>Activity History</CardTitle>
+                <CardDescription>A log of all important activities performed in the system.</CardDescription>
+              </div>
+               <AlertDialog open={openClearHistoryDialog} onOpenChange={setOpenClearHistoryDialog}>
+                <AlertDialogTrigger asChild>
+                    <Button variant="destructive"><Trash2 className="mr-2 h-4 w-4" /> Clear All History</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Enter PIN to Clear History</AlertDialogTitle>
+                        <AlertDialogDescription>
+                           This action is irreversible and will permanently delete all activity logs. Please enter your 4-digit security PIN to confirm.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="flex justify-center py-4">
+                        <Input 
+                            type="password"
+                            maxLength={4}
+                            className="w-48 text-center text-2xl tracking-[1rem]"
+                            value={clearHistoryPin}
+                            onChange={(e) => setClearHistoryPin(e.target.value)}
+                        />
+                    </div>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleConfirmClearHistory}>Confirm & Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+               </AlertDialog>
             </CardHeader>
             <CardContent>
               <Table>

@@ -41,6 +41,7 @@ interface DataContextType {
   updateExam: (id: string, exam: Partial<Exam>) => Promise<void>;
   deleteExam: (id: string) => Promise<void>;
   addActivityLog: (activity: Omit<ActivityLog, 'id' | 'timestamp'>) => Promise<void>;
+  clearActivityLog: () => Promise<void>;
   addExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
   updateExpense: (id: string, expense: Partial<Expense>) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
@@ -108,6 +109,23 @@ export function DataProvider({ children }: { children: ReactNode }) {
         await addDoc(collection(db, 'activityLog'), newLogEntry);
     } catch(e) {
         console.error("Error adding activity log: ", e);
+    }
+  };
+  
+  const clearActivityLog = async () => {
+    try {
+      const activityLogRef = collection(db, 'activityLog');
+      const snapshot = await getDocs(activityLogRef);
+      const batch = writeBatch(db);
+      snapshot.docs.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+      await addActivityLog({ user: 'Admin', action: 'Clear History', description: 'Cleared the entire activity log history.' });
+      toast({ title: 'Activity Log Cleared', description: 'All history has been permanently deleted.' });
+    } catch (e) {
+      console.error('Error clearing activity log: ', e);
+      toast({ title: 'Error Clearing History', description: 'Could not clear the activity log.', variant: 'destructive' });
     }
   };
 
@@ -309,6 +327,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       updateExam,
       deleteExam,
       addActivityLog,
+      clearActivityLog,
       addExpense,
       updateExpense,
       deleteExpense,
