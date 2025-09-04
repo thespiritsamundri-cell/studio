@@ -114,17 +114,17 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="transition-all hover:scale-105 hover:shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Total Students</CardTitle>
-            <Users className="w-5 h-5 text-muted-foreground" />
+            <Users className="w-5 h-5 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{totalStudents.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">+2% from last month</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="transition-all hover:scale-105 hover:shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Students Present</CardTitle>
             <UserCheck className="w-5 h-5 text-green-500" />
@@ -134,7 +134,7 @@ export default function DashboardPage() {
             <p className="text-xs text-muted-foreground">Attendance for today</p>
           </CardContent>
         </Card>
-         <Card>
+         <Card className="transition-all hover:scale-105 hover:shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Students Absent</CardTitle>
             <UserX className="w-5 h-5 text-red-500" />
@@ -144,7 +144,7 @@ export default function DashboardPage() {
             <p className="text-xs text-muted-foreground">Attendance for today</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="transition-all hover:scale-105 hover:shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">New Admissions</CardTitle>
             <UserPlus className="w-5 h-5 text-blue-500" />
@@ -285,4 +285,5 @@ export default function DashboardPage() {
   );
 
     
+
 
