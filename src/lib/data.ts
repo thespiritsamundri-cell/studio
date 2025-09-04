@@ -38,13 +38,12 @@ export const teachers: Teacher[] = [
 ];
 
 export const teacherAttendances: TeacherAttendance[] = [
-    // Example data for the last few days
-    { teacherId: 'T01', date: '2024-05-20', status: 'Present' },
-    { teacherId: 'T02', date: '2024-05-20', status: 'Present' },
-    { teacherId: 'T01', date: '2024-05-21', status: 'Present' },
-    { teacherId: 'T02', date: '2024-05-21', status: 'Absent' },
-    { teacherId: 'T01', date: '2024-05-22', status: 'Leave' },
-    { teacherId: 'T02', date: '2024-05-22', status: 'Present' },
+    { id: 'TA01', teacherId: 'T01', date: '2024-05-20', status: 'Present' },
+    { id: 'TA02', teacherId: 'T02', date: '2024-05-20', status: 'Present' },
+    { id: 'TA03', teacherId: 'T01', date: '2024-05-21', status: 'Present' },
+    { id: 'TA04', teacherId: 'T02', date: '2024-05-21', status: 'Absent' },
+    { id: 'TA05', teacherId: 'T01', date: '2024-05-22', status: 'Leave' },
+    { id: 'TA06', teacherId: 'T02', date: '2024-05-22', status: 'Present' },
 ];
 
 export const fees: Fee[] = [

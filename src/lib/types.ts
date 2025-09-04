@@ -48,6 +48,7 @@ export interface Attendance {
 }
 
 export interface TeacherAttendance {
+  id: string;
   teacherId: string;
   date: string; // YYYY-MM-DD
   status: 'Present' | 'Absent' | 'Leave';
