@@ -1,7 +1,7 @@
 
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Users, Wallet, UserCheck, UserPlus, History, Landmark, DollarSign, UserX, TrendingDown, TrendingUp, Scale } from 'lucide-react';
+import { Users, Wallet, UserCheck, UserPlus, History, Landmark, DollarSign, UserX, TrendingDown, TrendingUp, Scale, CheckCircle, XCircle } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, PieChart, Pie, Cell, Line, LineChart, Tooltip } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { useData } from '@/context/data-context';
@@ -9,6 +9,8 @@ import { useMemo, useState, useEffect } from 'react';
 import { subMonths, format, formatDistanceToNow, startOfMonth, endOfMonth } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const chartConfig = {
   attendance: {
@@ -22,7 +24,7 @@ const chartConfig = {
 };
 
 export default function DashboardPage() {
-    const { students, fees, activityLog, expenses, teacherAttendances: allTeacherAttendances } = useData();
+    const { students, fees, activityLog, expenses, teacherAttendances: allTeacherAttendances, classes } = useData();
     const [today, setToday] = useState<Date | null>(null);
 
     useEffect(() => {
@@ -65,6 +67,22 @@ export default function DashboardPage() {
 
         return { presentStudents: simulatedPresent, absentStudents: simulatedAbsent };
     }, [today, allTeacherAttendances, totalStudents]);
+
+    const classAttendanceSummary = useMemo(() => {
+        return classes.map(c => {
+            const studentsInClass = students.filter(s => s.class === c.name);
+            const total = studentsInClass.length;
+            // NOTE: This is a placeholder logic for attendance
+            const present = Math.floor(total * 0.9); // Simulate 90% attendance
+            const absent = total - present;
+            return {
+                name: c.name,
+                total,
+                present,
+                absent
+            };
+        }).sort((a,b) => a.name.localeCompare(b.name));
+    }, [classes, students]);
 
 
     const newAdmissions = useMemo(() => {
@@ -188,21 +206,40 @@ export default function DashboardPage() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>New Admissions Trend</CardTitle>
-            <CardDescription>Monthly new admissions for the last 6 months.</CardDescription>
-          </CardHeader>
-          <CardContent className="h-[300px]">
-            <ChartContainer config={chartConfig} className="w-full h-full">
-              <LineChart data={newAdmissionsData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={10} />
-                <YAxis allowDecimals={false} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Line type="monotone" dataKey="count" stroke="var(--color-count)" strokeWidth={3} dot={{ r: 6 }} />
-              </LineChart>
-            </ChartContainer>
-          </CardContent>
+            <CardHeader>
+                <CardTitle>Today's Attendance by Class</CardTitle>
+                <CardDescription>A summary of student attendance for today.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <ScrollArea className="h-[300px]">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Class</TableHead>
+                                <TableHead className="text-center">Total Students</TableHead>
+                                <TableHead className="text-center">Present</TableHead>
+                                <TableHead className="text-center">Absent</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {classAttendanceSummary.map(c => (
+                                <TableRow key={c.name}>
+                                    <TableCell className="font-medium">{c.name}</TableCell>
+                                    <TableCell className="text-center">
+                                        <Badge variant="secondary" className="text-base">{c.total}</Badge>
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                        <Badge className="text-base bg-green-500/20 text-green-700 border-green-500/30">{c.present}</Badge>
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                        <Badge variant="destructive" className="text-base">{c.absent}</Badge>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </ScrollArea>
+            </CardContent>
         </Card>
         <Card>
             <CardHeader>
@@ -285,5 +322,6 @@ export default function DashboardPage() {
   );
 
     
+
 
 
