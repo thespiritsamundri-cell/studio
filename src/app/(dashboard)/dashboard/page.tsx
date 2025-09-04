@@ -1,13 +1,14 @@
 
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Users, Wallet, UserCheck, UserPlus, History, Landmark, DollarSign, UserX } from 'lucide-react';
+import { Users, Wallet, UserCheck, UserPlus, History, Landmark, DollarSign, UserX, TrendingDown, TrendingUp, Scale } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, PieChart, Pie, Cell, Line, LineChart, Tooltip } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { useData } from '@/context/data-context';
-import { useMemo } from 'react';
-import { subMonths, format, formatDistanceToNow } from 'date-fns';
+import { useMemo, useState, useEffect } from 'react';
+import { subMonths, format, formatDistanceToNow, startOfToday } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 const chartConfig = {
   attendance: {
@@ -21,15 +22,36 @@ const chartConfig = {
 };
 
 export default function DashboardPage() {
-    const { students, fees, activityLog, expenses } = useData();
+    const { students, fees, activityLog, expenses, teacherAttendances: allTeacherAttendances } = useData();
+    const [today, setToday] = useState<Date | null>(null);
+
+    useEffect(() => {
+        setToday(new Date());
+    }, []);
 
     const totalStudents = students.length;
     const totalIncome = fees.filter(f => f.status === 'Paid').reduce((acc, fee) => acc + fee.amount, 0);
     const totalExpenses = expenses.reduce((acc, exp) => acc + exp.amount, 0);
+    const netProfit = totalIncome - totalExpenses;
     
-    // Dummy data for attendance as we don't have historical attendance data in context
-    const presentStudents = 190;
-    const absentStudents = totalStudents - presentStudents;
+    const { presentStudents, absentStudents } = useMemo(() => {
+        if (!today) return { presentStudents: 0, absentStudents: 0 };
+        const todayStr = format(today, 'yyyy-MM-dd');
+        // This is a placeholder for student attendance, as we don't have that data structure yet.
+        // We will use teacher attendance as a proxy for now to show functionality.
+        const todaysAttendance = allTeacherAttendances.filter(a => a.date === todayStr);
+        const present = todaysAttendance.filter(a => a.status === 'Present').length;
+        // This is a mock calculation, assuming total students.
+        const absent = totalStudents > present ? totalStudents - present : 0; 
+        
+        // When student attendance is implemented, this logic will be updated.
+        // For now, we simulate a portion of students being present/absent.
+        const simulatedPresent = Math.floor(totalStudents * 0.9);
+        const simulatedAbsent = totalStudents - simulatedPresent;
+
+        return { presentStudents: simulatedPresent, absentStudents: simulatedAbsent };
+    }, [today, allTeacherAttendances, totalStudents]);
+
 
     const newAdmissions = useMemo(() => {
         const oneMonthAgo = subMonths(new Date(), 1);
@@ -77,61 +99,41 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
-        <Card className="bg-card shadow-lg border-l-4 border-primary">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Total Students</CardTitle>
-            <div className="p-2 rounded-full bg-primary/10">
-                <Users className="w-5 h-5 text-primary" />
-            </div>
+            <Users className="w-5 h-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{totalStudents.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">+2 from last month</p>
+            <p className="text-xs text-muted-foreground">+2% from last month</p>
           </CardContent>
         </Card>
-        <Card className="bg-card shadow-lg border-l-4 border-green-500">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Students Present</CardTitle>
-             <div className="p-2 rounded-full bg-green-500/10">
-                <UserCheck className="w-5 h-5 text-green-500" />
-            </div>
+            <UserCheck className="w-5 h-5 text-green-500" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{presentStudents}</div>
             <p className="text-xs text-muted-foreground">Attendance for today</p>
           </CardContent>
         </Card>
-         <Card className="bg-card shadow-lg border-l-4 border-red-500">
+         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Students Absent</CardTitle>
-             <div className="p-2 rounded-full bg-red-500/10">
-                <UserX className="w-5 h-5 text-red-500" />
-            </div>
+            <UserX className="w-5 h-5 text-red-500" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{absentStudents}</div>
             <p className="text-xs text-muted-foreground">Attendance for today</p>
           </CardContent>
         </Card>
-         <Card className="bg-card shadow-lg border-l-4 border-yellow-500">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Total Income</CardTitle>
-             <div className="p-2 rounded-full bg-yellow-500/10">
-                <Wallet className="w-5 h-5 text-yellow-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">PKR {totalIncome.toLocaleString()}</div>
-             <p className="text-xs text-muted-foreground">+15% from last month</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-card shadow-lg border-l-4 border-blue-500">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">New Admissions</CardTitle>
-            <div className="p-2 rounded-full bg-blue-500/10">
-                <UserPlus className="w-5 h-5 text-blue-500" />
-            </div>
+            <UserPlus className="w-5 h-5 text-blue-500" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{newAdmissions}</div>
@@ -139,6 +141,37 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+       <div className="grid gap-6 md:grid-cols-3">
+            <Card className="bg-green-500/5 border-green-500/20">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium text-green-800">Total Income (All Time)</CardTitle>
+                    <TrendingUp className="w-4 h-4 text-green-600" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold text-green-700">PKR {totalIncome.toLocaleString()}</div>
+                </CardContent>
+            </Card>
+                <Card className="bg-red-500/5 border-red-500/20">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium text-red-800">Total Expenses (All Time)</CardTitle>
+                    <TrendingDown className="w-4 h-4 text-red-600" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold text-red-700">PKR {totalExpenses.toLocaleString()}</div>
+                </CardContent>
+            </Card>
+                <Card className={netProfit >= 0 ? "bg-primary/5 border-primary/20" : "bg-destructive/5 border-destructive/20"}>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className={cn("text-sm font-medium", netProfit >=0 ? "text-primary" : "text-destructive")}>Net Profit / Loss</CardTitle>
+                    <Scale className={cn("w-4 h-4", netProfit >=0 ? "text-primary" : "text-destructive")} />
+                </CardHeader>
+                <CardContent>
+                    <div className={cn("text-2xl font-bold", netProfit >=0 ? "text-primary" : "text-destructive")}>PKR {netProfit.toLocaleString()}</div>
+                </CardContent>
+            </Card>
+       </div>
+
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
@@ -236,4 +269,5 @@ export default function DashboardPage() {
       </div>
     </div>
   );
-}
+
+    
