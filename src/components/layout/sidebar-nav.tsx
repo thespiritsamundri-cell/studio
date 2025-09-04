@@ -36,6 +36,7 @@ import {
   Landmark,
   BookCheck,
   CalendarClock,
+  Archive,
 } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import Image from 'next/image';
@@ -58,6 +59,7 @@ const navItems = [
   { href: '/expenses', icon: Landmark, label: 'Expenses' },
   { href: '/accounts', icon: BookCheck, label: 'Accounts' },
   { href: '/reports', icon: FileText, label: 'Reports' },
+  { href: '/yearbook', icon: Archive, label: 'Yearbook' },
 ];
 
 const examSystemItems = [

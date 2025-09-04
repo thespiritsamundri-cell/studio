@@ -130,3 +130,24 @@ export interface Timetable {
   breakAfterPeriod?: number;
   breakDuration?: string;
 }
+
+// Add this at the end
+export interface YearbookData {
+    year: number;
+    financial: {
+        totalIncome: number;
+        totalExpenses: number;
+        netProfit: number;
+        monthlyBreakdown: { name: string, income: number, expenses: number }[];
+    },
+    admissions: {
+        totalAdmissions: number;
+        monthlyAdmissions: { name: string, count: number }[];
+        classDistribution: { name: string, value: number, fill: string }[];
+    },
+    academic: {
+        passCount: number;
+        failCount: number;
+        topStudents: { id: string, name: string, class: string, percentage: number }[];
+    }
+}
