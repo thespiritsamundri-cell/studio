@@ -5,12 +5,12 @@ import { getAuth } from 'firebase/auth';
 
 // TODO: PASTE YOUR FIREBASE CONFIGURATION OBJECT HERE
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  "projectId": "educentral-mxfgr",
+  "appId": "1:93439797301:web:c0cd1d46e7588e4df4297c",
+  "storageBucket": "educentral-mxfgr.firebasestorage.app",
+  "apiKey": "AIzaSyAtnV9kiSJ-NFLfI6pG4LDvvLcjpRh_jtM",
+  "authDomain": "educentral-mxfgr.firebaseapp.com",
+  "messagingSenderId": "93439797301"
 };
 
 // Initialize Firebase
