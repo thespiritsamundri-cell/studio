@@ -1,7 +1,7 @@
 
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Users, Wallet, UserCheck, UserPlus, History, Landmark, DollarSign } from 'lucide-react';
+import { Users, Wallet, UserCheck, UserPlus, History, Landmark, DollarSign, UserX } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, PieChart, Pie, Cell, Line, LineChart, Tooltip } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { useData } from '@/context/data-context';
@@ -26,22 +26,15 @@ export default function DashboardPage() {
     const totalStudents = students.length;
     const totalIncome = fees.filter(f => f.status === 'Paid').reduce((acc, fee) => acc + fee.amount, 0);
     const totalExpenses = expenses.reduce((acc, exp) => acc + exp.amount, 0);
-    const netProfit = totalIncome - totalExpenses;
     
+    // Dummy data for attendance as we don't have historical attendance data in context
+    const presentStudents = 190;
+    const absentStudents = totalStudents - presentStudents;
+
     const newAdmissions = useMemo(() => {
         const oneMonthAgo = subMonths(new Date(), 1);
         return students.filter(s => new Date(s.admissionDate) > oneMonthAgo).length;
     }, [students]);
-
-    // Dummy data for attendance as we don't have historical attendance data in context
-    const attendanceToday = 95.5;
-    const weeklyAttendanceData = [
-      { day: 'Mon', attendance: 96 },
-      { day: 'Tue', attendance: 92 },
-      { day: 'Wed', attendance: 98 },
-      { day: 'Thu', attendance: 94 },
-      { day: 'Fri', attendance: 95.5 },
-    ];
     
     const classDistributionData = useMemo(() => {
         const dist = students.reduce((acc, student) => {
@@ -99,38 +92,38 @@ export default function DashboardPage() {
         </Card>
         <Card className="bg-card shadow-lg border-l-4 border-green-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Total Income</CardTitle>
+            <CardTitle className="text-sm font-medium">Students Present</CardTitle>
              <div className="p-2 rounded-full bg-green-500/10">
-                <Wallet className="w-5 h-5 text-green-500" />
+                <UserCheck className="w-5 h-5 text-green-500" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">PKR {totalIncome.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">+15% from last month</p>
+            <div className="text-3xl font-bold">{presentStudents}</div>
+            <p className="text-xs text-muted-foreground">Attendance for today</p>
           </CardContent>
         </Card>
          <Card className="bg-card shadow-lg border-l-4 border-red-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+            <CardTitle className="text-sm font-medium">Students Absent</CardTitle>
              <div className="p-2 rounded-full bg-red-500/10">
-                <Landmark className="w-5 h-5 text-red-500" />
+                <UserX className="w-5 h-5 text-red-500" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">PKR {totalExpenses.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">+5% from last month</p>
+            <div className="text-3xl font-bold">{absentStudents}</div>
+            <p className="text-xs text-muted-foreground">Attendance for today</p>
           </CardContent>
         </Card>
          <Card className="bg-card shadow-lg border-l-4 border-yellow-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Income</CardTitle>
              <div className="p-2 rounded-full bg-yellow-500/10">
-                <DollarSign className="w-5 h-5 text-yellow-500" />
+                <Wallet className="w-5 h-5 text-yellow-500" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">PKR {netProfit.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">This fiscal year</p>
+            <div className="text-3xl font-bold">PKR {totalIncome.toLocaleString()}</div>
+             <p className="text-xs text-muted-foreground">+15% from last month</p>
           </CardContent>
         </Card>
         <Card className="bg-card shadow-lg border-l-4 border-blue-500">
@@ -203,19 +196,22 @@ export default function DashboardPage() {
       </div>
        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
          <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Weekly Attendance Trend</CardTitle>
-            <CardDescription>Attendance percentage for the current week.</CardDescription>
+           <CardHeader>
+            <CardTitle>Financial Summary</CardTitle>
+            <CardDescription>
+                A quick overview of total income vs. total expenses.
+            </CardDescription>
           </CardHeader>
           <CardContent className="h-[300px]">
-            <ChartContainer config={chartConfig} className="w-full h-full">
-              <LineChart accessibilityLayer data={weeklyAttendanceData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                <XAxis dataKey="day" tickLine={false} tickMargin={10} axisLine={false} />
-                <YAxis tickFormatter={(value) => `${value}%`} domain={[80, 100]} />
-                <ChartTooltip content={<ChartTooltipContent formatter={(value) => `${value}%`} />} />
-                <Line type="monotone" dataKey="attendance" stroke="var(--color-attendance)" strokeWidth={3} dot={{ r: 6, fill: "var(--color-attendance)" }} activeDot={{ r: 8 }} />
-              </LineChart>
+             <ChartContainer config={chartConfig} className="w-full h-full">
+                <BarChart data={[{ name: 'Financials', income: totalIncome, expenses: totalExpenses }]} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false}/>
+                    <XAxis dataKey="name" tickLine={false} axisLine={false} />
+                    <YAxis />
+                    <ChartTooltip content={<ChartTooltipContent formatter={(value) => `PKR ${value.toLocaleString()}`} />} />
+                    <Bar dataKey="income" fill="hsl(var(--chart-2))" radius={4} name="Total Income" />
+                    <Bar dataKey="expenses" fill="hsl(var(--chart-5))" radius={4} name="Total Expenses" />
+                </BarChart>
             </ChartContainer>
           </CardContent>
         </Card>
@@ -228,7 +224,7 @@ export default function DashboardPage() {
                 <ChartContainer config={{}} className="w-full h-full">
                     <PieChart>
                          <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                        <Pie data={classDistributionData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80} strokeWidth={2} labelLine={false} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                        <Pie data={classDistributionData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80} strokeWidth={2} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
                              {classDistributionData.map((entry) => (
                                 <Cell key={`cell-${entry.name}`} fill={entry.fill} />
                             ))}

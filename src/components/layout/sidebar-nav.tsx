@@ -57,8 +57,6 @@ const navItems = [
   { href: '/income', icon: TrendingUp, label: 'Income' },
   { href: '/expenses', icon: Landmark, label: 'Expenses' },
   { href: '/accounts', icon: BookCheck, label: 'Accounts' },
-  { href: '/attendance', icon: CalendarCheck, label: 'Attendance' },
-  { href: '/teacher-attendance', icon: UserCheck2, label: 'Teacher Attendance' },
   { href: '/reports', icon: FileText, label: 'Reports' },
 ];
 
@@ -69,10 +67,16 @@ const examSystemItems = [
     { href: "/seating-plan", icon: Grid3x3, label: "Seating Plan" },
 ];
 
+const attendanceItems = [
+    { href: "/attendance", icon: Users, label: "Student Attendance" },
+    { href: "/teacher-attendance", icon: UserCheck2, label: "Teacher Attendance" },
+];
+
 export function SidebarNav() {
   const pathname = usePathname();
   const { settings } = useSettings();
   const [isExamSystemOpen, setIsExamSystemOpen] = useState(pathname.startsWith('/exams') || pathname.startsWith('/result-cards') || pathname.startsWith('/roll-number-slips') || pathname.startsWith('/seating-plan'));
+  const [isAttendanceOpen, setIsAttendanceOpen] = useState(pathname.startsWith('/attendance') || pathname.startsWith('/teacher-attendance'));
   const { isPinned, isMobile } = useSidebar();
 
 
@@ -106,6 +110,38 @@ export function SidebarNav() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
+            <Collapsible asChild open={isAttendanceOpen} onOpenChange={setIsAttendanceOpen}>
+              <CollapsibleSidebarMenuItem>
+                 <CollapsibleTrigger asChild>
+                    <SidebarMenuButton tooltip='Attendance' className="justify-between w-full">
+                      <div className="flex items-center gap-3">
+                        <CalendarCheck />
+                        <span className={cn("truncate min-w-0 transition-opacity duration-200", (isPinned || isMobile) ? "opacity-100" : "opacity-0 group-hover/sidebar:opacity-100")}>Attendance</span>
+                      </div>
+                      <ChevronRight className={cn('h-4 w-4 transition-all duration-200 ml-auto', (isPinned || isMobile) ? "opacity-100" : "opacity-0 group-hover/sidebar:opacity-100", isAttendanceOpen && 'rotate-90')} />
+                  </SidebarMenuButton>
+                 </CollapsibleTrigger>
+                <CollapsibleContent asChild>
+                    <ul className={cn("space-y-1 ml-4 pl-5 py-1 border-l border-sidebar-border/50 transition-all", (isPinned || isMobile) ? "block" : "hidden group-hover/sidebar:block")}>
+                        {attendanceItems.map(item => (
+                             <li key={item.label}>
+                                <SidebarMenuButton
+                                    asChild
+                                    size="sm"
+                                    isActive={pathname.startsWith(item.href)}
+                                    tooltip={item.label}
+                                >
+                                    <Link href={item.href}>
+                                    <item.icon />
+                                    <span className="truncate min-w-0">{item.label}</span>
+                                    </Link>
+                                </SidebarMenuButton>
+                             </li>
+                        ))}
+                    </ul>
+                </CollapsibleContent>
+              </CollapsibleSidebarMenuItem>
+            </Collapsible>
             <Collapsible asChild open={isExamSystemOpen} onOpenChange={setIsExamSystemOpen}>
               <CollapsibleSidebarMenuItem>
                  <CollapsibleTrigger asChild>
