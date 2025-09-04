@@ -6,7 +6,7 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis, PieChart, Pie, Cell, Line, 
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { useData } from '@/context/data-context';
 import { useMemo, useState, useEffect } from 'react';
-import { subMonths, format, formatDistanceToNow, startOfToday } from 'date-fns';
+import { subMonths, format, formatDistanceToNow, startOfMonth, endOfMonth } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
@@ -30,9 +30,23 @@ export default function DashboardPage() {
     }, []);
 
     const totalStudents = students.length;
-    const totalIncome = fees.filter(f => f.status === 'Paid').reduce((acc, fee) => acc + fee.amount, 0);
-    const totalExpenses = expenses.reduce((acc, exp) => acc + exp.amount, 0);
-    const netProfit = totalIncome - totalExpenses;
+
+    const { monthlyIncome, monthlyExpenses, netProfitThisMonth } = useMemo(() => {
+        if (!today) return { monthlyIncome: 0, monthlyExpenses: 0, netProfitThisMonth: 0 };
+        const startDate = startOfMonth(today);
+        const endDate = endOfMonth(today);
+
+        const income = fees
+            .filter(f => f.status === 'Paid' && f.paymentDate && new Date(f.paymentDate) >= startDate && new Date(f.paymentDate) <= endDate)
+            .reduce((acc, fee) => acc + fee.amount, 0);
+
+        const exp = expenses
+            .filter(e => new Date(e.date) >= startDate && new Date(e.date) <= endDate)
+            .reduce((acc, exp) => acc + exp.amount, 0);
+        
+        return { monthlyIncome: income, monthlyExpenses: exp, netProfitThisMonth: income - exp };
+    }, [fees, expenses, today]);
+
     
     const { presentStudents, absentStudents } = useMemo(() => {
         if (!today) return { presentStudents: 0, absentStudents: 0 };
@@ -145,29 +159,29 @@ export default function DashboardPage() {
        <div className="grid gap-6 md:grid-cols-3">
             <Card className="bg-green-500/5 border-green-500/20">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-green-800">Total Income (All Time)</CardTitle>
+                    <CardTitle className="text-sm font-medium text-green-800">Income (This Month)</CardTitle>
                     <TrendingUp className="w-4 h-4 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold text-green-700">PKR {totalIncome.toLocaleString()}</div>
+                    <div className="text-2xl font-bold text-green-700">PKR {monthlyIncome.toLocaleString()}</div>
                 </CardContent>
             </Card>
                 <Card className="bg-red-500/5 border-red-500/20">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-red-800">Total Expenses (All Time)</CardTitle>
+                    <CardTitle className="text-sm font-medium text-red-800">Expenses (This Month)</CardTitle>
                     <TrendingDown className="w-4 h-4 text-red-600" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold text-red-700">PKR {totalExpenses.toLocaleString()}</div>
+                    <div className="text-2xl font-bold text-red-700">PKR {monthlyExpenses.toLocaleString()}</div>
                 </CardContent>
             </Card>
-                <Card className={netProfit >= 0 ? "bg-primary/5 border-primary/20" : "bg-destructive/5 border-destructive/20"}>
+                <Card className={netProfitThisMonth >= 0 ? "bg-primary/5 border-primary/20" : "bg-destructive/5 border-destructive/20"}>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className={cn("text-sm font-medium", netProfit >=0 ? "text-primary" : "text-destructive")}>Net Profit / Loss</CardTitle>
-                    <Scale className={cn("w-4 h-4", netProfit >=0 ? "text-primary" : "text-destructive")} />
+                    <CardTitle className={cn("text-sm font-medium", netProfitThisMonth >=0 ? "text-primary" : "text-destructive")}>Net Profit / Loss</CardTitle>
+                    <Scale className={cn("w-4 h-4", netProfitThisMonth >=0 ? "text-primary" : "text-destructive")} />
                 </CardHeader>
                 <CardContent>
-                    <div className={cn("text-2xl font-bold", netProfit >=0 ? "text-primary" : "text-destructive")}>PKR {netProfit.toLocaleString()}</div>
+                    <div className={cn("text-2xl font-bold", netProfitThisMonth >=0 ? "text-primary" : "text-destructive")}>PKR {netProfitThisMonth.toLocaleString()}</div>
                 </CardContent>
             </Card>
        </div>
@@ -230,14 +244,14 @@ export default function DashboardPage() {
        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
          <Card className="lg:col-span-2">
            <CardHeader>
-            <CardTitle>Financial Summary</CardTitle>
+            <CardTitle>Financial Summary (All Time)</CardTitle>
             <CardDescription>
                 A quick overview of total income vs. total expenses.
             </CardDescription>
           </CardHeader>
           <CardContent className="h-[300px]">
              <ChartContainer config={chartConfig} className="w-full h-full">
-                <BarChart data={[{ name: 'Financials', income: totalIncome, expenses: totalExpenses }]} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                <BarChart data={[{ name: 'Financials', income: fees.filter(f=>f.status === 'Paid').reduce((acc, f) => acc + f.amount, 0), expenses: expenses.reduce((acc, e) => acc + e.amount, 0) }]} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false}/>
                     <XAxis dataKey="name" tickLine={false} axisLine={false} />
                     <YAxis />
@@ -271,3 +285,4 @@ export default function DashboardPage() {
   );
 
     
+
