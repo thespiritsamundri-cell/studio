@@ -174,7 +174,7 @@ export default function DashboardPage() {
                 </CardTitle>
                 <CardDescription>A live feed of recent actions in the system.</CardDescription>
             </CardHeader>
-            <CardContent className="h-[300px] p-0">
+            <CardContent className="h-[300px] p-0 overflow-hidden">
                 <Carousel
                     className="w-full h-full"
                     opts={{ align: "start", loop: true, direction: "vertical" }}
