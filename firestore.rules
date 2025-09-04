@@ -1,61 +1,11 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // By default, deny all reads and writes
+    // Allow read/write access to all documents for now
+    // WARNING: This is not secure for production.
+    // You should implement user authentication and secure your rules before launch.
     match /{document=**} {
-      allow read, write: if false;
-    }
-    
-    // Function to check if a user is authenticated
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-
-    // Allow authenticated users to perform all actions on all collections
-    // This is suitable for a single-admin system.
-    // For multi-user systems (teachers, parents), you would need more granular rules.
-    match /students/{studentId} {
-      allow read, write: if isAuthenticated();
-    }
-    
-    match /families/{familyId} {
-      allow read, write: if isAuthenticated();
-    }
-    
-    match /fees/{feeId} {
-      allow read, write: if isAuthenticated();
-    }
-    
-    match /teachers/{teacherId} {
-      allow read, write: if isAuthenticated();
-    }
-    
-    match /teacherAttendances/{attendanceId} {
-      allow read, write: if isAuthenticated();
-    }
-    
-    match /classes/{classId} {
-      allow read, write: if isAuthenticated();
-    }
-    
-    match /exams/{examId} {
-      allow read, write: if isAuthenticated();
-    }
-
-    match /expenses/{expenseId} {
-        allow read, write: if isAuthenticated();
-    }
-    
-    match /timetables/{timetableId} {
-        allow read, write: if isAuthenticated();
-    }
-
-    match /activityLog/{logId} {
-      allow read, create: if isAuthenticated();
-      // Make activity logs immutable, prevent updates or deletes
-      allow update, delete: if false;
+      allow read, write: if true;
     }
   }
 }
