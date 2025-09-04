@@ -7,8 +7,6 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { useData } from '@/context/data-context';
 import { useMemo } from 'react';
 import { subMonths, format, formatDistanceToNow } from 'date-fns';
-import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
-import Autoplay from "embla-carousel-autoplay";
 import { Badge } from '@/components/ui/badge';
 
 const chartConfig = {
@@ -175,40 +173,31 @@ export default function DashboardPage() {
                 <CardDescription>A live feed of recent actions in the system.</CardDescription>
             </CardHeader>
             <CardContent className="h-[300px] p-0 overflow-hidden">
-                <Carousel
-                    className="w-full h-full"
-                    opts={{ align: "start", loop: true, direction: "vertical" }}
-                    plugins={[Autoplay({ delay: 3000, stopOnInteraction: false })]}
-                    orientation="vertical"
-                >
-                    <CarouselContent className="h-full -mt-0">
+                <div className="h-full w-full overflow-hidden [mask-image:_linear-gradient(to_bottom,transparent_0,_black_128px,_black_calc(100%-128px),transparent_100%)]">
+                    <div className="animate-scroll">
                         {activityLog.length > 0 ? (
-                            activityLog.slice(0, 10).map((log, index) => (
-                                <CarouselItem key={index} className="pt-2 basis-auto">
-                                    <div className="p-4">
-                                        <div className="flex items-start gap-4">
-                                            <div className="text-sm">
-                                                <p className="font-medium">{log.description}</p>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <Badge variant="secondary">{log.action}</Badge>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {formatDistanceToNow(new Date(log.timestamp), { addSuffix: true })} by {log.user}
-                                                    </p>
-                                                </div>
+                            [...activityLog, ...activityLog].slice(0, 20).map((log, index) => (
+                                <div key={`${log.id}-${index}`} className="p-4 border-b">
+                                    <div className="flex items-start gap-4">
+                                        <div className="text-sm">
+                                            <p className="font-medium">{log.description}</p>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <Badge variant="secondary">{log.action}</Badge>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {formatDistanceToNow(new Date(log.timestamp), { addSuffix: true })} by {log.user}
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
-                                </CarouselItem>
+                                </div>
                             ))
                         ) : (
-                             <CarouselItem className="pt-0">
-                                <div className="flex items-center justify-center h-full text-muted-foreground">
-                                    No recent activities.
-                                </div>
-                            </CarouselItem>
+                            <div className="flex items-center justify-center h-full text-muted-foreground">
+                                No recent activities.
+                            </div>
                         )}
-                    </CarouselContent>
-                </Carousel>
+                    </div>
+                </div>
             </CardContent>
         </Card>
       </div>
