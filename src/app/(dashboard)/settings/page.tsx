@@ -41,6 +41,7 @@ export default function SettingsPage() {
   const [targetFamilyId, setTargetFamilyId] = useState('');
   const [customNumbers, setCustomNumbers] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
 
   // Account settings state
   const [email, setEmail] = useState('admin@example.com');
@@ -320,9 +321,10 @@ export default function SettingsPage() {
         }
         
         try {
-            // Using academic year as placeholder for delay, which is not ideal but was in original code
-            await sendWhatsAppMessage(recipient.phone, personalizedMessage);
-            successCount++;
+             const success = await sendWhatsAppMessage(recipient.phone, personalizedMessage, settings.whatsappApiUrl, settings.whatsappApiKey);
+             if (success) {
+                successCount++;
+             }
             await sleep(Number(settings.messageDelay) * 1000 || 2000); 
         } catch (error) {
             console.error(`Failed to send message to ${recipient.phone}`, error);
@@ -334,6 +336,21 @@ export default function SettingsPage() {
     setIsSending(false);
   };
   
+    const handleTestConnection = async () => {
+        setIsTesting(true);
+        try {
+            const success = await sendWhatsAppMessage('1234567890', 'This is a test message from EduCentral.', settings.whatsappApiUrl, settings.whatsappApiKey);
+            if (success) {
+                toast({ title: 'Test Successful', description: 'Your WhatsApp API settings appear to be correct.' });
+            } else {
+                throw new Error("API returned failure");
+            }
+        } catch (error) {
+            toast({ title: 'Test Failed', description: 'Could not connect using the provided API settings. Please check your credentials.', variant: 'destructive' });
+        }
+        setIsTesting(false);
+    };
+    
     const handleThemeColorChange = (variableName: string, value: string) => {
         document.documentElement.style.setProperty(variableName, value);
         // Also save it to settings so it persists
@@ -649,8 +666,7 @@ export default function SettingsPage() {
               <AlertTitle>Connecting to WhatsApp</AlertTitle>
               <AlertDescription>
                 To send messages, you need to connect to a WhatsApp API provider (e.g., UltraMSG, Twilio). 
-                Log in to your provider's dashboard, get your API credentials (URL and Key/Token), and enter them below.
-                This is a mock integration and will not send real messages.
+                This is a mock integration. The app will simulate API calls but will not send real messages. Enter your credentials and use the test button to check if the logic is working.
               </AlertDescription>
             </Alert>
             <Card>
@@ -681,7 +697,10 @@ export default function SettingsPage() {
                     </div>
                      <div className="flex justify-end items-center gap-2 pt-4">
                         <Button onClick={handleSave}><KeyRound className="mr-2"/>Save WhatsApp Settings</Button>
-                        <Button variant="outline"><TestTubeDiagonal className="mr-2"/>Test Connection</Button>
+                        <Button variant="outline" onClick={handleTestConnection} disabled={isTesting || !settings.whatsappApiUrl || !settings.whatsappApiKey}>
+                            {isTesting ? <Loader2 className="mr-2 animate-spin"/> : <TestTubeDiagonal className="mr-2"/>}
+                            Test Connection
+                        </Button>
                     </div>
                 </CardContent>
             </Card>
@@ -690,19 +709,6 @@ export default function SettingsPage() {
                     <CardTitle className="flex items-center gap-2"><MessageSquare className="text-green-700"/>Custom Messaging</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div>
-                        <h3 className="font-semibold text-primary mb-2">Automatic Messages</h3>
-                        <div className="p-4 bg-background/70 rounded-lg space-y-4">
-                            <div className="flex items-center justify-between">
-                                <Label htmlFor="auto-attendance">Send attendance notifications automatically</Label>
-                                <Checkbox id="auto-attendance" />
-                            </div>
-                             <div className="flex items-center justify-between">
-                                <Label htmlFor="auto-fee">Send fee payment confirmations automatically</Label>
-                                <Checkbox id="auto-fee" />
-                            </div>
-                        </div>
-                    </div>
                     <div>
                         <h3 className="font-semibold text-primary mb-2">Send Custom Message</h3>
                         <div className="p-4 bg-background/70 rounded-lg space-y-4">
@@ -764,7 +770,6 @@ export default function SettingsPage() {
                                   {isSending ? <Loader2 className="mr-2 animate-spin"/> : <Send className="mr-2"/>}
                                   {isSending ? 'Sending...' : 'Send Message'}
                                 </Button>
-                                <Button variant="ghost"><Eye className="mr-2"/>Preview</Button>
                             </div>
                         </div>
                     </div>
@@ -869,3 +874,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+
