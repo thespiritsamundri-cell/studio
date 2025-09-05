@@ -40,7 +40,7 @@ export function Header() {
   useEffect(() => {
     setCurrentDate(format(new Date(), 'd MMMM yyyy'));
     const timer = setInterval(() => {
-      setCurrentTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      setCurrentTime(new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }));
     }, 1000);
     return () => clearInterval(timer);
   }, []);
