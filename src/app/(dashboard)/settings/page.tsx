@@ -482,37 +482,24 @@ export default function SettingsPage() {
     }
 
     const handleAutomatedMessageToggle = (key: 'admission' | 'absentee' | 'payment', checked: boolean) => {
-        setSettings(prev => ({
-            ...prev,
-            automatedMessages: {
-                ...prev.automatedMessages,
-                [key]: {
-                    ...(prev.automatedMessages?.[key] || { enabled: false, templateId: '' }),
-                    enabled: checked
+        setSettings(prev => {
+            const currentAutomatedMessages = prev.automatedMessages || {};
+            const setting = currentAutomatedMessages[key] || { enabled: false, templateId: '' };
+            return {
+                ...prev,
+                automatedMessages: {
+                    ...currentAutomatedMessages,
+                    [key]: {
+                        ...setting,
+                        enabled: checked
+                    }
                 }
             }
-        }));
+        });
     };
 
-    const handleAutomatedMessageTemplateSelect = (key: 'admission' | 'absentee' | 'payment', templateId: string) => {
-         setSettings(prev => ({
-            ...prev,
-            automatedMessages: {
-                ...prev.automatedMessages,
-                [key]: {
-                    ...(prev.automatedMessages?.[key] || { enabled: false, templateId: '' }),
-                    templateId: templateId
-                }
-            }
-        }));
-    };
-
-  // Safely access nested properties
-  const automatedMessages = settings.automatedMessages || {};
-  const admissionSettings = automatedMessages.admission || { enabled: false, templateId: '' };
-  const absenteeSettings = automatedMessages.absentee || { enabled: false, templateId: '' };
-  const paymentSettings = automatedMessages.payment || { enabled: false, templateId: '' };
-
+    // Safely access nested properties
+    const automatedMessages = settings.automatedMessages || {};
 
   return (
     <div className="space-y-6">
@@ -804,35 +791,58 @@ export default function SettingsPage() {
                          {settings.whatsappConnectionStatus === 'failed' && <Badge variant="destructive"><WifiOff className="mr-2 h-4 w-4"/>Failed</Badge>}
                          {settings.whatsappConnectionStatus === 'untested' && <Badge variant="secondary">Untested</Badge>}
                     </div>
-                    <CardDescription>Enter your UltraMSG API details to enable messaging features.</CardDescription>
+                    <CardDescription>Enter your API details to enable messaging features.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="whatsappApiUrl">API URL / Gateway</Label>
-                            <Input id="whatsappApiUrl" value={settings.whatsappApiUrl} onChange={handleInputChange} placeholder="e.g. https://api.ultramsg.com/instance12345" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="whatsappApiKey">Token (API Key)</Label>
-                            <Input id="whatsappApiKey" value={settings.whatsappApiKey} onChange={handleInputChange} placeholder="Enter UltraMSG Token" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="whatsappInstanceId">Instance ID</Label>
-                            <Input id="whatsappInstanceId" value={settings.whatsappInstanceId} onChange={handleInputChange} placeholder="e.g. instance12345" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="whatsappPriority">Priority</Label>
-                            <Input id="whatsappPriority" value={settings.whatsappPriority} onChange={handleInputChange} placeholder="e.g. 10" />
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-4">
+                <CardContent>
+                    <Tabs defaultValue={settings.whatsappProvider || 'ultramsg'} onValueChange={(value) => setSettings(prev => ({...prev, whatsappProvider: value as 'ultramsg' | 'official'}))}>
+                        <TabsList>
+                            <TabsTrigger value="ultramsg">UltraMSG API</TabsTrigger>
+                            <TabsTrigger value="official">Official API</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="ultramsg" className="mt-4 space-y-4">
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <Label htmlFor="whatsappApiUrl">API URL / Gateway</Label>
+                                    <Input id="whatsappApiUrl" value={settings.whatsappApiUrl} onChange={handleInputChange} placeholder="e.g. https://api.ultramsg.com/instance12345" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="whatsappApiKey">Token (API Key)</Label>
+                                    <Input id="whatsappApiKey" value={settings.whatsappApiKey} onChange={handleInputChange} placeholder="Enter UltraMSG Token" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="whatsappInstanceId">Instance ID</Label>
+                                    <Input id="whatsappInstanceId" value={settings.whatsappInstanceId} onChange={handleInputChange} placeholder="e.g. instance12345" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="whatsappPriority">Priority</Label>
+                                    <Input id="whatsappPriority" value={settings.whatsappPriority} onChange={handleInputChange} placeholder="e.g. 10" />
+                                </div>
+                            </div>
+                        </TabsContent>
+                         <TabsContent value="official" className="mt-4 space-y-4">
+                             <Alert>
+                                <Info className="h-4 w-4" />
+                                <AlertTitle>Coming Soon</AlertTitle>
+                                <AlertDescription>
+                                    Direct integration with the Official WhatsApp Business API is under development. The fields below are placeholders.
+                                </AlertDescription>
+                            </Alert>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-50">
+                                <div className="space-y-2">
+                                    <Label htmlFor="whatsappPhoneNumberId">Phone Number ID</Label>
+                                    <Input id="whatsappPhoneNumberId" placeholder="e.g., 10..." disabled />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="whatsappAccessToken">Permanent Access Token</Label>
+                                    <Input id="whatsappAccessToken" placeholder="e.g., EAA..." disabled />
+                                </div>
+                            </div>
+                         </TabsContent>
+                    </Tabs>
+                    <div className="flex items-center gap-4 pt-4 border-t mt-4">
                         <div className="space-y-2">
                             <Label htmlFor="messageDelay">Message Delay (seconds)</Label>
                             <Input id="messageDelay" type="number" value={settings.messageDelay} onChange={handleInputChange} />
-                        </div>
-                        <div className="flex items-center space-x-2 h-10 pt-8">
-                            <Checkbox id="whatsappActive" checked={settings.whatsappActive} onCheckedChange={(checked) => setSettings(prev => ({...prev, whatsappActive: !!checked}))} />
-                            <Label htmlFor="whatsappActive">Active</Label>
                         </div>
                     </div>
                     <div className="border-t pt-4 mt-4 space-y-4">
@@ -854,7 +864,7 @@ export default function SettingsPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Automated Notifications</CardTitle>
-                    <CardDescription>Enable or disable automated messages for specific events.</CardDescription>
+                    <CardDescription>Enable or disable automated messages for specific events. These will be sent using your selected and configured API provider.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex items-center justify-between p-3 rounded-lg border">
@@ -862,21 +872,21 @@ export default function SettingsPage() {
                             <Label htmlFor="admission-toggle" className="font-semibold">Admission Confirmation</Label>
                             <p className="text-xs text-muted-foreground">Sent when a new student is admitted.</p>
                         </div>
-                        <Switch id="admission-toggle" checked={admissionSettings.enabled} onCheckedChange={(checked) => handleAutomatedMessageToggle('admission', checked)} />
+                        <Switch id="admission-toggle" checked={automatedMessages.admission?.enabled || false} onCheckedChange={(checked) => handleAutomatedMessageToggle('admission', checked)} />
                     </div>
                     <div className="flex items-center justify-between p-3 rounded-lg border">
                         <div>
                             <Label htmlFor="absentee-toggle" className="font-semibold">Absentee Notice</Label>
                             <p className="text-xs text-muted-foreground">Sent when you notify absentees from the attendance page.</p>
                         </div>
-                        <Switch id="absentee-toggle" checked={absenteeSettings.enabled} onCheckedChange={(checked) => handleAutomatedMessageToggle('absentee', checked)} />
+                        <Switch id="absentee-toggle" checked={automatedMessages.absentee?.enabled || false} onCheckedChange={(checked) => handleAutomatedMessageToggle('absentee', checked)} />
                     </div>
                     <div className="flex items-center justify-between p-3 rounded-lg border">
                         <div>
                             <Label htmlFor="payment-toggle" className="font-semibold">Fee Payment Receipt</Label>
                             <p className="text-xs text-muted-foreground">Sent when a fee payment is collected.</p>
                         </div>
-                        <Switch id="payment-toggle" checked={paymentSettings.enabled} onCheckedChange={(checked) => handleAutomatedMessageToggle('payment', checked)} />
+                        <Switch id="payment-toggle" checked={automatedMessages.payment?.enabled || false} onCheckedChange={(checked) => handleAutomatedMessageToggle('payment', checked)} />
                     </div>
                 </CardContent>
             </Card>
@@ -1119,6 +1129,8 @@ export default function SettingsPage() {
 }
 
 
+
+    
 
     
 

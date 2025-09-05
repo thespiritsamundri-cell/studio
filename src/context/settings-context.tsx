@@ -45,6 +45,7 @@ export interface SchoolSettings {
   favicon: string;
   principalSignature: string;
   academicYear: string;
+  whatsappProvider: 'ultramsg' | 'official';
   whatsappApiUrl: string;
   whatsappApiKey: string; // This will be the token for UltraMSG
   whatsappInstanceId?: string; // For providers like UltraMSG
@@ -79,6 +80,7 @@ const defaultSettings: SchoolSettings = {
   favicon: '',
   principalSignature: '',
   academicYear: '2024-2025',
+  whatsappProvider: 'ultramsg',
   whatsappApiUrl: '',
   whatsappApiKey: '',
   whatsappInstanceId: '',
@@ -109,8 +111,8 @@ const defaultSettings: SchoolSettings = {
     { id: 'TPL_GENERAL', name: 'General Notice', content: 'Dear Parents,\nThis is to inform you that...' },
   ],
   automatedMessages: {
-    admission: { enabled: true, templateId: 'TPL_ADMISSION' },
-    absentee: { enabled: true, templateId: 'TPL_ABSENT' },
+    admission: { enabled: false, templateId: 'TPL_ADMISSION' },
+    absentee: { enabled: false, templateId: 'TPL_ABSENT' },
     payment: { enabled: false, templateId: 'TPL_PAYMENT' },
   }
 };
@@ -214,3 +216,6 @@ export function useSettings() {
   }
   return context;
 }
+
+
+    
