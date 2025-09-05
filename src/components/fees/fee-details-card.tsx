@@ -18,6 +18,7 @@ import { renderToString } from 'react-dom/server';
 import type { SchoolSettings } from '@/context/settings-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useData } from '@/context/data-context';
+import { sendWhatsAppMessage } from '@/services/whatsapp-service';
 
 
 interface FeeDetailsCardProps {
@@ -54,7 +55,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
 
     const remainingDues = totalDues - paidAmount;
 
-    const handleCollectFee = () => {
+    const handleCollectFee = async () => {
         if (paidAmount <= 0) {
             toast({ title: 'Invalid Amount', description: 'Paid amount must be greater than zero.', variant: 'destructive' });
             return;
@@ -127,6 +128,30 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
         setPaidAmount(newDues);
         
         triggerPrint(newlyPaidFees, collectedAmount, newDues, paymentMethod);
+
+        // Send WhatsApp receipt if enabled
+        if(settings.automatedMessages?.payment.enabled) {
+             const paymentTemplate = settings.messageTemplates?.find(t => t.id === settings.automatedMessages?.payment.templateId);
+             if (paymentTemplate) {
+                let message = paymentTemplate.content;
+                message = message.replace(/{father_name}/g, family.fatherName);
+                message = message.replace(/{paid_amount}/g, collectedAmount.toLocaleString());
+                message = message.replace(/{remaining_dues}/g, newDues.toLocaleString());
+                message = message.replace(/{school_name}/g, settings.schoolName);
+                try {
+                     await sendWhatsAppMessage(
+                        family.phone, 
+                        message,
+                        settings.whatsappApiUrl,
+                        settings.whatsappApiKey,
+                        settings.whatsappInstanceId,
+                        settings.whatsappPriority
+                    );
+                } catch (error) {
+                    console.error("Failed to send payment receipt.", error);
+                }
+             }
+        }
     };
     
     const triggerPrint = (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string) => {

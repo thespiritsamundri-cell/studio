@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff } from 'lucide-react';
+import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Bell, BellOff } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import { useState, useMemo, useEffect } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -27,6 +27,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { auth } from '@/lib/firebase';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
+import { Switch } from '@/components/ui/switch';
 
 
 export default function SettingsPage() {
@@ -159,10 +160,6 @@ export default function SettingsPage() {
         }
         return newSettings;
     });
-  };
-  
-  const handleAdmissionTemplateChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setSettings(prev => ({...prev, admissionConfirmationTemplate: e.target.value}));
   };
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'schoolLogo' | 'principalSignature' | 'favicon') => {
@@ -483,6 +480,32 @@ export default function SettingsPage() {
         toast({ title: "Template Deleted", variant: "destructive" });
         setOpenTemplateDialog(false);
     }
+
+    const handleAutomatedMessageToggle = (key: 'admission' | 'absentee' | 'payment', checked: boolean) => {
+        setSettings(prev => ({
+            ...prev,
+            automatedMessages: {
+                ...prev.automatedMessages,
+                [key]: {
+                    ...prev.automatedMessages?.[key],
+                    enabled: checked
+                }
+            }
+        }));
+    };
+
+    const handleAutomatedMessageTemplateSelect = (key: 'admission' | 'absentee' | 'payment', templateId: string) => {
+         setSettings(prev => ({
+            ...prev,
+            automatedMessages: {
+                ...prev.automatedMessages,
+                [key]: {
+                    ...prev.automatedMessages?.[key],
+                    templateId: templateId
+                }
+            }
+        }));
+    };
 
 
   return (
@@ -832,55 +855,33 @@ export default function SettingsPage() {
                     </div>
                 </CardContent>
             </Card>
-            
+
             <Card>
                 <CardHeader>
-                    <CardTitle>Admission Confirmation Message</CardTitle>
-                    <CardDescription>This message is automatically sent when a new student is admitted.</CardDescription>
+                    <CardTitle>Automated Notifications</CardTitle>
+                    <CardDescription>Enable or disable automated messages for specific events.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-2">
-                    <Textarea 
-                        value={settings.admissionConfirmationTemplate} 
-                        onChange={handleAdmissionTemplateChange} 
-                        rows={5}
-                    />
-                     <p className="text-xs text-muted-foreground">Available variables: {'{student_name}, {father_name}, {class}, {school_name}'}</p>
-                </CardContent>
-            </Card>
-
-
-             <Card>
-                <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <CardTitle>Message Templates</CardTitle>
-                        <Button onClick={() => handleOpenTemplateDialog(null)}><PlusCircle className="mr-2 h-4 w-4"/> New Template</Button>
+                <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between p-3 rounded-lg border">
+                        <div>
+                            <Label htmlFor="admission-toggle" className="font-semibold">Admission Confirmation</Label>
+                            <p className="text-xs text-muted-foreground">Sent when a new student is admitted.</p>
+                        </div>
+                        <Switch id="admission-toggle" checked={settings.automatedMessages?.admission.enabled} onCheckedChange={(checked) => handleAutomatedMessageToggle('admission', checked)} />
                     </div>
-                    <CardDescription>Create, edit, or delete your WhatsApp message templates.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="border rounded-md">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Template Name</TableHead>
-                                    <TableHead>Content</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {settings.messageTemplates?.map(template => (
-                                    <TableRow key={template.id}>
-                                        <TableCell className="font-medium">{template.name}</TableCell>
-                                        <TableCell className="text-muted-foreground truncate max-w-sm">{template.content}</TableCell>
-                                        <TableCell className="text-right">
-                                            <Button variant="ghost" size="icon" onClick={() => handleOpenTemplateDialog(template)}>
-                                                <PenSquare className="h-4 w-4" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                    <div className="flex items-center justify-between p-3 rounded-lg border">
+                        <div>
+                            <Label htmlFor="absentee-toggle" className="font-semibold">Absentee Notice</Label>
+                            <p className="text-xs text-muted-foreground">Sent when you notify absentees from the attendance page.</p>
+                        </div>
+                        <Switch id="absentee-toggle" checked={settings.automatedMessages?.absentee.enabled} onCheckedChange={(checked) => handleAutomatedMessageToggle('absentee', checked)} />
+                    </div>
+                    <div className="flex items-center justify-between p-3 rounded-lg border">
+                        <div>
+                            <Label htmlFor="payment-toggle" className="font-semibold">Fee Payment Receipt</Label>
+                            <p className="text-xs text-muted-foreground">Sent when a fee payment is collected.</p>
+                        </div>
+                        <Switch id="payment-toggle" checked={settings.automatedMessages?.payment.enabled} onCheckedChange={(checked) => handleAutomatedMessageToggle('payment', checked)} />
                     </div>
                 </CardContent>
             </Card>
@@ -891,7 +892,6 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div>
-                        <h3 className="font-semibold text-primary mb-2">Send Custom Message</h3>
                         <div className="p-4 bg-background/70 rounded-lg space-y-4">
                             <div className="space-y-2">
                                 <Label>Send To:</Label>
@@ -956,6 +956,43 @@ export default function SettingsPage() {
                     </div>
                 </CardContent>
             </Card>
+
+             <Card>
+                <CardHeader>
+                    <div className="flex justify-between items-center">
+                        <CardTitle>Message Templates</CardTitle>
+                        <Button onClick={() => handleOpenTemplateDialog(null)}><PlusCircle className="mr-2 h-4 w-4"/> New Template</Button>
+                    </div>
+                    <CardDescription>Create, edit, or delete your WhatsApp message templates.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="border rounded-md">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Template Name</TableHead>
+                                    <TableHead>Content</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {settings.messageTemplates?.map(template => (
+                                    <TableRow key={template.id}>
+                                        <TableCell className="font-medium">{template.name}</TableCell>
+                                        <TableCell className="text-muted-foreground truncate max-w-sm">{template.content}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="icon" onClick={() => handleOpenTemplateDialog(template)}>
+                                                <PenSquare className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
+
         </TabsContent>
         <TabsContent value="history" className="mt-6">
           <Card>
@@ -1066,7 +1103,7 @@ export default function SettingsPage() {
                 <div className="space-y-2">
                     <Label htmlFor="template-content">Template Content</Label>
                     <Textarea id="template-content" value={templateContent} onChange={(e) => setTemplateContent(e.target.value)} rows={5} />
-                    <p className="text-xs text-muted-foreground">Variables: {'{student_name}, {father_name}, {class}, {school_name}'}</p>
+                    <p className="text-xs text-muted-foreground">Variables: {'{student_name}, {father_name}, {class}, {school_name}, {paid_amount}, {remaining_dues}'}</p>
                 </div>
             </div>
             <DialogFooter className="justify-between">

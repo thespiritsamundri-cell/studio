@@ -45,7 +45,6 @@ export interface SchoolSettings {
   favicon: string;
   principalSignature: string;
   academicYear: string;
-  admissionConfirmationTemplate: string;
   whatsappApiUrl: string;
   whatsappApiKey: string; // This will be the token for UltraMSG
   whatsappInstanceId?: string; // For providers like UltraMSG
@@ -60,6 +59,11 @@ export interface SchoolSettings {
   gradingSystem?: Grade[];
   expenseCategories?: string[];
   messageTemplates?: MessageTemplate[];
+  automatedMessages?: {
+    admission: { enabled: boolean; templateId: string };
+    absentee: { enabled: boolean; templateId: string };
+    payment: { enabled: boolean; templateId: string };
+  };
 }
 
 interface SettingsContextType {
@@ -75,7 +79,6 @@ const defaultSettings: SchoolSettings = {
   favicon: '',
   principalSignature: '',
   academicYear: '2024-2025',
-  admissionConfirmationTemplate: 'Welcome to {school_name}!\n\nDear {father_name},\nWe are pleased to confirm the admission of your child, {student_name}, into Class {class}. We look forward to a successful academic year together.',
   whatsappApiUrl: '',
   whatsappApiKey: '',
   whatsappInstanceId: '',
@@ -99,11 +102,17 @@ const defaultSettings: SchoolSettings = {
     'Salaries', 'Utilities', 'Rent', 'Maintenance', 'Supplies', 'Marketing', 'Transportation', 'Miscellaneous'
   ],
   messageTemplates: [
+    { id: 'TPL_ADMISSION', name: 'Admission Confirmation', content: 'Welcome to {school_name}!\n\nDear {father_name},\nWe are pleased to confirm the admission of your child, {student_name}, into Class {class}. We look forward to a successful academic year together.'},
     { id: 'TPL_ABSENT', name: 'Absentee Notice', content: 'Dear {father_name},\nThis is to inform you that your child, {student_name} of class {class}, was absent today. Please contact the school office. \nRegards, {school_name}' },
     { id: 'TPL_PAYMENT', name: 'Payment Receipt', content: 'Dear {father_name},\nWe have received a payment of PKR {paid_amount}. Your new balance is PKR {remaining_dues}. Thank you.\n{school_name}' },
     { id: 'TPL_REMINDER', name: 'Fee Reminder', content: 'Dear {father_name},\nThis is a friendly reminder that the school fee is due. Kindly clear the dues at your earliest convenience to avoid any late charges.'},
     { id: 'TPL_GENERAL', name: 'General Notice', content: 'Dear Parents,\nThis is to inform you that...' },
-  ]
+  ],
+  automatedMessages: {
+    admission: { enabled: true, templateId: 'TPL_ADMISSION' },
+    absentee: { enabled: true, templateId: 'TPL_ABSENT' },
+    payment: { enabled: false, templateId: 'TPL_PAYMENT' },
+  }
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);

@@ -94,15 +94,21 @@ export default function AttendancePage() {
 
   const handleSendWhatsapp = async () => {
     const absentStudents = students.filter((student) => attendance[student.id] === 'Absent');
-    const absenteeTemplate = settings.messageTemplates?.find(t => t.id === 'TPL_ABSENT');
-
+    
     if (absentStudents.length === 0) {
       toast({ title: 'No Absentees', description: 'All students are present or on leave.' });
       return;
     }
 
-    if (!settings.whatsappActive || !absenteeTemplate) {
-        toast({ title: 'Messaging Disabled', description: 'Please enable WhatsApp and ensure the "Absentee Notice" template exists in settings.', variant: 'destructive'});
+    if(!settings.automatedMessages?.absentee.enabled) {
+        toast({ title: 'Messaging Disabled', description: 'Please enable "Absentee Notice" messages in WhatsApp settings.', variant: 'destructive'});
+        return;
+    }
+
+    const absenteeTemplate = settings.messageTemplates?.find(t => t.id === settings.automatedMessages?.absentee.templateId);
+
+    if (!absenteeTemplate) {
+        toast({ title: 'Template Missing', description: 'Please select a template for "Absentee Notice" in settings.', variant: 'destructive'});
         return;
     }
 
