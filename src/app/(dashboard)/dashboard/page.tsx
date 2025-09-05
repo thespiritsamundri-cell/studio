@@ -1,7 +1,7 @@
 
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Users, Wallet, UserCheck, UserPlus, History, Landmark, DollarSign, UserX, TrendingDown, TrendingUp, Scale, CheckCircle, XCircle, MessageSquare } from 'lucide-react';
+import { Users, Wallet, UserCheck, UserPlus, History, Landmark, DollarSign, UserX, TrendingDown, TrendingUp, Scale, CheckCircle, XCircle, MessageSquare, Briefcase } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, PieChart, Pie, Cell, Line, LineChart, Tooltip } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { useData } from '@/context/data-context';
@@ -24,7 +24,7 @@ const chartConfig = {
 };
 
 export default function DashboardPage() {
-    const { students, fees, activityLog, expenses, teacherAttendances: allTeacherAttendances, classes } = useData();
+    const { students, fees, activityLog, expenses, teachers, teacherAttendances: allTeacherAttendances, classes } = useData();
     const [today, setToday] = useState<Date | null>(null);
 
     useEffect(() => {
@@ -93,6 +93,28 @@ export default function DashboardPage() {
             };
         }).sort((a,b) => a.name.localeCompare(b.name));
     }, [classes, students]);
+    
+    const teacherAttendanceSummary = useMemo(() => {
+        if (!today) return [];
+        const todayStr = format(today, 'yyyy-MM-dd');
+        const monthStart = startOfMonth(today);
+
+        return teachers.map(teacher => {
+            const todaysRecord = allTeacherAttendances.find(a => a.teacherId === teacher.id && a.date === todayStr);
+            
+            const monthlyRecords = allTeacherAttendances.filter(a => a.teacherId === teacher.id && new Date(a.date) >= monthStart);
+            const presentCount = monthlyRecords.filter(a => a.status === 'Present').length;
+            const absentCount = monthlyRecords.filter(a => a.status === 'Absent').length;
+
+            return {
+                name: teacher.name,
+                todayStatus: todaysRecord?.status,
+                presentCount,
+                absentCount,
+            }
+        });
+
+    }, [today, teachers, allTeacherAttendances]);
 
 
     const newAdmissions = useMemo(() => {
@@ -144,7 +166,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
-        <div className="rounded-lg bg-gradient-to-br from-chart-1 to-chart-2 p-1 transition-transform duration-300 hover:scale-105">
+        <div className="stat-card">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">Total Students</CardTitle>
@@ -156,7 +178,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
         </div>
-        <div className="rounded-lg bg-gradient-to-br from-chart-2 to-chart-3 p-1 transition-transform duration-300 hover:scale-105">
+        <div className="stat-card">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">Students Present</CardTitle>
@@ -168,7 +190,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
         </div>
-         <div className="rounded-lg bg-gradient-to-br from-chart-3 to-chart-4 p-1 transition-transform duration-300 hover:scale-105">
+         <div className="stat-card">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">Students Absent</CardTitle>
@@ -180,7 +202,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
         </div>
-        <div className="rounded-lg bg-gradient-to-br from-chart-4 to-chart-5 p-1 transition-transform duration-300 hover:scale-105">
+        <div className="stat-card">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">Messages Sent Today</CardTitle>
@@ -192,7 +214,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
         </div>
-        <div className="rounded-lg bg-gradient-to-br from-chart-5 to-chart-1 p-1 transition-transform duration-300 hover:scale-105">
+        <div className="stat-card">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">New Admissions</CardTitle>
@@ -311,25 +333,48 @@ export default function DashboardPage() {
         </Card>
       </div>
        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-         <Card className="lg:col-span-2">
-           <CardHeader>
-            <CardTitle>Financial Summary (All Time)</CardTitle>
-            <CardDescription>
-                A quick overview of total income vs. total expenses.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="h-[300px]">
-             <ChartContainer config={chartConfig} className="w-full h-full">
-                <BarChart data={[{ name: 'Financials', income: fees.filter(f=>f.status === 'Paid').reduce((acc, f) => acc + f.amount, 0), expenses: expenses.reduce((acc, e) => acc + e.amount, 0) }]} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false}/>
-                    <XAxis dataKey="name" tickLine={false} axisLine={false} />
-                    <YAxis />
-                    <ChartTooltip content={<ChartTooltipContent formatter={(value) => `PKR ${value.toLocaleString()}`} />} />
-                    <Bar dataKey="income" fill="hsl(var(--chart-2))" radius={4} name="Total Income" />
-                    <Bar dataKey="expenses" fill="hsl(var(--chart-5))" radius={4} name="Total Expenses" />
-                </BarChart>
-            </ChartContainer>
-          </CardContent>
+        <Card className="lg:col-span-2">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Briefcase /> Today's Teacher Attendance</CardTitle>
+                <CardDescription>A summary of teacher attendance for today and the current month.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                 <ScrollArea className="h-[300px]">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Teacher</TableHead>
+                                <TableHead className="text-center">Today's Status</TableHead>
+                                <TableHead className="text-center">Present (Month)</TableHead>
+                                <TableHead className="text-center">Absent (Month)</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {teacherAttendanceSummary.map(t => (
+                                <TableRow key={t.name}>
+                                    <TableCell className="font-medium">{t.name}</TableCell>
+                                    <TableCell className="text-center">
+                                        {t.todayStatus ? (
+                                            <Badge variant={t.todayStatus === 'Present' ? 'default' : t.todayStatus === 'Absent' ? 'destructive' : 'secondary'}
+                                                   className={cn(t.todayStatus === 'Present' && 'bg-green-600')}>
+                                                {t.todayStatus}
+                                            </Badge>
+                                        ) : (
+                                            <Badge variant="outline">Not Marked</Badge>
+                                        )}
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                        <Badge className="text-base bg-green-500/20 text-green-700 border-green-500/30">{t.presentCount}</Badge>
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                        <Badge variant="destructive" className="text-base">{t.absentCount}</Badge>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </ScrollArea>
+            </CardContent>
         </Card>
         <Card>
             <CardHeader>
