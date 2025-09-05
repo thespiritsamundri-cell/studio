@@ -40,7 +40,7 @@ export function Header() {
   useEffect(() => {
     setCurrentDate(format(new Date(), 'd MMMM yyyy'));
     const timer = setInterval(() => {
-      setCurrentTime(new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }));
+      setCurrentTime(new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }));
     }, 1000);
     return () => clearInterval(timer);
   }, []);
@@ -130,7 +130,7 @@ export function Header() {
                     </div>
                 </div>
                 <div className="p-px bg-gradient-to-br from-chart-2 to-chart-3 rounded-[7px]">
-                    <div className="bg-muted px-3 py-1.5 rounded-[6px] w-28 text-center">
+                    <div className="bg-muted px-3 py-1.5 rounded-[6px] w-32 text-center">
                         {currentTime}
                     </div>
                 </div>
