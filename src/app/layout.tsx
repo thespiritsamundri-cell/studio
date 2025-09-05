@@ -1,11 +1,10 @@
+
 import './globals.css'
 import './print-styles.css'
 import { Toaster } from '@/components/ui/toaster'
 import { SettingsProvider } from '@/context/settings-context'
-import AppClientLayout, { fontVariables } from './app-client-layout'
-import { Inter } from 'next/font/google'
-
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+import AppClientLayout from './app-client-layout'
+import { fontVariables } from './font-config'
 
 export const metadata = {
   title: 'School Management System',
@@ -19,14 +18,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} ${fontVariables}`}>
+      <body className={`${fontVariables} font-sans antialiased`}>
         <SettingsProvider>
           <AppClientLayout>
             {children}
-            <Toaster />
           </AppClientLayout>
+          <Toaster />
         </SettingsProvider>
       </body>
     </html>
-  );
+  )
 }

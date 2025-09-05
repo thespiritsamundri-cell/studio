@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
@@ -40,6 +41,7 @@ export interface SchoolSettings {
     absentee: { enabled: boolean; templateId: string };
     payment: { enabled: boolean; templateId: string };
   };
+  autofillLogin?: boolean;
 }
 
 const defaultSettings: SchoolSettings = {
@@ -47,7 +49,7 @@ const defaultSettings: SchoolSettings = {
   academicYear: '2025-2026',
   schoolAddress: '123 Education Lane, Knowledge City, Pakistan',
   schoolPhone: '+92 300 1234567',
-  schoolLogo: '/logo.png', // Replaced large base64 string
+  schoolLogo: '/logo.png',
   favicon: '/favicon.ico',
   whatsappApiUrl: '',
   whatsappApiKey: '',
@@ -61,24 +63,25 @@ const defaultSettings: SchoolSettings = {
   themeColors: {},
   font: 'inter',
   gradingSystem: [
-    { name: "A+", minPercentage: 90 },
-    { name: "A", minPercentage: 80 },
-    { name: "B", minPercentage: 70 },
-    { name: "C", minPercentage: 60 },
-    { name: "D", minPercentage: 50 },
-    { name: "F", minPercentage: 0 },
+    { name: 'A+', minPercentage: 90 },
+    { name: 'A', minPercentage: 80 },
+    { name: 'B', minPercentage: 70 },
+    { name: 'C', minPercentage: 60 },
+    { name: 'D', minPercentage: 50 },
+    { name: 'F', minPercentage: 0 },
   ],
   expenseCategories: ['Salaries', 'Utilities', 'Rent', 'Maintenance', 'Supplies', 'Marketing', 'Transportation', 'Miscellaneous'],
   messageTemplates: [
     { id: '1', name: 'Absentee Notice', content: 'Dear {father_name}, your child {student_name} of class {class} is absent from school today. Please contact us.' },
-    { id: '2', name: 'Fee Reminder', content: 'Dear {father_name}, this is a reminder that your child\'s fee is due. Total amount: {total_dues}.' },
+    { id: '2', name: 'Fee Reminder', content: "Dear {father_name}, this is a reminder that your child's fee is due. Total amount: {total_dues}." },
     { id: '3', name: 'Admission Confirmation', content: 'Welcome to {school_name}! We are delighted to confirm the admission of {student_name} in Class {class}.' }
   ],
   automatedMessages: {
     admission: { enabled: true, templateId: '3' },
     absentee: { enabled: true, templateId: '1' },
     payment: { enabled: true, templateId: '2' },
-  }
+  },
+  autofillLogin: true,
 };
 
 export const SettingsContext = createContext<{
@@ -90,21 +93,26 @@ export const SettingsContext = createContext<{
 });
 
 export const SettingsProvider = ({ children }: { children: React.ReactNode }) => {
-  const [settings, setSettings] = useState<SchoolSettings>(defaultSettings);
-
-  useEffect(() => {
-    try {
+  const [settings, setSettings] = useState<SchoolSettings>(() => {
+    if (typeof window !== 'undefined') {
       const savedSettings = localStorage.getItem('schoolSettings');
-      if (savedSettings) {
-        setSettings(JSON.parse(savedSettings));
+      try {
+        if (savedSettings) {
+          const parsed = JSON.parse(savedSettings);
+          // Merge with default settings to ensure new keys are not missing
+          return { ...defaultSettings, ...parsed };
+        }
+      } catch (e) {
+        console.error('Failed to parse settings from localStorage', e);
       }
-    } catch (error) {
-      console.error("Could not parse settings from localStorage", error);
     }
-  }, []);
+    return defaultSettings;
+  });
 
   useEffect(() => {
-    localStorage.setItem('schoolSettings', JSON.stringify(settings));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('schoolSettings', JSON.stringify(settings));
+    }
   }, [settings]);
 
   return (

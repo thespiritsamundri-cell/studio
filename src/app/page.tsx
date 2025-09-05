@@ -4,26 +4,31 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useRouter } from 'next/navigation';
-import { School, Loader2 } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
-import { useEffect, useState } from 'react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { Loader2, School } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
-  const router = useRouter();
   const { settings } = useSettings();
+  const router = useRouter();
   const { toast } = useToast();
-  const [isClient, setIsClient] = useState(false);
-  const [email, setEmail] = useState('admin@example.com');
-  const [password, setPassword] = useState('password');
-  const [isLoading, setIsLoading] = useState(false);
 
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+  
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    if (settings.autofillLogin) {
+      setEmail('demo@devsinc.com');
+      setPassword('password');
+    }
+  }, [settings.autofillLogin]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,7 +40,7 @@ export default function LoginPage() {
       console.error("Firebase login failed:", error);
       toast({
         title: 'Login Failed',
-        description: 'Please check your email and password. For a new setup, you may need to enable Email/Password authentication in your Firebase Console.',
+        description: 'Please check your email and password.',
         variant: 'destructive',
       });
     } finally {
@@ -44,7 +49,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background">
+    <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
       <Card className="w-full max-w-sm mx-auto shadow-2xl">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
@@ -52,7 +57,7 @@ export default function LoginPage() {
               <School className="w-8 h-8 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold font-headline">{isClient ? settings.schoolName : 'EduCentral'}</CardTitle>
+          <CardTitle className="text-2xl font-bold font-headline">{isClient ? settings.schoolName : 'School Management'}</CardTitle>
           <CardDescription>Welcome back! Please login to your account.</CardDescription>
         </CardHeader>
         <CardContent>

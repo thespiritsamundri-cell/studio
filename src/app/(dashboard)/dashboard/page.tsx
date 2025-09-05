@@ -1,7 +1,7 @@
 
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Users, Wallet, UserCheck, UserPlus, History, Landmark, DollarSign, UserX, TrendingDown, TrendingUp, Scale, CheckCircle, XCircle, MessageSquare, Briefcase } from 'lucide-react';
+import { Users, Wallet, UserCheck, UserPlus, History, Landmark, DollarSign, UserX, TrendingUp, TrendingDown, Scale, CheckCircle, XCircle, MessageSquare, Briefcase } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, PieChart, Pie, Cell, Line, LineChart, Tooltip } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { useData } from '@/context/data-context';
@@ -68,17 +68,16 @@ export default function DashboardPage() {
         // This is a placeholder for student attendance, as we don't have that data structure yet.
         // We will use teacher attendance as a proxy for now to show functionality.
         const todaysAttendance = allTeacherAttendances.filter(a => a.date === todayStr);
-        const present = todaysAttendance.filter(a => a.status === 'Present').length;
-        // This is a mock calculation, assuming total students.
-        const absent = totalStudents > present ? totalStudents - present : 0; 
+        const present = todaysAttendance.length > 0 ? todaysAttendance.filter(a => a.status === 'Present').length : Math.floor(teachers.length * 0.9);
+        const absent = teachers.length - present; 
         
-        // When student attendance is implemented, this logic will be updated.
+        // When student attendance is implemented, this will be updated.
         // For now, we simulate a portion of students being present/absent.
         const simulatedPresent = Math.floor(totalStudents * 0.9);
         const simulatedAbsent = totalStudents - simulatedPresent;
 
         return { presentStudents: simulatedPresent, absentStudents: simulatedAbsent };
-    }, [today, allTeacherAttendances, totalStudents]);
+    }, [today, allTeacherAttendances, totalStudents, teachers.length]);
 
     const classAttendanceSummary = useMemo(() => {
         return classes.map(c => {
@@ -104,7 +103,7 @@ export default function DashboardPage() {
         return teachers.map(teacher => {
             const todaysRecord = allTeacherAttendances.find(a => a.teacherId === teacher.id && a.date === todayStr);
             
-            const monthlyRecords = allTeacherAttendances.filter(a => a.teacherId === teacher.id && new Date(a.date) >= monthStart);
+            const monthlyRecords = allTeacherAttendances.filter(a => a.teacherId === teacher.id && new Date(a.date) >= monthStart && new Date(a.date) <= today);
             const presentCount = monthlyRecords.filter(a => a.status === 'Present').length;
             const absentCount = monthlyRecords.filter(a => a.status === 'Absent').length;
 
@@ -397,5 +396,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
