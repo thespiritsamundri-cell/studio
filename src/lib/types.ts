@@ -131,6 +131,12 @@ export interface Timetable {
   breakDuration?: string;
 }
 
+export interface MessageTemplate {
+  id: string;
+  name: string;
+  content: string;
+}
+
 // Add this at the end
 export interface YearbookData {
     year: number;

@@ -12,14 +12,14 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff } from 'lucide-react';
+import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Save } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import { useState, useMemo, useEffect } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { sendWhatsAppMessage } from '@/services/whatsapp-service';
-import type { Grade } from '@/lib/types';
+import type { Grade, MessageTemplate } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -63,6 +63,13 @@ export default function SettingsPage() {
   
   const [clearHistoryPin, setClearHistoryPin] = useState('');
   const [openClearHistoryDialog, setOpenClearHistoryDialog] = useState(false);
+
+  // Template Editor State
+  const [isEditingTemplate, setIsEditingTemplate] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<MessageTemplate | null>(null);
+  const [templateName, setTemplateName] = useState('');
+  const [templateContent, setTemplateContent] = useState('');
+  const [openTemplateDialog, setOpenTemplateDialog] = useState(false);
 
 
   const classes = useMemo(() => [...Array.from(new Set(students.map(s => s.class)))], [students]);
@@ -258,14 +265,6 @@ export default function SettingsPage() {
     }
   }
 
-  const templates = {
-    absence: `Dear {father_name},\nWe noticed that your child {student_name} of class {class} was absent today. Please let us know the reason.`,
-    fee: `Dear {father_name},\nThis is a friendly reminder that the fee for the month is due. Kindly clear the dues at your earliest convenience to avoid any late charges.`,
-    general: `Dear Parents,\nThis is to inform you that...`,
-    exam: `Dear Parents,\nThe final examinations will commence from next week. Please ensure your child is well-prepared.`,
-    holiday: `Dear Parents,\nThe school will remain closed on account of...`
-  };
-
   const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
   const handleSendMessage = async () => {
@@ -435,6 +434,58 @@ export default function SettingsPage() {
     const removeGradeRow = (index: number) => {
         setSettings(prev => ({...prev, gradingSystem: (prev.gradingSystem || []).filter((_, i) => i !== index)}));
     };
+
+    const handleOpenTemplateDialog = (template: MessageTemplate | null) => {
+        if (template) {
+            setIsEditingTemplate(true);
+            setSelectedTemplate(template);
+            setTemplateName(template.name);
+            setTemplateContent(template.content);
+        } else {
+            setIsEditingTemplate(false);
+            setSelectedTemplate(null);
+            setTemplateName('');
+            setTemplateContent('');
+        }
+        setOpenTemplateDialog(true);
+    };
+
+    const handleSaveTemplate = () => {
+        if (!templateName.trim() || !templateContent.trim()) {
+            toast({ title: "Cannot Save", description: "Template name and content cannot be empty.", variant: "destructive" });
+            return;
+        }
+
+        const currentTemplates = settings.messageTemplates || [];
+        
+        if (isEditingTemplate && selectedTemplate) {
+            // Update existing template
+            const updatedTemplates = currentTemplates.map(t =>
+                t.id === selectedTemplate.id ? { ...t, name: templateName, content: templateContent } : t
+            );
+            setSettings(prev => ({ ...prev, messageTemplates: updatedTemplates }));
+            toast({ title: "Template Updated", description: `The "${templateName}" template has been saved.` });
+        } else {
+            // Add new template
+            const newTemplate: MessageTemplate = {
+                id: `TPL-${Date.now()}`,
+                name: templateName,
+                content: templateContent
+            };
+            setSettings(prev => ({ ...prev, messageTemplates: [...currentTemplates, newTemplate] }));
+            toast({ title: "Template Added", description: `The "${templateName}" template has been added.` });
+        }
+
+        setOpenTemplateDialog(false);
+    };
+    
+    const handleDeleteTemplate = () => {
+        if (!selectedTemplate) return;
+        const updatedTemplates = (settings.messageTemplates || []).filter(t => t.id !== selectedTemplate.id);
+        setSettings(prev => ({ ...prev, messageTemplates: updatedTemplates }));
+        toast({ title: "Template Deleted", variant: "destructive" });
+        setOpenTemplateDialog(false);
+    }
 
 
   return (
@@ -784,6 +835,43 @@ export default function SettingsPage() {
                     </div>
                 </CardContent>
             </Card>
+
+             <Card>
+                <CardHeader>
+                    <div className="flex justify-between items-center">
+                        <CardTitle>Message Templates</CardTitle>
+                        <Button onClick={() => handleOpenTemplateDialog(null)}><PlusCircle className="mr-2 h-4 w-4"/> New Template</Button>
+                    </div>
+                    <CardDescription>Create, edit, or delete your WhatsApp message templates.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="border rounded-md">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Template Name</TableHead>
+                                    <TableHead>Content</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {settings.messageTemplates?.map(template => (
+                                    <TableRow key={template.id}>
+                                        <TableCell className="font-medium">{template.name}</TableCell>
+                                        <TableCell className="text-muted-foreground truncate max-w-sm">{template.content}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="icon" onClick={() => handleOpenTemplateDialog(template)}>
+                                                <PenSquare className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
+            
             <Card className="bg-green-500/5">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><MessageSquare className="text-green-700"/>Custom Messaging</CardTitle>
@@ -838,11 +926,11 @@ export default function SettingsPage() {
                              <div className="space-y-2">
                                 <Label>Quick Templates</Label>
                                 <div className="flex flex-wrap gap-2">
-                                    <Button size="sm" variant="outline" onClick={() => handleTemplateClick(templates.absence)}>Absence Notice</Button>
-                                    <Button size="sm" variant="outline" onClick={() => handleTemplateClick(templates.fee)}>Fee Reminder</Button>
-                                    <Button size="sm" variant="outline" onClick={() => handleTemplateClick(templates.general)}>General Notice</Button>
-                                    <Button size="sm" variant="outline" onClick={() => handleTemplateClick(templates.exam)}>Exam Notice</Button>
-                                    <Button size="sm" variant="outline" onClick={() => handleTemplateClick(templates.holiday)}>Holiday Notice</Button>
+                                    {(settings.messageTemplates || []).map(template => (
+                                        <Button key={template.id} size="sm" variant="outline" onClick={() => handleTemplateClick(template.content)}>
+                                            {template.name}
+                                        </Button>
+                                    ))}
                                 </div>
                             </div>
                             <div className="flex justify-end items-center gap-2 pt-4">
@@ -951,6 +1039,37 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+      
+       <Dialog open={openTemplateDialog} onOpenChange={setOpenTemplateDialog}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>{isEditingTemplate ? 'Edit Template' : 'Add New Template'}</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+                <div className="space-y-2">
+                    <Label htmlFor="template-name">Template Name</Label>
+                    <Input id="template-name" value={templateName} onChange={(e) => setTemplateName(e.target.value)} placeholder="e.g., Absence Notice" />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="template-content">Template Content</Label>
+                    <Textarea id="template-content" value={templateContent} onChange={(e) => setTemplateContent(e.target.value)} rows={5} />
+                    <p className="text-xs text-muted-foreground">Variables: {'{student_name}, {father_name}, {class}, {school_name}'}</p>
+                </div>
+            </div>
+            <DialogFooter className="justify-between">
+                <div>
+                  {isEditingTemplate && (
+                     <Button variant="destructive" onClick={handleDeleteTemplate}>Delete</Button>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                    <Button variant="ghost" onClick={() => setOpenTemplateDialog(false)}>Cancel</Button>
+                    <Button onClick={handleSaveTemplate}>Save Template</Button>
+                </div>
+            </DialogFooter>
+        </DialogContent>
+       </Dialog>
     </div>
   );
 }
+

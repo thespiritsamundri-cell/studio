@@ -3,7 +3,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { Grade } from '@/lib/types';
+import type { Grade, MessageTemplate } from '@/lib/types';
 
 type HexColor = string;
 
@@ -58,6 +58,7 @@ export interface SchoolSettings {
   subjects?: { [className: string]: string[] };
   gradingSystem?: Grade[];
   expenseCategories?: string[];
+  messageTemplates?: MessageTemplate[];
 }
 
 interface SettingsContextType {
@@ -94,6 +95,13 @@ const defaultSettings: SchoolSettings = {
   ],
   expenseCategories: [
     'Salaries', 'Utilities', 'Rent', 'Maintenance', 'Supplies', 'Marketing', 'Transportation', 'Miscellaneous'
+  ],
+  messageTemplates: [
+    { id: 'TPL1', name: 'Absence Notice', content: 'Dear {father_name},\nWe noticed that your child {student_name} of class {class} was absent today. Please let us know the reason.' },
+    { id: 'TPL2', name: 'Fee Reminder', content: 'Dear {father_name},\nThis is a friendly reminder that the fee for the month is due. Kindly clear the dues at your earliest convenience to avoid any late charges.'},
+    { id: 'TPL3', name: 'General Notice', content: 'Dear Parents,\nThis is to inform you that...' },
+    { id: 'TPL4', name: 'Exam Notice', content: 'Dear Parents,\nThe final examinations will commence from next week. Please ensure your child is well-prepared.' },
+    { id: 'TPL5', name: 'Holiday Notice', content: 'Dear Parents,\nThe school will remain closed on account of...' },
   ]
 };
 
