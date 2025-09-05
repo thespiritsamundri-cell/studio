@@ -499,7 +499,11 @@ export default function SettingsPage() {
     };
 
     // Safely access nested properties
-    const automatedMessages = settings.automatedMessages || {};
+    const automatedMessages = settings.automatedMessages || {
+        admission: { enabled: false, templateId: '' },
+        absentee: { enabled: false, templateId: '' },
+        payment: { enabled: false, templateId: '' },
+    };
 
   return (
     <div className="space-y-6">
@@ -820,14 +824,7 @@ export default function SettingsPage() {
                             </div>
                         </TabsContent>
                          <TabsContent value="official" className="mt-4 space-y-4">
-                             <Alert>
-                                <Info className="h-4 w-4" />
-                                <AlertTitle>Coming Soon</AlertTitle>
-                                <AlertDescription>
-                                    Direct integration with the Official WhatsApp Business API is under development. The fields below are placeholders.
-                                </AlertDescription>
-                            </Alert>
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-50">
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <Label htmlFor="whatsappPhoneNumberId">Phone Number ID</Label>
                                     <Input id="whatsappPhoneNumberId" placeholder="e.g., 10..." disabled />
@@ -872,21 +869,21 @@ export default function SettingsPage() {
                             <Label htmlFor="admission-toggle" className="font-semibold">Admission Confirmation</Label>
                             <p className="text-xs text-muted-foreground">Sent when a new student is admitted.</p>
                         </div>
-                        <Switch id="admission-toggle" checked={automatedMessages.admission?.enabled || false} onCheckedChange={(checked) => handleAutomatedMessageToggle('admission', checked)} />
+                        <Switch id="admission-toggle" checked={automatedMessages.admission.enabled} onCheckedChange={(checked) => handleAutomatedMessageToggle('admission', checked)} />
                     </div>
                     <div className="flex items-center justify-between p-3 rounded-lg border">
                         <div>
                             <Label htmlFor="absentee-toggle" className="font-semibold">Absentee Notice</Label>
                             <p className="text-xs text-muted-foreground">Sent when you notify absentees from the attendance page.</p>
                         </div>
-                        <Switch id="absentee-toggle" checked={automatedMessages.absentee?.enabled || false} onCheckedChange={(checked) => handleAutomatedMessageToggle('absentee', checked)} />
+                        <Switch id="absentee-toggle" checked={automatedMessages.absentee.enabled} onCheckedChange={(checked) => handleAutomatedMessageToggle('absentee', checked)} />
                     </div>
                     <div className="flex items-center justify-between p-3 rounded-lg border">
                         <div>
                             <Label htmlFor="payment-toggle" className="font-semibold">Fee Payment Receipt</Label>
                             <p className="text-xs text-muted-foreground">Sent when a fee payment is collected.</p>
                         </div>
-                        <Switch id="payment-toggle" checked={automatedMessages.payment?.enabled || false} onCheckedChange={(checked) => handleAutomatedMessageToggle('payment', checked)} />
+                        <Switch id="payment-toggle" checked={automatedMessages.payment.enabled} onCheckedChange={(checked) => handleAutomatedMessageToggle('payment', checked)} />
                     </div>
                 </CardContent>
             </Card>
