@@ -59,6 +59,7 @@ export interface SchoolSettings {
   gradingSystem?: Grade[];
   expenseCategories?: string[];
   messageTemplates?: MessageTemplate[];
+  admissionConfirmationTemplate?: string;
 }
 
 interface SettingsContextType {
@@ -102,7 +103,8 @@ const defaultSettings: SchoolSettings = {
     { id: 'TPL3', name: 'General Notice', content: 'Dear Parents,\nThis is to inform you that...' },
     { id: 'TPL4', name: 'Exam Notice', content: 'Dear Parents,\nThe final examinations will commence from next week. Please ensure your child is well-prepared.' },
     { id: 'TPL5', name: 'Holiday Notice', content: 'Dear Parents,\nThe school will remain closed on account of...' },
-  ]
+  ],
+  admissionConfirmationTemplate: 'Welcome to {school_name}!\n\nDear {father_name},\nWe are pleased to confirm the admission of your child, {student_name}, into Class {class}. We look forward to a successful academic year together.',
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);

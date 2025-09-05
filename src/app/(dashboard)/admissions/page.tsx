@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -18,6 +19,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { renderToString } from 'react-dom/server';
 import { StudentDetailsPrint } from '@/components/reports/student-details-report';
 import { useSettings } from '@/context/settings-context';
+import { sendWhatsAppMessage } from '@/services/whatsapp-service';
 
 
 interface CustomFee {
@@ -28,7 +30,7 @@ interface CustomFee {
 
 export default function AdmissionsPage() {
     const { toast } = useToast();
-    const { families, students, fees, addStudent, addFee, classes } = useData();
+    const { families, students, fees, addStudent, addFee, classes, addActivityLog } = useData();
     const { settings } = useSettings();
     const [familyId, setFamilyId] = useState('');
     const [familyExists, setFamilyExists] = useState(false);
@@ -125,7 +127,7 @@ export default function AdmissionsPage() {
         }
     };
 
-    const handleAdmission = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleAdmission = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         
         if (!familyExists || !foundFamily) {
@@ -175,7 +177,7 @@ export default function AdmissionsPage() {
 
         let lastFeeId = fees.reduce((max, f) => {
             const idNum = parseInt(f.id.replace('FEE', ''));
-            return idNum > max ? idNum : max;
+            return !isNaN(idNum) && idNum > max ? idNum : max;
         }, 0);
         
         const feesToAdd: Fee[] = [];
@@ -224,6 +226,28 @@ export default function AdmissionsPage() {
             title: 'Student Admitted!',
             description: `${studentName} has been successfully admitted. Printing admission form...`,
         });
+
+        // Send WhatsApp Message
+        if (settings.whatsappActive && settings.admissionConfirmationTemplate) {
+            let message = settings.admissionConfirmationTemplate;
+            message = message.replace('{school_name}', settings.schoolName);
+            message = message.replace('{student_name}', newStudent.name);
+            message = message.replace('{father_name}', newStudent.fatherName);
+            message = message.replace('{class}', newStudent.class);
+            try {
+                await sendWhatsAppMessage(
+                    newStudent.phone,
+                    message,
+                    settings.whatsappApiUrl,
+                    settings.whatsappApiKey,
+                    settings.whatsappInstanceId,
+                    settings.whatsappPriority
+                );
+                addActivityLog({ user: 'System', action: 'Admission Message', description: `Sent admission confirmation to ${newStudent.name}.` });
+            } catch (error) {
+                console.error("Failed to send admission WhatsApp message:", error);
+            }
+        }
 
         // Trigger print
         triggerAdmissionPrint(newStudent, foundFamily);

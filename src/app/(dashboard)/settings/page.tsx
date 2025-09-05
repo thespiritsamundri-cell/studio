@@ -161,6 +161,10 @@ export default function SettingsPage() {
     });
   };
   
+  const handleAdmissionTemplateChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setSettings(prev => ({...prev, admissionConfirmationTemplate: e.target.value}));
+  };
+  
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'schoolLogo' | 'principalSignature' | 'favicon') => {
     const file = e.target.files?.[0];
     if (file) {
@@ -835,6 +839,22 @@ export default function SettingsPage() {
                     </div>
                 </CardContent>
             </Card>
+            
+            <Card>
+                <CardHeader>
+                    <CardTitle>Admission Confirmation Message</CardTitle>
+                    <CardDescription>This message is automatically sent when a new student is admitted.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                    <Textarea 
+                        value={settings.admissionConfirmationTemplate} 
+                        onChange={handleAdmissionTemplateChange} 
+                        rows={5}
+                    />
+                     <p className="text-xs text-muted-foreground">Available variables: {'{student_name}, {father_name}, {class}, {school_name}'}</p>
+                </CardContent>
+            </Card>
+
 
              <Card>
                 <CardHeader>
