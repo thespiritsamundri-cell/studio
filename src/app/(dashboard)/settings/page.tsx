@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert } from 'lucide-react';
+import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import { useState, useMemo, useEffect } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -43,6 +43,7 @@ export default function SettingsPage() {
   const [isSending, setIsSending] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testPhoneNumber, setTestPhoneNumber] = useState('');
+  const [whatsappStatus, setWhatsappStatus] = useState<'untested' | 'connected' | 'failed'>('untested');
 
 
   // Account settings state
@@ -146,6 +147,9 @@ export default function SettingsPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
     setSettings(prev => ({...prev, [id]: value}));
+    if (['whatsappApiUrl', 'whatsappApiKey', 'whatsappInstanceId'].includes(id)) {
+        setWhatsappStatus('untested');
+    }
   };
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'schoolLogo' | 'principalSignature' | 'favicon') => {
@@ -372,9 +376,11 @@ export default function SettingsPage() {
   
     const handleTestConnection = async () => {
         setIsTesting(true);
+        setWhatsappStatus('untested');
         if (!testPhoneNumber) {
             toast({ title: 'Test Failed', description: 'Please enter a phone number to send the test message to.', variant: 'destructive' });
             setIsTesting(false);
+            setWhatsappStatus('failed');
             return;
         }
         try {
@@ -388,11 +394,14 @@ export default function SettingsPage() {
             );
             if (success) {
                 toast({ title: 'Test Successful', description: 'Your WhatsApp API settings appear to be correct.' });
+                setWhatsappStatus('connected');
             } else {
+                setWhatsappStatus('failed');
                 throw new Error("API returned failure. Check console for details.");
             }
         } catch (error: any) {
             toast({ title: 'Test Failed', description: error.message || 'Could not connect using the provided API settings.', variant: 'destructive' });
+            setWhatsappStatus('failed');
         } finally {
             setIsTesting(false);
         }
@@ -721,7 +730,12 @@ export default function SettingsPage() {
             </Alert>
             <Card>
                 <CardHeader>
-                    <CardTitle>API Configuration</CardTitle>
+                    <div className="flex items-center gap-4">
+                        <CardTitle>API Configuration</CardTitle>
+                         {whatsappStatus === 'connected' && <Badge className="bg-green-500 text-white"><Wifi className="mr-2 h-4 w-4"/>Connected</Badge>}
+                         {whatsappStatus === 'failed' && <Badge variant="destructive"><WifiOff className="mr-2 h-4 w-4"/>Failed</Badge>}
+                         {whatsappStatus === 'untested' && <Badge variant="secondary">Untested</Badge>}
+                    </div>
                     <CardDescription>Enter your UltraMSG API details to enable messaging features.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -762,7 +776,7 @@ export default function SettingsPage() {
                             <Button onClick={handleSave}><KeyRound className="mr-2"/>Save WhatsApp Settings</Button>
                             <Button variant="outline" onClick={handleTestConnection} disabled={isTesting || !settings.whatsappApiUrl || !settings.whatsappApiKey}>
                                 {isTesting ? <Loader2 className="mr-2 animate-spin"/> : <TestTubeDiagonal className="mr-2"/>}
-                                Test Connection
+                                {isTesting ? 'Testing...' : 'Test Connection'}
                             </Button>
                         </div>
                     </div>
