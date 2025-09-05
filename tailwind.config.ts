@@ -1,5 +1,6 @@
 
 import type {Config} from 'tailwindcss';
+import plugin from 'tailwindcss/plugin';
 
 export default {
   darkMode: ['class'],
@@ -99,14 +100,35 @@ export default {
           'to': {
             transform: 'translateY(calc(-50%))'
           }
-        }
+        },
+        'border-spin': {
+            '100%': {
+                transform: 'rotate(360deg)',
+            },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'scroll': 'scroll 40s linear infinite',
+        'border-spin': 'border-spin 7s linear infinite',
       },
     },
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [
+    require('tailwindcss-animate'),
+    plugin(function ({ addUtilities, theme }) {
+      addUtilities({
+        '.animate-border-spin': {
+          '--angle': '0deg',
+          animation: 'border-spin 7s linear infinite',
+          '@property --angle': {
+            syntax: "'<angle>'",
+            inherits: false,
+            initialValue: '0deg',
+          },
+        },
+      });
+    }),
+  ],
 } satisfies Config;

@@ -34,13 +34,14 @@ export default function DashboardPage() {
     const totalStudents = students.length;
     
     const messagesSentToday = useMemo(() => {
+        if (!today) return 0;
         return activityLog.filter(log => {
             return log.action === 'Send Custom Message' && isToday(new Date(log.timestamp));
         }).reduce((total, log) => {
             const match = log.description.match(/Sent message to (\d+)/);
             return total + (match ? parseInt(match[1], 10) : 0);
         }, 0);
-    }, [activityLog]);
+    }, [activityLog, today]);
 
     const { monthlyIncome, monthlyExpenses, netProfitThisMonth } = useMemo(() => {
         if (!today) return { monthlyIncome: 0, monthlyExpenses: 0, netProfitThisMonth: 0 };
@@ -95,9 +96,10 @@ export default function DashboardPage() {
 
 
     const newAdmissions = useMemo(() => {
-        const oneMonthAgo = subMonths(new Date(), 1);
+        if (!today) return 0;
+        const oneMonthAgo = subMonths(today, 1);
         return students.filter(s => new Date(s.admissionDate) > oneMonthAgo).length;
-    }, [students]);
+    }, [students, today]);
     
     const classDistributionData = useMemo(() => {
         const dist = students.reduce((acc, student) => {
@@ -118,9 +120,10 @@ export default function DashboardPage() {
     }, [students]);
 
     const newAdmissionsData = useMemo(() => {
-        const sixMonthsAgo = subMonths(new Date(), 5);
+        if (!today) return [];
+        const sixMonthsAgo = subMonths(today, 5);
         const months = Array.from({ length: 6 }, (_, i) => {
-            const date = subMonths(new Date(), 5 - i);
+            const date = subMonths(today, 5 - i);
             return { month: format(date, 'MMM'), count: 0 };
         });
 
@@ -136,61 +139,71 @@ export default function DashboardPage() {
         });
         return months;
 
-    }, [students]);
+    }, [students, today]);
 
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
-        <Card className="transition-all hover:scale-105 hover:shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Total Students</CardTitle>
-            <Users className="w-5 h-5 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{totalStudents.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">+2% from last month</p>
-          </CardContent>
-        </Card>
-        <Card className="transition-all hover:scale-105 hover:shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Students Present</CardTitle>
-            <UserCheck className="w-5 h-5 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{presentStudents}</div>
-            <p className="text-xs text-muted-foreground">Attendance for today</p>
-          </CardContent>
-        </Card>
-         <Card className="transition-all hover:scale-105 hover:shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Students Absent</CardTitle>
-            <UserX className="w-5 h-5 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{absentStudents}</div>
-            <p className="text-xs text-muted-foreground">Attendance for today</p>
-          </CardContent>
-        </Card>
-        <Card className="transition-all hover:scale-105 hover:shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Messages Sent Today</CardTitle>
-            <MessageSquare className="w-5 h-5 text-purple-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{messagesSentToday}</div>
-            <p className="text-xs text-muted-foreground">WhatsApp messages delivered</p>
-          </CardContent>
-        </Card>
-        <Card className="transition-all hover:scale-105 hover:shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">New Admissions</CardTitle>
-            <UserPlus className="w-5 h-5 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{newAdmissions}</div>
-            <p className="text-xs text-muted-foreground">In the last 30 days</p>
-          </CardContent>
-        </Card>
+        <div className="relative rounded-lg p-0.5 bg-[conic-gradient(from_var(--angle),theme(colors.chart.1),theme(colors.chart.2),theme(colors.chart.3),theme(colors.chart.4),theme(colors.chart.5),theme(colors.chart.1))] animate-border-spin">
+            <Card className="h-full w-full">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+                <Users className="w-5 h-5 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{totalStudents.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">+2% from last month</p>
+              </CardContent>
+            </Card>
+        </div>
+         <div className="relative rounded-lg p-0.5 bg-[conic-gradient(from_var(--angle),theme(colors.chart.1),theme(colors.chart.2),theme(colors.chart.3),theme(colors.chart.4),theme(colors.chart.5),theme(colors.chart.1))] animate-border-spin">
+            <Card className="h-full w-full">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                <CardTitle className="text-sm font-medium">Students Present</CardTitle>
+                <UserCheck className="w-5 h-5 text-green-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{presentStudents}</div>
+                <p className="text-xs text-muted-foreground">Attendance for today</p>
+              </CardContent>
+            </Card>
+        </div>
+         <div className="relative rounded-lg p-0.5 bg-[conic-gradient(from_var(--angle),theme(colors.chart.1),theme(colors.chart.2),theme(colors.chart.3),theme(colors.chart.4),theme(colors.chart.5),theme(colors.chart.1))] animate-border-spin">
+            <Card className="h-full w-full">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                <CardTitle className="text-sm font-medium">Students Absent</CardTitle>
+                <UserX className="w-5 h-5 text-red-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{absentStudents}</div>
+                <p className="text-xs text-muted-foreground">Attendance for today</p>
+              </CardContent>
+            </Card>
+        </div>
+        <div className="relative rounded-lg p-0.5 bg-[conic-gradient(from_var(--angle),theme(colors.chart.1),theme(colors.chart.2),theme(colors.chart.3),theme(colors.chart.4),theme(colors.chart.5),theme(colors.chart.1))] animate-border-spin">
+            <Card className="h-full w-full">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                <CardTitle className="text-sm font-medium">Messages Sent Today</CardTitle>
+                <MessageSquare className="w-5 h-5 text-purple-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{messagesSentToday}</div>
+                <p className="text-xs text-muted-foreground">WhatsApp messages delivered</p>
+              </CardContent>
+            </Card>
+        </div>
+        <div className="relative rounded-lg p-0.5 bg-[conic-gradient(from_var(--angle),theme(colors.chart.1),theme(colors.chart.2),theme(colors.chart.3),theme(colors.chart.4),theme(colors.chart.5),theme(colors.chart.1))] animate-border-spin">
+            <Card className="h-full w-full">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                <CardTitle className="text-sm font-medium">New Admissions</CardTitle>
+                <UserPlus className="w-5 h-5 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{newAdmissions}</div>
+                <p className="text-xs text-muted-foreground">In the last 30 days</p>
+              </CardContent>
+            </Card>
+        </div>
       </div>
 
        <div className="grid gap-6 md:grid-cols-3">
@@ -347,3 +360,4 @@ export default function DashboardPage() {
 
 
     
+
