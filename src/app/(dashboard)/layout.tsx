@@ -10,7 +10,7 @@ import { DataProvider } from '@/context/data-context';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter, usePathname } from 'next/navigation';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 
@@ -100,10 +100,15 @@ function AuthWrapper({ children }: { children: ReactNode }) {
 
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   return (
     <AuthWrapper>
       <DataProvider>
-        <InactivityDetector />
+        {isClient && <InactivityDetector />}
         <SidebarProvider>
           <div className="flex min-h-screen w-full bg-muted/40">
             <Sidebar>
