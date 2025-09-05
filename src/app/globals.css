@@ -87,6 +87,30 @@ body {
   }
 }
 
+.header-container {
+  @apply relative flex h-14 w-full items-center gap-4 rounded-lg border bg-background/80 px-4 backdrop-blur-sm;
+}
+
+.header-container::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: 12px; /* Slightly larger than the container's border-radius */
+  padding: 2px;
+  background: linear-gradient(270deg, #ff00ff, #00ffff, #ff9900, #ff0000);
+  background-size: 400% 400%;
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  animation: gradientMove 6s linear infinite;
+  z-index: -1;
+}
+
 .stat-card {
   position: relative;
   z-index: 1;
@@ -159,5 +183,3 @@ body {
     print-color-adjust: exact;
   }
 }
-
-    
