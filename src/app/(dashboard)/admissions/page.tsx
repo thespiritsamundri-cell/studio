@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, PlusCircle, X, Users, CheckCircle, Info } from 'lucide-react';
+import { Search, PlusCircle, X, Users, CheckCircle, Info, AlertCircle } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useData } from '@/context/data-context';
@@ -313,13 +313,13 @@ export default function AdmissionsPage() {
               </Button>
             </div>
              {familyExists && foundFamily && (
-                <Alert className="mt-4 max-w-sm">
-                    <CheckCircle className="h-4 w-4" />
-                    <AlertTitle>Family Verified</AlertTitle>
+                 <Alert className="mt-4 max-w-sm" variant={foundFamily.cnic ? 'default' : 'destructive'}>
+                    {foundFamily.cnic ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                    <AlertTitle>{foundFamily.cnic ? 'Family Verified' : 'Family Not Verified'}</AlertTitle>
                     <AlertDescription>
                         <p>Father's Name: {foundFamily.fatherName}</p>
                         <p>Father's Profession: {foundFamily.profession}</p>
-                        <p>CNIC: {foundFamily.cnic}</p>
+                        <p>CNIC: {foundFamily.cnic || 'Not Provided'}</p>
                     </AlertDescription>
                 </Alert>
             )}
