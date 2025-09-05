@@ -499,10 +499,10 @@ export default function SettingsPage() {
     };
 
     // Safely access nested properties
-    const automatedMessages = settings.automatedMessages || {
-        admission: { enabled: false, templateId: '' },
-        absentee: { enabled: false, templateId: '' },
-        payment: { enabled: false, templateId: '' },
+    const automatedMessages = {
+        admission: settings.automatedMessages?.admission || { enabled: false, templateId: '' },
+        absentee: settings.automatedMessages?.absentee || { enabled: false, templateId: '' },
+        payment: settings.automatedMessages?.payment || { enabled: false, templateId: '' },
     };
 
   return (
@@ -834,6 +834,13 @@ export default function SettingsPage() {
                                     <Input id="whatsappAccessToken" placeholder="e.g., EAA..." disabled />
                                 </div>
                             </div>
+                             <Alert variant="default">
+                                <Info className="h-4 w-4" />
+                                <AlertTitle>Under Development</AlertTitle>
+                                <AlertDescription>
+                                    Direct integration with the Official WhatsApp Business API is under development. The fields above are placeholders.
+                                </AlertDescription>
+                            </Alert>
                          </TabsContent>
                     </Tabs>
                     <div className="flex items-center gap-4 pt-4 border-t mt-4">
@@ -1132,3 +1139,4 @@ export default function SettingsPage() {
     
 
     
+
