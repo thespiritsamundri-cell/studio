@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 
 const chartConfig = {
   attendance: {
@@ -166,7 +168,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
-        <div className="stat-card">
+        <div className="stat-card transition-transform duration-300 ease-in-out hover:scale-105">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">Total Students</CardTitle>
@@ -178,7 +180,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
         </div>
-        <div className="stat-card">
+        <div className="stat-card transition-transform duration-300 ease-in-out hover:scale-105">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">Students Present</CardTitle>
@@ -190,7 +192,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
         </div>
-         <div className="stat-card">
+         <div className="stat-card transition-transform duration-300 ease-in-out hover:scale-105">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">Students Absent</CardTitle>
@@ -202,7 +204,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
         </div>
-        <div className="stat-card">
+        <div className="stat-card transition-transform duration-300 ease-in-out hover:scale-105">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">Messages Sent Today</CardTitle>
@@ -214,7 +216,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
         </div>
-        <div className="stat-card">
+        <div className="stat-card transition-transform duration-300 ease-in-out hover:scale-105">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">New Admissions</CardTitle>
@@ -257,151 +259,160 @@ export default function DashboardPage() {
                 </CardContent>
             </Card>
        </div>
+      <Tabs defaultValue="attendance">
+         <div className="animated-gradient-tabs-list">
+            <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="attendance">Class Attendance</TabsTrigger>
+                <TabsTrigger value="activity">Recent Activity</TabsTrigger>
+                <TabsTrigger value="teacher_attendance">Teacher Attendance</TabsTrigger>
+                <TabsTrigger value="distribution">Class Distribution</TabsTrigger>
+            </TabsList>
+         </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-            <CardHeader>
-                <CardTitle>Today's Attendance by Class</CardTitle>
-                <CardDescription>A summary of student attendance for today.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <ScrollArea className="h-[300px]">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Class</TableHead>
-                                <TableHead className="text-center">Total Students</TableHead>
-                                <TableHead className="text-center">Present</TableHead>
-                                <TableHead className="text-center">Absent</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {classAttendanceSummary.map(c => (
-                                <TableRow key={c.name}>
-                                    <TableCell className="font-medium">{c.name}</TableCell>
-                                    <TableCell className="text-center">
-                                        <Badge variant="secondary" className="text-base">{c.total}</Badge>
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                        <Badge className="text-base bg-green-500/20 text-green-700 border-green-500/30">{c.present}</Badge>
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                        <Badge variant="destructive" className="text-base">{c.absent}</Badge>
-                                    </TableCell>
+        <TabsContent value="attendance" className="mt-4">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Today's Attendance by Class</CardTitle>
+                    <CardDescription>A summary of student attendance for today.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ScrollArea className="h-[300px]">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Class</TableHead>
+                                    <TableHead className="text-center">Total Students</TableHead>
+                                    <TableHead className="text-center">Present</TableHead>
+                                    <TableHead className="text-center">Absent</TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </ScrollArea>
-            </CardContent>
-        </Card>
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <History className="w-6 h-6" />
-                    Recent Activities
-                </CardTitle>
-                <CardDescription>A live feed of recent actions in the system.</CardDescription>
-            </CardHeader>
-            <CardContent className="h-[300px] p-0 overflow-hidden">
-                <div className="h-full w-full overflow-hidden [mask-image:_linear-gradient(to_bottom,transparent_0,_black_128px,_black_calc(100%-128px),transparent_100%)]">
-                    <div className="animate-scroll">
-                        {activityLog.length > 0 ? (
-                            [...activityLog, ...activityLog].slice(0, 20).map((log, index) => (
-                                <div key={`${log.id}-${index}`} className="p-4 border-b">
-                                    <div className="flex items-start gap-4">
-                                        <div className="text-sm">
-                                            <p className="font-medium">{log.description}</p>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <Badge variant="secondary">{log.action}</Badge>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {formatDistanceToNow(new Date(log.timestamp), { addSuffix: true })} by {log.user}
-                                                </p>
+                            </TableHeader>
+                            <TableBody>
+                                {classAttendanceSummary.map(c => (
+                                    <TableRow key={c.name}>
+                                        <TableCell className="font-medium">{c.name}</TableCell>
+                                        <TableCell className="text-center">
+                                            <Badge variant="secondary" className="text-base">{c.total}</Badge>
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            <Badge className="text-base bg-green-500/20 text-green-700 border-green-500/30">{c.present}</Badge>
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            <Badge variant="destructive" className="text-base">{c.absent}</Badge>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </ScrollArea>
+                </CardContent>
+            </Card>
+        </TabsContent>
+        <TabsContent value="activity" className="mt-4">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <History className="w-6 h-6" />
+                        Recent Activities
+                    </CardTitle>
+                    <CardDescription>A live feed of recent actions in the system.</CardDescription>
+                </CardHeader>
+                <CardContent className="h-[350px] p-0 overflow-hidden">
+                    <div className="h-full w-full overflow-hidden [mask-image:_linear-gradient(to_bottom,transparent_0,_black_128px,_black_calc(100%-128px),transparent_100%)]">
+                        <div className="animate-scroll">
+                            {activityLog.length > 0 ? (
+                                [...activityLog, ...activityLog].slice(0, 20).map((log, index) => (
+                                    <div key={`${log.id}-${index}`} className="p-4 border-b">
+                                        <div className="flex items-start gap-4">
+                                            <div className="text-sm">
+                                                <p className="font-medium">{log.description}</p>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <Badge variant="secondary">{log.action}</Badge>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {formatDistanceToNow(new Date(log.timestamp), { addSuffix: true })} by {log.user}
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
+                                ))
+                            ) : (
+                                <div className="flex items-center justify-center h-full text-muted-foreground">
+                                    No recent activities.
                                 </div>
-                            ))
-                        ) : (
-                            <div className="flex items-center justify-center h-full text-muted-foreground">
-                                No recent activities.
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
-                </div>
-            </CardContent>
-        </Card>
-      </div>
-       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Briefcase /> Today's Teacher Attendance</CardTitle>
-                <CardDescription>A summary of teacher attendance for today and the current month.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                 <ScrollArea className="h-[300px]">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Teacher</TableHead>
-                                <TableHead className="text-center">Today's Status</TableHead>
-                                <TableHead className="text-center">Present (Month)</TableHead>
-                                <TableHead className="text-center">Absent (Month)</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {teacherAttendanceSummary.map(t => (
-                                <TableRow key={t.name}>
-                                    <TableCell className="font-medium">{t.name}</TableCell>
-                                    <TableCell className="text-center">
-                                        {t.todayStatus ? (
-                                            <Badge variant={t.todayStatus === 'Present' ? 'default' : t.todayStatus === 'Absent' ? 'destructive' : 'secondary'}
-                                                   className={cn(t.todayStatus === 'Present' && 'bg-green-600')}>
-                                                {t.todayStatus}
-                                            </Badge>
-                                        ) : (
-                                            <Badge variant="outline">Not Marked</Badge>
-                                        )}
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                        <Badge className="text-base bg-green-500/20 text-green-700 border-green-500/30">{t.presentCount}</Badge>
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                        <Badge variant="destructive" className="text-base">{t.absentCount}</Badge>
-                                    </TableCell>
+                </CardContent>
+            </Card>
+        </TabsContent>
+        <TabsContent value="teacher_attendance" className="mt-4">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Briefcase /> Today's Teacher Attendance</CardTitle>
+                    <CardDescription>A summary of teacher attendance for today and the current month.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ScrollArea className="h-[300px]">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Teacher</TableHead>
+                                    <TableHead className="text-center">Today's Status</TableHead>
+                                    <TableHead className="text-center">Present (Month)</TableHead>
+                                    <TableHead className="text-center">Absent (Month)</TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </ScrollArea>
-            </CardContent>
-        </Card>
-        <Card>
-            <CardHeader>
-                <CardTitle>Class Distribution</CardTitle>
-                <CardDescription>Student distribution across top classes.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex items-center justify-center h-[300px]">
-                <ChartContainer config={{}} className="w-full h-full">
-                    <PieChart>
-                         <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                        <Pie data={classDistributionData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80} strokeWidth={2} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                             {classDistributionData.map((entry) => (
-                                <Cell key={`cell-${entry.name}`} fill={entry.fill} />
-                            ))}
-                        </Pie>
-                    </PieChart>
-                </ChartContainer>
-            </CardContent>
-        </Card>
-      </div>
+                            </TableHeader>
+                            <TableBody>
+                                {teacherAttendanceSummary.map(t => (
+                                    <TableRow key={t.name}>
+                                        <TableCell className="font-medium">{t.name}</TableCell>
+                                        <TableCell className="text-center">
+                                            {t.todayStatus ? (
+                                                <Badge variant={t.todayStatus === 'Present' ? 'default' : t.todayStatus === 'Absent' ? 'destructive' : 'secondary'}
+                                                    className={cn(t.todayStatus === 'Present' && 'bg-green-600')}>
+                                                    {t.todayStatus}
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="outline">Not Marked</Badge>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            <Badge className="text-base bg-green-500/20 text-green-700 border-green-500/30">{t.presentCount}</Badge>
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            <Badge variant="destructive" className="text-base">{t.absentCount}</Badge>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </ScrollArea>
+                </CardContent>
+            </Card>
+        </TabsContent>
+        <TabsContent value="distribution" className="mt-4">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Class Distribution</CardTitle>
+                    <CardDescription>Student distribution across top classes.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex items-center justify-center h-[350px]">
+                    <ChartContainer config={{}} className="w-full h-full">
+                        <PieChart>
+                            <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                            <Pie data={classDistributionData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80} strokeWidth={2} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                                {classDistributionData.map((entry) => (
+                                    <Cell key={`cell-${entry.name}`} fill={entry.fill} />
+                                ))}
+                            </Pie>
+                        </PieChart>
+                    </ChartContainer>
+                </CardContent>
+            </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
-
-    
-
-    
-
-
+}
 
     
