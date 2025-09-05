@@ -149,89 +149,49 @@ export function DataProvider({ children }: { children: ReactNode }) {
         toast({ title: `Error updating ${collectionName}`, variant: "destructive" });
     }
   }
-  
-  const deleteDocFactory = <T extends { name?: string }>(
-    collectionName: string,
-    actionName: string,
-    descriptionFn: (item: T) => string,
-    stateSetter: React.Dispatch<React.SetStateAction<T[]>>
-) => async (itemToDelete: T & { id: string }) => {
-    try {
-        await deleteDoc(doc(db, collectionName, itemToDelete.id));
-        stateSetter(prev => prev.filter(item => item.id !== itemToDelete.id));
-        await addActivityLog({ user: 'Admin', action: actionName, description: descriptionFn(itemToDelete) });
-    } catch (e) {
-        console.error(`Error deleting from ${collectionName}:`, e);
-        toast({
-            title: `Deletion Failed`,
-            description: `Could not delete the item from ${collectionName}.`,
-            variant: 'destructive',
-        });
-    }
-};
 
+  // --- STUDENT ---
+  const addStudent = addDocFactory<Student>('students', 'Add Student', d => `Admitted new student: ${d.name} (ID: ${d.id}) in Class ${d.class}.`);
+  const updateStudent = updateDocFactory<Student>('students', 'Update Student', d => `Updated details for student: ${d.name || ''} (ID: ${d.id}).`);
   const deleteStudent = async (studentId: string) => {
     const studentToDelete = students.find((s) => s.id === studentId);
     if (!studentToDelete) return;
-
     try {
-        const batch = writeBatch(db);
+      const batch = writeBatch(db);
+      const studentRef = doc(db, 'students', studentId);
+      batch.delete(studentRef);
 
-        // 1. Delete the student document
-        const studentRef = doc(db, 'students', studentId);
-        batch.delete(studentRef);
+      const examsToUpdate = exams.filter(exam => exam.results.some(result => result.studentId === studentId));
+      for (const exam of examsToUpdate) {
+        const newResults = exam.results.filter(result => result.studentId !== studentId);
+        const examRef = doc(db, 'exams', exam.id);
+        batch.update(examRef, { results: newResults });
+      }
 
-        // 2. Go through all exams and remove the student's results
-        const examsToUpdate = exams.filter(exam => exam.results.some(result => result.studentId === studentId));
-        for (const exam of examsToUpdate) {
-            const newResults = exam.results.filter(result => result.studentId !== studentId);
-            const examRef = doc(db, 'exams', exam.id);
-            batch.update(examRef, { results: newResults });
-        }
-
-        await batch.commit();
-        setStudents(prev => prev.filter(s => s.id !== studentId)); // Manually update local state
-        
-        await addActivityLog({
-            user: 'Admin',
-            action: 'Delete Student',
-            description: `Deleted student: ${studentToDelete.name} (ID: ${studentId}).`,
-        });
-
-    } catch (e: any) {
-        console.error("Error deleting student:", e);
-        toast({
-            title: "Deletion Failed",
-            description: `Could not delete student ${studentToDelete.name}. Reason: ${e.message}`,
-            variant: "destructive",
-        });
+      await batch.commit();
+      await addActivityLog({ user: 'Admin', action: 'Delete Student', description: `Deleted student: ${studentToDelete.name} (ID: ${studentId}).`});
+    } catch (e) {
+      console.error("Error deleting student:", e);
+      toast({ title: "Deletion Failed", description: "Could not delete student.", variant: "destructive" });
     }
   };
 
-
-  const addStudent = addDocFactory<Student>('students', 'Add Student', d => `Admitted new student: ${d.name} (ID: ${d.id}) in Class ${d.class}.`);
-  const updateStudent = updateDocFactory<Student>('students', 'Update Student', d => `Updated details for student: ${d.name || ''} (ID: ${d.id}).`);
-  
+  // --- FAMILY ---
   const addFamily = addDocFactory<Family>('families', 'Add Family', d => `Added new family: ${d.fatherName} (ID: ${d.id}).`);
   const updateFamily = updateDocFactory<Family>('families', 'Update Family', d => `Updated details for family: ${d.fatherName || ''} (ID: ${d.id}).`);
-  
   const deleteFamily = async (familyId: string) => {
     const familyToDelete = families.find((f) => f.id === familyId);
     if (!familyToDelete) return;
 
     try {
         const batch = writeBatch(db);
-
-        // Delete the family document
         batch.delete(doc(db, "families", familyId));
 
-        // Find and delete all students associated with that family
         const studentQuery = query(collection(db, "students"), where("familyId", "==", familyId));
         const studentDocs = await getDocs(studentQuery);
         const studentIdsToDelete = studentDocs.docs.map(doc => doc.id);
         studentDocs.forEach(doc => batch.delete(doc.ref));
 
-        // If there were students, find and remove their exam results
         if (studentIdsToDelete.length > 0) {
             const examsToUpdate = exams.filter(exam => exam.results.some(r => studentIdsToDelete.includes(r.studentId)));
             for (const exam of examsToUpdate) {
@@ -240,25 +200,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
             }
         }
         
-        // Find and delete all fees associated with that family
         const feesQuery = query(collection(db, "fees"), where("familyId", "==", familyId));
         const feeDocs = await getDocs(feesQuery);
         feeDocs.forEach(doc => batch.delete(doc.ref));
         
         await batch.commit();
-
-        await addActivityLog({
-            user: 'Admin',
-            action: 'Delete Family',
-            description: `Deleted family: ${familyToDelete.fatherName} (ID: ${familyId}) and all ${studentIdsToDelete.length} associated students/fees.`,
-        });
+        await addActivityLog({ user: 'Admin', action: 'Delete Family', description: `Deleted family: ${familyToDelete.fatherName} (ID: ${familyId}) and all associated records.` });
     } catch (e: any) {
-        console.error("Error deleting family and associated data:", e);
-        toast({ title: "Deletion Failed", description: e.message, variant: "destructive" });
+        console.error("Error deleting family:", e);
+        toast({ title: "Deletion Failed", description: "Could not delete family and associated data.", variant: "destructive" });
     }
-};
+  };
 
-
+  // --- FEE ---
   const addFee = addDocFactory<Fee>('fees', 'Add Fee', d => `Fee generated for family ${d.familyId} for ${d.month} ${d.year}.`);
   const updateFee = updateDocFactory<Fee>('fees', 'Update Fee', d => `Fee ${d.id} updated.`);
   const deleteFee = async (id: string) => {
@@ -269,6 +223,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
      }
   };
   
+  // --- TEACHER ---
   const addTeacher = addDocFactory<Teacher>('teachers', 'Add Teacher', d => `Added new teacher: ${d.name}.`);
   const updateTeacher = updateDocFactory<Teacher>('teachers', 'Update Teacher', d => `Updated teacher: ${d.name || ''}.`);
   const deleteTeacher = async (id: string) => {
@@ -279,9 +234,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       await addActivityLog({ user: 'Admin', action: 'Delete Teacher', description: `Deleted teacher: ${teacherToDelete.name}.` });
     } catch (e) {
       console.error('Error deleting teacher:', e);
+      toast({ title: 'Error Deleting Teacher', variant: 'destructive' });
     }
   };
   
+  // --- CLASS ---
   const addClass = addDocFactory<Class>('classes', 'Add Class', d => `Created new class: ${d.name}.`);
   const updateClass = updateDocFactory<Class>('classes', 'Update Class', d => `Updated class: ${d.name || ''}.`);
   const deleteClass = async (id: string) => {
@@ -292,9 +249,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       await addActivityLog({ user: 'Admin', action: 'Delete Class', description: `Deleted class: ${classToDelete.name}.` });
     } catch (e) {
       console.error('Error deleting class:', e);
+      toast({ title: 'Error Deleting Class', variant: 'destructive' });
     }
   };
   
+  // --- EXAM ---
   const addExam = addDocFactory<Exam>('exams', 'Create Exam', d => `Created exam "${d.name}" for class ${d.class}.`);
   const updateExam = updateDocFactory<Exam>('exams', 'Save Exam Results', d => `Saved results for exam: ${d.name || ''} (${d.class || ''}).`);
   const deleteExam = async (id: string) => {
@@ -305,9 +264,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       await addActivityLog({ user: 'Admin', action: 'Delete Exam', description: `Deleted exam: ${examToDelete.name}.` });
     } catch (e) {
       console.error('Error deleting exam:', e);
+      toast({ title: 'Error Deleting Exam', variant: 'destructive' });
     }
   };
   
+  // --- EXPENSE ---
   const addExpense = addDocFactory<Expense>('expenses', 'Add Expense', d => `Added expense of PKR ${d.amount} for ${d.category}.`);
   const updateExpense = updateDocFactory<Expense>('expenses', 'Update Expense', d => `Updated expense for ${d.category || ''}.`);
   const deleteExpense = async (id: string) => {
@@ -318,9 +279,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       await addActivityLog({ user: 'Admin', action: 'Delete Expense', description: `Deleted expense: ${expenseToDelete.description}.` });
     } catch (e) {
       console.error('Error deleting expense:', e);
+      toast({ title: 'Error Deleting Expense', variant: 'destructive' });
     }
   };
 
+  // --- OTHER ---
   const saveTeacherAttendance = async (newAttendances: TeacherAttendance[]) => {
     const date = newAttendances[0]?.date;
     if (!date) return;
@@ -329,7 +292,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const batch = writeBatch(db);
         const q = query(collection(db, "teacherAttendances"), where("date", "==", date));
         const existingDocs = await getDocs(q);
-        existingDocs.forEach(doc => batch.delete(doc.ref)); // Delete old records for the day
+        existingDocs.forEach(doc => batch.delete(doc.ref));
 
         newAttendances.forEach(att => {
             const docRef = doc(collection(db, "teacherAttendances"));
@@ -347,7 +310,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const updateTimetable = async (classId: string, data: TimetableData, timeSlots?: string[], breakAfterPeriod?: number, breakDuration?: string) => {
     try {
         const timetableRef = doc(db, 'timetables', classId);
-        await updateDoc(timetableRef, { classId, data, timeSlots, breakAfterPeriod, breakDuration });
+        await setDoc(timetableRef, { classId, data, timeSlots, breakAfterPeriod, breakDuration }, { merge: true });
         const className = classes.find(c => c.id === classId)?.name || classId;
         await addActivityLog({ user: 'Admin', action: 'Update Timetable', description: `Updated timetable for class ${className}.` });
     } catch (e) {
@@ -361,7 +324,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     try {
         const batch = writeBatch(db);
 
-        // A helper function to add a dataset to the batch
         const addToBatch = (data: any[], collectionName: string) => {
             data.forEach(item => {
                 const { id, ...rest } = item;
@@ -394,8 +356,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
 
 
-  // This function is for manual data import, e.g., from a backup file.
-  // It's a placeholder and needs robust implementation based on backup structure.
   const loadData = async (data: any) => {
       console.log("Load data function called, but it's a placeholder.", data);
       toast({ title: "Data Loading Not Implemented", description: "This functionality requires a robust implementation to avoid data corruption."});
@@ -423,31 +383,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
       deleteFee,
       addTeacher,
       updateTeacher,
-      deleteTeacher: (id: string) => {
-        const teacher = teachers.find(t => t.id === id);
-        if (teacher) deleteDocFactory('teachers', 'Delete Teacher', t => `Deleted teacher: ${t.name}.`, setTeachers)(teacher);
-      },
+      deleteTeacher,
       saveTeacherAttendance,
       addClass,
       updateClass,
-      deleteClass: (id: string) => {
-        const classToDelete = classes.find(c => c.id === id);
-        if (classToDelete) deleteDocFactory('classes', 'Delete Class', c => `Deleted class: ${c.name}.`, setClasses)(classToDelete);
-      },
+      deleteClass,
       addExam,
       updateExam,
-      deleteExam: (id: string) => {
-        const examToDelete = exams.find(e => e.id === id);
-        if (examToDelete) deleteDocFactory('exams', 'Delete Exam', e => `Deleted exam: ${e.name}.`, setExams)(examToDelete);
-      },
+      deleteExam,
       addActivityLog,
       clearActivityLog,
       addExpense,
       updateExpense,
-      deleteExpense: (id: string) => {
-        const expenseToDelete = expenses.find(e => e.id === id);
-        if (expenseToDelete) deleteDocFactory('expenses', 'Delete Expense', e => `Deleted expense: ${e.description}.`, setExpenses)(expenseToDelete);
-      },
+      deleteExpense,
       updateTimetable,
       loadData,
       seedDatabase,
