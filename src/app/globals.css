@@ -89,21 +89,19 @@ body {
 
 @layer components {
     .animated-gradient-border {
-        @apply relative z-10 bg-card;
+        @apply relative p-[1px] overflow-hidden;
+    }
+    .animated-gradient-border > * {
+        @apply relative z-10;
     }
 
     .animated-gradient-border::before {
         content: "";
         position: absolute;
-        top: -2px;
-        left: -2px;
-        right: -2px;
-        bottom: -2px;
-        border-radius: var(--radius); /* Uses the card's border radius */
-        background: linear-gradient(270deg, theme(colors.chart.1), theme(colors.chart.2), theme(colors.chart.3), theme(colors.chart.4), theme(colors.chart.5));
-        background-size: 400% 400%;
-        z-index: -1;
+        top: 0; right: 0; bottom: 0; left: 0;
+        background: conic-gradient(from var(--angle), theme(colors.chart.1), theme(colors.chart.2), theme(colors.chart.3), theme(colors.chart.4), theme(colors.chart.5), theme(colors.chart.1));
         animation: gradient-move 8s linear infinite;
+        z-index: 0;
     }
 }
 
@@ -119,5 +117,7 @@ body {
     print-color-adjust: exact;
   }
 }
+
+    
 
     
