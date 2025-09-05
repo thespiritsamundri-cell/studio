@@ -13,6 +13,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
+import LockPage from '../lock/page';
+
 
 function InactivityDetector() {
   const router = useRouter();
@@ -63,11 +65,11 @@ function AuthWrapper({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!loading && !user && pathname !== '/lock') {
+    if (!loading && !user) {
       router.replace('/');
     }
-  }, [user, loading, router, pathname]);
-
+  }, [user, loading, router]);
+  
   if (loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -84,15 +86,8 @@ function AuthWrapper({ children }: { children: ReactNode }) {
     );
   }
 
-  // If user is logged in, show the app.
-  // If not logged in, only allow access to the /lock page if that's the current path.
-  // Otherwise, the effect above will redirect to '/'.
   if (user) {
      return <>{children}</>;
-  }
-
-  if (pathname === '/lock') {
-      return <>{children}</>;
   }
 
   return null;
@@ -101,9 +96,15 @@ function AuthWrapper({ children }: { children: ReactNode }) {
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [isClient, setIsClient] = useState(false);
+  const pathname = usePathname();
+
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  if (pathname === '/lock') {
+      return <LockPage />;
+  }
 
   return (
     <AuthWrapper>
