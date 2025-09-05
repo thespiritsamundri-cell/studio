@@ -42,6 +42,8 @@ export default function SettingsPage() {
   const [customNumbers, setCustomNumbers] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [testPhoneNumber, setTestPhoneNumber] = useState('');
+
 
   // Account settings state
   const [email, setEmail] = useState('');
@@ -370,9 +372,14 @@ export default function SettingsPage() {
   
     const handleTestConnection = async () => {
         setIsTesting(true);
+        if (!testPhoneNumber) {
+            toast({ title: 'Test Failed', description: 'Please enter a phone number to send the test message to.', variant: 'destructive' });
+            setIsTesting(false);
+            return;
+        }
         try {
             const success = await sendWhatsAppMessage(
-                '1234567890', // Using a dummy number for testing
+                testPhoneNumber,
                 'This is a test message from EduCentral.', 
                 settings.whatsappApiUrl, 
                 settings.whatsappApiKey, 
@@ -385,7 +392,7 @@ export default function SettingsPage() {
                 throw new Error("API returned failure");
             }
         } catch (error) {
-            toast({ title: 'Test Failed', description: 'Could not connect using the provided API settings. Please check your credentials.', variant: 'destructive' });
+            toast({ title: 'Test Failed', description: 'Could not connect using the provided API settings. Please check your credentials and the console for details.', variant: 'destructive' });
         }
         setIsTesting(false);
     };
@@ -742,12 +749,18 @@ export default function SettingsPage() {
                             <Label htmlFor="whatsappActive">Active</Label>
                         </div>
                     </div>
-                     <div className="flex justify-end items-center gap-2 pt-4">
-                        <Button onClick={handleSave}><KeyRound className="mr-2"/>Save WhatsApp Settings</Button>
-                        <Button variant="outline" onClick={handleTestConnection} disabled={isTesting || !settings.whatsappApiUrl || !settings.whatsappApiKey}>
-                            {isTesting ? <Loader2 className="mr-2 animate-spin"/> : <TestTubeDiagonal className="mr-2"/>}
-                            Test Connection
-                        </Button>
+                    <div className="border-t pt-4 mt-4 space-y-4">
+                         <div className="space-y-2">
+                            <Label htmlFor="testPhoneNumber">Test Phone Number</Label>
+                            <Input id="testPhoneNumber" value={testPhoneNumber} onChange={(e) => setTestPhoneNumber(e.target.value)} placeholder="Enter a number with country code (e.g. 92300...)" />
+                        </div>
+                         <div className="flex justify-end items-center gap-2">
+                            <Button onClick={handleSave}><KeyRound className="mr-2"/>Save WhatsApp Settings</Button>
+                            <Button variant="outline" onClick={handleTestConnection} disabled={isTesting || !settings.whatsappApiUrl || !settings.whatsappApiKey}>
+                                {isTesting ? <Loader2 className="mr-2 animate-spin"/> : <TestTubeDiagonal className="mr-2"/>}
+                                Test Connection
+                            </Button>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
@@ -923,3 +936,4 @@ export default function SettingsPage() {
 }
 
     
+
