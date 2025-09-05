@@ -3,17 +3,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Grade, MessageTemplate } from '@/lib/types';
-import {
-  students as initialStudents,
-  families as initialFamilies,
-  fees as initialFees,
-  teachers as initialTeachers,
-  teacherAttendances as initialTeacherAttendances,
-  classes as initialClasses,
-  exams as initialExams,
-  expenses as initialExpenses,
-  timetables as initialTimetables
-} from '@/lib/data';
 
 export interface SchoolSettings {
   schoolName: string;
@@ -105,14 +94,13 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
       }
     } catch (error) {
       console.error('Failed to parse settings from localStorage', error);
-    } finally {
-      setIsInitialized(true);
     }
+    setIsInitialized(true);
   }, []);
 
   useEffect(() => {
     if (isInitialized) {
-      localStorage.setItem('schoolSettings', JSON.stringify(settings));
+        localStorage.setItem('schoolSettings', JSON.stringify(settings));
     }
   }, [settings, isInitialized]);
 
