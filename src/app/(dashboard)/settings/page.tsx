@@ -85,7 +85,7 @@ export default function SettingsPage() {
     }
     
     const user = auth.currentUser;
-    if (!user) {
+    if (!user || !user.email) {
         toast({ title: 'You must be logged in to change settings.', variant: 'destructive' });
         return;
     }
@@ -94,7 +94,7 @@ export default function SettingsPage() {
         return;
     }
 
-    const credential = EmailAuthProvider.credential(user.email!, currentPassword);
+    const credential = EmailAuthProvider.credential(user.email, currentPassword);
     
     let changesMade = false;
 
@@ -346,7 +346,14 @@ export default function SettingsPage() {
         }
         
         try {
-             const success = await sendWhatsAppMessage(recipient.phone, personalizedMessage, settings.whatsappApiUrl, settings.whatsappApiKey, settings.whatsappInstanceId, settings.whatsappPriority);
+             const success = await sendWhatsAppMessage(
+                recipient.phone, 
+                personalizedMessage, 
+                settings.whatsappApiUrl, 
+                settings.whatsappApiKey, 
+                settings.whatsappInstanceId, 
+                settings.whatsappPriority
+             );
              if (success) {
                 successCount++;
              }
@@ -364,7 +371,14 @@ export default function SettingsPage() {
     const handleTestConnection = async () => {
         setIsTesting(true);
         try {
-            const success = await sendWhatsAppMessage('1234567890', 'This is a test message from EduCentral.', settings.whatsappApiUrl, settings.whatsappApiKey, settings.whatsappInstanceId, settings.whatsappPriority);
+            const success = await sendWhatsAppMessage(
+                '1234567890', // Using a dummy number for testing
+                'This is a test message from EduCentral.', 
+                settings.whatsappApiUrl, 
+                settings.whatsappApiKey, 
+                settings.whatsappInstanceId, 
+                settings.whatsappPriority
+            );
             if (success) {
                 toast({ title: 'Test Successful', description: 'Your WhatsApp API settings appear to be correct.' });
             } else {
@@ -907,3 +921,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
