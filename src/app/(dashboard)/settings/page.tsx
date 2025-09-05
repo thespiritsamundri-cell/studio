@@ -709,12 +709,15 @@ export default function SettingsPage() {
         </TabsContent>
         <TabsContent value="whatsapp" className="mt-6 space-y-6">
              <Alert>
-              <Info className="h-4 w-4" />
-              <AlertTitle>Connecting to WhatsApp (UltraMSG)</AlertTitle>
-              <AlertDescription>
-                To send messages, you need to connect to a WhatsApp API provider. This interface is tailored for UltraMSG.
-                Enter your credentials and use the test button to check if the logic is working.
-              </AlertDescription>
+                <Info className="h-4 w-4" />
+                <AlertTitle>Connecting to WhatsApp (UltraMSG)</AlertTitle>
+                <AlertDescription>
+                    <ol className="list-decimal list-inside space-y-1">
+                        <li>Get your Instance ID and Token from your UltraMSG dashboard.</li>
+                        <li>Enter the credentials below and click "Save WhatsApp Settings".</li>
+                        <li>Enter your own WhatsApp number in the "Test Phone Number" field and click "Test Connection" to verify.</li>
+                    </ol>
+                </AlertDescription>
             </Alert>
             <Card>
                 <CardHeader>
