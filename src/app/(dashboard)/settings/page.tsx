@@ -43,7 +43,6 @@ export default function SettingsPage() {
   const [isSending, setIsSending] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testPhoneNumber, setTestPhoneNumber] = useState('');
-  const [whatsappStatus, setWhatsappStatus] = useState<'untested' | 'connected' | 'failed'>('untested');
 
 
   // Account settings state
@@ -146,10 +145,13 @@ export default function SettingsPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
-    setSettings(prev => ({...prev, [id]: value}));
-    if (['whatsappApiUrl', 'whatsappApiKey', 'whatsappInstanceId'].includes(id)) {
-        setWhatsappStatus('untested');
-    }
+    setSettings(prev => {
+        const newSettings = {...prev, [id]: value};
+        if (['whatsappApiUrl', 'whatsappApiKey', 'whatsappInstanceId'].includes(id)) {
+            newSettings.whatsappConnectionStatus = 'untested';
+        }
+        return newSettings;
+    });
   };
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'schoolLogo' | 'principalSignature' | 'favicon') => {
@@ -376,11 +378,11 @@ export default function SettingsPage() {
   
     const handleTestConnection = async () => {
         setIsTesting(true);
-        setWhatsappStatus('untested');
+        setSettings(prev => ({...prev, whatsappConnectionStatus: 'untested'}));
         if (!testPhoneNumber) {
             toast({ title: 'Test Failed', description: 'Please enter a phone number to send the test message to.', variant: 'destructive' });
             setIsTesting(false);
-            setWhatsappStatus('failed');
+            setSettings(prev => ({...prev, whatsappConnectionStatus: 'failed'}));
             return;
         }
         try {
@@ -394,14 +396,14 @@ export default function SettingsPage() {
             );
             if (success) {
                 toast({ title: 'Test Successful', description: 'Your WhatsApp API settings appear to be correct.' });
-                setWhatsappStatus('connected');
+                setSettings(prev => ({...prev, whatsappConnectionStatus: 'connected'}));
             } else {
-                setWhatsappStatus('failed');
+                setSettings(prev => ({...prev, whatsappConnectionStatus: 'failed'}));
                 throw new Error("API returned failure. Check console for details.");
             }
         } catch (error: any) {
             toast({ title: 'Test Failed', description: error.message || 'Could not connect using the provided API settings.', variant: 'destructive' });
-            setWhatsappStatus('failed');
+            setSettings(prev => ({...prev, whatsappConnectionStatus: 'failed'}));
         } finally {
             setIsTesting(false);
         }
@@ -732,9 +734,9 @@ export default function SettingsPage() {
                 <CardHeader>
                     <div className="flex items-center gap-4">
                         <CardTitle>API Configuration</CardTitle>
-                         {whatsappStatus === 'connected' && <Badge className="bg-green-500 text-white"><Wifi className="mr-2 h-4 w-4"/>Connected</Badge>}
-                         {whatsappStatus === 'failed' && <Badge variant="destructive"><WifiOff className="mr-2 h-4 w-4"/>Failed</Badge>}
-                         {whatsappStatus === 'untested' && <Badge variant="secondary">Untested</Badge>}
+                         {settings.whatsappConnectionStatus === 'connected' && <Badge className="bg-green-500 text-white"><Wifi className="mr-2 h-4 w-4"/>Connected</Badge>}
+                         {settings.whatsappConnectionStatus === 'failed' && <Badge variant="destructive"><WifiOff className="mr-2 h-4 w-4"/>Failed</Badge>}
+                         {settings.whatsappConnectionStatus === 'untested' && <Badge variant="secondary">Untested</Badge>}
                     </div>
                     <CardDescription>Enter your UltraMSG API details to enable messaging features.</CardDescription>
                 </CardHeader>
@@ -742,7 +744,7 @@ export default function SettingsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <Label htmlFor="whatsappApiUrl">API URL / Gateway</Label>
-                            <Input id="whatsappApiUrl" value={settings.whatsappApiUrl} onChange={handleInputChange} placeholder="e.g. https://api.ultramsg.com/instance12345/messages/chat" />
+                            <Input id="whatsappApiUrl" value={settings.whatsappApiUrl} onChange={handleInputChange} placeholder="e.g. https://api.ultramsg.com/instance12345" />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="whatsappApiKey">Token (API Key)</Label>

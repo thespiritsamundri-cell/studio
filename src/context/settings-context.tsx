@@ -50,6 +50,7 @@ export interface SchoolSettings {
   whatsappInstanceId?: string; // For providers like UltraMSG
   whatsappPriority?: string; // For providers like UltraMSG
   whatsappActive: boolean;
+  whatsappConnectionStatus: 'untested' | 'connected' | 'failed';
   messageDelay: number;
   historyClearPin?: string;
   themeColors?: Partial<ThemeColors>;
@@ -77,6 +78,7 @@ const defaultSettings: SchoolSettings = {
   whatsappInstanceId: '',
   whatsappPriority: '10',
   whatsappActive: false,
+  whatsappConnectionStatus: 'untested',
   messageDelay: 2,
   historyClearPin: '',
   themeColors: {},
