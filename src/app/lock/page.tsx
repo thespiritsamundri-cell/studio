@@ -1,11 +1,11 @@
 
 'use client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
-import { Lock, School, LogOut } from 'lucide-react';
+import { Lock, School, LogOut, Phone, MapPin } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import { useEffect, useState, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -22,11 +22,27 @@ export default function LockPage() {
   const [dateTime, setDateTime] = useState(new Date());
   
   const backgroundImageUrl = useMemo(() => {
-    // This will generate a new random image URL on each render, but because it's in useMemo without dependencies,
-    // React will try to reuse it. The server and client will generate different ones causing a mismatch warning,
-    // but it's acceptable here for the desired effect and won't break the page.
     return `https://picsum.photos/1920/1080?blur=5&random=${Math.random()}`;
   }, []);
+  
+  const [animatedSchoolName, setAnimatedSchoolName] = useState('');
+  useEffect(() => {
+    if (settings.schoolName) {
+      let index = 0;
+      const interval = setInterval(() => {
+        setAnimatedSchoolName(settings.schoolName.substring(0, index + 1));
+        index++;
+        if (index >= settings.schoolName.length) {
+          setTimeout(() => {
+            index = 0;
+            setAnimatedSchoolName('');
+          }, 2000); 
+        }
+      }, 150);
+      return () => clearInterval(interval);
+    }
+  }, [settings.schoolName]);
+
 
   useEffect(() => {
     setIsClient(true);
@@ -75,8 +91,12 @@ export default function LockPage() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-cover bg-center" style={{ backgroundImage: `url(${backgroundImageUrl})` }}>
         <div className="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+        <div className="stat-card">
         <Card className="w-full max-w-md mx-auto shadow-2xl z-10 bg-background/80 backdrop-blur-lg border-primary/20">
             <CardHeader className="text-center">
+                 <div className="text-muted-foreground font-mono mb-4">
+                    <span>{format(dateTime, 'PPPP')}</span> | <span>{format(dateTime, 'hh:mm:ss a')}</span>
+                 </div>
                 {settings.schoolLogo ? (
                     <Image src={settings.schoolLogo} alt="School Logo" width={80} height={80} className="object-contain mx-auto mb-2 rounded-full" />
                 ) : (
@@ -86,10 +106,7 @@ export default function LockPage() {
                         </div>
                     </div>
                 )}
-                <CardTitle className="text-3xl font-bold font-headline">{settings.schoolName}</CardTitle>
-                 <div className="text-muted-foreground font-mono mt-2">
-                    <span>{format(dateTime, 'PPPP')}</span> | <span>{format(dateTime, 'hh:mm:ss a')}</span>
-                 </div>
+                <CardTitle className="text-3xl font-bold font-headline h-10">{animatedSchoolName}</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleUnlock} className="space-y-4">
@@ -117,7 +134,18 @@ export default function LockPage() {
                 Logout and login with email & password
               </Button>
             </CardContent>
+            <CardFooter className="flex-col gap-2 text-center text-xs text-muted-foreground border-t pt-4">
+                <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4"/>
+                    <span>{settings.schoolAddress}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4"/>
+                    <span>{settings.schoolPhone}</span>
+                </div>
+            </CardFooter>
         </Card>
+        </div>
     </div>
   );
 }
