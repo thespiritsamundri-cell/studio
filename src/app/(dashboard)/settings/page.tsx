@@ -389,12 +389,13 @@ export default function SettingsPage() {
             if (success) {
                 toast({ title: 'Test Successful', description: 'Your WhatsApp API settings appear to be correct.' });
             } else {
-                throw new Error("API returned failure");
+                throw new Error("API returned failure. Check console for details.");
             }
-        } catch (error) {
-            toast({ title: 'Test Failed', description: 'Could not connect using the provided API settings. Please check your credentials and the console for details.', variant: 'destructive' });
+        } catch (error: any) {
+            toast({ title: 'Test Failed', description: error.message || 'Could not connect using the provided API settings.', variant: 'destructive' });
+        } finally {
+            setIsTesting(false);
         }
-        setIsTesting(false);
     };
     
     const handleThemeColorChange = (variableName: string, value: string) => {
@@ -723,11 +724,11 @@ export default function SettingsPage() {
                 <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <Label htmlFor="whatsappApiUrl">API URL</Label>
+                            <Label htmlFor="whatsappApiUrl">API URL / Gateway</Label>
                             <Input id="whatsappApiUrl" value={settings.whatsappApiUrl} onChange={handleInputChange} placeholder="e.g. https://api.ultramsg.com/instance12345/messages/chat" />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="whatsappApiKey">Token</Label>
+                            <Label htmlFor="whatsappApiKey">Token (API Key)</Label>
                             <Input id="whatsappApiKey" value={settings.whatsappApiKey} onChange={handleInputChange} placeholder="Enter UltraMSG Token" />
                         </div>
                         <div className="space-y-2">
@@ -934,6 +935,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
-
