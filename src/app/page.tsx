@@ -24,11 +24,7 @@ export default function LoginPage() {
   
   useEffect(() => {
     setIsClient(true);
-    if (settings.autofillLogin) {
-      setEmail('demo@devsinc.com');
-      setPassword('password');
-    }
-  }, [settings.autofillLogin]);
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

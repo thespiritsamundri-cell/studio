@@ -41,7 +41,6 @@ export interface SchoolSettings {
     absentee: { enabled: boolean; templateId: string };
     payment: { enabled: boolean; templateId: string };
   };
-  autofillLogin?: boolean;
 }
 
 const defaultSettings: SchoolSettings = {
@@ -81,7 +80,6 @@ const defaultSettings: SchoolSettings = {
     absentee: { enabled: true, templateId: '1' },
     payment: { enabled: true, templateId: '2' },
   },
-  autofillLogin: true,
 };
 
 export const SettingsContext = createContext<{
