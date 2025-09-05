@@ -99,39 +99,3 @@ body {
     print-color-adjust: exact;
   }
 }
-
-.stat-card {
-  position: relative;
-  border-radius: 1rem; /* match --radius more closely */
-  background: hsl(var(--card));
-  z-index: 1;
-  overflow: hidden; /* important */
-}
-
-.stat-card::before {
-  content: "";
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  border-radius: 1rem;
-  padding: 2px;
-  background: linear-gradient(270deg, hsl(var(--chart-1)), hsl(var(--chart-2)), hsl(var(--chart-3)), hsl(var(--chart-4)), hsl(var(--chart-5)));
-  background-size: 400% 400%;
-  -webkit-mask: 
-    linear-gradient(#fff 0 0) content-box, 
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-          mask-composite: exclude;
-  animation: gradientMove 6s linear infinite;
-  z-index: -1;
-}
-
-@keyframes gradientMove {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-    
