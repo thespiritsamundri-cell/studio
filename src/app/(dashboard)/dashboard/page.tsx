@@ -259,8 +259,8 @@ export default function DashboardPage() {
                 </CardContent>
             </Card>
        </div>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
-        <Card>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2">
             <CardHeader>
                 <CardTitle>Today's Attendance by Class</CardTitle>
                 <CardDescription>A summary of student attendance for today.</CardDescription>
@@ -302,10 +302,10 @@ export default function DashboardPage() {
                     <History className="w-6 h-6" />
                     Recent Activities
                 </CardTitle>
-                <CardDescription>A live feed of recent actions in the system.</CardDescription>
+                <CardDescription>A live feed of recent actions.</CardDescription>
             </CardHeader>
             <CardContent className="h-[350px] p-0 overflow-hidden">
-                <div className="h-full w-full overflow-hidden [mask-image:_linear-gradient(to_bottom,transparent_0,_black_128px,_black_calc(100%-128px),transparent_100%)]">
+                <div className="h-full w-full overflow-hidden [mask-image:_linear-gradient(to_bottom,transparent_0,_black_64px,_black_calc(100%-64px),transparent_100%)]">
                     <div className="animate-scroll">
                         {activityLog.length > 0 ? (
                             [...activityLog, ...activityLog].slice(0, 20).map((log, index) => (
@@ -332,7 +332,7 @@ export default function DashboardPage() {
                 </div>
             </CardContent>
         </Card>
-         <Card>
+         <Card className="lg:col-span-2">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Briefcase /> Today's Teacher Attendance</CardTitle>
                 <CardDescription>A summary of teacher attendance for today and the current month.</CardDescription>
@@ -397,3 +397,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
