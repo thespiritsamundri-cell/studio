@@ -94,22 +94,16 @@ export default function AttendancePage() {
 
   const handleSendWhatsapp = async () => {
     const absentStudents = students.filter((student) => attendance[student.id] === 'Absent');
-    const autoMsgConfig = settings.automatedMessages?.absenteeNotification;
+    const absenteeTemplate = settings.messageTemplates?.find(t => t.id === 'TPL_ABSENT');
 
     if (absentStudents.length === 0) {
       toast({ title: 'No Absentees', description: 'All students are present or on leave.' });
       return;
     }
 
-    if (!settings.whatsappActive || !autoMsgConfig?.enabled || !autoMsgConfig.templateId) {
-        toast({ title: 'Messaging Disabled', description: 'Please enable absentee notifications in WhatsApp settings.', variant: 'destructive'});
+    if (!settings.whatsappActive || !absenteeTemplate) {
+        toast({ title: 'Messaging Disabled', description: 'Please enable WhatsApp and ensure the "Absentee Notice" template exists in settings.', variant: 'destructive'});
         return;
-    }
-    
-    const template = settings.messageTemplates?.find(t => t.id === autoMsgConfig.templateId);
-    if (!template) {
-         toast({ title: 'Template Not Found', description: 'The selected absentee template is missing.', variant: 'destructive'});
-         return;
     }
 
     setIsSending(true);
@@ -126,7 +120,7 @@ export default function AttendancePage() {
             const family = families.find((f) => f.id === student.familyId);
             if (!family) continue;
 
-            let message = template.content;
+            let message = absenteeTemplate.content;
             message = message.replace(/{student_name}/g, student.name);
             message = message.replace(/{father_name}/g, student.fatherName);
             message = message.replace(/{class}/g, student.class);

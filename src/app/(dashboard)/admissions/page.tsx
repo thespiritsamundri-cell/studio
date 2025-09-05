@@ -226,30 +226,19 @@ export default function AdmissionsPage() {
             title: 'Student Admitted!',
             description: `${studentName} has been successfully admitted. Printing admission form...`,
         });
-
+        
         // Send WhatsApp Message if enabled
-        const autoMsgConfig = settings.automatedMessages?.admissionConfirmation;
-        if (settings.whatsappActive && autoMsgConfig?.enabled && autoMsgConfig.templateId) {
-            const template = settings.messageTemplates?.find(t => t.id === autoMsgConfig.templateId);
-            if(template) {
-                let message = template.content;
-                message = message.replace(/{school_name}/g, settings.schoolName);
-                message = message.replace(/{student_name}/g, newStudent.name);
-                message = message.replace(/{father_name}/g, newStudent.fatherName);
-                message = message.replace(/{class}/g, newStudent.class);
-                try {
-                    await sendWhatsAppMessage(
-                        newStudent.phone,
-                        message,
-                        settings.whatsappApiUrl,
-                        settings.whatsappApiKey,
-                        settings.whatsappInstanceId,
-                        settings.whatsappPriority
-                    );
-                    addActivityLog({ user: 'System', action: 'Admission Message', description: `Sent admission confirmation to ${newStudent.name}.` });
-                } catch (error) {
-                    console.error("Failed to send admission WhatsApp message:", error);
-                }
+        if(settings.whatsappActive && settings.admissionConfirmationTemplate) {
+            let message = settings.admissionConfirmationTemplate;
+            message = message.replace(/{student_name}/g, newStudent.name);
+            message = message.replace(/{father_name}/g, newStudent.fatherName);
+            message = message.replace(/{class}/g, newStudent.class);
+            message = message.replace(/{school_name}/g, settings.schoolName);
+            try {
+                await sendWhatsAppMessage(newStudent.phone, message, settings.whatsappApiUrl, settings.whatsappApiKey, settings.whatsappInstanceId, settings.whatsappPriority);
+                 addActivityLog({ user: 'System', action: 'Admission Message', description: `Sent admission confirmation to ${newStudent.name}.` });
+            } catch (error) {
+                 console.error("Failed to send admission WhatsApp message:", error);
             }
         }
 

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -17,7 +18,6 @@ import { renderToString } from 'react-dom/server';
 import type { SchoolSettings } from '@/context/settings-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useData } from '@/context/data-context';
-import { sendWhatsAppMessage } from '@/services/whatsapp-service';
 
 
 interface FeeDetailsCardProps {
@@ -54,7 +54,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
 
     const remainingDues = totalDues - paidAmount;
 
-    const handleCollectFee = async () => {
+    const handleCollectFee = () => {
         if (paidAmount <= 0) {
             toast({ title: 'Invalid Amount', description: 'Paid amount must be greater than zero.', variant: 'destructive' });
             return;
@@ -127,25 +127,6 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
         setPaidAmount(newDues);
         
         triggerPrint(newlyPaidFees, collectedAmount, newDues, paymentMethod);
-
-        // Send WhatsApp Message if enabled
-        const autoMsgConfig = settings.automatedMessages?.paymentReceipt;
-        if (settings.whatsappActive && autoMsgConfig?.enabled && autoMsgConfig.templateId) {
-            const template = settings.messageTemplates?.find(t => t.id === autoMsgConfig.templateId);
-            if(template) {
-                let message = template.content;
-                message = message.replace(/{father_name}/g, family.fatherName);
-                message = message.replace(/{paid_amount}/g, collectedAmount.toLocaleString());
-                message = message.replace(/{remaining_dues}/g, newDues.toLocaleString());
-                message = message.replace(/{school_name}/g, settings.schoolName);
-                try {
-                    await sendWhatsAppMessage(family.phone, message, settings.whatsappApiUrl, settings.whatsappApiKey, settings.whatsappInstanceId, settings.whatsappPriority);
-                    addActivityLog({ user: 'System', action: 'Payment Receipt', description: `Sent payment receipt to ${family.fatherName}.` });
-                } catch (error) {
-                    console.error("Failed to send payment receipt WhatsApp message:", error);
-                }
-            }
-        }
     };
     
     const triggerPrint = (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string) => {

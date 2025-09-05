@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Save } from 'lucide-react';
+import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import { useState, useMemo, useEffect } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -357,14 +357,7 @@ export default function SettingsPage() {
         }
         
         try {
-             const success = await sendWhatsAppMessage(
-                recipient.phone, 
-                personalizedMessage, 
-                settings.whatsappApiUrl, 
-                settings.whatsappApiKey, 
-                settings.whatsappInstanceId, 
-                settings.whatsappPriority
-             );
+             const success = await sendWhatsAppMessage(recipient.phone, personalizedMessage, settings.whatsappApiUrl, settings.whatsappApiKey, settings.whatsappInstanceId, settings.whatsappPriority);
              if (success) {
                 successCount++;
              }
