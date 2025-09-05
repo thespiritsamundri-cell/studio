@@ -140,7 +140,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
         <Card className="transition-all hover:scale-105 hover:shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Total Students</CardTitle>
@@ -158,6 +158,16 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{presentStudents}</div>
+            <p className="text-xs text-muted-foreground">Attendance for today</p>
+          </CardContent>
+        </Card>
+         <Card className="transition-all hover:scale-105 hover:shadow-lg">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium">Students Absent</CardTitle>
+            <UserX className="w-5 h-5 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{absentStudents}</div>
             <p className="text-xs text-muted-foreground">Attendance for today</p>
           </CardContent>
         </Card>
