@@ -487,7 +487,7 @@ export default function SettingsPage() {
             automatedMessages: {
                 ...prev.automatedMessages,
                 [key]: {
-                    ...prev.automatedMessages?.[key],
+                    ...(prev.automatedMessages?.[key] || { enabled: false, templateId: '' }),
                     enabled: checked
                 }
             }
@@ -500,12 +500,18 @@ export default function SettingsPage() {
             automatedMessages: {
                 ...prev.automatedMessages,
                 [key]: {
-                    ...prev.automatedMessages?.[key],
+                    ...(prev.automatedMessages?.[key] || { enabled: false, templateId: '' }),
                     templateId: templateId
                 }
             }
         }));
     };
+
+  // Safely access nested properties
+  const automatedMessages = settings.automatedMessages || {};
+  const admissionSettings = automatedMessages.admission || { enabled: false, templateId: '' };
+  const absenteeSettings = automatedMessages.absentee || { enabled: false, templateId: '' };
+  const paymentSettings = automatedMessages.payment || { enabled: false, templateId: '' };
 
 
   return (
@@ -790,17 +796,6 @@ export default function SettingsPage() {
             </Card>
         </TabsContent>
         <TabsContent value="whatsapp" className="mt-6 space-y-6">
-             <Alert>
-                <Info className="h-4 w-4" />
-                <AlertTitle>Connecting to WhatsApp (UltraMSG)</AlertTitle>
-                <AlertDescription>
-                    <ol className="list-decimal list-inside space-y-1">
-                        <li>Get your Instance ID and Token from your UltraMSG dashboard.</li>
-                        <li>Enter the credentials below and click "Save WhatsApp Settings".</li>
-                        <li>Enter your own WhatsApp number in the "Test Phone Number" field and click "Test Connection" to verify.</li>
-                    </ol>
-                </AlertDescription>
-            </Alert>
             <Card>
                 <CardHeader>
                     <div className="flex items-center gap-4">
@@ -867,25 +862,25 @@ export default function SettingsPage() {
                             <Label htmlFor="admission-toggle" className="font-semibold">Admission Confirmation</Label>
                             <p className="text-xs text-muted-foreground">Sent when a new student is admitted.</p>
                         </div>
-                        <Switch id="admission-toggle" checked={settings.automatedMessages?.admission.enabled} onCheckedChange={(checked) => handleAutomatedMessageToggle('admission', checked)} />
+                        <Switch id="admission-toggle" checked={admissionSettings.enabled} onCheckedChange={(checked) => handleAutomatedMessageToggle('admission', checked)} />
                     </div>
                     <div className="flex items-center justify-between p-3 rounded-lg border">
                         <div>
                             <Label htmlFor="absentee-toggle" className="font-semibold">Absentee Notice</Label>
                             <p className="text-xs text-muted-foreground">Sent when you notify absentees from the attendance page.</p>
                         </div>
-                        <Switch id="absentee-toggle" checked={settings.automatedMessages?.absentee.enabled} onCheckedChange={(checked) => handleAutomatedMessageToggle('absentee', checked)} />
+                        <Switch id="absentee-toggle" checked={absenteeSettings.enabled} onCheckedChange={(checked) => handleAutomatedMessageToggle('absentee', checked)} />
                     </div>
                     <div className="flex items-center justify-between p-3 rounded-lg border">
                         <div>
                             <Label htmlFor="payment-toggle" className="font-semibold">Fee Payment Receipt</Label>
                             <p className="text-xs text-muted-foreground">Sent when a fee payment is collected.</p>
                         </div>
-                        <Switch id="payment-toggle" checked={settings.automatedMessages?.payment.enabled} onCheckedChange={(checked) => handleAutomatedMessageToggle('payment', checked)} />
+                        <Switch id="payment-toggle" checked={paymentSettings.enabled} onCheckedChange={(checked) => handleAutomatedMessageToggle('payment', checked)} />
                     </div>
                 </CardContent>
             </Card>
-            
+
             <Card className="bg-green-500/5">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><MessageSquare className="text-green-700"/>Custom Messaging</CardTitle>
@@ -1124,5 +1119,7 @@ export default function SettingsPage() {
 }
 
 
+
+    
 
     
