@@ -56,11 +56,15 @@ export function Header() {
             />
         </div>
          <div className="hidden md:flex items-center gap-2 text-sm font-medium">
-            <div className="bg-muted px-3 py-1.5 rounded-md">
-                {currentDate}
+            <div className="rounded-lg bg-gradient-to-br from-chart-1 to-chart-2 p-px">
+                <div className="bg-muted px-3 py-1.5 rounded-[7px]">
+                    {currentDate}
+                </div>
             </div>
-            <div className="bg-muted px-3 py-1.5 rounded-md w-28 text-center">
-                {currentTime}
+             <div className="rounded-lg bg-gradient-to-br from-chart-2 to-chart-3 p-px">
+                <div className="bg-muted px-3 py-1.5 rounded-[7px] w-28 text-center">
+                    {currentTime}
+                </div>
             </div>
         </div>
       </div>
