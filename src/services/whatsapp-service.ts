@@ -1,5 +1,6 @@
 // This is a REAL service. In a real application, you would integrate with a
 // WhatsApp API provider like Twilio or UltraMSG to send messages.
+'use server';
 
 export async function sendWhatsAppMessage(
     to: string, 
