@@ -97,10 +97,15 @@ const SidebarProvider = React.forwardRef<
     const togglePinned = React.useCallback(() => {
       setIsPinned((pinned) => !pinned)
     }, [setIsPinned])
+    
+    const [isClient, setIsClient] = React.useState(false);
+    React.useEffect(() => {
+        setIsClient(true);
+    }, []);
 
     const contextValue = React.useMemo<SidebarContext>(
       () => ({
-        isMobile,
+        isMobile: isClient ? isMobile : false, // Default to non-mobile on server
         openMobile,
         setOpenMobile,
         toggleMobile,
@@ -108,7 +113,7 @@ const SidebarProvider = React.forwardRef<
         setIsPinned,
         togglePinned
       }),
-      [isMobile, openMobile, setOpenMobile, toggleMobile, isPinned, setIsPinned, togglePinned]
+      [isClient, isMobile, openMobile, setOpenMobile, toggleMobile, isPinned, setIsPinned, togglePinned]
     )
 
     return (
@@ -437,3 +442,5 @@ export {
   CollapsibleSidebarMenuItem,
   useSidebar,
 }
+
+    
