@@ -144,7 +144,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
-        <Card className="animated-gradient-border">
+        <Card className="stat-card">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Total Students</CardTitle>
             <Users className="w-5 h-5 text-primary" />
@@ -154,7 +154,7 @@ export default function DashboardPage() {
             <p className="text-xs text-muted-foreground">+2% from last month</p>
           </CardContent>
         </Card>
-        <Card className="animated-gradient-border">
+        <Card className="stat-card">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Students Present</CardTitle>
             <UserCheck className="w-5 h-5 text-green-500" />
@@ -164,7 +164,7 @@ export default function DashboardPage() {
             <p className="text-xs text-muted-foreground">Attendance for today</p>
           </CardContent>
         </Card>
-        <Card className="animated-gradient-border">
+        <Card className="stat-card">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Students Absent</CardTitle>
             <UserX className="w-5 h-5 text-red-500" />
@@ -174,7 +174,7 @@ export default function DashboardPage() {
             <p className="text-xs text-muted-foreground">Attendance for today</p>
           </CardContent>
         </Card>
-        <Card className="animated-gradient-border">
+        <Card className="stat-card">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Messages Sent Today</CardTitle>
             <MessageSquare className="w-5 h-5 text-purple-500" />
@@ -184,7 +184,7 @@ export default function DashboardPage() {
             <p className="text-xs text-muted-foreground">WhatsApp messages delivered</p>
           </CardContent>
         </Card>
-        <Card className="animated-gradient-border">
+        <Card className="stat-card">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">New Admissions</CardTitle>
             <UserPlus className="w-5 h-5 text-blue-500" />
