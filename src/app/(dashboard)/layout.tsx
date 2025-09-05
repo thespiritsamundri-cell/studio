@@ -64,7 +64,7 @@ function AuthWrapper({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!loading && !user && pathname !== '/lock') {
-      router.push('/');
+      router.replace('/');
     }
   }, [user, loading, router, pathname]);
 
@@ -84,8 +84,15 @@ function AuthWrapper({ children }: { children: ReactNode }) {
     );
   }
 
-  if (user || pathname === '/lock') {
+  // If user is logged in, show the app.
+  // If not logged in, only allow access to the /lock page if that's the current path.
+  // Otherwise, the effect above will redirect to '/'.
+  if (user) {
      return <>{children}</>;
+  }
+
+  if (pathname === '/lock') {
+      return <>{children}</>;
   }
 
   return null;

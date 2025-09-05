@@ -38,6 +38,7 @@ export default function LockPage() {
     if (pin === settings.historyClearPin) {
       toast({ title: 'System Unlocked' });
       const returnUrl = sessionStorage.getItem('lockedFrom') || '/dashboard';
+      sessionStorage.removeItem('lockedFrom'); // Clean up session storage
       router.replace(returnUrl);
     } else {
       toast({
