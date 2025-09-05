@@ -1,7 +1,8 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import * as React from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { Grade, MessageTemplate } from '@/lib/types';
 
 type HexColor = string;
@@ -213,7 +214,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
   }, [settings, isClient]);
 
-  const contextValue = React.useMemo(() => ({ settings, setSettings }), [settings, setSettings]);
+  const contextValue = React.useMemo(() => ({ settings, setSettings }), [settings]);
 
 
   return (
@@ -230,5 +231,3 @@ export function useSettings() {
   }
   return context;
 }
-
-    
