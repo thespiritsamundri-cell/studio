@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -170,10 +171,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (!studentToDelete) return;
       try {
           const batch = writeBatch(db);
-          // Delete the student document itself
           batch.delete(doc(db, 'students', id));
 
-          // Go through all exams and remove the student's results
           const examsToUpdate = exams.filter(exam => exam.results.some(result => result.studentId === id));
           for (const exam of examsToUpdate) {
               const newResults = exam.results.filter(result => result.studentId !== id);
@@ -183,7 +182,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
           await batch.commit();
           await addActivityLog({ user: 'Admin', action: 'Delete Student', description: `Deleted student: ${studentToDelete.name} (ID: ${id}) and all associated exam results.` });
-
+          setStudents(prev => prev.filter(s => s.id !== id));
       } catch (e) {
            console.error("Error deleting student:", e);
            toast({ title: `Error deleting student`, variant: "destructive" });
@@ -197,21 +196,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (!family) return;
       try {
         const batch = writeBatch(db);
-        // Delete family doc
         batch.delete(doc(db, "families", id));
 
-        // Find and delete associated students
+        const associatedStudentIds: string[] = [];
         const studentsQuery = query(collection(db, "students"), where("familyId", "==", id));
         const studentDocs = await getDocs(studentsQuery);
-        studentDocs.forEach(doc => batch.delete(doc.ref));
+        studentDocs.forEach(studentDoc => {
+          associatedStudentIds.push(studentDoc.id);
+          batch.delete(studentDoc.ref)
+        });
 
-        // Find and delete associated fees
         const feesQuery = query(collection(db, "fees"), where("familyId", "==", id));
         const feeDocs = await getDocs(feesQuery);
         feeDocs.forEach(doc => batch.delete(doc.ref));
 
         await batch.commit();
+        
         await addActivityLog({ user: 'Admin', action: 'Delete Family', description: `Deleted family: ${family.fatherName} (ID: ${id}) and all associated data.` });
+
+        setFamilies(prev => prev.filter(f => f.id !== id));
+        setStudents(prev => prev.filter(s => s.familyId !== id));
+        setFees(prev => prev.filter(f => f.familyId !== id));
 
       } catch(e) {
         console.error("Error deleting family and associated data:", e);
