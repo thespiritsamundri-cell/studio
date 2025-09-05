@@ -4,6 +4,8 @@
 import * as React from 'react';
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { Grade, MessageTemplate } from '@/lib/types';
+import { db } from '@/lib/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 type HexColor = string;
 
@@ -171,51 +173,55 @@ const deepMerge = (target: any, source: any) => {
   return target;
 };
 
+const applyThemeColors = (colors: Partial<ThemeColors> | undefined) => {
+    if (colors) {
+        Object.entries(colors).forEach(([key, value]) => {
+            document.documentElement.style.setProperty(`--${key}`, hexToHsl(value as string));
+        });
+    }
+};
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<SchoolSettings>(defaultSettings);
-  const [isClient, setIsClient] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const settingsDocRef = doc(db, 'app-config', 'settings');
 
+  // Load settings from Firestore on initial mount
   useEffect(() => {
-    setIsClient(true);
-    try {
-      const savedSettings = window.localStorage.getItem('schoolSettings');
-      if (savedSettings) {
-        const parsedSettings = JSON.parse(savedSettings);
-        // Deep merge with defaults to ensure all keys are present, especially nested ones
-        const mergedSettings = deepMerge({ ...defaultSettings }, parsedSettings);
-        setSettings(mergedSettings);
-        
-        // Apply theme colors on initial load
-        if (mergedSettings.themeColors) {
-            Object.entries(mergedSettings.themeColors).forEach(([key, value]) => {
-                document.documentElement.style.setProperty(`--${key}`, hexToHsl(value as string));
-            });
-        }
-      }
-    } catch (error) {
-      console.error('Error reading from localStorage', error);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isClient) {
+    const loadSettings = async () => {
       try {
-        window.localStorage.setItem('schoolSettings', JSON.stringify(settings));
-        // Apply theme colors whenever they change
-        if (settings.themeColors) {
-            Object.entries(settings.themeColors).forEach(([key, value]) => {
-                document.documentElement.style.setProperty(`--${key}`, hexToHsl(value as string));
-            });
+        const docSnap = await getDoc(settingsDocRef);
+        if (docSnap.exists()) {
+            const loadedSettings = docSnap.data() as SchoolSettings;
+            const mergedSettings = deepMerge({ ...defaultSettings }, loadedSettings);
+            setSettings(mergedSettings);
+            applyThemeColors(mergedSettings.themeColors);
+        } else {
+            // No settings found in Firestore, use defaults and save them
+            await setDoc(settingsDocRef, defaultSettings);
         }
       } catch (error) {
-        console.error('Error writing to localStorage', error);
+        console.error('Error reading settings from Firestore:', error);
+      } finally {
+        setIsInitialized(true);
       }
+    };
+    loadSettings();
+  }, []);
+
+  // Save settings to Firestore whenever they change
+  useEffect(() => {
+    if (isInitialized) {
+        try {
+            setDoc(settingsDocRef, settings, { merge: true });
+            applyThemeColors(settings.themeColors);
+        } catch (error) {
+            console.error('Error writing settings to Firestore:', error);
+        }
     }
-  }, [settings, isClient]);
-
+  }, [settings, isInitialized]);
+  
   const contextValue = React.useMemo(() => ({ settings, setSettings }), [settings]);
-
 
   return (
     <SettingsContext.Provider value={contextValue}>
