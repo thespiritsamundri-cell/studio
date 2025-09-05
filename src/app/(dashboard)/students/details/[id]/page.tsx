@@ -107,8 +107,9 @@ export default function StudentDetailsPage() {
                     <DetailItem label="Date of Birth" value={student.dob} />
                     <DetailItem label="Admission Date" value={student.admissionDate} />
                     <DetailItem label="Contact Number" value={student.phone} />
+                    <DetailItem label="Alternate Contact" value={student.alternatePhone} />
                     <DetailItem label="Student CNIC / B-Form" value={student.cnic} />
-                    <div className="md:col-span-2">
+                    <div className="md:col-span-3">
                      <DetailItem label="Address" value={student.address} />
                     </div>
                 </div>
@@ -119,8 +120,8 @@ export default function StudentDetailsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <DetailItem label="Family ID" value={student.familyId} />
                     <DetailItem label="Father's Name" value={family?.fatherName} />
+                    <DetailItem label="Father's Profession" value={family?.profession} />
                     <DetailItem label="Father's CNIC" value={family?.cnic} />
-                    <DetailItem label="Family Contact" value={family?.phone} />
                     <div className="md:col-span-3">
                         <DetailItem label="Family Address" value={family?.address} />
                     </div>

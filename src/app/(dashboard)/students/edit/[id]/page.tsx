@@ -105,7 +105,7 @@ export default function EditStudentPage() {
             </div>
             <div className="space-y-2">
                 <Label htmlFor="cnic">Student CNIC / B-Form</Label>
-                <Input id="cnic" value={student.cnic} onChange={handleInputChange} placeholder="e.g. 12345-1234567-1" />
+                <Input id="cnic" value={student.cnic || ''} onChange={handleInputChange} placeholder="e.g. 12345-1234567-1" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="class">Class</Label>
@@ -152,6 +152,10 @@ export default function EditStudentPage() {
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
               <Input id="phone" type="tel" value={student.phone} onChange={handleInputChange} placeholder="Enter contact number" />
+            </div>
+             <div className="space-y-2">
+                <Label htmlFor="alternatePhone">Alternate Phone</Label>
+                <Input id="alternatePhone" value={student.alternatePhone || ''} onChange={handleInputChange} placeholder="Enter alternate number" />
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="address">Address</Label>
