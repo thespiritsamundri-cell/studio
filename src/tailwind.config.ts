@@ -101,32 +101,23 @@ export default {
             transform: 'translateY(calc(-50%))'
           }
         },
-        'border-spin': {
-            '100%': {
-                '--angle': '360deg',
-            },
+        'gradient-move': {
+            '0%': { 'background-position': '0% 50%' },
+            '50%': { 'background-position': '100% 50%' },
+            '100%': { 'background-position': '0% 50%' },
         },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'scroll': 'scroll 40s linear infinite',
-        'border-spin': 'border-spin 7s linear infinite',
+        'gradient-move': 'gradient-move 8s linear infinite',
       },
     },
   },
   plugins: [
     require('tailwindcss-animate'),
-    plugin(function ({ addUtilities, theme }) {
-      addUtilities({
-        '.animate-border-spin': {
-          '@property --angle': {
-            syntax: "'<angle>'",
-            inherits: false,
-            initialValue: '0deg',
-          },
-        },
-      });
-    }),
   ],
 } satisfies Config;
+
+    

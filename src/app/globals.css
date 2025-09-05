@@ -87,6 +87,26 @@ body {
   }
 }
 
+@layer components {
+    .animated-gradient-border {
+        @apply relative z-10 bg-card;
+    }
+
+    .animated-gradient-border::before {
+        content: "";
+        position: absolute;
+        top: -2px;
+        left: -2px;
+        right: -2px;
+        bottom: -2px;
+        border-radius: var(--radius); /* Uses the card's border radius */
+        background: linear-gradient(270deg, theme(colors.chart.1), theme(colors.chart.2), theme(colors.chart.3), theme(colors.chart.4), theme(colors.chart.5));
+        background-size: 400% 400%;
+        z-index: -1;
+        animation: gradient-move 8s linear infinite;
+    }
+}
+
 @media print {
   .print\:hidden {
     display: none;
@@ -99,3 +119,5 @@ body {
     print-color-adjust: exact;
   }
 }
+
+    
