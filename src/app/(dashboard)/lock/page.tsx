@@ -6,11 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
-import { Lock, School } from 'lucide-react';
+import { Lock, School, LogOut } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
+import { auth } from '@/lib/firebase';
 
 export default function LockPage() {
   const router = useRouter();
@@ -22,6 +23,11 @@ export default function LockPage() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+  
+  const handleLogoutAndRelogin = async () => {
+    await auth.signOut();
+    router.push('/');
+  }
 
   const handleUnlock = (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,8 +97,13 @@ export default function LockPage() {
               Unlock
             </Button>
           </form>
+          <Button type="button" variant="link" size="sm" className="w-full mt-4 text-muted-foreground" onClick={handleLogoutAndRelogin}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Logout and login with email & password
+          </Button>
         </CardContent>
       </Card>
     </div>
   );
 }
+
