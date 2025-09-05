@@ -46,7 +46,9 @@ export interface SchoolSettings {
   principalSignature: string;
   academicYear: string;
   whatsappApiUrl: string;
-  whatsappApiKey: string;
+  whatsappApiKey: string; // This will be the token for UltraMSG
+  whatsappInstanceId?: string; // For providers like UltraMSG
+  whatsappPriority?: string; // For providers like UltraMSG
   whatsappActive: boolean;
   messageDelay: number;
   historyClearPin?: string;
@@ -72,6 +74,8 @@ const defaultSettings: SchoolSettings = {
   academicYear: '2024-2025',
   whatsappApiUrl: '',
   whatsappApiKey: '',
+  whatsappInstanceId: '',
+  whatsappPriority: '10',
   whatsappActive: false,
   messageDelay: 2,
   historyClearPin: '',

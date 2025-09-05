@@ -1,21 +1,29 @@
 // This is a REAL service. In a real application, you would integrate with a
 // WhatsApp API provider like Twilio or UltraMSG to send messages.
 
-export async function sendWhatsAppMessage(to: string, message: string, apiUrl?: string, apiKey?: string): Promise<boolean> {
+export async function sendWhatsAppMessage(
+    to: string, 
+    message: string, 
+    apiUrl?: string, 
+    token?: string,
+    instanceId?: string,
+    priority?: string
+): Promise<boolean> {
   console.log(`Attempting to send WhatsApp message to ${to} via ${apiUrl}`);
   
-  if (!apiUrl || !apiKey) {
-    console.error('WhatsApp API URL or Key not provided in settings.');
+  if (!apiUrl || !token || !instanceId) {
+    console.error('WhatsApp API URL, Token, or Instance ID not provided in settings.');
     // Return false without showing a toast, as the calling function will handle user feedback.
     return false;
   }
   
-  // The body format can vary between WhatsApp API providers.
-  // This is a common format, but may need to be adjusted for your specific provider.
+  // The body format specific to UltraMSG API
   const body = JSON.stringify({
-      token: apiKey, // Some providers use a token in the body
+      token: token,
       to: to,
       body: message,
+      priority: priority || "10", // Default priority to 10 if not provided
+      referenceId: "", // Optional, can be empty
   });
 
   try {
@@ -23,8 +31,6 @@ export async function sendWhatsAppMessage(to: string, message: string, apiUrl?: 
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        // Some providers might use a Bearer token in the header instead
-        // 'Authorization': `Bearer ${apiKey}` 
       },
       body: body
     });
@@ -36,7 +42,8 @@ export async function sendWhatsAppMessage(to: string, message: string, apiUrl?: 
       return false;
     }
     
-    console.log(`Successfully sent message to ${to}`);
+    const responseJson = await response.json();
+    console.log('WhatsApp API Success:', responseJson);
     return true;
 
   } catch (error) {

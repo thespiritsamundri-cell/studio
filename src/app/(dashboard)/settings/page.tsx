@@ -346,7 +346,7 @@ export default function SettingsPage() {
         }
         
         try {
-             const success = await sendWhatsAppMessage(recipient.phone, personalizedMessage, settings.whatsappApiUrl, settings.whatsappApiKey);
+             const success = await sendWhatsAppMessage(recipient.phone, personalizedMessage, settings.whatsappApiUrl, settings.whatsappApiKey, settings.whatsappInstanceId, settings.whatsappPriority);
              if (success) {
                 successCount++;
              }
@@ -364,7 +364,7 @@ export default function SettingsPage() {
     const handleTestConnection = async () => {
         setIsTesting(true);
         try {
-            const success = await sendWhatsAppMessage('1234567890', 'This is a test message from EduCentral.', settings.whatsappApiUrl, settings.whatsappApiKey);
+            const success = await sendWhatsAppMessage('1234567890', 'This is a test message from EduCentral.', settings.whatsappApiUrl, settings.whatsappApiKey, settings.whatsappInstanceId, settings.whatsappPriority);
             if (success) {
                 toast({ title: 'Test Successful', description: 'Your WhatsApp API settings appear to be correct.' });
             } else {
@@ -688,36 +688,44 @@ export default function SettingsPage() {
         <TabsContent value="whatsapp" className="mt-6 space-y-6">
              <Alert>
               <Info className="h-4 w-4" />
-              <AlertTitle>Connecting to WhatsApp</AlertTitle>
+              <AlertTitle>Connecting to WhatsApp (UltraMSG)</AlertTitle>
               <AlertDescription>
-                To send messages, you need to connect to a WhatsApp API provider (e.g., UltraMSG, Twilio). 
-                This is a mock integration. The app will simulate API calls but will not send real messages. Enter your credentials and use the test button to check if the logic is working.
+                To send messages, you need to connect to a WhatsApp API provider. This interface is tailored for UltraMSG.
+                Enter your credentials and use the test button to check if the logic is working.
               </AlertDescription>
             </Alert>
             <Card>
                 <CardHeader>
                     <CardTitle>API Configuration</CardTitle>
-                    <CardDescription>Enter your WhatsApp API details to enable messaging features.</CardDescription>
+                    <CardDescription>Enter your UltraMSG API details to enable messaging features.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <Label htmlFor="whatsappApiUrl">API URL</Label>
-                            <Input id="whatsappApiUrl" value={settings.whatsappApiUrl} onChange={handleInputChange} placeholder="Enter WhatsApp API URL" />
+                            <Input id="whatsappApiUrl" value={settings.whatsappApiUrl} onChange={handleInputChange} placeholder="e.g. https://api.ultramsg.com/instance12345/messages/chat" />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="whatsappApiKey">API Key / Token</Label>
-                            <Input id="whatsappApiKey" value={settings.whatsappApiKey} onChange={handleInputChange} placeholder="Enter WhatsApp API Key or Token" />
+                            <Label htmlFor="whatsappApiKey">Token</Label>
+                            <Input id="whatsappApiKey" value={settings.whatsappApiKey} onChange={handleInputChange} placeholder="Enter UltraMSG Token" />
                         </div>
-                         <div className="space-y-2">
+                        <div className="space-y-2">
+                            <Label htmlFor="whatsappInstanceId">Instance ID</Label>
+                            <Input id="whatsappInstanceId" value={settings.whatsappInstanceId} onChange={handleInputChange} placeholder="e.g. instance12345" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="whatsappPriority">Priority</Label>
+                            <Input id="whatsappPriority" value={settings.whatsappPriority} onChange={handleInputChange} placeholder="e.g. 10" />
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <div className="space-y-2">
                             <Label htmlFor="messageDelay">Message Delay (seconds)</Label>
                             <Input id="messageDelay" type="number" value={settings.messageDelay} onChange={handleInputChange} />
                         </div>
-                        <div className="flex items-end space-x-2">
-                            <div className="flex items-center space-x-2 h-10">
-                                <Checkbox id="whatsappActive" checked={settings.whatsappActive} onCheckedChange={(checked) => setSettings(prev => ({...prev, whatsappActive: !!checked}))} />
-                                <Label htmlFor="whatsappActive">Active</Label>
-                            </div>
+                        <div className="flex items-center space-x-2 h-10 pt-8">
+                            <Checkbox id="whatsappActive" checked={settings.whatsappActive} onCheckedChange={(checked) => setSettings(prev => ({...prev, whatsappActive: !!checked}))} />
+                            <Label htmlFor="whatsappActive">Active</Label>
                         </div>
                     </div>
                      <div className="flex justify-end items-center gap-2 pt-4">
