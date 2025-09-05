@@ -144,8 +144,9 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
-        <div className="relative rounded-lg p-0.5 bg-[conic-gradient(from_var(--angle),theme(colors.chart.1),theme(colors.chart.2),theme(colors.chart.3),theme(colors.chart.4),theme(colors.chart.5),theme(colors.chart.1))] animate-border-spin">
-            <Card className="h-full w-full">
+        <div className="relative">
+            <div className="absolute -inset-1 rounded-lg bg-[conic-gradient(from_var(--angle),theme(colors.chart.1),theme(colors.chart.2),theme(colors.chart.3),theme(colors.chart.4),theme(colors.chart.5),theme(colors.chart.1))] animate-border-spin opacity-75 blur-md"></div>
+            <Card className="relative h-full w-full">
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">Total Students</CardTitle>
                 <Users className="w-5 h-5 text-primary" />
@@ -156,8 +157,9 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
         </div>
-         <div className="relative rounded-lg p-0.5 bg-[conic-gradient(from_var(--angle),theme(colors.chart.1),theme(colors.chart.2),theme(colors.chart.3),theme(colors.chart.4),theme(colors.chart.5),theme(colors.chart.1))] animate-border-spin">
-            <Card className="h-full w-full">
+         <div className="relative">
+            <div className="absolute -inset-1 rounded-lg bg-[conic-gradient(from_var(--angle),theme(colors.chart.1),theme(colors.chart.2),theme(colors.chart.3),theme(colors.chart.4),theme(colors.chart.5),theme(colors.chart.1))] animate-border-spin opacity-75 blur-md"></div>
+            <Card className="relative h-full w-full">
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">Students Present</CardTitle>
                 <UserCheck className="w-5 h-5 text-green-500" />
@@ -168,8 +170,9 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
         </div>
-         <div className="relative rounded-lg p-0.5 bg-[conic-gradient(from_var(--angle),theme(colors.chart.1),theme(colors.chart.2),theme(colors.chart.3),theme(colors.chart.4),theme(colors.chart.5),theme(colors.chart.1))] animate-border-spin">
-            <Card className="h-full w-full">
+         <div className="relative">
+            <div className="absolute -inset-1 rounded-lg bg-[conic-gradient(from_var(--angle),theme(colors.chart.1),theme(colors.chart.2),theme(colors.chart.3),theme(colors.chart.4),theme(colors.chart.5),theme(colors.chart.1))] animate-border-spin opacity-75 blur-md"></div>
+            <Card className="relative h-full w-full">
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">Students Absent</CardTitle>
                 <UserX className="w-5 h-5 text-red-500" />
@@ -180,8 +183,9 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
         </div>
-        <div className="relative rounded-lg p-0.5 bg-[conic-gradient(from_var(--angle),theme(colors.chart.1),theme(colors.chart.2),theme(colors.chart.3),theme(colors.chart.4),theme(colors.chart.5),theme(colors.chart.1))] animate-border-spin">
-            <Card className="h-full w-full">
+        <div className="relative">
+            <div className="absolute -inset-1 rounded-lg bg-[conic-gradient(from_var(--angle),theme(colors.chart.1),theme(colors.chart.2),theme(colors.chart.3),theme(colors.chart.4),theme(colors.chart.5),theme(colors.chart.1))] animate-border-spin opacity-75 blur-md"></div>
+            <Card className="relative h-full w-full">
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">Messages Sent Today</CardTitle>
                 <MessageSquare className="w-5 h-5 text-purple-500" />
@@ -192,8 +196,9 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
         </div>
-        <div className="relative rounded-lg p-0.5 bg-[conic-gradient(from_var(--angle),theme(colors.chart.1),theme(colors.chart.2),theme(colors.chart.3),theme(colors.chart.4),theme(colors.chart.5),theme(colors.chart.1))] animate-border-spin">
-            <Card className="h-full w-full">
+        <div className="relative">
+            <div className="absolute -inset-1 rounded-lg bg-[conic-gradient(from_var(--angle),theme(colors.chart.1),theme(colors.chart.2),theme(colors.chart.3),theme(colors.chart.4),theme(colors.chart.5),theme(colors.chart.1))] animate-border-spin opacity-75 blur-md"></div>
+            <Card className="relative h-full w-full">
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">New Admissions</CardTitle>
                 <UserPlus className="w-5 h-5 text-blue-500" />
@@ -360,4 +365,5 @@ export default function DashboardPage() {
 
 
     
+
 
