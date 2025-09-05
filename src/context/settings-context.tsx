@@ -37,6 +37,11 @@ interface ThemeColors {
   'sidebar-ring': HexColor;
 }
 
+interface AutomatedMessageConfig {
+    enabled: boolean;
+    templateId: string;
+}
+
 export interface SchoolSettings {
   schoolName: string;
   schoolAddress: string;
@@ -59,7 +64,11 @@ export interface SchoolSettings {
   gradingSystem?: Grade[];
   expenseCategories?: string[];
   messageTemplates?: MessageTemplate[];
-  admissionConfirmationTemplate?: string;
+  automatedMessages?: {
+      admissionConfirmation: AutomatedMessageConfig;
+      absenteeNotification: AutomatedMessageConfig;
+      paymentReceipt: AutomatedMessageConfig;
+  };
 }
 
 interface SettingsContextType {
@@ -98,13 +107,17 @@ const defaultSettings: SchoolSettings = {
     'Salaries', 'Utilities', 'Rent', 'Maintenance', 'Supplies', 'Marketing', 'Transportation', 'Miscellaneous'
   ],
   messageTemplates: [
-    { id: 'TPL1', name: 'Absence Notice', content: 'Dear {father_name},\nWe noticed that your child {student_name} of class {class} was absent today. Please let us know the reason.' },
-    { id: 'TPL2', name: 'Fee Reminder', content: 'Dear {father_name},\nThis is a friendly reminder that the fee for the month is due. Kindly clear the dues at your earliest convenience to avoid any late charges.'},
-    { id: 'TPL3', name: 'General Notice', content: 'Dear Parents,\nThis is to inform you that...' },
-    { id: 'TPL4', name: 'Exam Notice', content: 'Dear Parents,\nThe final examinations will commence from next week. Please ensure your child is well-prepared.' },
-    { id: 'TPL5', name: 'Holiday Notice', content: 'Dear Parents,\nThe school will remain closed on account of...' },
+    { id: 'TPL_ADMISSION', name: 'Admission Confirmation', content: 'Welcome to {school_name}!\n\nDear {father_name},\nWe are pleased to confirm the admission of your child, {student_name}, into Class {class}. We look forward to a successful academic year together.' },
+    { id: 'TPL_ABSENT', name: 'Absentee Notice', content: 'Dear {father_name},\nThis is to inform you that your child, {student_name} of class {class}, was absent today. Please contact the school office. \nRegards, {school_name}' },
+    { id: 'TPL_PAYMENT', name: 'Payment Receipt', content: 'Dear {father_name},\nWe have received a payment of PKR {paid_amount}. Your new balance is PKR {remaining_dues}. Thank you.\n{school_name}' },
+    { id: 'TPL_REMINDER', name: 'Fee Reminder', content: 'Dear {father_name},\nThis is a friendly reminder that the school fee is due. Kindly clear the dues at your earliest convenience to avoid any late charges.'},
+    { id: 'TPL_GENERAL', name: 'General Notice', content: 'Dear Parents,\nThis is to inform you that...' },
   ],
-  admissionConfirmationTemplate: 'Welcome to {school_name}!\n\nDear {father_name},\nWe are pleased to confirm the admission of your child, {student_name}, into Class {class}. We look forward to a successful academic year together.',
+  automatedMessages: {
+    admissionConfirmation: { enabled: false, templateId: 'TPL_ADMISSION' },
+    absenteeNotification: { enabled: false, templateId: 'TPL_ABSENT' },
+    paymentReceipt: { enabled: false, templateId: 'TPL_PAYMENT' },
+  }
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);

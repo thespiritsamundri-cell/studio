@@ -12,12 +12,12 @@ import { Label } from '@/components/ui/label';
 import { useData } from '@/context/data-context';
 import type { Student } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { analyzeAttendanceAndSendMessage } from '@/ai/flows/attendance-analysis-messaging';
 import { Send, Printer } from 'lucide-react';
 import { AttendancePrintReport } from '@/components/reports/attendance-report';
 import { renderToString } from 'react-dom/server';
 import { useSettings } from '@/context/settings-context';
 import { format } from 'date-fns';
+import { sendWhatsAppMessage } from '@/services/whatsapp-service';
 
 type AttendanceStatus = 'Present' | 'Absent' | 'Leave';
 
@@ -94,12 +94,22 @@ export default function AttendancePage() {
 
   const handleSendWhatsapp = async () => {
     const absentStudents = students.filter((student) => attendance[student.id] === 'Absent');
+    const autoMsgConfig = settings.automatedMessages?.absenteeNotification;
+
     if (absentStudents.length === 0) {
-      toast({
-        title: 'No Absentees',
-        description: 'All students are present or on leave.',
-      });
+      toast({ title: 'No Absentees', description: 'All students are present or on leave.' });
       return;
+    }
+
+    if (!settings.whatsappActive || !autoMsgConfig?.enabled || !autoMsgConfig.templateId) {
+        toast({ title: 'Messaging Disabled', description: 'Please enable absentee notifications in WhatsApp settings.', variant: 'destructive'});
+        return;
+    }
+    
+    const template = settings.messageTemplates?.find(t => t.id === autoMsgConfig.templateId);
+    if (!template) {
+         toast({ title: 'Template Not Found', description: 'The selected absentee template is missing.', variant: 'destructive'});
+         return;
     }
 
     setIsSending(true);
@@ -109,35 +119,31 @@ export default function AttendancePage() {
     });
     
     addActivityLog({ user: 'Admin', action: 'Notify Absentees', description: `Sent WhatsApp absentee notifications for class ${selectedClass}.`});
-
+    
+    let successCount = 0;
     for (const student of absentStudents) {
-      try {
-        const family = families.find((f) => f.id === student.familyId);
-        if (!family) continue;
+        try {
+            const family = families.find((f) => f.id === student.familyId);
+            if (!family) continue;
 
-        const input = {
-          studentId: student.id,
-          studentName: student.name,
-          parentPhoneNumber: family.phone,
-          attendanceRecords: [{ date: new Date().toISOString().split('T')[0], isPresent: false }], // Just today's record for simplicity
-          messageCustomization: 'Please ensure your child attends school regularly.',
-        };
-
-        const result = await analyzeAttendanceAndSendMessage(input);
-        if (result.messageSent) {
-          console.log(`Message sent for ${student.name}`);
-        } else {
-          console.log(`Message not sent for ${student.name}: ${result.analysisResult}`);
+            let message = template.content;
+            message = message.replace(/{student_name}/g, student.name);
+            message = message.replace(/{father_name}/g, student.fatherName);
+            message = message.replace(/{class}/g, student.class);
+            message = message.replace(/{school_name}/g, settings.schoolName);
+            
+            const success = await sendWhatsAppMessage(family.phone, message, settings.whatsappApiUrl, settings.whatsappApiKey, settings.whatsappInstanceId, settings.whatsappPriority);
+            if(success) successCount++;
+            
+        } catch (error) {
+            console.error(`Failed to send message for ${student.name}`, error);
         }
-      } catch (error) {
-        console.error(`Failed to send message for ${student.name}`, error);
-      }
     }
 
     setIsSending(false);
     toast({
       title: 'Notifications Sent',
-      description: 'WhatsApp notifications have been sent to parents of all absent students.',
+      description: `Successfully sent messages to ${successCount} out of ${absentStudents.length} parents.`,
       variant: 'default',
     });
   };
