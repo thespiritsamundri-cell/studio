@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -165,7 +164,31 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const addStudent = addDocFactory<Student>('students', 'Add Student', d => `Admitted new student: ${d.name} (ID: ${d.id}) in Class ${d.class}.`);
   const updateStudent = updateDocFactory<Student>('students', 'Update Student', d => `Updated details for student: ${d.name || ''} (ID: ${d.id}).`);
-  const deleteStudent = deleteDocFactory('students', 'Delete Student', d => `Deleted student: ${d.name} (ID: ${d.id}).`, students);
+  
+  const deleteStudent = async (id: string) => {
+      const studentToDelete = students.find(s => s.id === id);
+      if (!studentToDelete) return;
+      try {
+          const batch = writeBatch(db);
+          // Delete the student document itself
+          batch.delete(doc(db, 'students', id));
+
+          // Go through all exams and remove the student's results
+          const examsToUpdate = exams.filter(exam => exam.results.some(result => result.studentId === id));
+          for (const exam of examsToUpdate) {
+              const newResults = exam.results.filter(result => result.studentId !== id);
+              const examRef = doc(db, 'exams', exam.id);
+              batch.update(examRef, { results: newResults });
+          }
+
+          await batch.commit();
+          await addActivityLog({ user: 'Admin', action: 'Delete Student', description: `Deleted student: ${studentToDelete.name} (ID: ${id}) and all associated exam results.` });
+
+      } catch (e) {
+           console.error("Error deleting student:", e);
+           toast({ title: `Error deleting student`, variant: "destructive" });
+      }
+  };
   
   const addFamily = addDocFactory<Family>('families', 'Add Family', d => `Added new family: ${d.fatherName} (ID: ${d.id}).`);
   const updateFamily = updateDocFactory<Family>('families', 'Update Family', d => `Updated details for family: ${d.fatherName || ''} (ID: ${d.id}).`);
