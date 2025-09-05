@@ -386,7 +386,7 @@ export default function SettingsPage() {
         try {
             const success = await sendWhatsAppMessage(
                 testPhoneNumber,
-                'This is a test message from EduCentral.', 
+                `This is a test message from ${settings.schoolName}.`, 
                 settings.whatsappApiUrl, 
                 settings.whatsappApiKey, 
                 settings.whatsappInstanceId, 
