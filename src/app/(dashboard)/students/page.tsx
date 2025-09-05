@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useData } from '@/context/data-context';
-import { MoreHorizontal, Search, Printer, FileSpreadsheet } from 'lucide-react';
+import { MoreHorizontal, Search, Printer, FileSpreadsheet, Trash2 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
@@ -26,10 +26,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useSearchParams } from 'next/navigation';
 import { useSettings } from '@/context/settings-context';
 import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 
 export default function StudentsPage() {
-  const { students: allStudents, classes } = useData();
+  const { students: allStudents, classes, deleteStudent } = useData();
   const { settings } = useSettings();
   const searchParams = useSearchParams();
   const familyIdFromQuery = searchParams.get('familyId');
@@ -38,6 +48,7 @@ export default function StudentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClass, setSelectedClass] = useState<string>('all');
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+  const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
   
   const filteredStudents = useMemo(() => {
     let students = allStudents;
@@ -150,6 +161,18 @@ export default function StudentsPage() {
   };
   
   const isAllSelected = selectedStudents.length > 0 && selectedStudents.length === filteredStudents.length;
+
+  const handleConfirmDelete = () => {
+    if (studentToDelete) {
+      deleteStudent(studentToDelete.id);
+      toast({
+        title: "Student Deleted",
+        description: `${studentToDelete.name} has been removed from the records.`,
+        variant: "destructive"
+      });
+      setStudentToDelete(null);
+    }
+  };
 
 
   return (
@@ -267,7 +290,9 @@ export default function StudentsPage() {
                         <DropdownMenuItem asChild>
                           <Link href={`/students/details/${student.id}`}>View Details</Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" onClick={() => setStudentToDelete(student)}>
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -284,6 +309,22 @@ export default function StudentsPage() {
           </Table>
         </CardContent>
       </Card>
+        <AlertDialog open={!!studentToDelete} onOpenChange={(open) => !open && setStudentToDelete(null)}>
+            <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the record for <strong>{studentToDelete?.name}</strong>.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setStudentToDelete(null)}>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">
+                Yes, delete student
+                </AlertDialogAction>
+            </AlertDialogFooter>
+            </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
