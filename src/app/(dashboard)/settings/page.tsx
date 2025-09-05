@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -11,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Bell, BellOff } from 'lucide-react';
+import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Bell, BellOff, Lock } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import { useState, useMemo, useEffect } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -151,9 +152,13 @@ export default function SettingsPage() {
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { id, value } = e.target;
+    const { id, value, type } = e.target;
+    const isCheckbox = type === 'checkbox';
+    const checked = (e.target as HTMLInputElement).checked;
+
     setSettings(prev => {
-        const newSettings = {...prev, [id]: value};
+        const valueToSet = isCheckbox ? checked : value;
+        const newSettings = {...prev, [id]: valueToSet};
         if (['whatsappApiUrl', 'whatsappApiKey', 'whatsappInstanceId'].includes(id)) {
             newSettings.whatsappConnectionStatus = 'untested';
         }
@@ -527,11 +532,12 @@ export default function SettingsPage() {
       <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><SettingsIcon className="w-8 h-8" />Settings</h1>
       
       <Tabs defaultValue="school" className="w-full">
-        <TabsList className="grid w-full grid-cols-7 max-w-4xl">
+        <TabsList className="grid w-full grid-cols-8 max-w-5xl">
           <TabsTrigger value="school">School</TabsTrigger>
           <TabsTrigger value="theme">Theme</TabsTrigger>
           <TabsTrigger value="grading">Grading</TabsTrigger>
           <TabsTrigger value="account">Account</TabsTrigger>
+          <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
           <TabsTrigger value="backup">Backup</TabsTrigger>
@@ -750,7 +756,7 @@ export default function SettingsPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><UserCog />Account Settings</CardTitle>
-                    <CardDescription>Manage your login credentials and security PIN.</CardDescription>
+                    <CardDescription>Manage your login credentials.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6 max-w-lg">
                     <div className="p-4 border rounded-lg space-y-4">
@@ -770,21 +776,6 @@ export default function SettingsPage() {
                         </div>
                     </div>
                     
-                    <div className="p-4 border rounded-lg space-y-4">
-                        <h3 className="font-medium">History Deletion PIN</h3>
-                        <p className="text-sm text-muted-foreground">Set a 4-digit PIN for an extra layer of security when clearing the activity history.</p>
-                         <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="newPin">New PIN</Label>
-                                <Input id="newPin" type="password" maxLength={4} value={newPin} onChange={(e) => setNewPin(e.target.value)} placeholder="4-digit PIN" />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="confirmPin">Confirm PIN</Label>
-                                <Input id="confirmPin" type="password" maxLength={4} value={confirmPin} onChange={(e) => setConfirmPin(e.target.value)} placeholder="Confirm PIN" />
-                            </div>
-                         </div>
-                    </div>
-                    
                     <div className="p-4 border-t pt-6 space-y-4">
                          <div className="space-y-2">
                             <Label htmlFor="currentPassword">Current Password</Label>
@@ -798,6 +789,56 @@ export default function SettingsPage() {
                         </div>
                         <div className="flex justify-end">
                             <Button onClick={handleAccountSave}>Save Account Settings</Button>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        </TabsContent>
+         <TabsContent value="security" className="mt-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><ShieldAlert />Security Settings</CardTitle>
+                    <CardDescription>Manage application security features like auto-lock and PINs.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6 max-w-lg">
+                     <div className="p-4 border rounded-lg space-y-4">
+                        <h3 className="font-medium">Security PIN</h3>
+                        <p className="text-sm text-muted-foreground">Set a 4-digit PIN for an extra layer of security when clearing the activity history or unlocking the application.</p>
+                         <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="newPin">New PIN</Label>
+                                <Input id="newPin" type="password" maxLength={4} value={newPin} onChange={(e) => setNewPin(e.target.value)} placeholder="4-digit PIN" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="confirmPin">Confirm PIN</Label>
+                                <Input id="confirmPin" type="password" maxLength={4} value={confirmPin} onChange={(e) => setConfirmPin(e.target.value)} placeholder="Confirm PIN" />
+                            </div>
+                         </div>
+                    </div>
+                    <div className="p-4 border rounded-lg space-y-4">
+                        <div className="flex justify-between items-center">
+                            <h3 className="font-medium">Auto-Lock</h3>
+                            <Switch id="autoLockEnabled" checked={settings.autoLockEnabled} onCheckedChange={(checked) => setSettings(prev => ({...prev, autoLockEnabled: checked }))} />
+                        </div>
+                        <p className="text-sm text-muted-foreground">Automatically lock the application after a period of inactivity.</p>
+                        <div className="space-y-2">
+                            <Label htmlFor="autoLockDuration">Inactivity Duration (seconds)</Label>
+                            <Input id="autoLockDuration" type="number" value={settings.autoLockDuration} onChange={(e) => setSettings(prev => ({...prev, autoLockDuration: Number(e.target.value)}))} disabled={!settings.autoLockEnabled} />
+                        </div>
+                    </div>
+                    <div className="p-4 border-t pt-6 space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="currentPasswordForSecurity">Current Password</Label>
+                            <p className="text-xs text-muted-foreground">To save any security changes, please enter your current account password.</p>
+                            <div className="relative">
+                                <Input id="currentPasswordForSecurity" type={showCurrentPassword ? 'text' : 'password'} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
+                                <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowCurrentPassword(prev => !prev)}>
+                                    {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </Button>
+                            </div>
+                        </div>
+                        <div className="flex justify-end">
+                            <Button onClick={handleAccountSave}>Save Security Settings</Button>
                         </div>
                     </div>
                 </CardContent>

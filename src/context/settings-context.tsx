@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -56,6 +57,8 @@ export interface SchoolSettings {
   whatsappConnectionStatus: 'untested' | 'connected' | 'failed';
   messageDelay: number;
   historyClearPin?: string;
+  autoLockEnabled?: boolean;
+  autoLockDuration?: number; // in seconds
   themeColors?: Partial<ThemeColors>;
   font: 'inter' | 'roboto' | 'open-sans' | 'lato' | 'montserrat' | 'poppins';
   subjects?: { [className: string]: string[] };
@@ -91,6 +94,8 @@ const defaultSettings: SchoolSettings = {
   whatsappConnectionStatus: 'untested',
   messageDelay: 2,
   historyClearPin: '',
+  autoLockEnabled: true,
+  autoLockDuration: 300, // 5 minutes
   themeColors: {},
   font: 'inter',
   gradingSystem: [
