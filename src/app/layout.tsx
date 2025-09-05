@@ -1,46 +1,32 @@
+import './globals.css'
+import './print-styles.css'
+import { Toaster } from '@/components/ui/toaster'
+import { SettingsProvider } from '@/context/settings-context'
+import AppClientLayout, { fontVariables } from './app-client-layout'
+import { Inter } from 'next/font/google'
 
-'use client';
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
-import './globals.css';
-import './print-styles.css';
-import { Toaster } from '@/components/ui/toaster';
-import { SettingsProvider, useSettings } from '@/context/settings-context';
-import { FontWrapper } from '@/components/layout/font-wrapper';
-import { useEffect } from 'react';
-
-function AppContent({ children }: { children: React.ReactNode }) {
-  const { settings } = useSettings();
-
-  useEffect(() => {
-    document.title = settings.schoolName || 'EduCentral';
-    const link = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
-    if (link) {
-      link.href = settings.favicon || '/favicon.ico';
-    } else {
-        const newLink = document.createElement('link');
-        newLink.rel = 'icon';
-        newLink.href = settings.favicon || '/favicon.ico';
-        document.head.appendChild(newLink);
-    }
-  }, [settings.schoolName, settings.favicon]);
-
-  return <>{children}</>;
+export const metadata = {
+  title: 'School Management System',
+  description: 'A comprehensive school management system.',
 }
-
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <SettingsProvider>
-      <FontWrapper>
-          <AppContent>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.className} ${fontVariables}`}>
+        <SettingsProvider>
+          <AppClientLayout>
             {children}
-          </AppContent>
-          <Toaster />
-      </FontWrapper>
-    </SettingsProvider>
+            <Toaster />
+          </AppClientLayout>
+        </SettingsProvider>
+      </body>
+    </html>
   );
 }
