@@ -71,7 +71,7 @@ export default function DashboardPage() {
         const present = todaysAttendance.length > 0 ? todaysAttendance.filter(a => a.status === 'Present').length : Math.floor(teachers.length * 0.9);
         const absent = teachers.length - present; 
         
-        // When student attendance is implemented, this will be updated.
+        // When student attendance is implemented, this logic will be updated.
         // For now, we simulate a portion of students being present/absent.
         const simulatedPresent = Math.floor(totalStudents * 0.9);
         const simulatedAbsent = totalStudents - simulatedPresent;

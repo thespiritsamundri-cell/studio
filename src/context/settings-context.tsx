@@ -41,6 +41,7 @@ export interface SchoolSettings {
     absentee: { enabled: boolean; templateId: string };
     payment: { enabled: boolean; templateId: string };
   };
+  autofillLogin?: boolean;
 }
 
 const defaultSettings: SchoolSettings = {
@@ -80,6 +81,7 @@ const defaultSettings: SchoolSettings = {
     absentee: { enabled: true, templateId: '1' },
     payment: { enabled: true, templateId: '2' },
   },
+  autofillLogin: true,
 };
 
 export const SettingsContext = createContext<{
@@ -91,27 +93,28 @@ export const SettingsContext = createContext<{
 });
 
 export const SettingsProvider = ({ children }: { children: React.ReactNode }) => {
-  const [settings, setSettings] = useState<SchoolSettings>(() => {
-    if (typeof window !== 'undefined') {
-      const savedSettings = localStorage.getItem('schoolSettings');
-      try {
-        if (savedSettings) {
-          const parsed = JSON.parse(savedSettings);
-          // Merge with default settings to ensure new keys are not missing
-          return { ...defaultSettings, ...parsed };
-        }
-      } catch (e) {
-        console.error('Failed to parse settings from localStorage', e);
-      }
-    }
-    return defaultSettings;
-  });
+  const [settings, setSettings] = useState<SchoolSettings>(defaultSettings);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    try {
+      const savedSettings = localStorage.getItem('schoolSettings');
+      if (savedSettings) {
+        const parsed = JSON.parse(savedSettings);
+        setSettings({ ...defaultSettings, ...parsed });
+      }
+    } catch (error) {
+      console.error('Failed to parse settings from localStorage', error);
+    } finally {
+      setIsInitialized(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isInitialized) {
       localStorage.setItem('schoolSettings', JSON.stringify(settings));
     }
-  }, [settings]);
+  }, [settings, isInitialized]);
 
   return (
     <SettingsContext.Provider value={{ settings, setSettings }}>

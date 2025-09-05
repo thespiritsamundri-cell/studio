@@ -1,4 +1,5 @@
 
+
 'use client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -19,10 +20,18 @@ export default function LockPage() {
   const { toast } = useToast();
   const [pin, setPin] = useState('');
   const [isClient, setIsClient] = useState(false);
-  const [dateTime, setDateTime] = useState(new Date());
+  const [dateTime, setDateTime] = useState<Date | null>(null);
+  const [backgroundImageUrl, setBackgroundImageUrl] = useState('');
   
-  const backgroundImageUrl = useMemo(() => {
-    return `https://picsum.photos/1920/1080?blur=5&random=${Math.random()}`;
+  useEffect(() => {
+    setIsClient(true);
+    setDateTime(new Date());
+    setBackgroundImageUrl(`https://picsum.photos/1920/1080?blur=5&random=${Math.random()}`);
+
+    const timer = setInterval(() => {
+      setDateTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
   }, []);
   
   const [animatedSchoolName, setAnimatedSchoolName] = useState('');
@@ -44,14 +53,6 @@ export default function LockPage() {
   }, [settings.schoolName]);
 
 
-  useEffect(() => {
-    setIsClient(true);
-    const timer = setInterval(() => {
-      setDateTime(new Date());
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-  
   const handleLogoutAndRelogin = async () => {
     await auth.signOut();
     router.push('/');
@@ -95,7 +96,11 @@ export default function LockPage() {
         <Card className="w-full max-w-md mx-auto shadow-2xl z-10 bg-background/80 backdrop-blur-lg border-primary/20">
             <CardHeader className="text-center">
                  <div className="text-muted-foreground font-mono mb-4">
-                    <span>{format(dateTime, 'PPPP')}</span> | <span>{format(dateTime, 'hh:mm:ss a')}</span>
+                    {dateTime && (
+                      <>
+                        <span>{format(dateTime, 'PPPP')}</span> | <span>{format(dateTime, 'hh:mm:ss a')}</span>
+                      </>
+                    )}
                  </div>
                 {settings.schoolLogo ? (
                     <Image src={settings.schoolLogo} alt="School Logo" width={80} height={80} className="object-contain mx-auto mb-2 rounded-full" />
