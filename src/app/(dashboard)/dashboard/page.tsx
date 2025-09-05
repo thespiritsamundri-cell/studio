@@ -144,7 +144,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
-        <div className="rounded-lg bg-gradient-to-br from-chart-1 to-chart-2 p-1">
+        <div className="rounded-lg bg-gradient-to-br from-chart-1 to-chart-2 p-1 transition-transform duration-300 hover:scale-105">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">Total Students</CardTitle>
@@ -156,7 +156,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
         </div>
-        <div className="rounded-lg bg-gradient-to-br from-chart-2 to-chart-3 p-1">
+        <div className="rounded-lg bg-gradient-to-br from-chart-2 to-chart-3 p-1 transition-transform duration-300 hover:scale-105">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">Students Present</CardTitle>
@@ -168,7 +168,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
         </div>
-         <div className="rounded-lg bg-gradient-to-br from-chart-3 to-chart-4 p-1">
+         <div className="rounded-lg bg-gradient-to-br from-chart-3 to-chart-4 p-1 transition-transform duration-300 hover:scale-105">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">Students Absent</CardTitle>
@@ -180,7 +180,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
         </div>
-        <div className="rounded-lg bg-gradient-to-br from-chart-4 to-chart-5 p-1">
+        <div className="rounded-lg bg-gradient-to-br from-chart-4 to-chart-5 p-1 transition-transform duration-300 hover:scale-105">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">Messages Sent Today</CardTitle>
@@ -192,7 +192,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
         </div>
-        <div className="rounded-lg bg-gradient-to-br from-chart-5 to-chart-1 p-1">
+        <div className="rounded-lg bg-gradient-to-br from-chart-5 to-chart-1 p-1 transition-transform duration-300 hover:scale-105">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">New Admissions</CardTitle>
@@ -357,3 +357,6 @@ export default function DashboardPage() {
 
     
 
+
+
+    
