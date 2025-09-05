@@ -150,15 +150,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }
   
-  const deleteDocFactory = (collectionName: string, actionName: string, descriptionFn: (doc: any) => string, preDeleteState: any[]) => async (id: string) => {
+  const deleteDocFactory = (collectionName: string, actionName: string, descriptionFn: (doc: any) => string, stateSetter: React.Dispatch<React.SetStateAction<any[]>>) => async (id: string) => {
+    const originalState = [...(stateSetter as any)()];
+    // Optimistically update UI
+    stateSetter(prev => prev.filter(d => d.id !== id));
     try {
-        const docToDelete = preDeleteState.find(d => d.id === id);
         await deleteDoc(doc(db, collectionName, id));
+        const docToDelete = originalState.find(d => d.id === id);
         if (docToDelete) {
            await addActivityLog({ user: 'Admin', action: actionName, description: descriptionFn(docToDelete) });
         }
     } catch (e) {
         console.error(`Error deleting ${collectionName}:`, e);
+        // Revert UI on error
+        stateSetter(originalState);
         toast({ title: `Error deleting ${collectionName}`, variant: "destructive" });
     }
   }
@@ -169,6 +174,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const deleteStudent = async (id: string) => {
       const studentToDelete = students.find(s => s.id === id);
       if (!studentToDelete) return;
+      
+      // Optimistic UI update
+      setStudents(prev => prev.filter(s => s.id !== id));
+
       try {
           const batch = writeBatch(db);
           batch.delete(doc(db, 'students', id));
@@ -182,9 +191,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
           await batch.commit();
           await addActivityLog({ user: 'Admin', action: 'Delete Student', description: `Deleted student: ${studentToDelete.name} (ID: ${id}) and all associated exam results.` });
-          setStudents(prev => prev.filter(s => s.id !== id));
       } catch (e) {
            console.error("Error deleting student:", e);
+           // Revert UI on error
+           setStudents(students);
            toast({ title: `Error deleting student`, variant: "destructive" });
       }
   };
@@ -194,6 +204,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const deleteFamily = async (id: string) => {
       const family = families.find(f => f.id === id);
       if (!family) return;
+      
+      // Optimistic UI update
+      setFamilies(prev => prev.filter(f => f.id !== id));
+      const studentsOfFamily = students.filter(s => s.familyId === id);
+      setStudents(prev => prev.filter(s => s.familyId !== id));
+      setFees(prev => prev.filter(f => f.familyId !== id));
+
       try {
         const batch = writeBatch(db);
         batch.delete(doc(db, "families", id));
@@ -214,35 +231,35 @@ export function DataProvider({ children }: { children: ReactNode }) {
         
         await addActivityLog({ user: 'Admin', action: 'Delete Family', description: `Deleted family: ${family.fatherName} (ID: ${id}) and all associated data.` });
 
-        setFamilies(prev => prev.filter(f => f.id !== id));
-        setStudents(prev => prev.filter(s => s.familyId !== id));
-        setFees(prev => prev.filter(f => f.familyId !== id));
-
       } catch(e) {
         console.error("Error deleting family and associated data:", e);
+        // Revert UI changes on error
+        setFamilies(families);
+        setStudents(students);
+        setFees(fees);
         toast({ title: 'Error Deleting Family', description: 'Could not delete family and their students/fees.', variant: 'destructive' });
       }
   };
 
   const addFee = addDocFactory<Fee>('fees', 'Add Fee', d => `Fee generated for family ${d.familyId} for ${d.month} ${d.year}.`);
   const updateFee = updateDocFactory<Fee>('fees', 'Update Fee', d => `Fee ${d.id} updated.`);
-  const deleteFee = deleteDocFactory('fees', 'Delete Fee', d => `Fee ${d.id} deleted.`, fees);
+  const deleteFee = deleteDocFactory('fees', 'Delete Fee', d => `Fee ${d.id} deleted.`, setFees);
   
   const addTeacher = addDocFactory<Teacher>('teachers', 'Add Teacher', d => `Added new teacher: ${d.name}.`);
   const updateTeacher = updateDocFactory<Teacher>('teachers', 'Update Teacher', d => `Updated teacher: ${d.name || ''}.`);
-  const deleteTeacher = deleteDocFactory('teachers', 'Delete Teacher', d => `Deleted teacher: ${d.name}.`, teachers);
+  const deleteTeacher = deleteDocFactory('teachers', 'Delete Teacher', d => `Deleted teacher: ${d.name}.`, setTeachers);
   
   const addClass = addDocFactory<Class>('classes', 'Add Class', d => `Created new class: ${d.name}.`);
   const updateClass = updateDocFactory<Class>('classes', 'Update Class', d => `Updated class: ${d.name || ''}.`);
-  const deleteClass = deleteDocFactory('classes', 'Delete Class', d => `Deleted class: ${d.name}.`, classes);
+  const deleteClass = deleteDocFactory('classes', 'Delete Class', d => `Deleted class: ${d.name}.`, setClasses);
   
   const addExam = addDocFactory<Exam>('exams', 'Create Exam', d => `Created exam "${d.name}" for class ${d.class}.`);
   const updateExam = updateDocFactory<Exam>('exams', 'Save Exam Results', d => `Saved results for exam: ${d.name || ''} (${d.class || ''}).`);
-  const deleteExam = deleteDocFactory('exams', 'Delete Exam', d => `Deleted exam: ${d.name} (${d.class}).`, exams);
+  const deleteExam = deleteDocFactory('exams', 'Delete Exam', d => `Deleted exam: ${d.name} (${d.class}).`, setExams);
   
   const addExpense = addDocFactory<Expense>('expenses', 'Add Expense', d => `Added expense of PKR ${d.amount} for ${d.category}.`);
   const updateExpense = updateDocFactory<Expense>('expenses', 'Update Expense', d => `Updated expense for ${d.category || ''}.`);
-  const deleteExpense = deleteDocFactory('expenses', 'Delete Expense', d => `Deleted expense of PKR ${d.amount} for ${d.category}.`, expenses);
+  const deleteExpense = deleteDocFactory('expenses', 'Delete Expense', d => `Deleted expense of PKR ${d.amount} for ${d.category}.`, setExpenses);
 
   const saveTeacherAttendance = async (newAttendances: TeacherAttendance[]) => {
     const date = newAttendances[0]?.date;
