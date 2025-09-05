@@ -102,11 +102,8 @@ export default {
           }
         },
         'border-spin': {
-            'from': {
-                '--angle': '0deg'
-            },
-            'to': {
-                '--angle': '360deg'
+            '100%': {
+                '--angle': '360deg',
             },
         },
       },
@@ -133,3 +130,5 @@ export default {
     }),
   ],
 } satisfies Config;
+
+    
