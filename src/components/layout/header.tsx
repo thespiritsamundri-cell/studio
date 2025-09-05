@@ -16,32 +16,67 @@ import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { format } from 'date-fns';
+import { useData } from '@/context/data-context';
+import type { Student, Family } from '@/lib/types';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
+interface SearchResult extends Student {
+  fatherName: string;
+}
+
 export function Header() {
   const pathname = usePathname();
+  const { students, families } = useData();
   const pageTitle = pathname.split('/').pop()?.replace(/-/g, ' ') || 'Dashboard';
   const [currentDate, setCurrentDate] = useState('');
   const [currentTime, setCurrentTime] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   useEffect(() => {
-    // Set date once on mount to avoid hydration mismatch
     setCurrentDate(format(new Date(), 'd MMMM yyyy'));
-    
-    // Set up an interval to update the time every second
     const timer = setInterval(() => {
-      setCurrentTime(new Date().toLocaleTimeString());
+      setCurrentTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     }, 1000);
-
-    // Clean up the interval on component unmount
     return () => clearInterval(timer);
   }, []);
+
+  const familyMap = useMemo(() => {
+    return new Map(families.map(f => [f.id, f]));
+  }, [families]);
+
+  useEffect(() => {
+    if (searchQuery.length > 1) {
+        const lowerCaseQuery = searchQuery.toLowerCase();
+        const filteredStudents = students
+            .map(student => {
+                const family = familyMap.get(student.familyId);
+                return { ...student, fatherName: family?.fatherName || 'N/A' };
+            })
+            .filter(student =>
+                student.name.toLowerCase().includes(lowerCaseQuery) ||
+                student.id.toLowerCase().includes(lowerCaseQuery) ||
+                student.familyId.toLowerCase().includes(lowerCaseQuery) ||
+                student.fatherName.toLowerCase().includes(lowerCaseQuery)
+            );
+        setSearchResults(filteredStudents.slice(0, 10)); // Limit results
+    } else {
+        setSearchResults([]);
+    }
+  }, [searchQuery, students, familyMap]);
   
+  const handleResultClick = () => {
+    setSearchQuery('');
+    setSearchResults([]);
+    setIsSearchFocused(false);
+  }
+
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
       <SidebarTrigger className="md:hidden" />
        <div className="w-full flex-1">
           <h1 className="text-xl font-semibold hidden md:block">{capitalize(pageTitle)}</h1>
@@ -50,19 +85,51 @@ export function Header() {
         <div className="relative flex-1 md:grow-0">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-            type="search"
-            placeholder="Search students or families..."
-            className="w-full rounded-lg bg-card pl-8 md:w-[200px] lg:w-[280px]"
+                type="search"
+                placeholder="Search students or families..."
+                className="w-full rounded-lg bg-card pl-8 md:w-[200px] lg:w-[280px]"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)} // Delay to allow click
             />
+            {isSearchFocused && searchResults.length > 0 && (
+                 <div className="absolute top-full mt-2 w-full rounded-md border bg-popover text-popover-foreground shadow-md z-50">
+                    <ul className="p-1">
+                        {searchResults.map(student => (
+                             <li key={student.id}>
+                                <Link href={`/students/details/${student.id}`} passHref>
+                                    <Button
+                                        variant="ghost"
+                                        className="w-full justify-start h-auto py-2 px-2"
+                                        onClick={handleResultClick}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <Avatar className="h-9 w-9">
+                                                <AvatarImage src={student.photoUrl} alt={student.name} />
+                                                <AvatarFallback>{student.name.charAt(0)}</AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <p className="font-semibold text-sm">{student.name}</p>
+                                                <p className="text-xs text-muted-foreground">Father: {student.fatherName}</p>
+                                            </div>
+                                        </div>
+                                    </Button>
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
+                 </div>
+            )}
         </div>
          <div className="hidden md:flex items-center gap-2 text-sm font-medium">
-            <div className="rounded-lg bg-gradient-to-br from-chart-1 to-chart-2 p-px">
-                <div className="bg-muted px-3 py-1.5 rounded-[7px]">
+            <div className="p-px bg-gradient-to-br from-chart-1 to-chart-2 rounded-[7px]">
+                <div className="bg-muted px-3 py-1.5 rounded-[6px]">
                     {currentDate}
                 </div>
             </div>
-             <div className="rounded-lg bg-gradient-to-br from-chart-2 to-chart-3 p-px">
-                <div className="bg-muted px-3 py-1.5 rounded-[7px] w-28 text-center">
+             <div className="p-px bg-gradient-to-br from-chart-2 to-chart-3 rounded-[7px]">
+                <div className="bg-muted px-3 py-1.5 rounded-[6px] w-28 text-center">
                     {currentTime}
                 </div>
             </div>
