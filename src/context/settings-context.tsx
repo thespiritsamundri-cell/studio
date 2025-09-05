@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -157,6 +156,21 @@ const hexToHsl = (hex: string): string => {
     return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 };
 
+const deepMerge = (target: any, source: any) => {
+  for (const key in source) {
+    if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+      if (!target[key]) {
+        Object.assign(target, { [key]: {} });
+      }
+      deepMerge(target[key], source[key]);
+    } else {
+      Object.assign(target, { [key]: source[key] });
+    }
+  }
+  return target;
+};
+
+
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<SchoolSettings>(defaultSettings);
   const [isClient, setIsClient] = useState(false);
@@ -167,8 +181,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       const savedSettings = window.localStorage.getItem('schoolSettings');
       if (savedSettings) {
         const parsedSettings = JSON.parse(savedSettings);
-        // Merge with defaults to ensure all keys are present
-        const mergedSettings = { ...defaultSettings, ...parsedSettings };
+        // Deep merge with defaults to ensure all keys are present, especially nested ones
+        const mergedSettings = deepMerge({ ...defaultSettings }, parsedSettings);
         setSettings(mergedSettings);
         
         // Apply theme colors on initial load
@@ -216,6 +230,5 @@ export function useSettings() {
   }
   return context;
 }
-
 
     

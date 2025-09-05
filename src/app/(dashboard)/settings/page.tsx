@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -32,7 +31,7 @@ import { Switch } from '@/components/ui/switch';
 
 export default function SettingsPage() {
   const { settings, setSettings } = useSettings();
-  const { students, families, fees, loadData, addActivityLog, activityLog, seedDatabase, clearActivityLog } = useData();
+  const { students, families, fees, loadData, addActivityLog, activityLog, seedDatabase, clearActivityLog, classes: dataClasses } = useData();
   const { toast } = useToast();
   
   // Custom Messaging State
@@ -73,7 +72,7 @@ export default function SettingsPage() {
   const [openTemplateDialog, setOpenTemplateDialog] = useState(false);
 
 
-  const classes = useMemo(() => [...Array.from(new Set(students.map(s => s.class)))], [students]);
+  const classes = useMemo(() => dataClasses.map(c => c.name), [dataClasses]);
 
   const handleSave = () => {
     addActivityLog({ user: 'Admin', action: 'Update Settings', description: 'Updated school information settings.' });
@@ -497,13 +496,31 @@ export default function SettingsPage() {
             }
         });
     };
+    
+    const handleAutomatedMessageTemplateChange = (key: 'admission' | 'absentee' | 'payment', templateId: string) => {
+        setSettings(prev => {
+            const currentAutomatedMessages = prev.automatedMessages || {};
+             const setting = currentAutomatedMessages[key] || { enabled: false, templateId: '' };
+            return {
+                ...prev,
+                automatedMessages: {
+                    ...currentAutomatedMessages,
+                    [key]: {
+                        ...setting,
+                        templateId: templateId
+                    }
+                }
+            }
+        });
+    }
 
-    // Safely access nested properties
-    const automatedMessages = {
+    // Safely access nested properties with defaults
+    const automatedMessages = useMemo(() => ({
         admission: settings.automatedMessages?.admission || { enabled: false, templateId: '' },
         absentee: settings.automatedMessages?.absentee || { enabled: false, templateId: '' },
         payment: settings.automatedMessages?.payment || { enabled: false, templateId: '' },
-    };
+    }), [settings.automatedMessages]);
+
 
   return (
     <div className="space-y-6">
@@ -1131,11 +1148,5 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-
-
-    
-
-    
 
     
