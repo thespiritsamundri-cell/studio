@@ -102,8 +102,11 @@ export default {
           }
         },
         'border-spin': {
-            '100%': {
-                transform: 'rotate(360deg)',
+            'from': {
+                '--angle': '0deg'
+            },
+            'to': {
+                '--angle': '360deg'
             },
         },
       },
@@ -120,8 +123,6 @@ export default {
     plugin(function ({ addUtilities, theme }) {
       addUtilities({
         '.animate-border-spin': {
-          '--angle': '0deg',
-          animation: 'border-spin 7s linear infinite',
           '@property --angle': {
             syntax: "'<angle>'",
             inherits: false,
