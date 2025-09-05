@@ -28,7 +28,8 @@ export async function sendWhatsAppMessage(
   });
 
   try {
-    const response = await fetch(apiUrl, {
+    const fullUrl = `${apiUrl}/messages/chat`;
+    const response = await fetch(fullUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
