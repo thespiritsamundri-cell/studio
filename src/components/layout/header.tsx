@@ -12,10 +12,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Search } from 'lucide-react';
+import { Search, Lock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { useData } from '@/context/data-context';
@@ -29,6 +29,7 @@ interface SearchResult extends Student {
 
 export function Header() {
   const pathname = usePathname();
+  const router = useRouter();
   const { students, families } = useData();
   const pageTitle = pathname.split('/').pop()?.replace(/-/g, ' ') || 'Dashboard';
   const [currentDate, setCurrentDate] = useState('');
@@ -48,6 +49,11 @@ export function Header() {
   const familyMap = useMemo(() => {
     return new Map(families.map(f => [f.id, f]));
   }, [families]);
+  
+  const handleLock = () => {
+    sessionStorage.setItem('lockedFrom', pathname);
+    router.push('/lock');
+  }
 
   useEffect(() => {
     if (searchQuery.length > 1) {
@@ -136,6 +142,10 @@ export function Header() {
                 </div>
             </div>
         </div>
+        <Button variant="ghost" size="icon" className="h-9 w-9" onClick={handleLock}>
+          <Lock className="h-5 w-5" />
+          <span className="sr-only">Lock System</span>
+        </Button>
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-9 w-9 rounded-full">
