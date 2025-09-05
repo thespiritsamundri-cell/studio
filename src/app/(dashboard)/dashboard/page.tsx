@@ -1,12 +1,12 @@
 
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Users, Wallet, UserCheck, UserPlus, History, Landmark, DollarSign, UserX, TrendingDown, TrendingUp, Scale, CheckCircle, XCircle } from 'lucide-react';
+import { Users, Wallet, UserCheck, UserPlus, History, Landmark, DollarSign, UserX, TrendingDown, TrendingUp, Scale, CheckCircle, XCircle, MessageSquare } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, PieChart, Pie, Cell, Line, LineChart, Tooltip } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { useData } from '@/context/data-context';
 import { useMemo, useState, useEffect } from 'react';
-import { subMonths, format, formatDistanceToNow, startOfMonth, endOfMonth } from 'date-fns';
+import { subMonths, format, formatDistanceToNow, startOfMonth, endOfMonth, isToday } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -32,6 +32,15 @@ export default function DashboardPage() {
     }, []);
 
     const totalStudents = students.length;
+    
+    const messagesSentToday = useMemo(() => {
+        return activityLog.filter(log => {
+            return log.action === 'Send Custom Message' && isToday(new Date(log.timestamp));
+        }).reduce((total, log) => {
+            const match = log.description.match(/Sent message to (\d+)/);
+            return total + (match ? parseInt(match[1], 10) : 0);
+        }, 0);
+    }, [activityLog]);
 
     const { monthlyIncome, monthlyExpenses, netProfitThisMonth } = useMemo(() => {
         if (!today) return { monthlyIncome: 0, monthlyExpenses: 0, netProfitThisMonth: 0 };
@@ -152,14 +161,14 @@ export default function DashboardPage() {
             <p className="text-xs text-muted-foreground">Attendance for today</p>
           </CardContent>
         </Card>
-         <Card className="transition-all hover:scale-105 hover:shadow-lg">
+        <Card className="transition-all hover:scale-105 hover:shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Students Absent</CardTitle>
-            <UserX className="w-5 h-5 text-red-500" />
+            <CardTitle className="text-sm font-medium">Messages Sent Today</CardTitle>
+            <MessageSquare className="w-5 h-5 text-purple-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{absentStudents}</div>
-            <p className="text-xs text-muted-foreground">Attendance for today</p>
+            <div className="text-3xl font-bold">{messagesSentToday}</div>
+            <p className="text-xs text-muted-foreground">WhatsApp messages delivered</p>
           </CardContent>
         </Card>
         <Card className="transition-all hover:scale-105 hover:shadow-lg">
@@ -325,3 +334,6 @@ export default function DashboardPage() {
 
 
 
+
+
+    
