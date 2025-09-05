@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -119,11 +118,15 @@ export default function SettingsPage() {
         
         if (newPin) {
             setSettings(prev => ({ ...prev, historyClearPin: newPin }));
-            setNewPin('');
-            setConfirmPin('');
             changesMade = true;
         }
         
+        if(settings.autoLockEnabled) {
+            changesMade = true;
+        }
+
+        setSettings(prev => ({ ...prev, historyClearPin: newPin || prev.historyClearPin }));
+
         if (changesMade) {
              addActivityLog({ user: 'Admin', action: 'Update Credentials', description: 'Updated admin login credentials or PIN.' });
              toast({
@@ -140,6 +143,8 @@ export default function SettingsPage() {
         // Clear password fields after operation
         setCurrentPassword('');
         setNewPassword('');
+        setNewPin('');
+        setConfirmPin('');
 
     } catch (error: any) {
         console.error(error);
@@ -532,12 +537,11 @@ export default function SettingsPage() {
       <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><SettingsIcon className="w-8 h-8" />Settings</h1>
       
       <Tabs defaultValue="school" className="w-full">
-        <TabsList className="grid w-full grid-cols-8 max-w-5xl">
+        <TabsList className="grid w-full grid-cols-7 max-w-5xl">
           <TabsTrigger value="school">School</TabsTrigger>
           <TabsTrigger value="theme">Theme</TabsTrigger>
           <TabsTrigger value="grading">Grading</TabsTrigger>
-          <TabsTrigger value="account">Account</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
+          <TabsTrigger value="security">Account &amp; Security</TabsTrigger>
           <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
           <TabsTrigger value="backup">Backup</TabsTrigger>
@@ -752,84 +756,65 @@ export default function SettingsPage() {
                 </CardContent>
             </Card>
         </TabsContent>
-         <TabsContent value="account" className="mt-6">
+         <TabsContent value="security" className="mt-6">
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><UserCog />Account Settings</CardTitle>
-                    <CardDescription>Manage your login credentials.</CardDescription>
+                    <CardTitle className="flex items-center gap-2"><ShieldAlert />Account &amp; Security</CardTitle>
+                    <CardDescription>Manage your login credentials and application security.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6 max-w-lg">
-                    <div className="p-4 border rounded-lg space-y-4">
-                        <h3 className="font-medium">Change Password</h3>
-                        <div className="space-y-2">
-                            <Label htmlFor="email">Login Email</Label>
-                            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled />
+                <CardContent className="space-y-6 max-w-2xl">
+                     <div className="p-4 border rounded-lg space-y-4">
+                        <h3 className="font-medium text-lg">Login Credentials</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="email">Login Email</Label>
+                                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="newPassword">New Password</Label>
+                                <div className="relative">
+                                    <Input id="newPassword" type={showNewPassword ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Leave blank to keep current" />
+                                    <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowNewPassword(prev => !prev)}>
+                                        {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </Button>
+                                </div>
+                            </div>
                         </div>
+                    </div>
+
+                    <div className="p-4 border rounded-lg space-y-4">
+                        <h3 className="font-medium text-lg">Security Features</h3>
                          <div className="space-y-2">
-                            <Label htmlFor="newPassword">New Password</Label>
-                            <div className="relative">
-                                <Input id="newPassword" type={showNewPassword ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Leave blank to keep current password" />
-                                <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowNewPassword(prev => !prev)}>
-                                    {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                </Button>
+                            <h4 className="font-semibold">Security PIN</h4>
+                            <p className="text-sm text-muted-foreground">Set a 4-digit PIN for an extra layer of security when clearing history or unlocking the app.</p>
+                             <div className="grid grid-cols-2 gap-4 max-w-sm">
+                                <div className="space-y-2">
+                                    <Label htmlFor="newPin">New PIN</Label>
+                                    <Input id="newPin" type="password" maxLength={4} value={newPin} onChange={(e) => setNewPin(e.target.value)} placeholder="4-digit PIN" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="confirmPin">Confirm PIN</Label>
+                                    <Input id="confirmPin" type="password" maxLength={4} value={confirmPin} onChange={(e) => setConfirmPin(e.target.value)} placeholder="Confirm PIN" />
+                                </div>
+                             </div>
+                        </div>
+                        <div className="border-t pt-4 space-y-2">
+                           <div className="flex justify-between items-center">
+                                <h4 className="font-semibold">Auto-Lock</h4>
+                                <Switch id="autoLockEnabled" checked={settings.autoLockEnabled} onCheckedChange={(checked) => setSettings(prev => ({...prev, autoLockEnabled: checked }))} />
+                            </div>
+                            <p className="text-sm text-muted-foreground">Automatically lock the application after a period of inactivity.</p>
+                            <div className="space-y-2">
+                                <Label htmlFor="autoLockDuration">Inactivity Duration (seconds)</Label>
+                                <Input id="autoLockDuration" type="number" value={settings.autoLockDuration} onChange={(e) => setSettings(prev => ({...prev, autoLockDuration: Number(e.target.value)}))} disabled={!settings.autoLockEnabled} className="max-w-xs"/>
                             </div>
                         </div>
                     </div>
                     
-                    <div className="p-4 border-t pt-6 space-y-4">
-                         <div className="space-y-2">
-                            <Label htmlFor="currentPassword">Current Password</Label>
-                             <p className="text-xs text-muted-foreground">To save any changes, please enter your current account password.</p>
-                            <div className="relative">
-                                <Input id="currentPassword" type={showCurrentPassword ? 'text' : 'password'} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
-                                <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowCurrentPassword(prev => !prev)}>
-                                    {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                </Button>
-                            </div>
-                        </div>
-                        <div className="flex justify-end">
-                            <Button onClick={handleAccountSave}>Save Account Settings</Button>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-        </TabsContent>
-         <TabsContent value="security" className="mt-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><ShieldAlert />Security Settings</CardTitle>
-                    <CardDescription>Manage application security features like auto-lock and PINs.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6 max-w-lg">
-                     <div className="p-4 border rounded-lg space-y-4">
-                        <h3 className="font-medium">Security PIN</h3>
-                        <p className="text-sm text-muted-foreground">Set a 4-digit PIN for an extra layer of security when clearing the activity history or unlocking the application.</p>
-                         <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="newPin">New PIN</Label>
-                                <Input id="newPin" type="password" maxLength={4} value={newPin} onChange={(e) => setNewPin(e.target.value)} placeholder="4-digit PIN" />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="confirmPin">Confirm PIN</Label>
-                                <Input id="confirmPin" type="password" maxLength={4} value={confirmPin} onChange={(e) => setConfirmPin(e.target.value)} placeholder="Confirm PIN" />
-                            </div>
-                         </div>
-                    </div>
-                    <div className="p-4 border rounded-lg space-y-4">
-                        <div className="flex justify-between items-center">
-                            <h3 className="font-medium">Auto-Lock</h3>
-                            <Switch id="autoLockEnabled" checked={settings.autoLockEnabled} onCheckedChange={(checked) => setSettings(prev => ({...prev, autoLockEnabled: checked }))} />
-                        </div>
-                        <p className="text-sm text-muted-foreground">Automatically lock the application after a period of inactivity.</p>
-                        <div className="space-y-2">
-                            <Label htmlFor="autoLockDuration">Inactivity Duration (seconds)</Label>
-                            <Input id="autoLockDuration" type="number" value={settings.autoLockDuration} onChange={(e) => setSettings(prev => ({...prev, autoLockDuration: Number(e.target.value)}))} disabled={!settings.autoLockEnabled} />
-                        </div>
-                    </div>
-                    <div className="p-4 border-t pt-6 space-y-4">
-                        <div className="space-y-2">
+                    <div className="border-t pt-6 space-y-4">
+                         <div className="space-y-2 max-w-sm">
                             <Label htmlFor="currentPasswordForSecurity">Current Password</Label>
-                            <p className="text-xs text-muted-foreground">To save any security changes, please enter your current account password.</p>
+                             <p className="text-xs text-muted-foreground">To save any changes on this page, please enter your current password.</p>
                             <div className="relative">
                                 <Input id="currentPasswordForSecurity" type={showCurrentPassword ? 'text' : 'password'} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
                                 <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowCurrentPassword(prev => !prev)}>
@@ -838,7 +823,7 @@ export default function SettingsPage() {
                             </div>
                         </div>
                         <div className="flex justify-end">
-                            <Button onClick={handleAccountSave}>Save Security Settings</Button>
+                            <Button onClick={handleAccountSave}>Save Account &amp; Security</Button>
                         </div>
                     </div>
                 </CardContent>
@@ -1090,7 +1075,7 @@ export default function SettingsPage() {
                     </div>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleConfirmClearHistory}>Confirm & Delete</AlertDialogAction>
+                        <AlertDialogAction onClick={handleConfirmClearHistory}>Confirm &amp; Delete</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
                </AlertDialog>
@@ -1127,7 +1112,7 @@ export default function SettingsPage() {
         <TabsContent value="backup" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Backup & Restore</CardTitle>
+              <CardTitle>Backup &amp; Restore</CardTitle>
               <CardDescription>Manage your application data backups.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -1189,5 +1174,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
