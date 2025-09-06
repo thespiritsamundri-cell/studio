@@ -1,5 +1,4 @@
 
-
 'use client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -72,6 +71,7 @@ export default function LockPage() {
 
     if (pin === settings.historyClearPin) {
       toast({ title: 'System Unlocked' });
+      sessionStorage.removeItem('locked');
       const returnUrl = sessionStorage.getItem('lockedFrom') || '/dashboard';
       sessionStorage.removeItem('lockedFrom'); // Clean up session storage
       router.replace(returnUrl);

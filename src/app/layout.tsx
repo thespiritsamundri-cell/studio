@@ -1,8 +1,9 @@
 import './globals.css'
 import './print-styles.css'
+import { Toaster } from '@/components/ui/toaster'
 import { SettingsProvider } from '@/context/settings-context'
-import AppClientLayout from './app-client-layout'
-import { fontVariables } from './font-config'
+import AppClientLayout from '@/app/app-client-layout'
+import { fontVariables } from '@/app/font-config'
 
 export const metadata = {
   title: 'School Management System',
@@ -16,11 +17,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={fontVariables}>
+      <body className={`${fontVariables} font-sans antialiased`}>
         <SettingsProvider>
           <AppClientLayout>
             {children}
           </AppClientLayout>
+          <Toaster />
         </SettingsProvider>
       </body>
     </html>

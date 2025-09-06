@@ -11,10 +11,12 @@ export interface SchoolSettings {
   schoolPhone: string;
   schoolLogo: string;
   favicon: string;
+  principalSignature: string;
   whatsappApiUrl: string;
   whatsappApiKey: string;
   whatsappInstanceId: string;
   whatsappPriority: string;
+  whatsappProvider: 'ultramsg' | 'official';
   whatsappConnectionStatus: 'untested' | 'connected' | 'failed';
   messageDelay: number;
   historyClearPin?: string;
@@ -39,11 +41,13 @@ const defaultSettings: SchoolSettings = {
   schoolAddress: '123 Education Lane, Knowledge City, Pakistan',
   schoolPhone: '+92 300 1234567',
   schoolLogo: '/logo.png',
-  favicon: '/favicon.ico',
+  favicon: '/logo.png',
+  principalSignature: '',
   whatsappApiUrl: '',
   whatsappApiKey: '',
   whatsappInstanceId: '',
   whatsappPriority: '10',
+  whatsappProvider: 'ultramsg',
   whatsappConnectionStatus: 'untested',
   messageDelay: 2,
   historyClearPin: '1234',

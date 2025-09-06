@@ -27,12 +27,7 @@ export default function ReportsPage() {
 
   // States for Attendance Report
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
-  const [attendanceDate, setAttendanceDate] = useState<Date | undefined>(undefined);
-
-  // Set date on client mount to avoid hydration errors
-  useEffect(() => {
-    setAttendanceDate(new Date());
-  }, []);
+  const [attendanceDate, setAttendanceDate] = useState<Date | undefined>(new Date());
 
   const generateReport = (type: string) => {
     setIsLoading(type);
@@ -41,9 +36,10 @@ export default function ReportsPage() {
 
     // Simulate loading
     setTimeout(() => {
+      const currentDate = new Date();
       if (type === 'students') {
         printContent = renderToString(
-          <AllStudentsPrintReport students={allStudents} date={new Date()} settings={settings} />
+          <AllStudentsPrintReport students={allStudents} date={currentDate} settings={settings} />
         );
         reportTitle = 'All Students Report';
       } else if (type === 'fees') {
