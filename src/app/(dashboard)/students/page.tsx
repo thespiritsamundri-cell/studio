@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -44,13 +44,20 @@ export default function StudentsPage() {
   const { settings } = useSettings();
   const searchParams = useSearchParams();
   const familyIdFromQuery = searchParams.get('familyId');
+  const searchQueryFromQuery = searchParams.get('search');
   const { toast } = useToast();
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(searchQueryFromQuery || '');
   const [selectedClass, setSelectedClass] = useState<string>('all');
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [studentToArchive, setStudentToArchive] = useState<Student | null>(null);
   
+  useEffect(() => {
+    if (searchQueryFromQuery) {
+        setSearchQuery(searchQueryFromQuery);
+    }
+  }, [searchQueryFromQuery]);
+
   const filteredStudents = useMemo(() => {
     let students = allStudents.filter(s => s.status !== 'Archived');
 

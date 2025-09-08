@@ -44,6 +44,7 @@ export function Header() {
   const { settings } = useSettings();
   
   const [dateTime, setDateTime] = useState<Date | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     setDateTime(new Date());
@@ -56,6 +57,14 @@ export function Header() {
     router.push('/lock');
   };
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/students?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
+
   return (
     <header className="sticky top-0 z-30 flex h-20 items-center gap-4 border-b bg-background px-4 md:px-6">
        <div className="flex-1">
@@ -63,14 +72,16 @@ export function Header() {
         <h1 className="text-xl font-semibold hidden md:block">{pageTitle}</h1>
       </div>
       <div className="flex flex-1 items-center justify-end gap-2 md:gap-4">
-        <div className="relative flex-grow-0">
+        <form onSubmit={handleSearch} className="relative flex-grow-0">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
             placeholder="Search students or families..."
             className="w-full rounded-lg bg-card pl-8 md:w-[200px] lg:w-[280px]"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
-        </div>
+        </form>
          {dateTime && (
            <div className="hidden lg:flex items-center gap-2">
               <div className="animated-gradient-border p-0.5 rounded-lg">
