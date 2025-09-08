@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -21,28 +20,28 @@ interface DataContextType {
   activityLog: ActivityLog[];
   expenses: Expense[];
   timetables: Timetable[];
-  addStudent: (student: Omit<Student, 'id'>) => Promise<void>;
+  addStudent: (student: Student) => Promise<void>;
   updateStudent: (id: string, student: Partial<Student>) => Promise<void>;
   deleteStudent: (id: string) => Promise<void>;
-  addFamily: (family: Omit<Family, 'id'>) => Promise<void>;
+  addFamily: (family: Family) => Promise<void>;
   updateFamily: (id: string, family: Partial<Family>) => Promise<void>;
   deleteFamily: (id: string) => Promise<void>;
-  addFee: (fee: Omit<Fee, 'id'>) => Promise<void>;
+  addFee: (fee: Fee) => Promise<void>;
   updateFee: (id: string, fee: Partial<Fee>) => Promise<void>;
   deleteFee: (id: string) => Promise<void>;
-  addTeacher: (teacher: Omit<Teacher, 'id'>) => Promise<void>;
+  addTeacher: (teacher: Teacher) => Promise<void>;
   updateTeacher: (id: string, teacher: Partial<Teacher>) => Promise<void>;
   deleteTeacher: (id: string) => Promise<void>;
   saveTeacherAttendance: (attendances: TeacherAttendance[]) => Promise<void>;
-  addClass: (newClass: Omit<Class, 'id'>) => Promise<void>;
+  addClass: (newClass: Class) => Promise<void>;
   updateClass: (id: string, updatedClass: Partial<Class>) => Promise<void>;
   deleteClass: (id: string) => Promise<void>;
-  addExam: (exam: Omit<Exam, 'id'>) => Promise<void>;
+  addExam: (exam: Exam) => Promise<void>;
   updateExam: (id: string, exam: Partial<Exam>) => Promise<void>;
   deleteExam: (id: string) => Promise<void>;
   addActivityLog: (activity: Omit<ActivityLog, 'id' | 'timestamp'>) => Promise<void>;
   clearActivityLog: () => Promise<void>;
-  addExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
+  addExpense: (expense: Expense) => Promise<void>;
   updateExpense: (id: string, expense: Partial<Expense>) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
   updateTimetable: (classId: string, data: TimetableData, timeSlots?: string[], breakAfterPeriod?: number, breakDuration?: string) => Promise<void>;
@@ -129,17 +128,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Generic CRUD Functions
-  const addDocFactory = <T extends { id: string }>(collectionName: string, actionName: string, descriptionFn: (doc: T) => string) => async (docData: Omit<T, 'id'>) => {
-    try {
-        const docRef = await addDoc(collection(db, collectionName), docData);
-        await addActivityLog({ user: 'Admin', action: actionName, description: descriptionFn({ ...docData, id: docRef.id } as T) });
-    } catch (e) {
-        console.error(`Error adding ${collectionName}:`, e);
-        toast({ title: `Error adding ${collectionName}`, variant: "destructive" });
-    }
-  }
-
   const updateDocFactory = <T extends {}>(collectionName: string, actionName: string, descriptionFn: (doc: T & {id: string}) => string) => async (id: string, docData: Partial<T>) => {
      try {
         await updateDoc(doc(db, collectionName, id), docData);
@@ -151,17 +139,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }
 
   // --- STUDENT ---
-  const addStudent = addDocFactory<Student>('students', 'Add Student', d => `Admitted new student: ${d.name} (ID: ${d.id}) in Class ${d.class}.`);
+  const addStudent = async (student: Student) => {
+    try {
+        // Use setDoc with the client-generated ID
+        await setDoc(doc(db, 'students', student.id), student);
+        await addActivityLog({ user: 'Admin', action: 'Add Student', description: `Admitted new student: ${student.name} (ID: ${student.id}) in Class ${student.class}.` });
+    } catch (e) {
+        console.error(`Error adding student:`, e);
+        toast({ title: `Error adding student`, variant: "destructive" });
+    }
+  };
   const updateStudent = updateDocFactory<Student>('students', 'Update Student', d => `Updated details for student: ${d.name || ''} (ID: ${d.id}).`);
   
   const deleteStudent = async (studentId: string) => {
-    // This is now a soft delete, we change the status to 'Archived'
     const studentToArchive = students.find((s) => s.id === studentId);
     if (!studentToArchive) return;
     try {
         await updateDoc(doc(db, 'students', studentId), { status: 'Archived' });
         await addActivityLog({ user: 'Admin', action: 'Archive Student', description: `Archived student: ${studentToArchive.name} (ID: ${studentId}).`});
-        toast({ title: "Student Archived", description: `${studentToArchive.name} has been moved to the archive.`});
     } catch (e) {
         console.error("Error archiving student:", e);
         toast({ title: "Archive Failed", description: "Could not archive student.", variant: "destructive" });
@@ -169,7 +164,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
 
   // --- FAMILY ---
-  const addFamily = addDocFactory<Family>('families', 'Add Family', d => `Added new family: ${d.fatherName} (ID: ${d.id}).`);
+  const addFamily = async (family: Family) => {
+    try {
+      await setDoc(doc(db, "families", family.id), family);
+      await addActivityLog({ user: 'Admin', action: 'Add Family', description: `Added new family: ${family.fatherName} (ID: ${family.id}).` });
+    } catch (e) {
+      console.error('Error adding family:', e);
+      toast({ title: 'Error Adding Family', variant: 'destructive' });
+    }
+  };
   const updateFamily = updateDocFactory<Family>('families', 'Update Family', d => `Updated details for family: ${d.fatherName || ''} (ID: ${d.id}).`);
   const deleteFamily = async (familyId: string) => {
     const familyToDelete = families.find((f) => f.id === familyId);
@@ -205,7 +208,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
 
   // --- FEE ---
-  const addFee = addDocFactory<Fee>('fees', 'Add Fee', d => `Fee generated for family ${d.familyId} for ${d.month} ${d.year}.`);
+  const addFee = async (fee: Fee) => {
+    try {
+      await setDoc(doc(db, "fees", fee.id), fee);
+    } catch(e) {
+       console.error('Error adding fee', e);
+    }
+  };
   const updateFee = updateDocFactory<Fee>('fees', 'Update Fee', d => `Fee ${d.id} updated.`);
   const deleteFee = async (id: string) => {
      try {
@@ -216,7 +225,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
   
   // --- TEACHER ---
-  const addTeacher = addDocFactory<Teacher>('teachers', 'Add Teacher', d => `Added new teacher: ${d.name}.`);
+  const addTeacher = async (teacher: Teacher) => {
+    try {
+      await setDoc(doc(db, "teachers", teacher.id), teacher);
+      await addActivityLog({ user: 'Admin', action: 'Add Teacher', description: `Added new teacher: ${teacher.name}.` });
+    } catch (e) {
+      console.error('Error adding teacher:', e);
+      toast({ title: 'Error Adding Teacher', variant: 'destructive' });
+    }
+  };
   const updateTeacher = updateDocFactory<Teacher>('teachers', 'Update Teacher', d => `Updated teacher: ${d.name || ''}.`);
   const deleteTeacher = async (id: string) => {
     const teacherToDelete = teachers.find(t => t.id === id);
@@ -231,7 +248,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
   
   // --- CLASS ---
-  const addClass = addDocFactory<Class>('classes', 'Add Class', d => `Created new class: ${d.name}.`);
+  const addClass = async (classData: Class) => {
+    try {
+      await setDoc(doc(db, "classes", classData.id), classData);
+      await addActivityLog({ user: 'Admin', action: 'Add Class', description: `Created new class: ${classData.name}.` });
+    } catch(e) {
+      console.error('Error adding class:', e);
+      toast({ title: 'Error Adding Class', variant: 'destructive' });
+    }
+  };
   const updateClass = updateDocFactory<Class>('classes', 'Update Class', d => `Updated class: ${d.name || ''}.`);
   const deleteClass = async (id: string) => {
     const classToDelete = classes.find(c => c.id === id);
@@ -246,7 +271,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
   
   // --- EXAM ---
-  const addExam = addDocFactory<Exam>('exams', 'Create Exam', d => `Created exam "${d.name}" for class ${d.class}.`);
+  const addExam = async (exam: Exam) => {
+    try {
+      await setDoc(doc(db, 'exams', exam.id), exam);
+      await addActivityLog({ user: 'Admin', action: 'Create Exam', description: `Created exam "${exam.name}" for class ${exam.class}.` });
+    } catch (e) {
+      console.error('Error adding exam:', e);
+      toast({ title: 'Error Creating Exam', variant: 'destructive' });
+    }
+  };
   const updateExam = updateDocFactory<Exam>('exams', 'Save Exam Results', d => `Saved results for exam: ${d.name || ''} (${d.class || ''}).`);
   const deleteExam = async (id: string) => {
     const examToDelete = exams.find(e => e.id === id);
@@ -261,7 +294,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
   
   // --- EXPENSE ---
-  const addExpense = addDocFactory<Expense>('expenses', 'Add Expense', d => `Added expense of PKR ${d.amount} for ${d.category}.`);
+  const addExpense = async (expense: Expense) => {
+    try {
+      await setDoc(doc(db, 'expenses', expense.id), expense);
+      await addActivityLog({ user: 'Admin', action: 'Add Expense', description: `Added expense of PKR ${expense.amount} for ${expense.category}.` });
+    } catch (e) {
+      console.error('Error adding expense:', e);
+      toast({ title: 'Error Adding Expense', variant: 'destructive' });
+    }
+  };
   const updateExpense = updateDocFactory<Expense>('expenses', 'Update Expense', d => `Updated expense for ${d.category || ''}.`);
   const deleteExpense = async (id: string) => {
     const expenseToDelete = expenses.find(e => e.id === id);
