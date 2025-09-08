@@ -588,14 +588,16 @@ export default function SettingsPage() {
       }
     };
     
-    const handleResetDialogClose = () => {
-        setOpenFactoryResetDialog(false);
-        setTimeout(() => {
-            setResetStep(1);
-            setResetPin('');
-            setResetOtp('');
-            setConfirmationResult(null);
-        }, 300);
+    const handleResetDialogClose = (open: boolean) => {
+        setOpenFactoryResetDialog(open);
+        if (!open) {
+            setTimeout(() => {
+                setResetStep(1);
+                setResetPin('');
+                setResetOtp('');
+                setConfirmationResult(null);
+            }, 300);
+        }
     }
 
     const automatedMessages = useMemo(() => ({
@@ -1327,3 +1329,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
