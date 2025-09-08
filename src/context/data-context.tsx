@@ -53,6 +53,26 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
+// Function to format current date-time as ID
+function getDateTimeId() {
+  const now = new Date();
+
+  // Date part (YYYY-MM-DD)
+  const date = now.toISOString().split("T")[0];
+
+  // Time part (12-hour format with AM/PM)
+  let hours = now.getHours();
+  const minutes = now.getMinutes().toString().padStart(2, "0");
+  const ampm = hours >= 12 ? "PM" : "AM";
+
+  hours = hours % 12;
+  hours = hours ? hours : 12; // 0 -> 12
+  const hourStr = hours.toString().padStart(2, "0");
+
+  return `${date}_${hourStr}-${minutes}_${ampm}`;
+}
+
+
 export function DataProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const [students, setStudents] = useState<Student[]>([]);
@@ -103,11 +123,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const addActivityLog = async (activity: Omit<ActivityLog, 'id' | 'timestamp'>) => {
     try {
+        const newLogId = getDateTimeId();
         const newLogEntry = {
             ...activity,
+            id: newLogId,
             timestamp: new Date().toISOString(),
         };
-        await addDoc(collection(db, 'activityLog'), newLogEntry);
+        await setDoc(doc(db, 'activityLog', newLogId), newLogEntry);
     } catch(e) {
         console.error("Error adding activity log: ", e);
     }
@@ -481,3 +503,5 @@ export function useData() {
   }
   return context;
 }
+
+    
