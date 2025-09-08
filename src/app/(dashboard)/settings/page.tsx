@@ -23,6 +23,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { auth } from '@/lib/firebase';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
 import { Switch } from '@/components/ui/switch';
@@ -1208,14 +1209,91 @@ export default function SettingsPage() {
                 <div className="border-t border-destructive pt-6 space-y-2">
                     <h3 className="font-medium text-destructive flex items-center gap-2"><AlertTriangle /> Danger Zone</h3>
                     <p className="text-sm text-muted-foreground">This action is irreversible. It will permanently delete all students, families, fees, expenses, and other records from the database.</p>
-                    <Button variant="destructive" onClick={() => setOpenFactoryResetDialog(true)}>Factory Reset Application</Button>
+                    <AlertDialog open={openFactoryResetDialog} onOpenChange={closeResetDialog}>
+                      <AlertDialogTrigger asChild>
+                         <Button variant="destructive">Factory Reset Application</Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                          {resetStep === 1 && (
+                              <>
+                                  <AlertDialogHeader>
+                                      <AlertDialogTitle>Factory Reset Confirmation</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                         This is a highly destructive action that will permanently delete ALL data. To proceed, please enter your security PIN.
+                                      </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <div className="py-4 space-y-2">
+                                      <Label htmlFor="reset-pin">Security PIN</Label>
+                                      <Input
+                                          id="reset-pin"
+                                          type="password"
+                                          maxLength={4}
+                                          value={resetPin}
+                                          onChange={(e) => setResetPin(e.target.value)}
+                                      />
+                                  </div>
+                                  <AlertDialogFooter>
+                                      <AlertDialogCancel onClick={closeResetDialog}>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction asChild>
+                                          <Button variant="destructive" onClick={handleFactoryResetStep1} disabled={isResetting}>
+                                              {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                              Verify PIN & Send OTP
+                                          </Button>
+                                      </AlertDialogAction>
+                                  </AlertDialogFooter>
+                              </>
+                          )}
+                           {resetStep === 2 && (
+                              <>
+                                  <AlertDialogHeader>
+                                      <AlertDialogTitle>Final Verification</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                         A 6-digit One-Time Password (OTP) has been sent to your registered school phone number ({settings.schoolPhone}) via SMS. Please enter it below to finalize the data deletion.
+                                      </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <div className="py-4 space-y-2">
+                                      <Label htmlFor="reset-otp">One-Time Password (OTP)</Label>
+                                      <Input
+                                          id="reset-otp"
+                                          type="text"
+                                          maxLength={6}
+                                          value={resetOtp}
+                                          onChange={(e) => setResetOtp(e.target.value)}
+                                      />
+                                  </div>
+                                  <AlertDialogFooter>
+                                      <Button variant="ghost" onClick={() => setResetStep(1)}>Back</Button>
+                                      <AlertDialogAction asChild>
+                                          <Button variant="destructive" onClick={handleFactoryResetStep2} disabled={isResetting}>
+                                              {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                              Verify OTP & Delete All Data
+                                          </Button>
+                                      </AlertDialogAction>
+                                  </AlertDialogFooter>
+                              </>
+                          )}
+                          {resetStep === 3 && (
+                              <>
+                                  <AlertDialogHeader>
+                                      <AlertDialogTitle className="text-destructive">Factory Reset Complete</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                         All application data has been permanently deleted. The application will now reload.
+                                      </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                     <Button onClick={() => window.location.reload()}>Reload Application</Button>
+                                  </AlertDialogFooter>
+                              </>
+                          )}
+                      </AlertDialogContent>
+                    </AlertDialog>
                 </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
       
-       <AlertDialog open={openTemplateDialog} onOpenChange={setOpenTemplateDialog}>
+       <Dialog open={openTemplateDialog} onOpenChange={setOpenTemplateDialog}>
         <DialogContent>
             <DialogHeader>
                 <DialogTitle>{isEditingTemplate ? 'Edit Template' : 'Add New Template'}</DialogTitle>
@@ -1243,83 +1321,8 @@ export default function SettingsPage() {
                 </div>
             </DialogFooter>
         </DialogContent>
-       </AlertDialog>
+       </Dialog>
        
-        <AlertDialog open={openFactoryResetDialog} onOpenChange={closeResetDialog}>
-            <AlertDialogContent>
-                {resetStep === 1 && (
-                    <>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Factory Reset Confirmation</AlertDialogTitle>
-                            <AlertDialogDescription>
-                               This is a highly destructive action that will permanently delete ALL data. To proceed, please enter your security PIN.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <div className="py-4 space-y-2">
-                            <Label htmlFor="reset-pin">Security PIN</Label>
-                            <Input
-                                id="reset-pin"
-                                type="password"
-                                maxLength={4}
-                                value={resetPin}
-                                onChange={(e) => setResetPin(e.target.value)}
-                            />
-                        </div>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel onClick={closeResetDialog}>Cancel</AlertDialogCancel>
-                            <AlertDialogAction asChild>
-                                <Button variant="destructive" onClick={handleFactoryResetStep1} disabled={isResetting}>
-                                    {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Verify PIN & Send OTP
-                                </Button>
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </>
-                )}
-                 {resetStep === 2 && (
-                    <>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Final Verification</AlertDialogTitle>
-                            <AlertDialogDescription>
-                               A 6-digit One-Time Password (OTP) has been sent to your registered school phone number ({settings.schoolPhone}) via SMS. Please enter it below to finalize the data deletion.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <div className="py-4 space-y-2">
-                            <Label htmlFor="reset-otp">One-Time Password (OTP)</Label>
-                            <Input
-                                id="reset-otp"
-                                type="text"
-                                maxLength={6}
-                                value={resetOtp}
-                                onChange={(e) => setResetOtp(e.target.value)}
-                            />
-                        </div>
-                        <AlertDialogFooter>
-                            <Button variant="ghost" onClick={() => setResetStep(1)}>Back</Button>
-                            <AlertDialogAction asChild>
-                                <Button variant="destructive" onClick={handleFactoryResetStep2} disabled={isResetting}>
-                                    {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Verify OTP & Delete All Data
-                                </Button>
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </>
-                )}
-                {resetStep === 3 && (
-                    <>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle className="text-destructive">Factory Reset Complete</AlertDialogTitle>
-                            <AlertDialogDescription>
-                               All application data has been permanently deleted. The application will now reload.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                           <Button onClick={() => window.location.reload()}>Reload Application</Button>
-                        </AlertDialogFooter>
-                    </>
-                )}
-            </AlertDialogContent>
-        </AlertDialog>
     </div>
   );
 }
