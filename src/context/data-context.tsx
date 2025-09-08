@@ -5,7 +5,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, writeBatch, query, where, getDocs, setDoc, getDoc, runTransaction } from 'firebase/firestore';
-import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData } from '@/lib/types';
+import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData, Attendance } from '@/lib/types';
 import { students as initialStudents, families as initialFamilies, fees as initialFees, teachers as initialTeachers, teacherAttendances as initialTeacherAttendances, classes as initialClasses, exams as initialExams, expenses as initialExpenses, timetables as initialTimetables } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 
@@ -15,6 +15,7 @@ interface DataContextType {
   families: Family[];
   fees: Fee[];
   teachers: Teacher[];
+  attendances: Attendance[];
   teacherAttendances: TeacherAttendance[];
   classes: Class[];
   exams: Exam[];
@@ -33,6 +34,7 @@ interface DataContextType {
   addTeacher: (teacher: Teacher) => Promise<void>;
   updateTeacher: (id: string, teacher: Partial<Teacher>) => Promise<void>;
   deleteTeacher: (id: string) => Promise<void>;
+  saveStudentAttendance: (attendances: Attendance[], date: string, className: string) => Promise<void>;
   saveTeacherAttendance: (attendances: TeacherAttendance[]) => Promise<void>;
   addClass: (newClass: Class) => Promise<void>;
   updateClass: (id: string, updatedClass: Partial<Class>) => Promise<void>;
@@ -79,6 +81,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [families, setFamilies] = useState<Family[]>([]);
   const [fees, setFees] = useState<Fee[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [attendances, setAttendances] = useState<Attendance[]>([]);
   const [teacherAttendances, setTeacherAttendances] = useState<TeacherAttendance[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
@@ -93,6 +96,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       families: setFamilies,
       fees: setFees,
       teachers: setTeachers,
+      attendances: setAttendances,
       teacherAttendances: setTeacherAttendances,
       classes: setClasses,
       exams: setExams,
@@ -343,7 +347,35 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // --- OTHER ---
+  // --- ATTENDANCE ---
+  const saveStudentAttendance = async (newAttendances: Attendance[], date: string, className: string) => {
+    if (!date) return;
+  
+    try {
+      const batch = writeBatch(db);
+      const studentIdsInClass = students.filter(s => s.class === className).map(s => s.id);
+  
+      // Query for existing attendance records for this class on this date
+      const q = query(collection(db, 'attendances'), where('date', '==', date), where('studentId', 'in', studentIdsInClass));
+      const existingDocs = await getDocs(q);
+      
+      // Delete existing records for this class and date to prevent duplicates
+      existingDocs.forEach(doc => batch.delete(doc.ref));
+  
+      // Add new records
+      newAttendances.forEach(att => {
+        const docRef = doc(collection(db, 'attendances')); // Create new doc with random ID
+        batch.set(docRef, att);
+      });
+  
+      await batch.commit();
+      await addActivityLog({ user: 'Admin', action: 'Save Student Attendance', description: `Saved attendance for class ${className} on date: ${date}.` });
+    } catch (e) {
+      console.error('Error saving student attendance: ', e);
+      toast({ title: 'Error Saving Attendance', variant: 'destructive' });
+    }
+  };
+
   const saveTeacherAttendance = async (newAttendances: TeacherAttendance[]) => {
     const date = newAttendances[0]?.date;
     if (!date) return;
@@ -418,7 +450,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const deleteAllData = async () => {
     toast({ title: "Deleting All Data...", description: "This is irreversible and may take some time." });
     
-    const collectionNames = ['students', 'families', 'fees', 'teachers', 'teacherAttendances', 'classes', 'exams', 'expenses', 'timetables', 'activityLog', 'meta'];
+    const collectionNames = ['students', 'families', 'fees', 'teachers', 'attendances', 'teacherAttendances', 'classes', 'exams', 'expenses', 'timetables', 'activityLog', 'meta'];
 
     try {
       for (const name of collectionNames) {
@@ -452,6 +484,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       families, 
       fees,
       teachers,
+      attendances,
       teacherAttendances,
       classes,
       exams,
@@ -470,6 +503,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       addTeacher,
       updateTeacher,
       deleteTeacher,
+      saveStudentAttendance,
       saveTeacherAttendance,
       addClass,
       updateClass,
@@ -503,5 +537,3 @@ export function useData() {
   }
   return context;
 }
-
-    
