@@ -43,14 +43,13 @@ export interface Teacher {
 }
 
 export interface Attendance {
-  id?: string;
   studentId: string;
   date: string;
   status: 'Present' | 'Absent' | 'Leave';
 }
 
 export interface TeacherAttendance {
-  id: string;
+  id?: string;
   teacherId: string;
   date: string; // YYYY-MM-DD
   status: 'Present' | 'Absent' | 'Leave';

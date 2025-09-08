@@ -372,23 +372,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const saveTeacherAttendance = async (newAttendances: TeacherAttendance[]) => {
     const date = newAttendances[0]?.date;
     if (!date) return;
-
+  
     try {
-        const batch = writeBatch(db);
-        const q = query(collection(db, "teacherAttendances"), where("date", "==", date));
-        const existingDocs = await getDocs(q);
-        existingDocs.forEach(doc => batch.delete(doc.ref));
-
-        newAttendances.forEach(att => {
-            const docRef = doc(collection(db, "teacherAttendances"));
-            batch.set(docRef, att);
-        });
-
-        await batch.commit();
-        await addActivityLog({ user: 'Admin', action: 'Save Teacher Attendance', description: `Saved teacher attendance for date: ${date}.` });
-    } catch(e) {
-        console.error("Error saving teacher attendance: ", e);
-        toast({ title: 'Error Saving Attendance', variant: 'destructive' });
+      const batch = writeBatch(db);
+      
+      newAttendances.forEach(att => {
+        // Create a composite key for the document ID
+        const docId = `${att.teacherId}_${att.date}`;
+        const docRef = doc(db, 'teacherAttendances', docId);
+        batch.set(docRef, att);
+      });
+  
+      await batch.commit();
+      await addActivityLog({ user: 'Admin', action: 'Save Teacher Attendance', description: `Saved teacher attendance for date: ${date}.` });
+    } catch (e) {
+      console.error('Error saving teacher attendance: ', e);
+      toast({ title: 'Error Saving Attendance', variant: 'destructive' });
     }
   };
   
