@@ -353,20 +353,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
   
     try {
       const batch = writeBatch(db);
-      const studentIdsInClass = students.filter(s => s.class === className).map(s => s.id);
-  
-      if (studentIdsInClass.length === 0) return;
-
-      // Query for existing attendance records for this class on this date
-      const q = query(collection(db, 'attendances'), where('date', '==', date), where('studentId', 'in', studentIdsInClass));
-      const existingDocs = await getDocs(q);
       
-      // Delete existing records for this class and date to prevent duplicates
-      existingDocs.forEach(doc => batch.delete(doc.ref));
-  
-      // Add new records
       newAttendances.forEach(att => {
-        const docRef = doc(collection(db, 'attendances')); // Create new doc with random ID
+        // Create a composite key for the document ID
+        const docId = `${att.studentId}_${att.date}`;
+        const docRef = doc(db, 'attendances', docId);
         batch.set(docRef, att);
       });
   
