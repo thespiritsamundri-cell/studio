@@ -14,7 +14,7 @@ import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Bell, BellOff, Lock, AlertTriangle } from 'lucide-react';
 import { useData } from '@/context/data-context';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -23,11 +23,12 @@ import type { Grade, MessageTemplate } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { auth } from '@/lib/firebase';
-import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { Switch } from '@/components/ui/switch';
+import { sendOtpEmail } from '@/ai/flows/factory-reset-flow';
 
 
 export default function SettingsPage() {
@@ -77,27 +78,12 @@ export default function SettingsPage() {
   const [resetStep, setResetStep] = useState(1);
   const [resetPin, setResetPin] = useState('');
   const [resetOtp, setResetOtp] = useState('');
+  const [generatedOtp, setGeneratedOtp] = useState('');
   const [isResetting, setIsResetting] = useState(false);
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
-  const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null);
+  
 
   const classes = useMemo(() => (dataClasses || []).map(c => c.name), [dataClasses]);
   
-  useEffect(() => {
-    if (openFactoryResetDialog && resetStep === 1 && !recaptchaVerifier) {
-      const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        'size': 'invisible',
-        'callback': (response: any) => {
-          // reCAPTCHA solved, allow signInWithPhoneNumber.
-        },
-        'expired-callback': () => {
-          // Response expired. Ask user to solve reCAPTCHA again.
-        }
-      });
-      setRecaptchaVerifier(verifier);
-    }
-  }, [openFactoryResetDialog, resetStep, recaptchaVerifier]);
-
   const handleSave = () => {
     addActivityLog({ user: 'Admin', action: 'Update Settings', description: 'Updated school information settings.' });
     toast({
@@ -557,60 +543,45 @@ export default function SettingsPage() {
             toast({ title: "Incorrect PIN", variant: 'destructive' });
             return;
         }
-        
-        setIsResetting(true);
-        toast({ title: "Sending Verification Code via SMS..." });
-        
-        if (!recaptchaVerifier) {
-            toast({ title: "reCAPTCHA not initialized", description: "Please try again.", variant: 'destructive' });
-            setIsResetting(false);
+        if (!settings.schoolEmail) {
+            toast({ title: "School Email Not Set", description: "Please set a school email in the School tab first.", variant: 'destructive' });
             return;
         }
-
+        
+        setIsResetting(true);
+        toast({ title: "Sending Verification Code..." });
+        
         try {
-            const confirmation = await signInWithPhoneNumber(auth, settings.schoolPhone, recaptchaVerifier);
-            setConfirmationResult(confirmation);
-            toast({ title: "OTP Sent", description: `A verification code has been sent to ${settings.schoolPhone}.` });
-            setResetStep(2);
-        } catch (error: any) {
-            console.error("Firebase phone auth error:", error);
-            if (error.code === 'auth/operation-not-allowed') {
-                 toast({
-                    title: 'Domain Not Authorized',
-                    description: `The current domain (${window.location.hostname}) is not authorized for phone authentication. Please add it to your Firebase project's 'Authorized domains' list.`,
-                    variant: 'destructive',
-                    duration: 10000,
-                });
+            const result = await sendOtpEmail({ email: settings.schoolEmail });
+            if (result.success) {
+                setGeneratedOtp(result.otp);
+                toast({ title: "OTP Sent", description: result.message });
+                setResetStep(2);
             } else {
-                 toast({ title: "Failed to Send OTP", description: `Could not send SMS. Error: ${error.message}`, variant: 'destructive' });
+                throw new Error(result.message);
             }
-            if (typeof window !== 'undefined' && (window as any).grecaptcha) {
-                (window as any).grecaptcha.reset();
-            }
+        } catch (error: any) {
+            toast({ title: "Failed to Send OTP", description: `Could not send email. Error: ${error.message}`, variant: 'destructive' });
         } finally {
              setIsResetting(false);
         }
     };
 
     const handleFactoryResetStep2 = async () => {
-      if (!confirmationResult) {
-        toast({
-          title: 'Verification Failed',
-          description: 'Confirmation object not found. Please try again.',
-          variant: 'destructive',
-        });
+      if (resetOtp !== generatedOtp) {
+        toast({ title: "Verification Failed", description: "The OTP you entered is incorrect.", variant: "destructive" });
         return;
       }
+
       setIsResetting(true);
       try {
-        await confirmationResult.confirm(resetOtp);
         toast({ title: 'Verification Success!', description: 'Deleting all data now...' });
         await deleteAllData();
         setResetStep(3);
       } catch (error: any) {
         toast({
-          title: 'Verification Failed',
-          description: `Invalid OTP or error confirming. ${error.message}`,
+          title: 'Deletion Failed',
+          description: `Could not delete data. ${error.message}`,
           variant: 'destructive',
         });
       } finally {
@@ -624,7 +595,7 @@ export default function SettingsPage() {
                 setResetStep(1);
                 setResetPin('');
                 setResetOtp('');
-                setConfirmationResult(null);
+                setGeneratedOtp('');
             }, 300);
         }
         setOpenFactoryResetDialog(open);
@@ -639,7 +610,6 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div id="recaptcha-container"></div>
       <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><SettingsIcon className="w-8 h-8" />Settings</h1>
       
       <Tabs defaultValue="school" className="w-full">
@@ -686,6 +656,10 @@ export default function SettingsPage() {
                     <div className="space-y-2">
                         <Label htmlFor="schoolPhone">Phone Number</Label>
                         <Input id="schoolPhone" value={settings.schoolPhone} onChange={handleInputChange} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="schoolEmail">School Email (for OTP)</Label>
+                        <Input id="schoolEmail" type="email" value={settings.schoolEmail} onChange={handleInputChange} placeholder="Enter a valid email address" />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="schoolLogo">School Logo</Label>
@@ -1283,7 +1257,7 @@ export default function SettingsPage() {
                                   <AlertDialogHeader>
                                       <AlertDialogTitle>Final Verification</AlertDialogTitle>
                                       <AlertDialogDescription>
-                                         A 6-digit One-Time Password (OTP) has been sent to your registered school phone number ({settings.schoolPhone}) via SMS. Please enter it below to finalize the data deletion.
+                                         A 6-digit One-Time Password (OTP) has been sent to your registered school email address ({settings.schoolEmail}). Please enter it below to finalize the data deletion.
                                       </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <div className="py-4 space-y-2">

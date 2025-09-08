@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
@@ -9,6 +10,7 @@ export interface SchoolSettings {
   academicYear: string;
   schoolAddress: string;
   schoolPhone: string;
+  schoolEmail: string;
   schoolLogo: string;
   favicon: string;
   principalSignature: string;
@@ -40,6 +42,7 @@ const defaultSettings: SchoolSettings = {
   academicYear: '2025-2026',
   schoolAddress: '123 Education Lane, Knowledge City, Pakistan',
   schoolPhone: '+92 300 1234567',
+  schoolEmail: 'info@thespiritschool.edu.pk',
   schoolLogo: '/logo.png',
   favicon: '/logo.png',
   principalSignature: '',
