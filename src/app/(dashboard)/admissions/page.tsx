@@ -129,6 +129,7 @@ export default function AdmissionsPage() {
 
     const handleAdmission = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        const form = e.currentTarget;
         
         if (!familyExists || !foundFamily) {
             toast({
@@ -139,7 +140,7 @@ export default function AdmissionsPage() {
             return;
         }
 
-        const formData = new FormData(e.currentTarget);
+        const formData = new FormData(form);
         const registrationFee = Number(formData.get('registration-fee'));
         const monthlyFee = Number(formData.get('monthly-fee'));
 
@@ -257,7 +258,7 @@ export default function AdmissionsPage() {
         triggerAdmissionPrint(newStudent, foundFamily);
 
         // Reset form
-        e.currentTarget.reset();
+        form.reset();
         setFamilyId('');
         setFamilyExists(false);
         setFoundFamily(null);
@@ -507,3 +508,5 @@ export default function AdmissionsPage() {
     </div>
   );
 }
+
+    
