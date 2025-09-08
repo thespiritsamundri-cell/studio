@@ -1238,8 +1238,8 @@ export default function SettingsPage() {
         </DialogContent>
        </Dialog>
        
-        <Dialog open={openFactoryResetDialog} onOpenChange={closeResetDialog}>
-            <DialogContent>
+        <AlertDialog open={openFactoryResetDialog} onOpenChange={closeResetDialog}>
+            <AlertDialogContent>
                 {resetStep === 1 && (
                     <>
                         <AlertDialogHeader>
@@ -1260,10 +1260,12 @@ export default function SettingsPage() {
                         </div>
                         <AlertDialogFooter>
                             <AlertDialogCancel onClick={closeResetDialog}>Cancel</AlertDialogCancel>
-                            <Button variant="destructive" onClick={handleFactoryResetStep1} disabled={isResetting}>
-                                {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Verify PIN & Send OTP
-                            </Button>
+                            <AlertDialogAction asChild>
+                                <Button variant="destructive" onClick={handleFactoryResetStep1} disabled={isResetting}>
+                                    {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Verify PIN & Send OTP
+                                </Button>
+                            </AlertDialogAction>
                         </AlertDialogFooter>
                     </>
                 )}
@@ -1287,10 +1289,12 @@ export default function SettingsPage() {
                         </div>
                         <AlertDialogFooter>
                             <Button variant="ghost" onClick={() => setResetStep(1)}>Back</Button>
-                            <Button variant="destructive" onClick={handleFactoryResetStep2} disabled={isResetting}>
-                                 {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Verify OTP & Delete All Data
-                            </Button>
+                            <AlertDialogAction asChild>
+                                <Button variant="destructive" onClick={handleFactoryResetStep2} disabled={isResetting}>
+                                    {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Verify OTP & Delete All Data
+                                </Button>
+                            </AlertDialogAction>
                         </AlertDialogFooter>
                     </>
                 )}
@@ -1307,8 +1311,8 @@ export default function SettingsPage() {
                         </AlertDialogFooter>
                     </>
                 )}
-            </DialogContent>
-        </Dialog>
+            </AlertDialogContent>
+        </AlertDialog>
     </div>
   );
 }
