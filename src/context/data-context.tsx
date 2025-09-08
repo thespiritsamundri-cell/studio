@@ -341,7 +341,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
       toast({ title: 'Error Adding Expense', variant: 'destructive' });
     }
   };
-  const updateExpense = updateDocFactory<Expense>('expenses', 'Update Expense', d => `Updated expense for ${d.category || ''}.`);
+  const updateExpense = async (id: string, expense: Partial<Expense>) => {
+    try {
+        await updateDoc(doc(db, 'expenses', id), expense);
+        await addActivityLog({ user: 'Admin', action: 'Update Expense', description: `Updated expense for ${expense.category || ''}.` });
+    } catch (e) {
+        console.error(`Error updating expense:`, e);
+        toast({ title: `Error updating expense`, variant: "destructive" });
+    }
+  };
   const deleteExpense = async (id: string) => {
     const expenseToDelete = expenses.find(e => e.id === id);
     if (!expenseToDelete) return;
@@ -537,5 +545,3 @@ export function useData() {
   }
   return context;
 }
-
-    
