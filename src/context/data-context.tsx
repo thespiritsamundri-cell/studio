@@ -445,23 +445,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const collectionNames = ['students', 'families', 'fees', 'teachers', 'attendances', 'teacherAttendances', 'classes', 'exams', 'expenses', 'timetables', 'activityLog', 'meta'];
 
     try {
+      const batch = writeBatch(db);
       for (const name of collectionNames) {
         const collRef = collection(db, name);
         const snapshot = await getDocs(collRef);
-        const batch = writeBatch(db);
         snapshot.docs.forEach(doc => {
           batch.delete(doc.ref);
         });
-        await batch.commit();
-        console.log(`Successfully deleted all documents from ${name}.`);
+        console.log(`Scheduled deletion for all documents in ${name}.`);
       }
       
+      await batch.commit();
+      
       toast({ title: "Factory Reset Complete", description: "All application data has been permanently deleted." });
-      // Optionally, you might want to re-seed essential meta documents or log out the user.
       
     } catch (error) {
       console.error("Error during factory reset:", error);
       toast({ title: "Deletion Failed", description: "Could not delete all data. Check console for details.", variant: "destructive" });
+      throw error;
     }
   };
 

@@ -555,7 +555,6 @@ export default function SettingsPage() {
         } catch (error: any) {
             console.error("Firebase phone auth error:", error);
             toast({ title: "Failed to Send OTP", description: `Could not send SMS. Error: ${error.message}`, variant: 'destructive' });
-            // This is important to reset the reCAPTCHA widget if it fails.
             if (typeof window !== 'undefined' && (window as any).grecaptcha) {
                 (window as any).grecaptcha.reset();
             }
@@ -576,7 +575,6 @@ export default function SettingsPage() {
       setIsResetting(true);
       try {
         await confirmationResult.confirm(resetOtp);
-        // OTP is correct, proceed with deletion
         await deleteAllData();
         setResetStep(3);
       } catch (error: any) {
@@ -592,7 +590,6 @@ export default function SettingsPage() {
     
     const handleResetDialogClose = () => {
         setOpenFactoryResetDialog(false);
-        // Delay resetting state to avoid UI flicker while dialog is closing
         setTimeout(() => {
             setResetStep(1);
             setResetPin('');
@@ -601,7 +598,6 @@ export default function SettingsPage() {
         }, 300);
     }
 
-    // Safely access nested properties with defaults
     const automatedMessages = useMemo(() => ({
         admission: settings.automatedMessages?.admission || { enabled: false, templateId: '' },
         absentee: settings.automatedMessages?.absentee || { enabled: false, templateId: '' },
@@ -1220,7 +1216,7 @@ export default function SettingsPage() {
                     <p className="text-sm text-muted-foreground">This action is irreversible. It will permanently delete all students, families, fees, expenses, and other records from the database.</p>
                     <AlertDialog open={openFactoryResetDialog} onOpenChange={handleResetDialogClose}>
                       <AlertDialogTrigger asChild>
-                         <Button variant="destructive" onClick={() => setOpenFactoryResetDialog(true)}>Factory Reset Application</Button>
+                         <Button variant="destructive">Factory Reset Application</Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                           {resetStep === 1 && (
@@ -1242,12 +1238,10 @@ export default function SettingsPage() {
                                       />
                                   </div>
                                   <AlertDialogFooter>
-                                      <AlertDialogCancel onClick={handleResetDialogClose}>Cancel</AlertDialogCancel>
-                                      <AlertDialogAction asChild>
-                                          <Button variant="destructive" onClick={handleFactoryResetStep1} disabled={isResetting}>
-                                              {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                              Verify PIN & Send OTP
-                                          </Button>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction onClick={handleFactoryResetStep1} disabled={isResetting}>
+                                          {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                          Verify PIN & Send OTP
                                       </AlertDialogAction>
                                   </AlertDialogFooter>
                               </>
@@ -1272,11 +1266,9 @@ export default function SettingsPage() {
                                   </div>
                                   <AlertDialogFooter>
                                       <Button variant="ghost" onClick={() => setResetStep(1)}>Back</Button>
-                                      <AlertDialogAction asChild>
-                                          <Button variant="destructive" onClick={handleFactoryResetStep2} disabled={isResetting}>
-                                              {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                              Verify OTP & Delete All Data
-                                          </Button>
+                                      <AlertDialogAction onClick={handleFactoryResetStep2} disabled={isResetting}>
+                                          {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                          Verify OTP & Delete All Data
                                       </AlertDialogAction>
                                   </AlertDialogFooter>
                               </>
