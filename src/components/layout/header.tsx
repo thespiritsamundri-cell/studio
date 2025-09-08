@@ -82,14 +82,14 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 px-4 md:px-6">
-      <div className="header-container flex-1">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+      <div className="flex w-full items-center gap-4">
         <SidebarTrigger className="md:hidden" />
         <div className="w-full flex-1">
             <h1 className="text-xl font-semibold hidden md:block">{capitalize(pageTitle)}</h1>
-            </div>
-        <div className="flex items-center gap-4">
-            <div className="relative flex-1 md:grow-0">
+        </div>
+        <div className="flex flex-1 items-center justify-end gap-4">
+            <div className="relative flex-grow-0">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                     type="search"
