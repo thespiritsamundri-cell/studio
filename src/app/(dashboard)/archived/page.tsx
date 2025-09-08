@@ -116,11 +116,11 @@ export default function ArchivedPage() {
       </div>
       
       <Tabs defaultValue="students">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="animated-gradient-tabs-list grid w-full grid-cols-2">
             <TabsTrigger value="students">Archived Students</TabsTrigger>
             <TabsTrigger value="families">Archived Families</TabsTrigger>
         </TabsList>
-        <TabsContent value="students">
+        <TabsContent value="students" className="mt-4">
             <Card>
                 <CardHeader>
                 <CardTitle className="text-2xl font-semibold">Archived Student Records</CardTitle>
@@ -147,7 +147,7 @@ export default function ArchivedPage() {
                             alt="Student image"
                             className="aspect-square rounded-md object-cover"
                             height="64"
-                            src={student.photoUrl}
+                            src={student.photoUrl || `https://picsum.photos/seed/${student.id}/64/64`}
                             width="64"
                             data-ai-hint="student photo"
                             />
@@ -180,7 +180,7 @@ export default function ArchivedPage() {
                 </CardContent>
             </Card>
         </TabsContent>
-        <TabsContent value="families">
+        <TabsContent value="families" className="mt-4">
              <Card>
                 <CardHeader>
                 <CardTitle className="text-2xl font-semibold">Archived Family Records</CardTitle>
