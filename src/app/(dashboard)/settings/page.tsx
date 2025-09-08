@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -26,9 +25,8 @@ import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { auth } from '@/lib/firebase';
-import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult, getAuth } from 'firebase/auth';
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { Switch } from '@/components/ui/switch';
-import { sendOtpEmail } from '@/ai/flows/factory-reset-flow';
 
 
 export default function SettingsPage() {
@@ -77,8 +75,7 @@ export default function SettingsPage() {
   const [openFactoryResetDialog, setOpenFactoryResetDialog] = useState(false);
   const [resetStep, setResetStep] = useState(1);
   const [resetPin, setResetPin] = useState('');
-  const [resetOtp, setResetOtp] = useState('');
-  const [generatedOtp, setGeneratedOtp] = useState('');
+  const [resetConfirmationText, setResetConfirmationText] = useState('');
   const [isResetting, setIsResetting] = useState(false);
   
 
@@ -543,33 +540,12 @@ export default function SettingsPage() {
             toast({ title: "Incorrect PIN", variant: 'destructive' });
             return;
         }
-        if (!settings.schoolEmail) {
-            toast({ title: "School Email Not Set", description: "Please set a school email in the School tab first.", variant: 'destructive' });
-            return;
-        }
-        
-        setIsResetting(true);
-        toast({ title: "Sending Verification Code..." });
-        
-        try {
-            const result = await sendOtpEmail({ email: settings.schoolEmail });
-            if (result.success) {
-                setGeneratedOtp(result.otp);
-                toast({ title: "OTP Sent", description: result.message });
-                setResetStep(2);
-            } else {
-                throw new Error(result.message);
-            }
-        } catch (error: any) {
-            toast({ title: "Failed to Send OTP", description: `Could not send email. Error: ${error.message}`, variant: 'destructive' });
-        } finally {
-             setIsResetting(false);
-        }
+        setResetStep(2);
     };
 
     const handleFactoryResetStep2 = async () => {
-      if (resetOtp !== generatedOtp) {
-        toast({ title: "Verification Failed", description: "The OTP you entered is incorrect.", variant: "destructive" });
+      if (resetConfirmationText !== 'FACTORY RESET') {
+        toast({ title: "Verification Failed", description: "The confirmation text you entered is incorrect.", variant: "destructive" });
         return;
       }
 
@@ -594,8 +570,7 @@ export default function SettingsPage() {
             setTimeout(() => {
                 setResetStep(1);
                 setResetPin('');
-                setResetOtp('');
-                setGeneratedOtp('');
+                setResetConfirmationText('');
             }, 300);
         }
         setOpenFactoryResetDialog(open);
@@ -1247,7 +1222,7 @@ export default function SettingsPage() {
                                       <AlertDialogCancel>Cancel</AlertDialogCancel>
                                       <AlertDialogAction onClick={handleFactoryResetStep1} disabled={isResetting}>
                                           {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                          Verify PIN & Send OTP
+                                          Verify PIN
                                       </AlertDialogAction>
                                   </AlertDialogFooter>
                               </>
@@ -1257,24 +1232,24 @@ export default function SettingsPage() {
                                   <AlertDialogHeader>
                                       <AlertDialogTitle>Final Verification</AlertDialogTitle>
                                       <AlertDialogDescription>
-                                         A 6-digit One-Time Password (OTP) has been sent to your registered school email address ({settings.schoolEmail}). Please check your developer console for the code and enter it below to finalize the data deletion.
+                                         To finalize the data deletion, please type <strong className="text-destructive">FACTORY RESET</strong> into the box below.
                                       </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <div className="py-4 space-y-2">
-                                      <Label htmlFor="reset-otp">One-Time Password (OTP)</Label>
+                                      <Label htmlFor="reset-confirmation">Confirmation Text</Label>
                                       <Input
-                                          id="reset-otp"
+                                          id="reset-confirmation"
                                           type="text"
-                                          maxLength={6}
-                                          value={resetOtp}
-                                          onChange={(e) => setResetOtp(e.target.value)}
+                                          value={resetConfirmationText}
+                                          onChange={(e) => setResetConfirmationText(e.target.value)}
+                                          placeholder="Type FACTORY RESET here"
                                       />
                                   </div>
                                   <AlertDialogFooter>
                                       <Button variant="ghost" onClick={() => setResetStep(1)}>Back</Button>
                                       <AlertDialogAction onClick={handleFactoryResetStep2} disabled={isResetting}>
                                           {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                          Verify OTP & Delete All Data
+                                          Verify & Delete All Data
                                       </AlertDialogAction>
                                   </AlertDialogFooter>
                               </>
@@ -1333,5 +1308,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-
