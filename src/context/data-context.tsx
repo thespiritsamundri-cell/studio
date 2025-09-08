@@ -246,7 +246,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
         toast({ title: 'Error Adding Fee', description: 'Could not generate a new fee record.', variant: 'destructive' });
     }
   };
-  const updateFee = updateDocFactory<Fee>('fees', 'Update Fee', d => `Fee ${d.id} updated.`);
+  const updateFee = async (id: string, feeData: Partial<Fee>) => {
+    try {
+        await setDoc(doc(db, 'fees', id), feeData, { merge: true });
+    } catch(e) {
+        console.error('Error updating fee', e);
+        toast({ title: 'Error Updating Fee', variant: 'destructive' });
+    }
+  };
   const deleteFee = async (id: string) => {
      try {
         await deleteDoc(doc(db, 'fees', id));
@@ -530,3 +537,5 @@ export function useData() {
   }
   return context;
 }
+
+    
