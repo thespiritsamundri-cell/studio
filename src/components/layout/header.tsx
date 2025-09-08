@@ -63,7 +63,7 @@ export function Header() {
         <h1 className="text-xl font-semibold hidden md:block">{pageTitle}</h1>
       </div>
       <div className="flex flex-1 items-center justify-end gap-2 md:gap-4">
-        <div className="relative flex-grow-0">
+        <div className="relative flex-grow-0 animated-gradient-border rounded-lg">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
