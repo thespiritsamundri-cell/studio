@@ -349,12 +349,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   // --- ATTENDANCE ---
   const saveStudentAttendance = async (newAttendances: Attendance[], date: string, className: string) => {
-    if (!date) return;
+    if (!date || !className) return;
   
     try {
       const batch = writeBatch(db);
       const studentIdsInClass = students.filter(s => s.class === className).map(s => s.id);
   
+      if (studentIdsInClass.length === 0) return;
+
       // Query for existing attendance records for this class on this date
       const q = query(collection(db, 'attendances'), where('date', '==', date), where('studentId', 'in', studentIdsInClass));
       const existingDocs = await getDocs(q);
