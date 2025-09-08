@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Bell, BellOff, Lock } from 'lucide-react';
+import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Bell, BellOff, Lock, AlertTriangle } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import { useState, useMemo, useEffect } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -27,11 +27,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { auth } from '@/lib/firebase';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { Switch } from '@/components/ui/switch';
+import { sendResetOtp, verifyResetOtp } from '@/ai/flows/factory-reset-flow';
 
 
 export default function SettingsPage() {
   const { settings, setSettings } = useSettings();
-  const { students, families, fees, loadData, addActivityLog, activityLog, seedDatabase, clearActivityLog, classes: dataClasses } = useData();
+  const { students, families, fees, loadData, addActivityLog, activityLog, seedDatabase, clearActivityLog, dataClasses, deleteAllData } = useData();
   const { toast } = useToast();
   
   // Custom Messaging State
@@ -70,6 +71,13 @@ export default function SettingsPage() {
   const [templateName, setTemplateName] = useState('');
   const [templateContent, setTemplateContent] = useState('');
   const [openTemplateDialog, setOpenTemplateDialog] = useState(false);
+  
+  // Factory Reset State
+  const [openFactoryResetDialog, setOpenFactoryResetDialog] = useState(false);
+  const [resetStep, setResetStep] = useState(1);
+  const [resetPin, setResetPin] = useState('');
+  const [resetOtp, setResetOtp] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
 
 
   const classes = useMemo(() => dataClasses.map(c => c.name), [dataClasses]);
@@ -522,6 +530,59 @@ export default function SettingsPage() {
                 }
             }
         });
+    }
+    
+    const handleFactoryResetStep1 = async () => {
+        if (!settings.historyClearPin) {
+            toast({ title: "PIN Not Set", description: "Please set a security PIN in the Account tab first.", variant: 'destructive' });
+            return;
+        }
+        if (resetPin !== settings.historyClearPin) {
+            toast({ title: "Incorrect PIN", variant: 'destructive' });
+            return;
+        }
+        
+        setIsResetting(true);
+        toast({ title: "Sending Verification Code..." });
+        
+        const result = await sendResetOtp({
+            phoneNumber: settings.schoolPhone,
+            schoolName: settings.schoolName,
+            apiUrl: settings.whatsappApiUrl,
+            apiKey: settings.whatsappApiKey,
+            instanceId: settings.whatsappInstanceId,
+            priority: settings.whatsappPriority,
+        });
+
+        if (result.success) {
+            toast({ title: "OTP Sent", description: `A verification code has been sent to ${settings.schoolPhone}.` });
+            setResetStep(2);
+        } else {
+            toast({ title: "Failed to Send OTP", description: result.message, variant: 'destructive' });
+        }
+        setIsResetting(false);
+    };
+
+    const handleFactoryResetStep2 = async () => {
+        setIsResetting(true);
+        const result = await verifyResetOtp({ otp: resetOtp });
+
+        if (result.success) {
+            await deleteAllData();
+            setResetStep(3); // Go to final confirmation screen
+        } else {
+            toast({ title: "Verification Failed", description: result.message, variant: 'destructive' });
+        }
+        setIsResetting(false);
+    };
+    
+    const closeResetDialog = () => {
+        setOpenFactoryResetDialog(false);
+        setTimeout(() => {
+            setResetStep(1);
+            setResetPin('');
+            setResetOtp('');
+        }, 300);
     }
 
     // Safely access nested properties with defaults
@@ -1137,6 +1198,11 @@ export default function SettingsPage() {
                     <p className="text-sm text-muted-foreground">Populate the database with initial sample data. This is useful for first-time setup or for testing purposes. This will overwrite any existing data with the same IDs.</p>
                     <Button variant="destructive" onClick={seedDatabase}><Database className="mr-2"/>Seed Sample Data</Button>
                 </div>
+                <div className="border-t border-destructive pt-6 space-y-2">
+                    <h3 className="font-medium text-destructive flex items-center gap-2"><AlertTriangle /> Danger Zone</h3>
+                    <p className="text-sm text-muted-foreground">This action is irreversible. It will permanently delete all students, families, fees, expenses, and other records from the database.</p>
+                    <Button variant="destructive" onClick={() => setOpenFactoryResetDialog(true)}>Factory Reset Application</Button>
+                </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1171,6 +1237,78 @@ export default function SettingsPage() {
             </DialogFooter>
         </DialogContent>
        </Dialog>
+       
+        <Dialog open={openFactoryResetDialog} onOpenChange={closeResetDialog}>
+            <DialogContent>
+                {resetStep === 1 && (
+                    <>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Factory Reset Confirmation</AlertDialogTitle>
+                            <AlertDialogDescription>
+                               This is a highly destructive action that will permanently delete ALL data. To proceed, please enter your security PIN.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <div className="py-4 space-y-2">
+                            <Label htmlFor="reset-pin">Security PIN</Label>
+                            <Input
+                                id="reset-pin"
+                                type="password"
+                                maxLength={4}
+                                value={resetPin}
+                                onChange={(e) => setResetPin(e.target.value)}
+                            />
+                        </div>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel onClick={closeResetDialog}>Cancel</AlertDialogCancel>
+                            <Button variant="destructive" onClick={handleFactoryResetStep1} disabled={isResetting}>
+                                {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Verify PIN & Send OTP
+                            </Button>
+                        </AlertDialogFooter>
+                    </>
+                )}
+                 {resetStep === 2 && (
+                    <>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Final Verification</AlertDialogTitle>
+                            <AlertDialogDescription>
+                               A 6-digit One-Time Password (OTP) has been sent to your registered school phone number ({settings.schoolPhone}). Please enter it below to finalize the data deletion.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <div className="py-4 space-y-2">
+                            <Label htmlFor="reset-otp">One-Time Password (OTP)</Label>
+                            <Input
+                                id="reset-otp"
+                                type="text"
+                                maxLength={6}
+                                value={resetOtp}
+                                onChange={(e) => setResetOtp(e.target.value)}
+                            />
+                        </div>
+                        <AlertDialogFooter>
+                            <Button variant="ghost" onClick={() => setResetStep(1)}>Back</Button>
+                            <Button variant="destructive" onClick={handleFactoryResetStep2} disabled={isResetting}>
+                                 {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Verify OTP & Delete All Data
+                            </Button>
+                        </AlertDialogFooter>
+                    </>
+                )}
+                {resetStep === 3 && (
+                    <>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle className="text-destructive">Factory Reset Complete</AlertDialogTitle>
+                            <AlertDialogDescription>
+                               All application data has been permanently deleted. The application will now reload.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                           <Button onClick={() => window.location.reload()}>Reload Application</Button>
+                        </AlertDialogFooter>
+                    </>
+                )}
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }

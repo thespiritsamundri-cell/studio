@@ -48,6 +48,7 @@ interface DataContextType {
   updateTimetable: (classId: string, data: TimetableData, timeSlots?: string[], breakAfterPeriod?: number, breakDuration?: string) => Promise<void>;
   loadData: (data: any) => Promise<void>;
   seedDatabase: () => Promise<void>;
+  deleteAllData: () => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -214,7 +215,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
         });
 
         await setDoc(doc(db, "fees", newId), { ...feeData, id: newId });
-        return newId; // Optionally return the new ID
     } catch (e) {
         console.error('Error adding fee with transaction:', e);
         toast({ title: 'Error Adding Fee', description: 'Could not generate a new fee record.', variant: 'destructive' });
@@ -393,6 +393,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const deleteAllData = async () => {
+    toast({ title: "Deleting All Data...", description: "This is irreversible and may take some time." });
+    
+    const collectionNames = ['students', 'families', 'fees', 'teachers', 'teacherAttendances', 'classes', 'exams', 'expenses', 'timetables', 'activityLog', 'meta'];
+
+    try {
+      for (const name of collectionNames) {
+        const collRef = collection(db, name);
+        const snapshot = await getDocs(collRef);
+        const batch = writeBatch(db);
+        snapshot.docs.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+        await batch.commit();
+        console.log(`Successfully deleted all documents from ${name}.`);
+      }
+      
+      toast({ title: "Factory Reset Complete", description: "All application data has been permanently deleted." });
+      // Optionally, you might want to re-seed essential meta documents or log out the user.
+      
+    } catch (error) {
+      console.error("Error during factory reset:", error);
+      toast({ title: "Deletion Failed", description: "Could not delete all data. Check console for details.", variant: "destructive" });
+    }
+  };
+
 
   const loadData = async (data: any) => {
       console.log("Load data function called, but it's a placeholder.", data);
@@ -437,6 +463,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       updateTimetable,
       loadData,
       seedDatabase,
+      deleteAllData,
   };
 
 
