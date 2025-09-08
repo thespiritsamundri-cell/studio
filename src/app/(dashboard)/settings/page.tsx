@@ -23,7 +23,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { auth } from '@/lib/firebase';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
 import { Switch } from '@/components/ui/switch';
@@ -565,21 +565,29 @@ export default function SettingsPage() {
     };
 
     const handleFactoryResetStep2 = async () => {
-        if (!confirmationResult) {
-            toast({ title: "Verification Failed", description: "Confirmation object not found. Please try again.", variant: 'destructive' });
-            return;
-        }
-        setIsResetting(true);
-        try {
-            await confirmationResult.confirm(resetOtp);
-            // OTP is correct, proceed with deletion
-            await deleteAllData();
-            setResetStep(3);
-        } catch (error: any) {
-             toast({ title: "Verification Failed", description: `Invalid OTP or error confirming. ${error.message}`, variant: 'destructive' });
-        } finally {
-            setIsResetting(false);
-        }
+      if (!confirmationResult) {
+        toast({
+          title: 'Verification Failed',
+          description: 'Confirmation object not found. Please try again.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      setIsResetting(true);
+      try {
+        await confirmationResult.confirm(resetOtp);
+        // OTP is correct, proceed with deletion
+        await deleteAllData();
+        setResetStep(3);
+      } catch (error: any) {
+        toast({
+          title: 'Verification Failed',
+          description: `Invalid OTP or error confirming. ${error.message}`,
+          variant: 'destructive',
+        });
+      } finally {
+        setIsResetting(false);
+      }
     };
     
     const closeResetDialog = () => {
