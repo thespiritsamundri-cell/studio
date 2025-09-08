@@ -40,7 +40,7 @@ import {
 
 
 export default function StudentsPage() {
-  const { students: allStudents, classes, deleteStudent } = useData();
+  const { students: allStudents, classes, updateStudent } = useData();
   const { settings } = useSettings();
   const searchParams = useSearchParams();
   const familyIdFromQuery = searchParams.get('familyId');
@@ -49,7 +49,7 @@ export default function StudentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClass, setSelectedClass] = useState<string>('all');
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
-  const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
+  const [studentToArchive, setStudentToArchive] = useState<Student | null>(null);
   
   const filteredStudents = useMemo(() => {
     let students = allStudents.filter(s => s.status !== 'Archived');
@@ -163,14 +163,14 @@ export default function StudentsPage() {
   
   const isAllSelected = selectedStudents.length > 0 && selectedStudents.length === filteredStudents.length;
 
-  const handleConfirmDelete = () => {
-    if (studentToDelete) {
-      deleteStudent(studentToDelete.id);
+  const handleConfirmArchive = () => {
+    if (studentToArchive) {
+      updateStudent(studentToArchive.id, { status: 'Archived' });
       toast({
         title: "Student Archived",
-        description: `${studentToDelete.name} has been moved to the archive.`,
+        description: `${studentToArchive.name} has been moved to the archive.`,
       });
-      setStudentToDelete(null);
+      setStudentToArchive(null);
     }
   };
 
@@ -263,7 +263,7 @@ export default function StudentsPage() {
                       alt="Student image"
                       className="aspect-square rounded-md object-cover"
                       height="64"
-                      src={student.photoUrl}
+                      src={student.photoUrl || `https://picsum.photos/seed/${student.id}/64/64`}
                       width="64"
                       data-ai-hint="student photo"
                     />
@@ -290,7 +290,7 @@ export default function StudentsPage() {
                         <DropdownMenuItem asChild>
                           <Link href={`/students/details/${student.id}`}>View Details</Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive" onClick={() => setStudentToDelete(student)}>
+                        <DropdownMenuItem className="text-destructive" onClick={() => setStudentToArchive(student)}>
                             <Trash2 className="mr-2 h-4 w-4" /> Archive
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -309,17 +309,17 @@ export default function StudentsPage() {
           </Table>
         </CardContent>
       </Card>
-        <AlertDialog open={!!studentToDelete} onOpenChange={(open) => !open && setStudentToDelete(null)}>
+        <AlertDialog open={!!studentToArchive} onOpenChange={(open) => !open && setStudentToArchive(null)}>
             <AlertDialogContent>
             <AlertDialogHeader>
                 <AlertDialogTitle>Are you sure you want to archive this student?</AlertDialogTitle>
                 <AlertDialogDescription>
-                This will move the student <strong>{studentToDelete?.name}</strong> to the archive. They will be hidden from all lists but their data will be preserved. You can restore them later.
+                This will move the student <strong>{studentToArchive?.name}</strong> to the archive. They will be hidden from all lists but their data will be preserved. You can restore them later from the "Archived" page.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setStudentToDelete(null)}>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">
+                <AlertDialogCancel onClick={() => setStudentToArchive(null)}>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleConfirmArchive} className="bg-destructive hover:bg-destructive/90">
                 Yes, archive student
                 </AlertDialogAction>
             </AlertDialogFooter>
