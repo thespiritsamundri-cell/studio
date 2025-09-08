@@ -32,7 +32,7 @@ import { sendResetOtp, verifyResetOtp } from '@/ai/flows/factory-reset-flow';
 
 export default function SettingsPage() {
   const { settings, setSettings } = useSettings();
-  const { students, families, fees, loadData, addActivityLog, activityLog, seedDatabase, clearActivityLog, dataClasses, deleteAllData } = useData();
+  const { students, families, fees, loadData, addActivityLog, activityLog, seedDatabase, clearActivityLog, classes: dataClasses, deleteAllData } = useData();
   const { toast } = useToast();
   
   // Custom Messaging State
@@ -80,7 +80,7 @@ export default function SettingsPage() {
   const [isResetting, setIsResetting] = useState(false);
 
 
-  const classes = useMemo(() => dataClasses.map(c => c.name), [dataClasses]);
+  const classes = useMemo(() => (dataClasses || []).map(c => c.name), [dataClasses]);
 
   const handleSave = () => {
     addActivityLog({ user: 'Admin', action: 'Update Settings', description: 'Updated school information settings.' });
