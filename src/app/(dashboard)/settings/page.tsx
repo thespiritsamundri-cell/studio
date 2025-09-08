@@ -78,8 +78,25 @@ export default function SettingsPage() {
   const [resetOtp, setResetOtp] = useState('');
   const [isResetting, setIsResetting] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null);
 
   const classes = useMemo(() => (dataClasses || []).map(c => c.name), [dataClasses]);
+  
+  useEffect(() => {
+    if (openFactoryResetDialog && resetStep === 1 && !recaptchaVerifier) {
+      const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'invisible',
+        'callback': (response: any) => {
+          // reCAPTCHA solved, allow signInWithPhoneNumber.
+        },
+        'expired-callback': () => {
+          // Response expired. Ask user to solve reCAPTCHA again.
+        }
+      });
+      auth.app.name = "EduCentral";
+      setRecaptchaVerifier(verifier);
+    }
+  }, [openFactoryResetDialog, resetStep, recaptchaVerifier]);
 
   const handleSave = () => {
     addActivityLog({ user: 'Admin', action: 'Update Settings', description: 'Updated school information settings.' });
@@ -544,10 +561,13 @@ export default function SettingsPage() {
         setIsResetting(true);
         toast({ title: "Sending Verification Code via SMS..." });
         
+        if (!recaptchaVerifier) {
+            toast({ title: "reCAPTCHA not initialized", description: "Please try again.", variant: 'destructive' });
+            setIsResetting(false);
+            return;
+        }
+
         try {
-            const recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-                'size': 'invisible'
-            });
             const confirmation = await signInWithPhoneNumber(auth, settings.schoolPhone, recaptchaVerifier);
             setConfirmationResult(confirmation);
             toast({ title: "OTP Sent", description: `A verification code has been sent to ${settings.schoolPhone}.` });
@@ -1329,5 +1349,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
