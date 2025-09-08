@@ -100,16 +100,11 @@ body {
         inset: -1px; /* Creates the thin border */
         border-radius: 0.6rem; /* Slightly larger than card's radius */
         background: conic-gradient(from var(--angle), hsl(var(--chart-1)), hsl(var(--chart-2)), hsl(var(--chart-3)), hsl(var(--chart-4)), hsl(var(--chart-5)), hsl(var(--chart-1)));
-        animation: gradient-move 4s linear infinite;
         z-index: -1;
     }
-    
-    .animated-gradient-border > * {
-        transition: transform 0.2s ease-in-out;
-    }
 
-    .animated-gradient-border:hover > * {
-        transform: translateY(-4px) scale(1.02);
+    .stat-card:hover .animated-gradient-border::before {
+        animation: gradient-move 4s linear infinite;
     }
 }
 
