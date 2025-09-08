@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -58,7 +57,7 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-20 items-center gap-4 border-b bg-background px-4 md:px-6 animated-gradient-border">
+    <header className="sticky top-0 z-30 flex h-20 items-center gap-4 border-b bg-background px-4 md:px-6">
        <div className="flex-1">
         <SidebarTrigger className="md:hidden" />
         <h1 className="text-xl font-semibold hidden md:block">{pageTitle}</h1>
