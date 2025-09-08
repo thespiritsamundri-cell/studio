@@ -12,14 +12,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Lock, Search } from 'lucide-react';
+import { Lock, Search, User } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { useSettings } from '@/context/settings-context';
-import { cn } from '@/lib/utils';
+import { useData } from '@/context/data-context';
+import type { Student } from '@/lib/types';
 
 function getTitleFromPathname(pathname: string): string {
   if (pathname === '/dashboard') return 'Dashboard';
@@ -42,9 +43,12 @@ export function Header() {
   const router = useRouter();
   const pageTitle = getTitleFromPathname(pathname);
   const { settings } = useSettings();
+  const { students } = useData();
   
   const [dateTime, setDateTime] = useState<Date | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Student[]>([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   useEffect(() => {
     setDateTime(new Date());
@@ -57,12 +61,31 @@ export function Header() {
     router.push('/lock');
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/students?search=${encodeURIComponent(searchQuery.trim())}`);
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+
+    if (query.length > 1) {
+      const filtered = students.filter(student =>
+        student.name.toLowerCase().includes(query.toLowerCase()) ||
+        student.fatherName.toLowerCase().includes(query.toLowerCase()) ||
+        student.id.toLowerCase().includes(query.toLowerCase()) ||
+        student.familyId.toLowerCase().includes(query.toLowerCase())
+      );
+      setSearchResults(filtered.slice(0, 7)); // Limit to 7 results
+      setIsDropdownOpen(true);
+    } else {
+      setSearchResults([]);
+      setIsDropdownOpen(false);
     }
   };
+
+  const handleResultClick = (studentId: string) => {
+    router.push(`/students/details/${studentId}`);
+    setSearchQuery('');
+    setSearchResults([]);
+    setIsDropdownOpen(false);
+  }
 
 
   return (
@@ -72,16 +95,44 @@ export function Header() {
         <h1 className="text-xl font-semibold hidden md:block">{pageTitle}</h1>
       </div>
       <div className="flex flex-1 items-center justify-end gap-2 md:gap-4">
-        <form onSubmit={handleSearch} className="relative flex-grow-0">
+        <div className="relative flex-grow-0">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
             placeholder="Search students or families..."
             className="w-full rounded-lg bg-card pl-8 md:w-[200px] lg:w-[280px]"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={handleSearchChange}
+            onBlur={() => setTimeout(() => setIsDropdownOpen(false), 150)}
+            onFocus={() => searchQuery.length > 1 && setIsDropdownOpen(true)}
           />
-        </form>
+          {isDropdownOpen && searchResults.length > 0 && (
+            <div className="absolute top-full mt-2 w-full max-w-md rounded-md border bg-card shadow-lg z-50">
+              <ul>
+                {searchResults.map(student => (
+                  <li 
+                    key={student.id} 
+                    className="p-3 border-b last:border-b-0 hover:bg-accent cursor-pointer"
+                    onMouseDown={() => handleResultClick(student.id)}
+                  >
+                     <div className="flex items-center gap-3">
+                        <Avatar className="h-9 w-9">
+                          <AvatarImage src={student.photoUrl} alt={student.name} />
+                          <AvatarFallback><User /></AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-semibold text-sm">{student.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {student.fatherName} (ID: {student.id}, Family: {student.familyId})
+                          </p>
+                        </div>
+                     </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
          {dateTime && (
            <div className="hidden lg:flex items-center gap-2">
               <div className="animated-gradient-border p-0.5 rounded-lg">
