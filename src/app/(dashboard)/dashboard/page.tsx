@@ -167,66 +167,56 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
-        <div className="animated-gradient-border">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                <CardTitle className="text-sm font-medium">Total Students</CardTitle>
-                <Users className="w-5 h-5 text-primary" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{totalStudents.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">+2% from last month</p>
-              </CardContent>
-            </Card>
-        </div>
-        <div className="animated-gradient-border">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                <CardTitle className="text-sm font-medium">Students Present</CardTitle>
-                <UserCheck className="w-5 h-5 text-green-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{presentStudents}</div>
-                <p className="text-xs text-muted-foreground">Attendance for today</p>
-              </CardContent>
-            </Card>
-        </div>
-         <div className="animated-gradient-border">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                <CardTitle className="text-sm font-medium">Students Absent</CardTitle>
-                <UserX className="w-5 h-5 text-red-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{absentStudents}</div>
-                <p className="text-xs text-muted-foreground">Attendance for today</p>
-              </CardContent>
-            </Card>
-        </div>
-        <div className="animated-gradient-border">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                <CardTitle className="text-sm font-medium">Messages Sent Today</CardTitle>
-                <MessageSquare className="w-5 h-5 text-purple-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{messagesSentToday}</div>
-                <p className="text-xs text-muted-foreground">WhatsApp messages delivered</p>
-              </CardContent>
-            </Card>
-        </div>
-        <div className="animated-gradient-border">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                <CardTitle className="text-sm font-medium">New Admissions</CardTitle>
-                <UserPlus className="w-5 h-5 text-blue-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{newAdmissions}</div>
-                <p className="text-xs text-muted-foreground">In the last 30 days</p>
-              </CardContent>
-            </Card>
-        </div>
+        <Card className="bg-purple-100 border-purple-200 dark:bg-purple-900/30 dark:border-purple-700/50">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium text-purple-800 dark:text-purple-200">Total Students</CardTitle>
+            <Users className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-purple-900 dark:text-purple-100">{totalStudents.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">+2% from last month</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-green-100 border-green-200 dark:bg-green-900/30 dark:border-green-700/50">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium text-green-800 dark:text-green-200">Students Present</CardTitle>
+            <UserCheck className="w-5 h-5 text-green-600 dark:text-green-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-green-900 dark:text-green-100">{presentStudents}</div>
+            <p className="text-xs text-muted-foreground">Attendance for today</p>
+          </CardContent>
+        </Card>
+         <Card className="bg-red-100 border-red-200 dark:bg-red-900/30 dark:border-red-700/50">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium text-red-800 dark:text-red-200">Students Absent</CardTitle>
+            <UserX className="w-5 h-5 text-red-600 dark:text-red-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-red-900 dark:text-red-100">{absentStudents}</div>
+            <p className="text-xs text-muted-foreground">Attendance for today</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-blue-100 border-blue-200 dark:bg-blue-900/30 dark:border-blue-700/50">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium text-blue-800 dark:text-blue-200">Messages Sent Today</CardTitle>
+            <MessageSquare className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">{messagesSentToday}</div>
+            <p className="text-xs text-muted-foreground">WhatsApp messages delivered</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-indigo-100 border-indigo-200 dark:bg-indigo-900/30 dark:border-indigo-700/50">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium text-indigo-800 dark:text-indigo-200">New Admissions</CardTitle>
+            <UserPlus className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-indigo-900 dark:text-indigo-100">{newAdmissions}</div>
+            <p className="text-xs text-muted-foreground">In the last 30 days</p>
+          </CardContent>
+        </Card>
       </div>
 
        <div className="grid gap-6 md:grid-cols-3">
