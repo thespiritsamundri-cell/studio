@@ -23,11 +23,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { auth } from '@/lib/firebase';
-import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
 import { Switch } from '@/components/ui/switch';
-import { sendResetOtp, verifyResetOtp } from '@/ai/flows/factory-reset-flow';
 
 
 export default function SettingsPage() {
@@ -78,7 +76,7 @@ export default function SettingsPage() {
   const [resetPin, setResetPin] = useState('');
   const [resetOtp, setResetOtp] = useState('');
   const [isResetting, setIsResetting] = useState(false);
-
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
   const classes = useMemo(() => (dataClasses || []).map(c => c.name), [dataClasses]);
 
@@ -543,37 +541,44 @@ export default function SettingsPage() {
         }
         
         setIsResetting(true);
-        toast({ title: "Sending Verification Code..." });
+        toast({ title: "Sending Verification Code via SMS..." });
         
-        const result = await sendResetOtp({
-            phoneNumber: settings.schoolPhone,
-            schoolName: settings.schoolName,
-            apiUrl: settings.whatsappApiUrl,
-            apiKey: settings.whatsappApiKey,
-            instanceId: settings.whatsappInstanceId,
-            priority: settings.whatsappPriority,
-        });
-
-        if (result.success) {
+        try {
+            const recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+                'size': 'invisible'
+            });
+            const confirmation = await signInWithPhoneNumber(auth, settings.schoolPhone, recaptchaVerifier);
+            setConfirmationResult(confirmation);
             toast({ title: "OTP Sent", description: `A verification code has been sent to ${settings.schoolPhone}.` });
             setResetStep(2);
-        } else {
-            toast({ title: "Failed to Send OTP", description: result.message, variant: 'destructive' });
+        } catch (error: any) {
+            console.error("Firebase phone auth error:", error);
+            toast({ title: "Failed to Send OTP", description: `Could not send SMS. Error: ${error.message}`, variant: 'destructive' });
+            // This is important to reset the reCAPTCHA widget if it fails.
+            if (typeof window !== 'undefined' && (window as any).grecaptcha) {
+                (window as any).grecaptcha.reset();
+            }
+        } finally {
+             setIsResetting(false);
         }
-        setIsResetting(false);
     };
 
     const handleFactoryResetStep2 = async () => {
-        setIsResetting(true);
-        const result = await verifyResetOtp({ otp: resetOtp });
-
-        if (result.success) {
-            await deleteAllData();
-            setResetStep(3); // Go to final confirmation screen
-        } else {
-            toast({ title: "Verification Failed", description: result.message, variant: 'destructive' });
+        if (!confirmationResult) {
+            toast({ title: "Verification Failed", description: "Confirmation object not found. Please try again.", variant: 'destructive' });
+            return;
         }
-        setIsResetting(false);
+        setIsResetting(true);
+        try {
+            await confirmationResult.confirm(resetOtp);
+            // OTP is correct, proceed with deletion
+            await deleteAllData();
+            setResetStep(3);
+        } catch (error: any) {
+             toast({ title: "Verification Failed", description: `Invalid OTP or error confirming. ${error.message}`, variant: 'destructive' });
+        } finally {
+            setIsResetting(false);
+        }
     };
     
     const closeResetDialog = () => {
@@ -582,6 +587,7 @@ export default function SettingsPage() {
             setResetStep(1);
             setResetPin('');
             setResetOtp('');
+            setConfirmationResult(null);
         }, 300);
     }
 
@@ -595,6 +601,7 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
+      <div id="recaptcha-container"></div>
       <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><SettingsIcon className="w-8 h-8" />Settings</h1>
       
       <Tabs defaultValue="school" className="w-full">
@@ -1208,7 +1215,7 @@ export default function SettingsPage() {
         </TabsContent>
       </Tabs>
       
-       <Dialog open={openTemplateDialog} onOpenChange={setOpenTemplateDialog}>
+       <AlertDialog open={openTemplateDialog} onOpenChange={setOpenTemplateDialog}>
         <DialogContent>
             <DialogHeader>
                 <DialogTitle>{isEditingTemplate ? 'Edit Template' : 'Add New Template'}</DialogTitle>
@@ -1236,7 +1243,7 @@ export default function SettingsPage() {
                 </div>
             </DialogFooter>
         </DialogContent>
-       </Dialog>
+       </AlertDialog>
        
         <AlertDialog open={openFactoryResetDialog} onOpenChange={closeResetDialog}>
             <AlertDialogContent>
@@ -1274,7 +1281,7 @@ export default function SettingsPage() {
                         <AlertDialogHeader>
                             <AlertDialogTitle>Final Verification</AlertDialogTitle>
                             <AlertDialogDescription>
-                               A 6-digit One-Time Password (OTP) has been sent to your registered school phone number ({settings.schoolPhone}). Please enter it below to finalize the data deletion.
+                               A 6-digit One-Time Password (OTP) has been sent to your registered school phone number ({settings.schoolPhone}) via SMS. Please enter it below to finalize the data deletion.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <div className="py-4 space-y-2">
