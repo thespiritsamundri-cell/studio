@@ -26,7 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { auth } from '@/lib/firebase';
-import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult, getAuth } from 'firebase/auth';
 import { Switch } from '@/components/ui/switch';
 import { sendOtpEmail } from '@/ai/flows/factory-reset-flow';
 
@@ -1257,7 +1257,7 @@ export default function SettingsPage() {
                                   <AlertDialogHeader>
                                       <AlertDialogTitle>Final Verification</AlertDialogTitle>
                                       <AlertDialogDescription>
-                                         A 6-digit One-Time Password (OTP) has been sent to your registered school email address ({settings.schoolEmail}). Please check your console for the code and enter it below to finalize the data deletion.
+                                         A 6-digit One-Time Password (OTP) has been sent to your registered school email address ({settings.schoolEmail}). Please check your developer console for the code and enter it below to finalize the data deletion.
                                       </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <div className="py-4 space-y-2">
@@ -1333,4 +1333,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
 
