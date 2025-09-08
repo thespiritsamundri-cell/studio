@@ -27,6 +27,8 @@ interface DataContextType {
   addFamily: (family: Family) => Promise<void>;
   updateFamily: (id: string, family: Partial<Family>) => Promise<void>;
   deleteFamily: (id: string) => Promise<void>;
+  restoreFamily: (id: string) => Promise<void>;
+  deleteFamilyPermanently: (id: string) => Promise<void>;
   addFee: (fee: Fee) => Promise<void>;
   updateFee: (id: string, fee: Partial<Fee>) => Promise<void>;
   deleteFee: (id: string) => Promise<void>;
@@ -181,10 +183,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     try {
         const batch = writeBatch(db);
         
-        // Archive the family
         batch.update(doc(db, "families", familyId), { status: 'Archived' });
 
-        // Archive all students in that family
         const studentQuery = query(collection(db, "students"), where("familyId", "==", familyId));
         const studentDocs = await getDocs(studentQuery);
         studentDocs.forEach(doc => {
@@ -197,6 +197,48 @@ export function DataProvider({ children }: { children: ReactNode }) {
     } catch (e: any) {
         console.error("Error archiving family:", e);
         toast({ title: "Archive Failed", description: "Could not archive the family and its students.", variant: "destructive" });
+    }
+  };
+  
+  const restoreFamily = async (familyId: string) => {
+    try {
+      const batch = writeBatch(db);
+      batch.update(doc(db, "families", familyId), { status: 'Active' });
+      const studentQuery = query(collection(db, 'students'), where('familyId', '==', familyId));
+      const studentDocs = await getDocs(studentQuery);
+      studentDocs.forEach(sDoc => {
+        batch.update(sDoc.ref, { status: 'Active' });
+      });
+      await batch.commit();
+      toast({ title: 'Family Restored', description: 'The family and its students have been restored.' });
+    } catch (e) {
+      console.error('Error restoring family: ', e);
+      toast({ title: 'Restore Failed', variant: 'destructive' });
+    }
+  };
+
+  const deleteFamilyPermanently = async (familyId: string) => {
+    try {
+      const batch = writeBatch(db);
+      
+      // Delete family
+      batch.delete(doc(db, 'families', familyId));
+
+      // Delete students
+      const studentQuery = query(collection(db, 'students'), where('familyId', '==', familyId));
+      const studentDocs = await getDocs(studentQuery);
+      studentDocs.forEach(doc => batch.delete(doc.ref));
+
+      // Delete fees
+      const feeQuery = query(collection(db, 'fees'), where('familyId', '==', familyId));
+      const feeDocs = await getDocs(feeQuery);
+      feeDocs.forEach(doc => batch.delete(doc.ref));
+      
+      await batch.commit();
+      toast({ title: 'Family Deleted Permanently', variant: 'destructive'});
+    } catch (e) {
+      console.error('Error permanently deleting family: ', e);
+      toast({ title: 'Deletion Failed', variant: 'destructive' });
     }
   };
 
@@ -404,6 +446,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       addFamily,
       updateFamily, 
       deleteFamily,
+      restoreFamily,
+      deleteFamilyPermanently,
       addFee,
       updateFee,
       deleteFee,
