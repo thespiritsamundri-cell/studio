@@ -1,4 +1,5 @@
 
+
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Users, Wallet, UserCheck, UserPlus, History, Landmark, DollarSign, UserX, TrendingUp, TrendingDown, Scale, CheckCircle, XCircle, MessageSquare, Briefcase } from 'lucide-react';
@@ -167,7 +168,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
-        <div className="stat-card transition-transform duration-300 ease-in-out hover:scale-105">
+        <div className="stat-card animated-gradient-border">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">Total Students</CardTitle>
@@ -179,7 +180,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
         </div>
-        <div className="stat-card transition-transform duration-300 ease-in-out hover:scale-105">
+        <div className="stat-card animated-gradient-border">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">Students Present</CardTitle>
@@ -191,7 +192,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
         </div>
-         <div className="stat-card transition-transform duration-300 ease-in-out hover:scale-105">
+         <div className="stat-card animated-gradient-border">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">Students Absent</CardTitle>
@@ -203,7 +204,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
         </div>
-        <div className="stat-card transition-transform duration-300 ease-in-out hover:scale-105">
+        <div className="stat-card animated-gradient-border">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">Messages Sent Today</CardTitle>
@@ -215,7 +216,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
         </div>
-        <div className="stat-card transition-transform duration-300 ease-in-out hover:scale-105">
+        <div className="stat-card animated-gradient-border">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">New Admissions</CardTitle>
