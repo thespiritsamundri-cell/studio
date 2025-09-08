@@ -157,18 +157,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const studentToDelete = students.find((s) => s.id === studentId);
     if (!studentToDelete) return;
     try {
-      const batch = writeBatch(db);
-      const studentRef = doc(db, 'students', studentId);
-      batch.delete(studentRef);
+      // The student document will be deleted via onSnapshot listener, which re-renders the component.
+      // No need to manually update local state here.
+      await deleteDoc(doc(db, "students", studentId));
 
+      // Also remove student from any exam results
+      const batch = writeBatch(db);
       const examsToUpdate = exams.filter(exam => exam.results.some(result => result.studentId === studentId));
       for (const exam of examsToUpdate) {
         const newResults = exam.results.filter(result => result.studentId !== studentId);
         const examRef = doc(db, 'exams', exam.id);
         batch.update(examRef, { results: newResults });
       }
-
       await batch.commit();
+
       await addActivityLog({ user: 'Admin', action: 'Delete Student', description: `Deleted student: ${studentToDelete.name} (ID: ${studentId}).`});
     } catch (e) {
       console.error("Error deleting student:", e);
