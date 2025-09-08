@@ -100,16 +100,32 @@ export default {
           'to': {
             transform: 'translateY(calc(-50%))'
           }
-        }
+        },
+        'gradient-move': {
+            '0%': { '--angle': '0deg' },
+            '100%': { '--angle': '360deg' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'scroll': 'scroll 40s linear infinite',
+        'gradient-move': 'gradient-move 4s linear infinite',
       },
     },
   },
   plugins: [
     require('tailwindcss-animate'),
+    plugin(function ({ addUtilities }) {
+        addUtilities({
+            '.animated-gradient-border': {
+                '@property --angle': {
+                    syntax: "'<angle>'",
+                    inherits: false,
+                    initialValue: '0deg',
+                },
+            },
+        });
+    }),
   ],
 } satisfies Config;
