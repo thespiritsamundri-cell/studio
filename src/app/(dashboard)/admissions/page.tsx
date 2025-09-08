@@ -202,16 +202,10 @@ export default function AdmissionsPage() {
             photoUrl: photoDataUrl || `https://picsum.photos/seed/${newStudentId}/100/100`
         };
 
-        let lastFeeId = fees.reduce((max, f) => {
-            const idNum = parseInt(f.id.replace('FEE', ''));
-            return !isNaN(idNum) && idNum > max ? idNum : max;
-        }, 0);
-        
-        const feesToAdd: Fee[] = [];
+        const feesToAdd: Omit<Fee, 'id'>[] = [];
 
         // Registration Fee (One-time)
         feesToAdd.push({
-            id: `FEE${String(++lastFeeId).padStart(3, '0')}`,
             familyId: familyId,
             amount: registrationFee,
             month: 'Registration', // This indicates it's a one-time registration fee
@@ -222,7 +216,6 @@ export default function AdmissionsPage() {
 
         // First Month's Tuition Fee
         feesToAdd.push({
-            id: `FEE${String(++lastFeeId).padStart(3, '0')}`,
             familyId: familyId,
             amount: monthlyFee,
             month: new Date().toLocaleString('default', { month: 'long' }), // Fee for the current month
@@ -235,7 +228,6 @@ export default function AdmissionsPage() {
         customFees.forEach(fee => {
             if (fee.name && fee.amount > 0) {
                  feesToAdd.push({
-                    id: `FEE${String(++lastFeeId).padStart(3, '0')}`,
                     familyId: familyId,
                     amount: fee.amount,
                     month: fee.name, // Use the custom fee name as the one-time charge description
@@ -247,7 +239,9 @@ export default function AdmissionsPage() {
         });
 
         await addStudent(newStudent);
-        feesToAdd.forEach(fee => addFee(fee));
+        for (const fee of feesToAdd) {
+            await addFee(fee);
+        }
         
         toast({
             title: 'Student Admitted!',
@@ -534,5 +528,3 @@ export default function AdmissionsPage() {
     </div>
   );
 }
-
-    

@@ -25,8 +25,8 @@ interface FeeDetailsCardProps {
     family: Family;
     students: Student[];
     fees: Fee[];
-    onUpdateFee: (id: string, fee: Fee) => void;
-    onAddFee: (fee: Fee) => void;
+    onUpdateFee: (id: string, fee: Partial<Fee>) => void;
+    onAddFee: (fee: Omit<Fee, 'id'>) => Promise<void>;
     onDeleteFee: (id: string) => void; 
     settings: SchoolSettings;
 }
@@ -88,8 +88,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
             
             const paymentForThisChallan = Math.min(amountToSettle, fee.amount);
 
-            const paymentRecord: Fee = {
-                id: `PAY-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+            const paymentRecord: Omit<Fee, 'id'> = {
                 familyId: fee.familyId,
                 amount: paymentForThisChallan,
                 month: fee.month,
@@ -100,13 +99,15 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
                 paymentMethod: paymentMethod,
             };
             
-            onAddFee(paymentRecord);
-            newlyPaidFees.push(paymentRecord);
+            await onAddFee(paymentRecord);
+            // We can't know the new ID here, so we push a temporary record for printing.
+            // This might mean the printed receipt ID won't match the DB ID perfectly.
+            newlyPaidFees.push({ ...paymentRecord, id: `TEMP-${Date.now()}`});
             
             const remainingAmountInChallan = fee.amount - paymentForThisChallan;
             
             if (remainingAmountInChallan > 0) {
-                 const updatedChallan: Fee = { ...fee, amount: remainingAmountInChallan };
+                 const updatedChallan: Partial<Fee> = { amount: remainingAmountInChallan };
                  onUpdateFee(fee.id, updatedChallan);
             } else {
                  onDeleteFee(fee.id);

@@ -86,7 +86,7 @@ export default function IncomePage() {
     setFeeToCancel(fee);
   };
   
-  const handleConfirmCancel = () => {
+  const handleConfirmCancel = async () => {
     if (!feeToCancel) return;
 
     const originalChallanId = feeToCancel.originalChallanId;
@@ -99,14 +99,12 @@ export default function IncomePage() {
     const existingChallan = allFees.find(f => f.id === originalChallanId);
 
     if (existingChallan) {
-        const revertedChallan: Fee = {
-            ...existingChallan,
+        const revertedChallan: Partial<Fee> = {
             amount: existingChallan.amount + feeToCancel.amount,
         };
-        updateFee(existingChallan.id, revertedChallan);
+        await updateFee(existingChallan.id, revertedChallan);
     } else {
-        const newChallan: Fee = {
-            id: originalChallanId,
+        const newChallan: Omit<Fee, 'id'> = {
             familyId: feeToCancel.familyId,
             amount: feeToCancel.amount,
             month: feeToCancel.month,
@@ -114,10 +112,10 @@ export default function IncomePage() {
             status: 'Unpaid',
             paymentDate: '',
         };
-        addFee(newChallan);
+        await addFee(newChallan);
     }
 
-    deleteFee(feeToCancel.id);
+    await deleteFee(feeToCancel.id);
     
     addActivityLog({ user: 'Admin', action: 'Cancel Payment', description: `Cancelled payment of PKR ${feeToCancel.amount} for family ${feeToCancel.fatherName} (${feeToCancel.familyId}).`});
 
@@ -135,7 +133,7 @@ export default function IncomePage() {
     setOpenEditDialog(true);
   };
 
-  const handleConfirmEdit = () => {
+  const handleConfirmEdit = async () => {
     if (!feeToEdit || editAmount < 0) {
       toast({ title: "Invalid amount", variant: "destructive"});
       return;
@@ -158,14 +156,9 @@ export default function IncomePage() {
        
        const existingChallan = allFees.find(f => f.id === originalChallanId);
        if (existingChallan) {
-           updateFee(existingChallan.id, { ...existingChallan, amount: existingChallan.amount + difference });
+           await updateFee(existingChallan.id, { ...existingChallan, amount: existingChallan.amount + difference });
        } else {
-            let lastFeeId = allFees.reduce((max, f) => {
-                const idNum = parseInt(f.id.replace('FEE', ''));
-                return !isNaN(idNum) && idNum > max ? idNum : max;
-            }, 0);
-           addFee({
-               id: `FEE${String(++lastFeeId).padStart(3, '0')}`,
+           await addFee({
                familyId: feeToEdit.familyId,
                amount: difference,
                month: feeToEdit.month,
@@ -179,7 +172,7 @@ export default function IncomePage() {
        return;
     }
 
-    updateFee(feeToEdit.id, { ...feeToEdit, amount: editAmount });
+    await updateFee(feeToEdit.id, { ...feeToEdit, amount: editAmount });
     
     addActivityLog({ user: 'Admin', action: 'Edit Payment', description: `Edited payment for family ${feeToEdit.fatherName} (${feeToEdit.familyId}). Original: ${feeToEdit.amount}, New: ${editAmount}.`});
 

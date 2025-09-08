@@ -4,7 +4,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, writeBatch, query, where, getDocs, setDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, writeBatch, query, where, getDocs, setDoc, getDoc, runTransaction } from 'firebase/firestore';
 import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData } from '@/lib/types';
 import { students as initialStudents, families as initialFamilies, fees as initialFees, teachers as initialTeachers, teacherAttendances as initialTeacherAttendances, classes as initialClasses, exams as initialExams, expenses as initialExpenses, timetables as initialTimetables } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
@@ -27,7 +27,7 @@ interface DataContextType {
   addFamily: (family: Family) => Promise<void>;
   updateFamily: (id: string, family: Partial<Family>) => Promise<void>;
   deleteFamily: (id: string) => Promise<void>;
-  addFee: (fee: Fee) => Promise<void>;
+  addFee: (feeData: Omit<Fee, 'id'>) => Promise<void>;
   updateFee: (id: string, fee: Partial<Fee>) => Promise<void>;
   deleteFee: (id: string) => Promise<void>;
   addTeacher: (teacher: Teacher) => Promise<void>;
@@ -199,11 +199,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
 
   // --- FEE ---
-  const addFee = async (fee: Fee) => {
+  const addFee = async (feeData: Omit<Fee, 'id'>) => {
+    const counterRef = doc(db, "meta", "feeCounter");
+    
     try {
-      await setDoc(doc(db, "fees", fee.id), fee);
-    } catch(e) {
-       console.error('Error adding fee', e);
+        const newId = await runTransaction(db, async (transaction) => {
+            const counterSnap = await transaction.get(counterRef);
+            let newIdNumber = 1;
+            if (counterSnap.exists()) {
+                newIdNumber = (counterSnap.data().lastId || 0) + 1;
+            }
+            transaction.set(counterRef, { lastId: newIdNumber }, { merge: true });
+            return `FEE${String(newIdNumber).padStart(3, '0')}`;
+        });
+
+        await setDoc(doc(db, "fees", newId), { ...feeData, id: newId });
+        return newId; // Optionally return the new ID
+    } catch (e) {
+        console.error('Error adding fee with transaction:', e);
+        toast({ title: 'Error Adding Fee', description: 'Could not generate a new fee record.', variant: 'destructive' });
     }
   };
   const updateFee = updateDocFactory<Fee>('fees', 'Update Fee', d => `Fee ${d.id} updated.`);
