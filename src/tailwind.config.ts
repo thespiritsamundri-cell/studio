@@ -100,18 +100,12 @@ export default {
           'to': {
             transform: 'translateY(calc(-50%))'
           }
-        },
-        'gradient-move': {
-            '0%': { 'background-position': '0% 50%' },
-            '50%': { 'background-position': '100% 50%' },
-            '100%': { 'background-position': '0% 50%' },
-        },
+        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'scroll': 'scroll 40s linear infinite',
-        'gradient-move': 'gradient-move 8s linear infinite',
       },
     },
   },
@@ -119,5 +113,3 @@ export default {
     require('tailwindcss-animate'),
   ],
 } satisfies Config;
-
-    
