@@ -5,9 +5,9 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useData } from '@/context/data-context';
-import type { Class } from '@/lib/types';
+import type { Class, Student } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Edit, Trash2, X } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, X, GraduationCap, ArrowRight } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,10 +23,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 
 export default function ClassesPage() {
-  const { students: allStudents, classes, addClass, updateClass, deleteClass } = useData();
+  const { students: allStudents, classes, addClass, updateClass, deleteClass, updateStudent } = useData();
   const { toast } = useToast();
 
   // State for class management dialog
@@ -39,6 +42,13 @@ export default function ClassesPage() {
   const [newSectionName, setNewSectionName] = useState('');
   const [subjects, setSubjects] = useState<string[]>([]);
   const [newSubjectName, setNewSubjectName] = useState('');
+  
+  // State for promotion dialog
+  const [openPromotionDialog, setOpenPromotionDialog] = useState(false);
+  const [fromClass, setFromClass] = useState<string>('');
+  const [toClass, setToClass] = useState<string>('');
+  const [studentsToPromote, setStudentsToPromote] = useState<Student[]>([]);
+  const [selectedStudentsForPromotion, setSelectedStudentsForPromotion] = useState<string[]>([]);
 
 
   // Class management handlers
@@ -126,6 +136,54 @@ export default function ClassesPage() {
       setSelectedClassData(null);
     }
   };
+  
+  const handleFromClassChange = (className: string) => {
+    setFromClass(className);
+    const studentsInClass = allStudents.filter(s => s.class === className && s.status === 'Active');
+    setStudentsToPromote(studentsInClass);
+    setSelectedStudentsForPromotion(studentsInClass.map(s => s.id)); // Select all by default
+  };
+  
+  const handleStudentSelectionChange = (studentId: string, checked: boolean) => {
+      setSelectedStudentsForPromotion(prev => 
+        checked ? [...prev, studentId] : prev.filter(id => id !== studentId)
+      );
+  };
+
+  const handleSelectAllForPromotion = (checked: boolean) => {
+      setSelectedStudentsForPromotion(checked ? studentsToPromote.map(s => s.id) : []);
+  };
+  
+  const handlePromoteStudents = async () => {
+    if (!fromClass || !toClass || selectedStudentsForPromotion.length === 0) {
+      toast({ title: 'Promotion Failed', description: 'Please select from/to classes and at least one student.', variant: 'destructive' });
+      return;
+    }
+    
+    if (fromClass === toClass) {
+      toast({ title: 'Invalid Selection', description: 'Cannot promote students to the same class.', variant: 'destructive' });
+      return;
+    }
+
+    try {
+        await Promise.all(selectedStudentsForPromotion.map(studentId => {
+            return updateStudent(studentId, { class: toClass, section: '' }); // Reset section on promotion
+        }));
+        
+        toast({ title: 'Promotion Successful', description: `${selectedStudentsForPromotion.length} students have been promoted from ${fromClass} to ${toClass}.` });
+        
+        // Reset dialog state
+        setFromClass('');
+        setToClass('');
+        setStudentsToPromote([]);
+        setSelectedStudentsForPromotion([]);
+        setOpenPromotionDialog(false);
+
+    } catch (error) {
+        toast({ title: 'An Error Occurred', description: 'Could not promote students. Please try again.', variant: 'destructive' });
+        console.error("Promotion error:", error);
+    }
+  };
 
 
   return (
@@ -139,9 +197,14 @@ export default function ClassesPage() {
                     <CardTitle>Manage Classes</CardTitle>
                     <CardDescription>Add, edit, or delete classes, sections and subjects for your school.</CardDescription>
                 </div>
-                <Button onClick={() => handleOpenClassDialog(null)}>
-                    <PlusCircle className="mr-2 h-4 w-4"/> Add New Class
-                </Button>
+                 <div className="flex items-center gap-2">
+                    <Button variant="outline" onClick={() => setOpenPromotionDialog(true)}>
+                        <GraduationCap className="mr-2 h-4 w-4"/> Promote Students
+                    </Button>
+                    <Button onClick={() => handleOpenClassDialog(null)}>
+                        <PlusCircle className="mr-2 h-4 w-4"/> Add New Class
+                    </Button>
+                 </div>
             </CardHeader>
             <CardContent>
                 <Table>
@@ -270,7 +333,81 @@ export default function ClassesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
+      
+      {/* Student Promotion Dialog */}
+      <Dialog open={openPromotionDialog} onOpenChange={setOpenPromotionDialog}>
+        <DialogContent className="sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Promote Students to Next Class</DialogTitle>
+            <DialogDescription>
+              Select the source and destination classes, then choose the students to promote.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
+              <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                      <div className="w-full space-y-2">
+                          <Label htmlFor="from-class">Promote From</Label>
+                           <Select onValueChange={handleFromClassChange}>
+                                <SelectTrigger id="from-class">
+                                    <SelectValue placeholder="Select source class" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {classes.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                      </div>
+                      <ArrowRight className="h-6 w-6 mt-8" />
+                      <div className="w-full space-y-2">
+                          <Label htmlFor="to-class">Promote To</Label>
+                           <Select value={toClass} onValueChange={setToClass}>
+                                <SelectTrigger id="to-class">
+                                    <SelectValue placeholder="Select destination class" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {classes.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                      </div>
+                  </div>
+                   <div className="pt-4">
+                        <Label>Students in <span className="font-bold">{fromClass || "..."}</span></Label>
+                        <p className="text-sm text-muted-foreground">{selectedStudentsForPromotion.length} of {studentsToPromote.length} students selected.</p>
+                   </div>
+              </div>
+              <div>
+                  <ScrollArea className="h-72 border rounded-md">
+                      {fromClass ? (
+                          <Table>
+                              <TableHeader>
+                                  <TableRow>
+                                      <TableHead className="w-12"><Checkbox onCheckedChange={(checked) => handleSelectAllForPromotion(!!checked)} checked={studentsToPromote.length > 0 && selectedStudentsForPromotion.length === studentsToPromote.length}/></TableHead>
+                                      <TableHead>Student Name</TableHead>
+                                      <TableHead>Student ID</TableHead>
+                                  </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                 {studentsToPromote.map(student => (
+                                     <TableRow key={student.id}>
+                                         <TableCell><Checkbox onCheckedChange={(checked) => handleStudentSelectionChange(student.id, !!checked)} checked={selectedStudentsForPromotion.includes(student.id)}/></TableCell>
+                                         <TableCell>{student.name}</TableCell>
+                                         <TableCell>{student.id}</TableCell>
+                                     </TableRow>
+                                 ))}
+                              </TableBody>
+                          </Table>
+                      ) : (
+                          <div className="flex items-center justify-center h-full text-muted-foreground">Select a class to see students.</div>
+                      )}
+                  </ScrollArea>
+              </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOpenPromotionDialog(false)}>Cancel</Button>
+            <Button onClick={handlePromoteStudents} disabled={!fromClass || !toClass || selectedStudentsForPromotion.length === 0}>Promote {selectedStudentsForPromotion.length} Students</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
