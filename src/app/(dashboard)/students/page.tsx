@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -51,7 +52,7 @@ export default function StudentsPage() {
   const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
   
   const filteredStudents = useMemo(() => {
-    let students = allStudents;
+    let students = allStudents.filter(s => s.status !== 'Archived');
 
     if (familyIdFromQuery) {
       students = students.filter((student) => student.familyId === familyIdFromQuery);
@@ -166,9 +167,8 @@ export default function StudentsPage() {
     if (studentToDelete) {
       deleteStudent(studentToDelete.id);
       toast({
-        title: "Student Deleted",
-        description: `${studentToDelete.name} has been removed from the records.`,
-        variant: "destructive"
+        title: "Student Archived",
+        description: `${studentToDelete.name} has been moved to the archive.`,
       });
       setStudentToDelete(null);
     }
@@ -291,7 +291,7 @@ export default function StudentsPage() {
                           <Link href={`/students/details/${student.id}`}>View Details</Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive" onClick={() => setStudentToDelete(student)}>
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            <Trash2 className="mr-2 h-4 w-4" /> Archive
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -312,15 +312,15 @@ export default function StudentsPage() {
         <AlertDialog open={!!studentToDelete} onOpenChange={(open) => !open && setStudentToDelete(null)}>
             <AlertDialogContent>
             <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogTitle>Are you sure you want to archive this student?</AlertDialogTitle>
                 <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the record for <strong>{studentToDelete?.name}</strong>.
+                This will move the student <strong>{studentToDelete?.name}</strong> to the archive. They will be hidden from all lists but their data will be preserved. You can restore them later.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
                 <AlertDialogCancel onClick={() => setStudentToDelete(null)}>Cancel</AlertDialogCancel>
                 <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">
-                Yes, delete student
+                Yes, archive student
                 </AlertDialogAction>
             </AlertDialogFooter>
             </AlertDialogContent>

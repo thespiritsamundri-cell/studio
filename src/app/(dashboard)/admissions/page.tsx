@@ -61,7 +61,7 @@ export default function AdmissionsPage() {
             setPhone(foundFamily.phone);
             setAddress(foundFamily.address);
             setProfession(foundFamily.profession || '');
-            const children = students.filter(s => s.familyId === foundFamily.id);
+            const children = students.filter(s => s.familyId === foundFamily.id && s.status !== 'Archived');
             setExistingChildren(children);
         } else {
             setFatherName('');

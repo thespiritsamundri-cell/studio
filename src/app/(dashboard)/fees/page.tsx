@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -34,7 +35,7 @@ export default function FeesPage() {
     const family = families.find(f => f.id.toLowerCase() === familyId.toLowerCase());
     if (family) {
       setSearchedFamily(family);
-      const s = students.filter(st => st.familyId === family.id);
+      const s = students.filter(st => st.familyId === family.id && st.status !== 'Archived');
       setFamilyStudents(s);
       const f = allFees.filter(fe => fe.familyId === family.id);
       setFamilyFees(f);

@@ -153,28 +153,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // --- STUDENT ---
   const addStudent = addDocFactory<Student>('students', 'Add Student', d => `Admitted new student: ${d.name} (ID: ${d.id}) in Class ${d.class}.`);
   const updateStudent = updateDocFactory<Student>('students', 'Update Student', d => `Updated details for student: ${d.name || ''} (ID: ${d.id}).`);
+  
   const deleteStudent = async (studentId: string) => {
-    const studentToDelete = students.find((s) => s.id === studentId);
-    if (!studentToDelete) return;
+    // This is now a soft delete, we change the status to 'Archived'
+    const studentToArchive = students.find((s) => s.id === studentId);
+    if (!studentToArchive) return;
     try {
-      // The student document will be deleted via onSnapshot listener, which re-renders the component.
-      // No need to manually update local state here.
-      await deleteDoc(doc(db, "students", studentId));
-
-      // Also remove student from any exam results
-      const batch = writeBatch(db);
-      const examsToUpdate = exams.filter(exam => exam.results.some(result => result.studentId === studentId));
-      for (const exam of examsToUpdate) {
-        const newResults = exam.results.filter(result => result.studentId !== studentId);
-        const examRef = doc(db, 'exams', exam.id);
-        batch.update(examRef, { results: newResults });
-      }
-      await batch.commit();
-
-      await addActivityLog({ user: 'Admin', action: 'Delete Student', description: `Deleted student: ${studentToDelete.name} (ID: ${studentId}).`});
+        await updateDoc(doc(db, 'students', studentId), { status: 'Archived' });
+        await addActivityLog({ user: 'Admin', action: 'Archive Student', description: `Archived student: ${studentToArchive.name} (ID: ${studentId}).`});
+        toast({ title: "Student Archived", description: `${studentToArchive.name} has been moved to the archive.`});
     } catch (e) {
-      console.error("Error deleting student:", e);
-      toast({ title: "Deletion Failed", description: "Could not delete student.", variant: "destructive" });
+        console.error("Error archiving student:", e);
+        toast({ title: "Archive Failed", description: "Could not archive student.", variant: "destructive" });
     }
   };
 

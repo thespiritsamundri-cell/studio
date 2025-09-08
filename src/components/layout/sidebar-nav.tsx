@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Link from 'next/link';
@@ -189,6 +190,18 @@ export function SidebarNav() {
                 <Link href="/settings">
                   <Settings />
                   <span className={cn("truncate min-w-0 transition-opacity duration-200", (isPinned || isMobile) ? "opacity-100" : "opacity-0 group-hover/sidebar:opacity-100")}>Settings</span>
+                </Link>
+              </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+             <SidebarMenuButton
+                asChild
+                isActive={pathname.startsWith('/archived')}
+                tooltip="Archived Students"
+              >
+                <Link href="/archived">
+                  <Archive />
+                  <span className={cn("truncate min-w-0 transition-opacity duration-200", (isPinned || isMobile) ? "opacity-100" : "opacity-0 group-hover/sidebar:opacity-100")}>Archived</span>
                 </Link>
               </SidebarMenuButton>
           </SidebarMenuItem>
