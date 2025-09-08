@@ -33,7 +33,7 @@ import { sendOtpEmail } from '@/ai/flows/factory-reset-flow';
 
 export default function SettingsPage() {
   const { settings, setSettings } = useSettings();
-  const { students, families, fees, loadData, addActivityLog, activityLog, seedDatabase, clearActivityLog, classes: dataClasses, deleteAllData } = useData();
+  const { students, families, fees, loadData, addActivityLog, activityLog, seedDatabase, clearActivityLog, classes: dataClasses, deleteAllData } from useData();
   const { toast } = useToast();
   
   // Custom Messaging State
@@ -1257,7 +1257,7 @@ export default function SettingsPage() {
                                   <AlertDialogHeader>
                                       <AlertDialogTitle>Final Verification</AlertDialogTitle>
                                       <AlertDialogDescription>
-                                         A 6-digit One-Time Password (OTP) has been sent to your registered school email address ({settings.schoolEmail}). Please enter it below to finalize the data deletion.
+                                         A 6-digit One-Time Password (OTP) has been sent to your registered school email address ({settings.schoolEmail}). Please check your console for the code and enter it below to finalize the data deletion.
                                       </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <div className="py-4 space-y-2">
