@@ -110,7 +110,7 @@ export default {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'scroll': 'scroll 40s linear infinite',
-        'gradient-move': 'gradient-move 8s linear infinite',
+        'gradient-move': 'gradient-move 4s linear infinite',
       },
     },
   },
@@ -129,7 +129,3 @@ export default {
     }),
   ],
 } satisfies Config;
-
-    
-
-    

@@ -88,63 +88,47 @@ body {
   }
 }
 
-.header-container {
-  @apply relative flex h-14 w-full items-center gap-4 rounded-lg border bg-background/80 px-4 backdrop-blur-sm;
-}
-
-.header-container::before {
-  content: "";
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  border-radius: 12px; /* Slightly larger than the container's border-radius */
-  padding: 2px;
-  background: linear-gradient(270deg, #ff00ff, #00ffff, #ff9900, #ff0000);
-  background-size: 400% 400%;
-  -webkit-mask: 
-    linear-gradient(#fff 0 0) content-box, 
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-          mask-composite: exclude;
-  animation: gradientMove 6s linear infinite;
-  z-index: -1;
-}
-
-.stat-card {
+.animated-gradient-border {
   position: relative;
-  z-index: 1;
-}
-
-.stat-card::before {
-  content: "";
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
   border-radius: 12px;
-  padding: 2px;
-  background: linear-gradient(270deg, #ff00ff, #00ffff, #ff9900, #ff0000);
-  background-size: 400% 400%;
-  -webkit-mask: 
-    linear-gradient(#fff 0 0) content-box, 
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-          mask-composite: exclude;
-  animation: gradientMove 6s linear infinite;
-  z-index: -1;
+  overflow: hidden;
+  padding: 2px; 
 }
 
+.animated-gradient-border::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  border-radius: 10px;
+  background: conic-gradient(
+    from var(--angle),
+    hsl(var(--primary) / 0.8),
+    hsl(var(--chart-2) / 0.8) 50%,
+    hsl(var(--primary) / 0.8)
+  );
+  animation: gradient-move 4s linear infinite;
+}
+
+@keyframes gradient-move {
+  0% {
+    --angle: 0deg;
+  }
+  100% {
+    --angle: 360deg;
+  }
+}
+
+.stat-card,
 .animated-gradient-tabs-list {
   position: relative;
   z-index: 1;
-  border-radius: 10px;
-  overflow: hidden; /* Hide the corners of the inner element */
-  background: hsl(var(--muted));
 }
 
+.stat-card::before,
 .animated-gradient-tabs-list::before {
   content: "";
   position: absolute;
@@ -161,16 +145,9 @@ body {
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
           mask-composite: exclude;
-  animation: gradientMove 6s linear infinite;
+  animation: gradient-move 6s linear infinite;
   z-index: -1;
 }
-
-@keyframes gradientMove {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
 
 @media print {
   .print\:hidden {

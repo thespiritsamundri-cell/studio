@@ -116,7 +116,7 @@ export default function ArchivedPage() {
       </div>
       
       <Tabs defaultValue="students">
-        <TabsList className="animated-gradient-tabs-list grid w-full grid-cols-2">
+        <TabsList className="animated-gradient-border grid w-full grid-cols-2">
             <TabsTrigger value="students">Archived Students</TabsTrigger>
             <TabsTrigger value="families">Archived Families</TabsTrigger>
         </TabsList>
