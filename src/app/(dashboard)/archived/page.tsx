@@ -123,7 +123,7 @@ export default function ArchivedPage() {
         <TabsContent value="students">
             <Card>
                 <CardHeader>
-                <CardTitle>Archived Student Records</CardTitle>
+                <CardTitle className="text-2xl font-semibold">Archived Student Records</CardTitle>
                 <CardDescription>
                     These students have been archived. You can restore them or delete them permanently.
                 </CardDescription>
@@ -183,7 +183,7 @@ export default function ArchivedPage() {
         <TabsContent value="families">
              <Card>
                 <CardHeader>
-                <CardTitle>Archived Family Records</CardTitle>
+                <CardTitle className="text-2xl font-semibold">Archived Family Records</CardTitle>
                 <CardDescription>
                     These families have been archived. You can restore a family (which also restores its students) or delete it permanently.
                 </CardDescription>
