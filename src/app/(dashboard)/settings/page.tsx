@@ -33,7 +33,7 @@ import { sendOtpEmail } from '@/ai/flows/factory-reset-flow';
 
 export default function SettingsPage() {
   const { settings, setSettings } = useSettings();
-  const { students, families, fees, loadData, addActivityLog, activityLog, seedDatabase, clearActivityLog, classes: dataClasses, deleteAllData } from useData();
+  const { students, families, fees, loadData, addActivityLog, activityLog, seedDatabase, clearActivityLog, classes: dataClasses, deleteAllData } = useData();
   const { toast } = useToast();
   
   // Custom Messaging State
@@ -1333,3 +1333,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+
