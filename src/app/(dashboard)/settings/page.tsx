@@ -75,7 +75,6 @@ export default function SettingsPage() {
   const [openFactoryResetDialog, setOpenFactoryResetDialog] = useState(false);
   const [resetStep, setResetStep] = useState(1);
   const [resetPin, setResetPin] = useState('');
-  const [resetConfirmationText, setResetConfirmationText] = useState('');
   const [isResetting, setIsResetting] = useState(false);
   
 
@@ -532,26 +531,20 @@ export default function SettingsPage() {
     }
     
     const handleFactoryResetStep1 = async () => {
-        if (!settings.historyClearPin) {
-            toast({ title: "PIN Not Set", description: "Please set a security PIN in the Account tab first.", variant: 'destructive' });
-            return;
-        }
-        if (resetPin !== settings.historyClearPin) {
-            toast({ title: "Incorrect PIN", variant: 'destructive' });
-            return;
-        }
-        setResetStep(2);
-    };
-
-    const handleFactoryResetStep2 = async () => {
-      if (resetConfirmationText !== 'FACTORY RESET') {
-        toast({ title: "Verification Failed", description: "The confirmation text you entered is incorrect.", variant: "destructive" });
+      if (!settings.historyClearPin) {
+        toast({ title: "PIN Not Set", description: "Please set a security PIN in the Account tab first.", variant: 'destructive' });
         return;
       }
+      if (resetPin !== settings.historyClearPin) {
+        toast({ title: "Incorrect PIN", variant: 'destructive' });
+        return;
+      }
+      setResetStep(2);
+    };
 
+    const handleConfirmFinalDeletion = async () => {
       setIsResetting(true);
       try {
-        toast({ title: 'Verification Success!', description: 'Deleting all data now...' });
         await deleteAllData();
         setResetStep(3);
       } catch (error: any) {
@@ -570,7 +563,6 @@ export default function SettingsPage() {
             setTimeout(() => {
                 setResetStep(1);
                 setResetPin('');
-                setResetConfirmationText('');
             }, 300);
         }
         setOpenFactoryResetDialog(open);
@@ -1203,9 +1195,9 @@ export default function SettingsPage() {
                           {resetStep === 1 && (
                               <>
                                   <AlertDialogHeader>
-                                      <AlertDialogTitle>Factory Reset Confirmation</AlertDialogTitle>
+                                      <AlertDialogTitle>Factory Reset: Step 1 of 2</AlertDialogTitle>
                                       <AlertDialogDescription>
-                                         This is a highly destructive action that will permanently delete ALL data. To proceed, please enter your security PIN.
+                                         This is a highly destructive action. To proceed, please enter your security PIN.
                                       </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <div className="py-4 space-y-2">
@@ -1221,7 +1213,6 @@ export default function SettingsPage() {
                                   <AlertDialogFooter>
                                       <AlertDialogCancel>Cancel</AlertDialogCancel>
                                       <AlertDialogAction onClick={handleFactoryResetStep1} disabled={isResetting}>
-                                          {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                           Verify PIN
                                       </AlertDialogAction>
                                   </AlertDialogFooter>
@@ -1230,26 +1221,16 @@ export default function SettingsPage() {
                            {resetStep === 2 && (
                               <>
                                   <AlertDialogHeader>
-                                      <AlertDialogTitle>Final Verification</AlertDialogTitle>
+                                      <AlertDialogTitle className="text-destructive">Factory Reset: Final Confirmation</AlertDialogTitle>
                                       <AlertDialogDescription>
-                                         To finalize the data deletion, please type <strong className="text-destructive">FACTORY RESET</strong> into the box below.
+                                         You have successfully verified your PIN. Clicking the button below will <strong className="text-destructive">PERMANENTLY DELETE ALL DATA</strong>. This action cannot be undone.
                                       </AlertDialogDescription>
                                   </AlertDialogHeader>
-                                  <div className="py-4 space-y-2">
-                                      <Label htmlFor="reset-confirmation">Confirmation Text</Label>
-                                      <Input
-                                          id="reset-confirmation"
-                                          type="text"
-                                          value={resetConfirmationText}
-                                          onChange={(e) => setResetConfirmationText(e.target.value)}
-                                          placeholder="Type FACTORY RESET here"
-                                      />
-                                  </div>
                                   <AlertDialogFooter>
                                       <Button variant="ghost" onClick={() => setResetStep(1)}>Back</Button>
-                                      <AlertDialogAction onClick={handleFactoryResetStep2} disabled={isResetting}>
+                                      <AlertDialogAction onClick={handleConfirmFinalDeletion} disabled={isResetting} className="bg-destructive hover:bg-destructive/90">
                                           {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                          Verify & Delete All Data
+                                          Yes, Delete All Data
                                       </AlertDialogAction>
                                   </AlertDialogFooter>
                               </>
