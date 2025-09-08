@@ -168,7 +168,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
-        <div className="animated-gradient-border">
+        <div className="stat-card">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">Total Students</CardTitle>
@@ -180,7 +180,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
         </div>
-        <div className="animated-gradient-border">
+        <div className="stat-card">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">Students Present</CardTitle>
@@ -192,7 +192,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
         </div>
-         <div className="animated-gradient-border">
+         <div className="stat-card">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">Students Absent</CardTitle>
@@ -204,7 +204,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
         </div>
-        <div className="animated-gradient-border">
+        <div className="stat-card">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">Messages Sent Today</CardTitle>
@@ -216,7 +216,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
         </div>
-        <div className="animated-gradient-border">
+        <div className="stat-card">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">New Admissions</CardTitle>
@@ -397,3 +397,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
