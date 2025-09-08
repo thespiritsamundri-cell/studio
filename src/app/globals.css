@@ -91,18 +91,22 @@ body {
 @layer utilities {
     .animated-gradient-border {
         position: relative;
-        background: var(--background);
-        border-radius: 0.5rem; /* Corresponds to rounded-lg */
     }
 
     .animated-gradient-border::before {
         content: '';
         position: absolute;
         inset: -2px;
-        border-radius: 0.6rem; /* Slightly larger than the main element */
+        border-radius: 0.6rem; /* Slightly larger than the main element's border-radius */
         background: conic-gradient(from var(--angle), hsl(var(--chart-1)), hsl(var(--chart-2)), hsl(var(--chart-3)), hsl(var(--chart-4)), hsl(var(--chart-5)), hsl(var(--chart-1)));
         animation: gradient-move 4s linear infinite;
         z-index: -1;
+        opacity: 0;
+        transition: opacity 0.3s ease-in-out;
+    }
+    
+    .animated-gradient-border:hover::before {
+        opacity: 1;
     }
 }
 
