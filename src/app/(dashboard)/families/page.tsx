@@ -1,11 +1,12 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, PlusCircle, MoreHorizontal, Trash2, Users, Upload, Download } from 'lucide-react';
+import { Search, PlusCircle, MoreHorizontal, Trash2, Users, Upload, Download, Archive } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   DropdownMenu,
@@ -50,10 +51,10 @@ export default function FamiliesPage() {
   const { families: allFamilies, students: allStudents, addFamily, updateFamily, deleteFamily, addActivityLog } = useData();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredFamilies, setFilteredFamilies] = useState<Family[]>(allFamilies);
+  const [filteredFamilies, setFilteredFamilies] = useState<Family[]>([]);
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [openArchiveDialog, setOpenArchiveDialog] = useState(false);
   const [selectedFamily, setSelectedFamily] = useState<Family | null>(null);
   const { toast } = useToast();
   
@@ -63,7 +64,8 @@ export default function FamiliesPage() {
   const importInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setFilteredFamilies(allFamilies);
+    // Filter out archived families
+    setFilteredFamilies(allFamilies.filter(f => f.status !== 'Archived'));
   }, [allFamilies]);
   
    useEffect(() => {
@@ -75,11 +77,12 @@ export default function FamiliesPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    const activeFamilies = allFamilies.filter(f => f.status !== 'Archived');
     if (!searchQuery) {
-        setFilteredFamilies(allFamilies);
+        setFilteredFamilies(activeFamilies);
         return;
     }
-    const filtered = allFamilies.filter(
+    const filtered = activeFamilies.filter(
         (family) =>
             family.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
             family.fatherName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -91,8 +94,9 @@ export default function FamiliesPage() {
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     setSearchQuery(query);
+     const activeFamilies = allFamilies.filter(f => f.status !== 'Archived');
     if (!query) {
-      setFilteredFamilies(allFamilies);
+      setFilteredFamilies(activeFamilies);
     }
   }
 
@@ -127,6 +131,7 @@ export default function FamiliesPage() {
       address,
       cnic,
       profession: newProfession,
+      status: 'Active',
     };
 
     addFamily(newFamily);
@@ -168,20 +173,15 @@ export default function FamiliesPage() {
     setOpenEditDialog(true);
   };
 
-  const handleDeleteClick = (family: Family) => {
+  const handleArchiveClick = (family: Family) => {
     setSelectedFamily(family);
-    setOpenDeleteDialog(true);
+    setOpenArchiveDialog(true);
   };
 
-  const confirmDelete = () => {
+  const confirmArchive = () => {
     if (!selectedFamily) return;
-    deleteFamily(selectedFamily.id);
-    toast({
-        title: "Family Deleted",
-        description: `Family #${selectedFamily.id} (${selectedFamily.fatherName}) and all associated students have been deleted.`,
-        variant: "destructive"
-    });
-    setOpenDeleteDialog(false);
+    deleteFamily(selectedFamily.id); // This now archives the family
+    setOpenArchiveDialog(false);
     setSelectedFamily(null);
   }
 
@@ -190,14 +190,14 @@ export default function FamiliesPage() {
   };
 
   const getStudentCountForFamily = (familyId: string) => {
-    return allStudents.filter(student => student.familyId === familyId).length;
+    return allStudents.filter(student => student.familyId === familyId && student.status !== 'Archived').length;
   };
   
   const handleExportCsv = () => {
     const headers = ['id', 'fatherName', 'profession', 'cnic', 'phone', 'address'];
     const csvContent = [
       headers.join(','),
-      ...allFamilies.map((family) =>
+      ...filteredFamilies.map((family) =>
         [
           family.id,
           `"${family.fatherName}"`,
@@ -246,7 +246,7 @@ export default function FamiliesPage() {
 
             if (fatherName && phone && address) {
               const newId = (++lastIdNumber).toString();
-              const newFamily: Family = { id: newId, fatherName, profession, cnic, phone, address };
+              const newFamily: Family = { id: newId, fatherName, profession, cnic, phone, address, status: 'Active' };
               addFamily(newFamily);
               importedCount++;
             }
@@ -401,9 +401,9 @@ export default function FamiliesPage() {
                         <DropdownMenuItem onClick={() => handleEditClick(family)}>Edit Family</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleViewStudents(family.id)}>View Students</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(family)}>
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete Family
+                        <DropdownMenuItem className="text-destructive" onClick={() => handleArchiveClick(family)}>
+                          <Archive className="mr-2 h-4 w-4" />
+                          Archive Family
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -469,19 +469,19 @@ export default function FamiliesPage() {
         </DialogContent>
       </Dialog>
       
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={openDeleteDialog} onOpenChange={setOpenDeleteDialog}>
+      {/* Archive Confirmation Dialog */}
+      <AlertDialog open={openArchiveDialog} onOpenChange={setOpenArchiveDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the family record for <strong>{selectedFamily?.fatherName}</strong> and all associated student records.
+              This will archive the family record for <strong>{selectedFamily?.fatherName}</strong> and all associated student records. They will be hidden from view but can be restored later.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setSelectedFamily(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
-              Yes, delete family
+            <AlertDialogAction onClick={confirmArchive} className="bg-destructive hover:bg-destructive/90">
+              Yes, archive family
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

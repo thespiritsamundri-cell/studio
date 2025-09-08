@@ -24,6 +24,7 @@ export interface Family {
   address: string;
   cnic?: string;
   profession?: string;
+  status?: 'Active' | 'Archived';
 }
 
 export interface Teacher {

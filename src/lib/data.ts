@@ -11,10 +11,10 @@ export const students: Student[] = [
 ];
 
 export const families: Family[] = [
-    { id: '1', fatherName: 'Ahmed Khan', profession: 'Engineer', phone: '03001234567', address: '123, Main St, Lahore', cnic: '35202-0000001-1' },
-    { id: '2', fatherName: 'Zubair Ahmed', profession: 'Doctor', phone: '03217654321', address: '456, Park Ave, Karachi', cnic: '42101-0000002-1' },
-    { id: '3', fatherName: 'Imran Malik', profession: 'Businessman', phone: '03339876543', address: '789, Gulberg, Lahore', cnic: '35202-0000003-1' },
-    { id: '4', fatherName: 'Tariq Ali', profession: 'Teacher', phone: '03451122334', address: 'G-10, Islamabad', cnic: '17301-0000004-1' },
+    { id: '1', fatherName: 'Ahmed Khan', profession: 'Engineer', phone: '03001234567', address: '123, Main St, Lahore', cnic: '35202-0000001-1', status: 'Active' },
+    { id: '2', fatherName: 'Zubair Ahmed', profession: 'Doctor', phone: '03217654321', address: '456, Park Ave, Karachi', cnic: '42101-0000002-1', status: 'Active' },
+    { id: '3', fatherName: 'Imran Malik', profession: 'Businessman', phone: '03339876543', address: '789, Gulberg, Lahore', cnic: '35202-0000003-1', status: 'Active' },
+    { id: '4', fatherName: 'Tariq Ali', profession: 'Teacher', phone: '03451122334', address: 'G-10, Islamabad', cnic: '17301-0000004-1', status: 'Active' },
 ];
 
 export const classes: Class[] = [

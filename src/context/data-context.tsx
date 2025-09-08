@@ -175,35 +175,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
   const updateFamily = updateDocFactory<Family>('families', 'Update Family', d => `Updated details for family: ${d.fatherName || ''} (ID: ${d.id}).`);
   const deleteFamily = async (familyId: string) => {
-    const familyToDelete = families.find((f) => f.id === familyId);
-    if (!familyToDelete) return;
+    const familyToArchive = families.find((f) => f.id === familyId);
+    if (!familyToArchive) return;
 
     try {
         const batch = writeBatch(db);
-        batch.delete(doc(db, "families", familyId));
+        
+        // Archive the family
+        batch.update(doc(db, "families", familyId), { status: 'Archived' });
 
+        // Archive all students in that family
         const studentQuery = query(collection(db, "students"), where("familyId", "==", familyId));
         const studentDocs = await getDocs(studentQuery);
-        const studentIdsToDelete = studentDocs.docs.map(doc => doc.id);
-        studentDocs.forEach(doc => batch.delete(doc.ref));
-
-        if (studentIdsToDelete.length > 0) {
-            const examsToUpdate = exams.filter(exam => exam.results.some(r => studentIdsToDelete.includes(r.studentId)));
-            for (const exam of examsToUpdate) {
-                const newResults = exam.results.filter(r => !studentIdsToDelete.includes(r.studentId));
-                batch.update(doc(db, "exams", exam.id), { results: newResults });
-            }
-        }
-        
-        const feesQuery = query(collection(db, "fees"), where("familyId", "==", familyId));
-        const feeDocs = await getDocs(feesQuery);
-        feeDocs.forEach(doc => batch.delete(doc.ref));
+        studentDocs.forEach(doc => {
+            batch.update(doc.ref, { status: 'Archived' });
+        });
         
         await batch.commit();
-        await addActivityLog({ user: 'Admin', action: 'Delete Family', description: `Deleted family: ${familyToDelete.fatherName} (ID: ${familyId}) and all associated records.` });
+        await addActivityLog({ user: 'Admin', action: 'Archive Family', description: `Archived family: ${familyToArchive.fatherName} (ID: ${familyId}) and all associated students.` });
+        toast({ title: 'Family Archived', description: 'The family and all its students have been moved to the archive.' });
     } catch (e: any) {
-        console.error("Error deleting family:", e);
-        toast({ title: "Deletion Failed", description: "Could not delete family and associated data.", variant: "destructive" });
+        console.error("Error archiving family:", e);
+        toast({ title: "Archive Failed", description: "Could not archive the family and its students.", variant: "destructive" });
     }
   };
 
