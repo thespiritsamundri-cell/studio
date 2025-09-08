@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useData } from '@/context/data-context';
-import { MoreHorizontal, Search, RotateCcw, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Search, RotateCcw, Trash2, Eye } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -135,6 +135,9 @@ export default function ArchivedStudentsPage() {
                   <TableCell>{student.class} {student.section ? `(${student.section})` : ''}</TableCell>
                   <TableCell className="hidden md:table-cell">{student.admissionDate}</TableCell>
                   <TableCell className="text-right">
+                    <Button asChild variant="ghost" size="sm">
+                        <Link href={`/students/details/${student.id}`}><Eye className="mr-2 h-4 w-4"/> View Profile</Link>
+                    </Button>
                     <Button variant="ghost" size="sm" onClick={() => handleRestoreStudent(student)}>
                         <RotateCcw className="mr-2 h-4 w-4"/> Restore
                     </Button>
