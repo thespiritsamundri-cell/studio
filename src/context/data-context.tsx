@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -142,7 +141,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // --- STUDENT ---
   const addStudent = async (student: Student) => {
     try {
-        // Use setDoc with the client-generated ID
+        // Use setDoc with the client-generated ID to ensure consistency
         await setDoc(doc(db, 'students', student.id), student);
         await addActivityLog({ user: 'Admin', action: 'Add Student', description: `Admitted new student: ${student.name} (ID: ${student.id}) in Class ${student.class}.` });
     } catch (e) {
