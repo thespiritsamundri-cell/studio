@@ -219,7 +219,7 @@ export default function AdmissionsPage() {
             }
         });
 
-        addStudent(newStudent);
+        await addStudent(newStudent);
         feesToAdd.forEach(fee => addFee(fee));
         
         toast({

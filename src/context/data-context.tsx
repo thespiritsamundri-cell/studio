@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -141,12 +142,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // --- STUDENT ---
   const addStudent = async (student: Student) => {
     try {
-        // Use setDoc with the client-generated ID to ensure consistency
-        await setDoc(doc(db, 'students', student.id), student);
-        await addActivityLog({ user: 'Admin', action: 'Add Student', description: `Admitted new student: ${student.name} (ID: ${student.id}) in Class ${student.class}.` });
+      await setDoc(doc(db, "students", student.id), student);
+      await addActivityLog({ user: 'Admin', action: 'Add Student', description: `Admitted new student: ${student.name} (ID: ${student.id}) in Class ${student.class}.` });
     } catch (e) {
-        console.error(`Error adding student:`, e);
-        toast({ title: `Error adding student`, variant: "destructive" });
+      console.error('Error adding student:', e);
+      toast({ title: 'Error Adding Student', description: 'Could not save the new student to the database.', variant: 'destructive' });
     }
   };
   const updateStudent = updateDocFactory<Student>('students', 'Update Student', d => `Updated details for student: ${d.name || ''} (ID: ${d.id}).`);
