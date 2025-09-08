@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Lock, Search, User } from 'lucide-react';
+import { Lock, Search, User, Home } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -20,7 +20,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { useSettings } from '@/context/settings-context';
 import { useData } from '@/context/data-context';
-import type { Student } from '@/lib/types';
+import type { Student, Family } from '@/lib/types';
 
 function getTitleFromPathname(pathname: string): string {
   if (pathname === '/dashboard') return 'Dashboard';
@@ -37,17 +37,21 @@ function getTitleFromPathname(pathname: string): string {
   return lastPart.replace(/-/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 }
 
+type SearchResult = 
+  | { type: 'student'; data: Student }
+  | { type: 'family'; data: Family };
+
 
 export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const pageTitle = getTitleFromPathname(pathname);
   const { settings } = useSettings();
-  const { students } = useData();
+  const { students, families } = useData();
   
   const [dateTime, setDateTime] = useState<Date | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Student[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   useEffect(() => {
@@ -62,17 +66,44 @@ export function Header() {
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const query = e.target.value;
-    setSearchQuery(query);
+    const query = e.target.value.toLowerCase();
+    setSearchQuery(e.target.value);
 
-    if (query.length > 1) {
-      const filtered = students.filter(student =>
-        student.name.toLowerCase().includes(query.toLowerCase()) ||
-        student.fatherName.toLowerCase().includes(query.toLowerCase()) ||
-        student.id.toLowerCase().includes(query.toLowerCase()) ||
-        student.familyId.toLowerCase().includes(query.toLowerCase())
-      );
-      setSearchResults(filtered.slice(0, 7)); // Limit to 7 results
+    if (query.length > 0) {
+        const studentResults: SearchResult[] = students.filter(student =>
+            student.name.toLowerCase().includes(query) ||
+            student.fatherName.toLowerCase().includes(query) ||
+            student.id.toLowerCase().includes(query) ||
+            student.familyId.toLowerCase().includes(query)
+        ).map(s => ({ type: 'student', data: s }));
+
+        const familyResults: SearchResult[] = families.filter(family =>
+            family.fatherName.toLowerCase().includes(query) ||
+            family.id.toLowerCase().includes(query)
+        ).map(f => ({ type: 'family', data: f }));
+        
+        // Combine and remove duplicate families that might be implicitly found via students
+        const combinedResults = [...studentResults, ...familyResults];
+        const uniqueResults: SearchResult[] = [];
+        const seen = new Set<string>();
+
+        for (const result of combinedResults) {
+            if (result.type === 'student') {
+                const key = `student-${result.data.id}`;
+                if (!seen.has(key)) {
+                    uniqueResults.push(result);
+                    seen.add(key);
+                }
+            } else if (result.type === 'family') {
+                const key = `family-${result.data.id}`;
+                if (!seen.has(key)) {
+                    uniqueResults.push(result);
+                    seen.add(key);
+                }
+            }
+        }
+
+      setSearchResults(uniqueResults.slice(0, 7)); // Limit to 7 results
       setIsDropdownOpen(true);
     } else {
       setSearchResults([]);
@@ -80,8 +111,12 @@ export function Header() {
     }
   };
 
-  const handleResultClick = (studentId: string) => {
-    router.push(`/students/details/${studentId}`);
+  const handleResultClick = (result: SearchResult) => {
+    if (result.type === 'student') {
+        router.push(`/students/details/${result.data.id}`);
+    } else {
+        router.push(`/students?familyId=${result.data.id}`);
+    }
     setSearchQuery('');
     setSearchResults([]);
     setIsDropdownOpen(false);
@@ -109,21 +144,26 @@ export function Header() {
           {isDropdownOpen && searchResults.length > 0 && (
             <div className="absolute top-full mt-2 w-full max-w-md rounded-md border bg-card shadow-lg z-50">
               <ul>
-                {searchResults.map(student => (
+                {searchResults.map((result, index) => (
                   <li 
-                    key={student.id} 
+                    key={`${result.type}-${result.type === 'student' ? result.data.id : result.data.id}-${index}`}
                     className="p-3 border-b last:border-b-0 hover:bg-accent cursor-pointer"
-                    onMouseDown={() => handleResultClick(student.id)}
+                    onMouseDown={() => handleResultClick(result)}
                   >
                      <div className="flex items-center gap-3">
                         <Avatar className="h-9 w-9">
-                          <AvatarImage src={student.photoUrl} alt={student.name} />
-                          <AvatarFallback><User /></AvatarFallback>
+                          {result.type === 'student' && <AvatarImage src={result.data.photoUrl} alt={result.data.name} />}
+                          <AvatarFallback>
+                            {result.type === 'student' ? <User /> : <Home />}
+                          </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-semibold text-sm">{student.name}</p>
+                          <p className="font-semibold text-sm">{result.data.name || result.data.fatherName}</p>
                           <p className="text-xs text-muted-foreground">
-                            {student.fatherName} (ID: {student.id}, Family: {student.familyId})
+                            {result.type === 'student'
+                                ? `Student (ID: ${result.data.id}, Family: ${result.data.familyId})`
+                                : `Family (ID: ${result.data.id}, Phone: ${result.data.phone})`
+                            }
                           </p>
                         </div>
                      </div>
