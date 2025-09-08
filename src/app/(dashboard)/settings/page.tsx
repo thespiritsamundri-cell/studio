@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -296,7 +297,7 @@ export default function SettingsPage() {
     } else {
         toast({ title: "Incorrect PIN", variant: 'destructive'});
     }
-  }
+  };
 
   const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -573,7 +574,16 @@ export default function SettingsPage() {
             setResetStep(2);
         } catch (error: any) {
             console.error("Firebase phone auth error:", error);
-            toast({ title: "Failed to Send OTP", description: `Could not send SMS. Error: ${error.message}`, variant: 'destructive' });
+            if (error.code === 'auth/operation-not-allowed') {
+                 toast({
+                    title: 'Domain Not Authorized',
+                    description: `The current domain (${window.location.hostname}) is not authorized for phone authentication. Please add it to your Firebase project's 'Authorized domains' list.`,
+                    variant: 'destructive',
+                    duration: 10000,
+                });
+            } else {
+                 toast({ title: "Failed to Send OTP", description: `Could not send SMS. Error: ${error.message}`, variant: 'destructive' });
+            }
             if (typeof window !== 'undefined' && (window as any).grecaptcha) {
                 (window as any).grecaptcha.reset();
             }
@@ -594,6 +604,7 @@ export default function SettingsPage() {
       setIsResetting(true);
       try {
         await confirmationResult.confirm(resetOtp);
+        toast({ title: 'Verification Success!', description: 'Deleting all data now...' });
         await deleteAllData();
         setResetStep(3);
       } catch (error: any) {
@@ -1348,3 +1359,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+
