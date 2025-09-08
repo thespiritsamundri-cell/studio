@@ -93,7 +93,6 @@ export default function SettingsPage() {
           // Response expired. Ask user to solve reCAPTCHA again.
         }
       });
-      auth.app.name = "EduCentral";
       setRecaptchaVerifier(verifier);
     }
   }, [openFactoryResetDialog, resetStep, recaptchaVerifier]);
@@ -609,7 +608,6 @@ export default function SettingsPage() {
     };
     
     const handleResetDialogClose = (open: boolean) => {
-        setOpenFactoryResetDialog(open);
         if (!open) {
             setTimeout(() => {
                 setResetStep(1);
@@ -618,6 +616,7 @@ export default function SettingsPage() {
                 setConfirmationResult(null);
             }, 300);
         }
+        setOpenFactoryResetDialog(open);
     }
 
     const automatedMessages = useMemo(() => ({
