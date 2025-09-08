@@ -590,8 +590,9 @@ export default function SettingsPage() {
       }
     };
     
-    const closeResetDialog = () => {
+    const handleResetDialogClose = () => {
         setOpenFactoryResetDialog(false);
+        // Delay resetting state to avoid UI flicker while dialog is closing
         setTimeout(() => {
             setResetStep(1);
             setResetPin('');
@@ -1217,9 +1218,9 @@ export default function SettingsPage() {
                 <div className="border-t border-destructive pt-6 space-y-2">
                     <h3 className="font-medium text-destructive flex items-center gap-2"><AlertTriangle /> Danger Zone</h3>
                     <p className="text-sm text-muted-foreground">This action is irreversible. It will permanently delete all students, families, fees, expenses, and other records from the database.</p>
-                    <AlertDialog open={openFactoryResetDialog} onOpenChange={closeResetDialog}>
+                    <AlertDialog open={openFactoryResetDialog} onOpenChange={handleResetDialogClose}>
                       <AlertDialogTrigger asChild>
-                         <Button variant="destructive">Factory Reset Application</Button>
+                         <Button variant="destructive" onClick={() => setOpenFactoryResetDialog(true)}>Factory Reset Application</Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                           {resetStep === 1 && (
@@ -1241,7 +1242,7 @@ export default function SettingsPage() {
                                       />
                                   </div>
                                   <AlertDialogFooter>
-                                      <AlertDialogCancel onClick={closeResetDialog}>Cancel</AlertDialogCancel>
+                                      <AlertDialogCancel onClick={handleResetDialogClose}>Cancel</AlertDialogCancel>
                                       <AlertDialogAction asChild>
                                           <Button variant="destructive" onClick={handleFactoryResetStep1} disabled={isResetting}>
                                               {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
