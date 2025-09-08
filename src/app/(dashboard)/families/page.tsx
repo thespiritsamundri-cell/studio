@@ -48,7 +48,7 @@ const professions = [
 ];
 
 export default function FamiliesPage() {
-  const { families: allFamilies, students: allStudents, addFamily, updateFamily, deleteFamily, addActivityLog } = useData();
+  const { families: allFamilies, students: allStudents, addFamily, updateFamily, updateStudent, addActivityLog } = useData();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredFamilies, setFilteredFamilies] = useState<Family[]>([]);
@@ -178,9 +178,25 @@ export default function FamiliesPage() {
     setOpenArchiveDialog(true);
   };
 
-  const confirmArchive = () => {
+  const confirmArchive = async () => {
     if (!selectedFamily) return;
-    deleteFamily(selectedFamily.id); // This now archives the family
+
+    // Archive the family
+    await updateFamily(selectedFamily.id, { status: 'Archived' });
+
+    // Archive all students in that family
+    const studentsToArchive = allStudents.filter(s => s.familyId === selectedFamily.id);
+    for (const student of studentsToArchive) {
+        await updateStudent(student.id, { status: 'Archived' });
+    }
+    
+    addActivityLog({ user: 'Admin', action: 'Archive Family', description: `Archived family ${selectedFamily.fatherName} (ID: ${selectedFamily.id}) and ${studentsToArchive.length} students.` });
+
+    toast({
+        title: "Family Archived",
+        description: `${selectedFamily.fatherName}'s family has been moved to the archive.`,
+    });
+
     setOpenArchiveDialog(false);
     setSelectedFamily(null);
   }
@@ -490,3 +506,5 @@ export default function FamiliesPage() {
     </div>
   );
 }
+
+    
