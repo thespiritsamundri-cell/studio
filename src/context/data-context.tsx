@@ -192,8 +192,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
             throw "Student document does not exist!";
           }
           const finalStudentData = { ...studentDoc.data(), ...studentData };
+          const { status, ...restOfStudentData } = finalStudentData;
           const alumniData: Alumni = {
-            ...(finalStudentData as Student),
+            ...(restOfStudentData as Omit<Student, 'status'>),
             graduationYear: new Date().getFullYear(),
           };
           const alumniRef = doc(db, 'alumni', id);
@@ -230,14 +231,47 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
 
   // --- ALUMNI ---
-  const updateAlumni = async (id: string, alumniData: Partial<Alumni>) => {
+    const updateAlumni = async (id: string, alumniData: Partial<Alumni & { status?: Student['status'] }>) => {
     const alumniRef = doc(db, 'alumni', id);
-    try {
-      await setDoc(alumniRef, alumniData, { merge: true });
-      await addActivityLog({ user: 'Admin', action: 'Update Alumni', description: `Updated details for alumnus: ${alumniData.name || ''} (ID: ${id}).` });
-    } catch (e) {
-      console.error("Error updating alumnus:", e);
-      toast({ title: "Error updating alumnus", variant: "destructive" });
+
+    // Check if the alumnus is being moved back to students
+    if (alumniData.status && alumniData.status !== 'Graduated') {
+      try {
+        await runTransaction(db, async (transaction) => {
+          const alumniDoc = await transaction.get(alumniRef);
+          if (!alumniDoc.exists()) {
+            throw "Alumni document does not exist!";
+          }
+          
+          const { graduationYear, ...studentData } = alumniDoc.data();
+          const reactivatedStudent: Student = {
+            ...(studentData as Omit<Alumni, 'graduationYear'>),
+            ...(alumniData as Partial<Student>),
+            status: alumniData.status || 'Active', // Default to Active if no status is given
+          };
+
+          const studentRef = doc(db, 'students', id);
+          transaction.set(studentRef, reactivatedStudent);
+          transaction.delete(alumniRef);
+        });
+
+        await addActivityLog({ user: 'Admin', action: 'Reactivate Student', description: `Re-activated student: ${alumniData.name || ''} (ID: ${id}) from alumni.` });
+        toast({ title: "Student Re-activated", description: `${alumniData.name || ''} has been moved back to the active students list.` });
+      
+      } catch (e) {
+        console.error("Error reactivating student:", e);
+        toast({ title: "Reactivation Failed", variant: "destructive" });
+      }
+    } else {
+      // Just update the alumni record
+      try {
+        const { status, ...restOfAlumniData } = alumniData; // Remove status if it exists
+        await setDoc(alumniRef, restOfAlumniData, { merge: true });
+        await addActivityLog({ user: 'Admin', action: 'Update Alumni', description: `Updated details for alumnus: ${alumniData.name || ''} (ID: ${id}).` });
+      } catch (e) {
+        console.error("Error updating alumnus:", e);
+        toast({ title: "Error updating alumnus", variant: "destructive" });
+      }
     }
   };
 

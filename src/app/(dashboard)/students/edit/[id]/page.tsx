@@ -40,21 +40,33 @@ export default function EditStudentPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (student) {
-      if (isAlumnus) {
-        await updateAlumni(student.id, student as Alumni);
-        toast({
-          title: 'Alumnus Updated',
-          description: `${student?.name}'s information has been successfully updated.`,
-        });
-        router.push('/alumni');
+    if (!student) return;
+    
+    // The logic to move between students and alumni is now handled by updateStudent and updateAlumni
+    if (isAlumnus) {
+      await updateAlumni(student.id, student as Alumni & { status?: Student['status'] });
+      toast({
+        title: 'Alumnus Updated',
+        description: `${student?.name}'s information has been successfully updated.`,
+      });
+      // Redirect based on whether the student was reactivated or not
+      const newStatus = 'status' in student ? student.status : 'Graduated';
+      if (newStatus !== 'Graduated') {
+          router.push('/students');
       } else {
-        await updateStudent(student.id, student as Student);
-        toast({
-          title: 'Student Updated',
-          description: `${student?.name}'s information has been successfully updated.`,
-        });
-        router.push('/students');
+          router.push('/alumni');
+      }
+    } else {
+      await updateStudent(student.id, student as Student);
+      toast({
+        title: 'Student Updated',
+        description: `${student?.name}'s information has been successfully updated.`,
+      });
+      // Redirect based on whether the student was graduated or not
+      if (student.status === 'Graduated') {
+          router.push('/alumni');
+      } else {
+          router.push('/students');
       }
     }
   };
@@ -111,6 +123,9 @@ export default function EditStudentPage() {
   if (!student) {
     return <div>Loading...</div>;
   }
+  
+  const currentStatus = 'status' in student ? student.status : 'Graduated';
+
 
   return (
     <div className="space-y-6">
@@ -127,7 +142,7 @@ export default function EditStudentPage() {
                 data-ai-hint="student photo"
             />
             <div>
-                <CardTitle className="flex items-center gap-2">{student.name} <Badge variant={'status' in student && student.status === 'Active' ? 'default' : 'destructive'} className={'status' in student && student.status === 'Active' ? 'bg-green-500/20 text-green-700 border-green-500/30' : ''}>{'status' in student ? student.status : 'Graduated'}</Badge></CardTitle>
+                <CardTitle className="flex items-center gap-2">{student.name} <Badge variant={currentStatus === 'Active' ? 'default' : 'destructive'} className={currentStatus === 'Active' ? 'bg-green-500/20 text-green-700 border-green-500/30' : ''}>{currentStatus}</Badge></CardTitle>
                 <CardDescription>Update the student's information below.</CardDescription>
             </div>
           </div>
@@ -176,10 +191,10 @@ export default function EditStudentPage() {
                     </SelectContent>
                 </Select>
             </div>
-            {'status' in student && 
+            
              <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
-              <Select value={student.status} onValueChange={handleSelectChange('status')} disabled={isAlumnus}>
+              <Select value={currentStatus} onValueChange={handleSelectChange('status')}>
                 <SelectTrigger id="status">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
@@ -191,7 +206,7 @@ export default function EditStudentPage() {
                 </SelectContent>
               </Select>
             </div>
-            }
+            
             <div className="space-y-2">
               <Label htmlFor="familyId">Family Number</Label>
               <Input id="familyId" value={student.familyId} onChange={handleInputChange} placeholder="Enter existing or new family number" />
