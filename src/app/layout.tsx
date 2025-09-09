@@ -17,7 +17,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${fontVariables} font-sans antialiased`}>
+      <body className={`${fontVariables} font-sans antialiased`} suppressHydrationWarning>
         <SettingsProvider>
           <AppClientLayout>
             {children}
