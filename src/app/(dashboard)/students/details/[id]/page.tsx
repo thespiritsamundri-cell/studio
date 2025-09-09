@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useData } from '@/context/data-context';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import type { Student, Family } from '@/lib/types';
+import type { Student, Family, Alumni } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { ArrowLeft, Printer } from 'lucide-react';
@@ -17,26 +17,31 @@ import { useSettings } from '@/context/settings-context';
 export default function StudentDetailsPage() {
   const router = useRouter();
   const params = useParams();
-  const { students, families } = useData();
+  const { students, families, alumni } = useData();
   const { settings } = useSettings();
-  const [student, setStudent] = useState<Student | undefined>(undefined);
+  const [student, setStudent] = useState<Student | Alumni | undefined>(undefined);
   const [family, setFamily] = useState<Family | undefined>(undefined);
   
   useEffect(() => {
     const id = params.id as string;
-    const studentData = students.find((s) => s.id === id);
+    // Search in active students first, then in alumni
+    let studentData = students.find((s) => s.id === id);
+    if (!studentData) {
+        studentData = alumni.find((a) => a.id === id);
+    }
+    
     if (studentData) {
       setStudent(studentData);
       const familyData = families.find((f) => f.id === studentData.familyId);
       setFamily(familyData);
     }
-  }, [params.id, students, families]);
+  }, [params.id, students, families, alumni]);
 
   const handlePrint = () => {
     if (!student || !family) return;
 
     const printContent = renderToString(
-        <StudentDetailsPrint student={student} family={family} settings={settings} />
+        <StudentDetailsPrint student={student as Student} family={family} settings={settings} />
     );
 
     const printWindow = window.open('', '_blank');
@@ -60,13 +65,8 @@ export default function StudentDetailsPage() {
   if (!student || !family) {
     return <div>Loading student details or student not found...</div>;
   }
-
-  const DetailItem = ({ label, value }: { label: string, value: string | undefined }) => (
-    <div>
-      <p className="text-sm font-medium text-muted-foreground">{label}</p>
-      <p className="text-base font-semibold">{value || 'N/A'}</p>
-    </div>
-  );
+  
+  const status = 'status' in student ? student.status : 'Graduated';
 
   return (
     <div className="space-y-6">
@@ -96,7 +96,7 @@ export default function StudentDetailsPage() {
             <div className='space-y-1'>
                 <CardTitle className="text-4xl">{student.name}</CardTitle>
                 <CardDescription className="text-lg">Student ID: {student.id} | Class: {student.class} {student.section ? `(${student.section})` : ''}</CardDescription>
-                <Badge variant={student.status === 'Active' ? 'default' : 'destructive'} className={student.status === 'Active' ? 'bg-green-500/20 text-green-700 border-green-500/30 w-fit' : 'w-fit'}>{student.status}</Badge>
+                <Badge variant={status === 'Active' ? 'default' : 'destructive'} className={status === 'Active' ? 'bg-green-500/20 text-green-700 border-green-500/30 w-fit' : 'w-fit'}>{status}</Badge>
             </div>
           </div>
         </CardHeader>
@@ -132,3 +132,10 @@ export default function StudentDetailsPage() {
     </div>
   );
 }
+
+const DetailItem = ({ label, value }: { label: string, value: string | undefined }) => (
+    <div>
+      <p className="text-sm font-medium text-muted-foreground">{label}</p>
+      <p className="text-base font-semibold">{value || 'N/A'}</p>
+    </div>
+  );
