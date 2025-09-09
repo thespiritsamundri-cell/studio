@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useData } from '@/context/data-context';
-import { MoreHorizontal, Search, Printer, FileSpreadsheet, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Search, Printer, FileSpreadsheet, Trash2, Archive } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
@@ -37,10 +37,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
 export default function StudentsPage() {
-  const { students: allStudents, classes, updateStudent } = useData();
+  const { students: allStudents, families: allFamilies, classes, updateStudent } = useData();
   const { settings } = useSettings();
   const searchParams = useSearchParams();
   const familyIdFromQuery = searchParams.get('familyId');
@@ -58,15 +59,30 @@ export default function StudentsPage() {
     }
   }, [searchQueryFromQuery]);
 
-  const filteredStudents = useMemo(() => {
-    let students = allStudents.filter(s => s.status !== 'Archived');
+  const isViewingArchivedFamily = useMemo(() => {
+    if (!familyIdFromQuery) return false;
+    const family = allFamilies.find(f => f.id === familyIdFromQuery);
+    return family?.status === 'Archived';
+  }, [familyIdFromQuery, allFamilies]);
 
-    if (familyIdFromQuery) {
-      students = students.filter((student) => student.familyId === familyIdFromQuery);
-    }
-    
-    if (selectedClass !== 'all') {
-      students = students.filter((student) => student.class === selectedClass);
+
+  const filteredStudents = useMemo(() => {
+    let students = allStudents;
+
+    if (isViewingArchivedFamily && familyIdFromQuery) {
+        // If we are specifically viewing an archived family, show all their students.
+        students = students.filter((student) => student.familyId === familyIdFromQuery);
+    } else {
+        // Otherwise, show active students and filter normally.
+        students = students.filter(s => s.status !== 'Archived');
+        
+        if (familyIdFromQuery) {
+            students = students.filter((student) => student.familyId === familyIdFromQuery);
+        }
+        
+        if (selectedClass !== 'all') {
+            students = students.filter((student) => student.class === selectedClass);
+        }
     }
 
     if (searchQuery) {
@@ -79,7 +95,7 @@ export default function StudentsPage() {
     }
     
     return students;
-  }, [searchQuery, selectedClass, allStudents, familyIdFromQuery]);
+  }, [searchQuery, selectedClass, allStudents, familyIdFromQuery, isViewingArchivedFamily]);
 
   const studentsToExport = useMemo(() => {
     return allStudents.filter(s => selectedStudents.includes(s.id));
@@ -216,6 +232,16 @@ export default function StudentsPage() {
           </Button>
         </div>
       </div>
+      
+      {isViewingArchivedFamily && (
+        <Alert variant="destructive">
+            <Archive className="h-4 w-4" />
+            <AlertTitle>Viewing Archived Family</AlertTitle>
+            <AlertDescription>
+                You are viewing students from an archived family. These records are not included in active lists or reports.
+            </AlertDescription>
+        </Alert>
+      )}
       
       <Card>
         <CardHeader>
