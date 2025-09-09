@@ -21,7 +21,7 @@ import { TeacherAttendancePrintReport } from '@/components/reports/teacher-atten
 import { useSettings } from '@/context/settings-context';
 
 
-type AttendanceStatus = 'Present' | 'Absent' | 'Leave';
+type AttendanceStatus = 'Present' | 'Absent' | 'Leave' | 'Late';
 
 export default function TeacherAttendancePage() {
   const { teachers, teacherAttendances, saveTeacherAttendance } = useData();
@@ -129,6 +129,7 @@ export default function TeacherAttendancePage() {
           case 'Present': return <Badge className="bg-green-500/80 text-white">P</Badge>
           case 'Absent': return <Badge variant="destructive">A</Badge>
           case 'Leave': return <Badge variant="secondary" className="bg-yellow-500/80 text-white">L</Badge>
+          case 'Late': return <Badge variant="secondary" className="bg-orange-500/80 text-white">LT</Badge>
           default: return <span className="text-muted-foreground">-</span>;
       }
   }
@@ -178,6 +179,7 @@ export default function TeacherAttendancePage() {
                                 className="flex justify-end gap-4"
                                 >
                                 <div className="flex items-center space-x-2"><RadioGroupItem value="Present" id={`p-${teacher.id}`} /><Label htmlFor={`p-${teacher.id}`}>Present</Label></div>
+                                <div className="flex items-center space-x-2"><RadioGroupItem value="Late" id={`lt-${teacher.id}`} /><Label htmlFor={`lt-${teacher.id}`}>Late</Label></div>
                                 <div className="flex items-center space-x-2"><RadioGroupItem value="Absent" id={`a-${teacher.id}`} /><Label htmlFor={`a-${teacher.id}`}>Absent</Label></div>
                                 <div className="flex items-center space-x-2"><RadioGroupItem value="Leave" id={`l-${teacher.id}`} /><Label htmlFor={`l-${teacher.id}`}>Leave</Label></div>
                                 </RadioGroup>

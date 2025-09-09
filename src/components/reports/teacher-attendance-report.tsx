@@ -10,7 +10,7 @@ import Image from 'next/image';
 import { format } from 'date-fns';
 import { Badge } from '../ui/badge';
 
-type AttendanceStatus = 'Present' | 'Absent' | 'Leave';
+type AttendanceStatus = 'Present' | 'Absent' | 'Leave' | 'Late';
 interface TeacherAttendancePrintReportProps {
   teachers: Teacher[];
   daysInMonth: Date[];
@@ -28,6 +28,7 @@ export const TeacherAttendancePrintReport = React.forwardRef<HTMLDivElement, Tea
           case 'Present': return <span style={{ color: 'green' }}>P</span>;
           case 'Absent': return <span style={{ color: 'red' }}>A</span>;
           case 'Leave': return <span style={{ color: 'orange' }}>L</span>;
+          case 'Late': return <span style={{ color: '#f97316' }}>LT</span>; // orange-500
           default: return <span style={{ color: '#a1a1aa' }}>-</span>;
       }
     };
