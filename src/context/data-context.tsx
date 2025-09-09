@@ -28,7 +28,7 @@ interface DataContextType {
   addFamily: (family: Family) => Promise<void>;
   updateFamily: (id: string, family: Partial<Family>) => Promise<void>;
   deleteFamily: (id: string) => Promise<void>;
-  addFee: (feeData: Omit<Fee, 'id'>) => Promise<void>;
+  addFee: (feeData: Omit<Fee, 'id'>) => Promise<string | undefined>;
   updateFee: (id: string, fee: Partial<Fee>) => Promise<void>;
   deleteFee: (id: string) => Promise<void>;
   addTeacher: (teacher: Teacher) => Promise<void>;
@@ -44,7 +44,7 @@ interface DataContextType {
   deleteExam: (id: string) => Promise<void>;
   addActivityLog: (activity: Omit<ActivityLog, 'id' | 'timestamp'>) => Promise<void>;
   clearActivityLog: () => Promise<void>;
-  addExpense: (expense: Expense) => Promise<void>;
+  addExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
   updateExpense: (id: string, expense: Partial<Expense>) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
   updateTimetable: (classId: string, data: TimetableData, timeSlots?: string[], breakAfterPeriod?: number, breakDuration?: string) => Promise<void>;
@@ -158,7 +158,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const updateDocFactory = <T extends {}>(collectionName: string, actionName: string, descriptionFn: (doc: T & {id: string}) => string) => async (id: string, docData: Partial<T>) => {
      try {
-        await updateDoc(doc(db, collectionName, id), docData);
+        await setDoc(doc(db, collectionName, id), docData, { merge: true });
         await addActivityLog({ user: 'Admin', action: actionName, description: descriptionFn({ ...docData, id } as T & {id: string}) });
     } catch (e) {
         console.error(`Error updating ${collectionName}:`, e);
@@ -227,23 +227,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   // --- FEE ---
   const addFee = async (feeData: Omit<Fee, 'id'>) => {
-    const counterRef = doc(db, "meta", "feeCounter");
-    
     try {
-        const newId = await runTransaction(db, async (transaction) => {
-            const counterSnap = await transaction.get(counterRef);
-            let newIdNumber = 1;
-            if (counterSnap.exists()) {
-                newIdNumber = (counterSnap.data().lastId || 0) + 1;
-            }
-            transaction.set(counterRef, { lastId: newIdNumber }, { merge: true });
-            return `FEE${String(newIdNumber).padStart(3, '0')}`;
-        });
-
-        await setDoc(doc(db, "fees", newId), { ...feeData, id: newId });
+        const newDocRef = await addDoc(collection(db, "fees"), feeData);
+        return newDocRef.id;
     } catch (e) {
-        console.error('Error adding fee with transaction:', e);
-        toast({ title: 'Error Adding Fee', description: 'Could not generate a new fee record.', variant: 'destructive' });
+        console.error('Error adding fee:', e);
+        toast({ title: 'Error Adding Fee', description: 'Could not create a new fee record.', variant: 'destructive' });
     }
   };
   const updateFee = async (id: string, feeData: Partial<Fee>) => {
@@ -332,9 +321,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
   
   // --- EXPENSE ---
-  const addExpense = async (expense: Expense) => {
+  const addExpense = async (expense: Omit<Expense, 'id'>) => {
     try {
-      await setDoc(doc(db, 'expenses', expense.id), expense);
+      const newDoc = await addDoc(collection(db, 'expenses'), expense);
       await addActivityLog({ user: 'Admin', action: 'Add Expense', description: `Added expense of PKR ${expense.amount} for ${expense.category}.` });
     } catch (e) {
       console.error('Error adding expense:', e);

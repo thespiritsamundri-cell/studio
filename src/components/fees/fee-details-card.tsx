@@ -25,7 +25,7 @@ interface FeeDetailsCardProps {
     students: Student[];
     fees: Fee[];
     onUpdateFee: (id: string, fee: Partial<Fee>) => void;
-    onAddFee: (fee: Omit<Fee, 'id'>) => Promise<void>;
+    onAddFee: (fee: Omit<Fee, 'id'>) => Promise<string | undefined>;
     onDeleteFee: (id: string) => void; 
     settings: SchoolSettings;
 }
@@ -94,9 +94,10 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                 paymentMethod: paymentMethod,
             };
             
-            await onAddFee(paymentRecord);
-            // We can't know the new ID here, so we push a temporary record for printing.
-            newlyPaidFees.push({ ...paymentRecord, id: `TEMP-${Date.now()}`});
+            const newFeeId = await onAddFee(paymentRecord);
+            if (newFeeId) {
+                newlyPaidFees.push({ ...paymentRecord, id: newFeeId });
+            }
             
             // Update or delete the original "Unpaid" challan
             const remainingAmountInChallan = fee.amount - paymentForThisChallan;
