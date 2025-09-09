@@ -12,7 +12,8 @@ import {
   DialogFooter
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Mail } from 'lucide-react';
+import { Mail, Briefcase } from 'lucide-react';
+import { Separator } from '../ui/separator';
 
 const FacebookIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -42,39 +43,45 @@ interface SupportDialogProps {
 export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Support</DialogTitle>
-          <DialogDescription>
-            Assistance and contact information.
+            <div className="flex items-center justify-center flex-col gap-2 pt-4">
+                 <div className="p-3 rounded-full bg-primary/10">
+                    <Briefcase className="w-8 h-8 text-primary" />
+                 </div>
+                <DialogTitle className="text-2xl">Support</DialogTitle>
+            </div>
+          <DialogDescription className="text-center px-4">
+            Assistance and contact information for the Schoolup platform.
           </DialogDescription>
         </DialogHeader>
-        <div className="py-4 text-sm text-foreground space-y-4">
+        <div className="py-4 px-2 text-sm text-center text-foreground space-y-3">
             <p>At Schoolup – A Unique Platform for Smart Schools, we believe that every question deserves a clear answer and every problem deserves a quick solution. Our support team is always here to guide you, whether it’s about setting up your account, managing attendance, handling finances, or exploring advanced features like WhatsApp integration and live data management.</p>
             <p>We have designed Schoolup to be simple, reliable, and family-focused, ensuring that schools can run smarter and parents can stay more connected. If you ever face any issue, need detailed guidance, or want to unlock the full potential of our platform, our dedicated support team is just a message away.</p>
             <p>Your trust matters to us, and we are committed to keeping your school management experience smooth, efficient, and stress-free.</p>
-            <p className="pt-4 border-t">You can also find our official contact channel at <a href="mailto:mianmudassar137@gmail.com" className="text-primary font-semibold hover:underline">mianmudassar137@gmail.com</a> to reach us directly.</p>
+            <div className="pt-4">
+                <Button asChild>
+                    <a href="mailto:mianmudassar137@gmail.com">
+                        <Mail className="mr-2 h-4 w-4" /> Contact Support via Email
+                    </a>
+                </Button>
+            </div>
         </div>
-        <DialogFooter className="flex-col gap-4 items-center">
-            <div className="text-sm">Schoolup – Because Smart Schools Deserve a Unique Platform.</div>
-            <div className="text-sm text-muted-foreground">Developed by "Mian Muhammad Mudassar"</div>
+        <DialogFooter className="flex-col gap-4 items-center pt-4 border-t">
+            <div className="text-sm font-semibold text-center">Schoolup – Because Smart Schools Deserve a Unique Platform.</div>
+            <Separator />
+            <div className="text-xs text-muted-foreground">Developed by "Mian Muhammad Mudassar"</div>
              <div className="flex items-center gap-4">
-                <Link href="https://wa.link/j5f42q" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
+                <Link href="https://wa.link/j5f42q" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                     <WhatsappIcon className="h-5 w-5" />
                 </Link>
-                <Link href="https://www.facebook.com/mianmudassar.in" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
+                <Link href="https://www.facebook.com/mianmudassar.in" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                     <FacebookIcon className="h-5 w-5" />
                 </Link>
-                <Link href="https://www.instagram.com/mianmudassar" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
+                <Link href="https://www.instagram.com/mianmudassar" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                     <InstagramIcon className="h-5 w-5" />
                 </Link>
-                <Link href="mailto:mianmudassar137@gmail.com" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
-                    <Mail className="h-5 w-5" />
-                </Link>
            </div>
-          <Button type="button" onClick={() => onOpenChange(false)}>
-            Close
-          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
