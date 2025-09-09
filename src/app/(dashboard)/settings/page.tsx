@@ -496,7 +496,7 @@ export default function SettingsPage() {
         setOpenTemplateDialog(false);
     }
 
-    const handleAutomatedMessageToggle = (key: 'admission' | 'absentee' | 'payment', checked: boolean) => {
+    const handleAutomatedMessageToggle = (key: keyof SchoolSettings['automatedMessages'], checked: boolean) => {
         setSettings(prev => {
             const currentAutomatedMessages = prev.automatedMessages || {};
             const setting = currentAutomatedMessages[key] || { enabled: false, templateId: '' };
@@ -513,7 +513,7 @@ export default function SettingsPage() {
         });
     };
     
-    const handleAutomatedMessageTemplateChange = (key: 'admission' | 'absentee' | 'payment', templateId: string) => {
+    const handleAutomatedMessageTemplateChange = (key: keyof SchoolSettings['automatedMessages'], templateId: string) => {
         setSettings(prev => {
             const currentAutomatedMessages = prev.automatedMessages || {};
              const setting = currentAutomatedMessages[key] || { enabled: false, templateId: '' };
@@ -572,6 +572,8 @@ export default function SettingsPage() {
         admission: settings.automatedMessages?.admission || { enabled: false, templateId: '' },
         absentee: settings.automatedMessages?.absentee || { enabled: false, templateId: '' },
         payment: settings.automatedMessages?.payment || { enabled: false, templateId: '' },
+        studentDeactivation: settings.automatedMessages?.studentDeactivation || { enabled: false, templateId: '' },
+        teacherDeactivation: settings.automatedMessages?.teacherDeactivation || { enabled: false, templateId: '' },
     }), [settings.automatedMessages]);
 
 
@@ -961,26 +963,70 @@ export default function SettingsPage() {
                     <CardDescription>Enable or disable automated messages for specific events. These will be sent using your selected and configured API provider.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between p-3 rounded-lg border">
-                        <div>
-                            <Label htmlFor="admission-toggle" className="font-semibold">Admission Confirmation</Label>
-                            <p className="text-xs text-muted-foreground">Sent when a new student is admitted.</p>
+                    <div className="p-4 border rounded-lg space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <Label htmlFor="admission-toggle" className="font-semibold">Admission Confirmation</Label>
+                                <p className="text-xs text-muted-foreground">Sent when a new student is admitted.</p>
+                            </div>
+                            <Switch id="admission-toggle" checked={automatedMessages.admission.enabled} onCheckedChange={(checked) => handleAutomatedMessageToggle('admission', checked)} />
                         </div>
-                        <Switch id="admission-toggle" checked={automatedMessages.admission.enabled} onCheckedChange={(checked) => handleAutomatedMessageToggle('admission', checked)} />
+                        <Select value={automatedMessages.admission.templateId} onValueChange={(id) => handleAutomatedMessageTemplateChange('admission', id)} disabled={!automatedMessages.admission.enabled}>
+                            <SelectTrigger><SelectValue placeholder="Select template..." /></SelectTrigger>
+                            <SelectContent>{(settings.messageTemplates || []).map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
+                        </Select>
                     </div>
-                    <div className="flex items-center justify-between p-3 rounded-lg border">
-                        <div>
-                            <Label htmlFor="absentee-toggle" className="font-semibold">Absentee Notice</Label>
-                            <p className="text-xs text-muted-foreground">Sent when you notify absentees from the attendance page.</p>
+                     <div className="p-4 border rounded-lg space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <Label htmlFor="absentee-toggle" className="font-semibold">Absentee Notice</Label>
+                                <p className="text-xs text-muted-foreground">Sent when you notify absentees from the attendance page.</p>
+                            </div>
+                            <Switch id="absentee-toggle" checked={automatedMessages.absentee.enabled} onCheckedChange={(checked) => handleAutomatedMessageToggle('absentee', checked)} />
                         </div>
-                        <Switch id="absentee-toggle" checked={automatedMessages.absentee.enabled} onCheckedChange={(checked) => handleAutomatedMessageToggle('absentee', checked)} />
+                        <Select value={automatedMessages.absentee.templateId} onValueChange={(id) => handleAutomatedMessageTemplateChange('absentee', id)} disabled={!automatedMessages.absentee.enabled}>
+                            <SelectTrigger><SelectValue placeholder="Select template..." /></SelectTrigger>
+                            <SelectContent>{(settings.messageTemplates || []).map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
+                        </Select>
                     </div>
-                    <div className="flex items-center justify-between p-3 rounded-lg border">
-                        <div>
-                            <Label htmlFor="payment-toggle" className="font-semibold">Fee Payment Receipt</Label>
-                            <p className="text-xs text-muted-foreground">Sent when a fee payment is collected.</p>
+                     <div className="p-4 border rounded-lg space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <Label htmlFor="payment-toggle" className="font-semibold">Fee Payment Receipt</Label>
+                                <p className="text-xs text-muted-foreground">Sent when a fee payment is collected.</p>
+                            </div>
+                            <Switch id="payment-toggle" checked={automatedMessages.payment.enabled} onCheckedChange={(checked) => handleAutomatedMessageToggle('payment', checked)} />
                         </div>
-                        <Switch id="payment-toggle" checked={automatedMessages.payment.enabled} onCheckedChange={(checked) => handleAutomatedMessageToggle('payment', checked)} />
+                        <Select value={automatedMessages.payment.templateId} onValueChange={(id) => handleAutomatedMessageTemplateChange('payment', id)} disabled={!automatedMessages.payment.enabled}>
+                            <SelectTrigger><SelectValue placeholder="Select template..." /></SelectTrigger>
+                            <SelectContent>{(settings.messageTemplates || []).map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
+                        </Select>
+                    </div>
+                    <div className="p-4 border rounded-lg space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <Label htmlFor="student-deactivation-toggle" className="font-semibold">Student Deactivation Notice</Label>
+                                <p className="text-xs text-muted-foreground">Sent when a student is auto-deactivated for too many absences.</p>
+                            </div>
+                            <Switch id="student-deactivation-toggle" checked={automatedMessages.studentDeactivation.enabled} onCheckedChange={(checked) => handleAutomatedMessageToggle('studentDeactivation', checked)} />
+                        </div>
+                        <Select value={automatedMessages.studentDeactivation.templateId} onValueChange={(id) => handleAutomatedMessageTemplateChange('studentDeactivation', id)} disabled={!automatedMessages.studentDeactivation.enabled}>
+                            <SelectTrigger><SelectValue placeholder="Select template..." /></SelectTrigger>
+                            <SelectContent>{(settings.messageTemplates || []).map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
+                        </Select>
+                    </div>
+                     <div className="p-4 border rounded-lg space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <Label htmlFor="teacher-deactivation-toggle" className="font-semibold">Teacher Deactivation Notice</Label>
+                                <p className="text-xs text-muted-foreground">Sent when a teacher is auto-deactivated for lates/absences.</p>
+                            </div>
+                            <Switch id="teacher-deactivation-toggle" checked={automatedMessages.teacherDeactivation.enabled} onCheckedChange={(checked) => handleAutomatedMessageToggle('teacherDeactivation', checked)} />
+                        </div>
+                         <Select value={automatedMessages.teacherDeactivation.templateId} onValueChange={(id) => handleAutomatedMessageTemplateChange('teacherDeactivation', id)} disabled={!automatedMessages.teacherDeactivation.enabled}>
+                            <SelectTrigger><SelectValue placeholder="Select template..." /></SelectTrigger>
+                            <SelectContent>{(settings.messageTemplates || []).map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
+                        </Select>
                     </div>
                 </CardContent>
             </Card>

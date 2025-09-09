@@ -497,7 +497,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (absenceCount >= 3) {
           await updateStudent(studentId, { status: 'Inactive' });
           const family = families.find(f => f.id === student.familyId);
-          const message = `Dear Parent, your child, ${student.name}, has been marked inactive due to 3 or more absences this month. Please contact the school office to discuss this matter.`;
           
           toast({
             title: 'Student Deactivated',
@@ -506,20 +505,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
           });
           addActivityLog({ user: 'System', action: 'Auto-deactivate Student', description: `Deactivated ${student.name} for ${absenceCount} absences.` });
   
-          if (family) {
-            try {
-              await sendWhatsAppMessage(
-                family.phone,
-                message,
-                settings.whatsappApiUrl,
-                settings.whatsappApiKey,
-                settings.whatsappInstanceId,
-                settings.whatsappPriority
-              );
-              addActivityLog({ user: 'System', action: 'Send Deactivation Notice', description: `Sent deactivation notice to parents of ${student.name}.` });
-            } catch (e) {
-              console.error(`Failed to send deactivation message for ${student.name}:`, e);
-              toast({ title: "WhatsApp Failed", description: `Could not send deactivation notice for ${student.name}.`, variant: "destructive" });
+          if (family && settings.automatedMessages?.studentDeactivation.enabled) {
+            const template = settings.messageTemplates?.find(t => t.id === settings.automatedMessages?.studentDeactivation.templateId);
+            if (template) {
+              let message = template.content;
+              message = message.replace(/{student_name}/g, student.name);
+              message = message.replace(/{father_name}/g, student.fatherName);
+              
+              try {
+                await sendWhatsAppMessage(
+                  family.phone,
+                  message,
+                  settings.whatsappApiUrl,
+                  settings.whatsappApiKey,
+                  settings.whatsappInstanceId,
+                  settings.whatsappPriority
+                );
+                addActivityLog({ user: 'System', action: 'Send Deactivation Notice', description: `Sent deactivation notice to parents of ${student.name}.` });
+              } catch (e) {
+                console.error(`Failed to send deactivation message for ${student.name}:`, e);
+                toast({ title: "WhatsApp Failed", description: `Could not send deactivation notice for ${student.name}.`, variant: "destructive" });
+              }
             }
           }
         }
@@ -556,7 +562,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
             const start = startOfMonth(new Date(date));
             const end = endOfMonth(new Date(date));
             
-            // Re-fetch all attendances for the month to get a fresh count including the just-saved one
             const q = query(
               collection(db, 'teacherAttendances'), 
               where('teacherId', '==', teacherId),
@@ -578,7 +583,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
             if (reason) {
                 await updateTeacher(teacherId, { status: 'Inactive' });
-                const message = `Dear ${teacher.name}, your status has been set to Inactive due to ${reason}. Please contact the principal.`;
                 toast({
                     title: 'Teacher Deactivated',
                     description: `${teacher.name} has been automatically deactivated. ${reason}.`,
@@ -586,19 +590,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 });
                 addActivityLog({ user: 'System', action: 'Auto-deactivate Teacher', description: `Deactivated ${teacher.name} for ${reason}.` });
                 
-                try {
-                    await sendWhatsAppMessage(
-                        teacher.phone, 
-                        message,
-                        settings.whatsappApiUrl,
-                        settings.whatsappApiKey,
-                        settings.whatsappInstanceId,
-                        settings.whatsappPriority
-                    );
-                    addActivityLog({ user: 'System', action: 'Send Deactivation Notice', description: `Sent deactivation notice to ${teacher.name}.` });
-                } catch(e) {
-                     console.error(`Failed to send deactivation message to ${teacher.name}:`, e);
-                     toast({ title: "WhatsApp Failed", description: `Could not send deactivation notice to ${teacher.name}.`, variant: "destructive"});
+                 if (settings.automatedMessages?.teacherDeactivation.enabled) {
+                    const template = settings.messageTemplates?.find(t => t.id === settings.automatedMessages?.teacherDeactivation.templateId);
+                    if (template) {
+                        let message = template.content;
+                        message = message.replace(/{teacher_name}/g, teacher.name);
+                        try {
+                            await sendWhatsAppMessage(
+                                teacher.phone, 
+                                message,
+                                settings.whatsappApiUrl,
+                                settings.whatsappApiKey,
+                                settings.whatsappInstanceId,
+                                settings.whatsappPriority
+                            );
+                            addActivityLog({ user: 'System', action: 'Send Deactivation Notice', description: `Sent deactivation notice to ${teacher.name}.` });
+                        } catch(e) {
+                             console.error(`Failed to send deactivation message to ${teacher.name}:`, e);
+                             toast({ title: "WhatsApp Failed", description: `Could not send deactivation notice to ${teacher.name}.`, variant: "destructive"});
+                        }
+                    }
                 }
             }
         }

@@ -33,6 +33,8 @@ export interface SchoolSettings {
     admission: { enabled: boolean; templateId: string };
     absentee: { enabled: boolean; templateId: string };
     payment: { enabled: boolean; templateId: string };
+    studentDeactivation: { enabled: boolean; templateId: string };
+    teacherDeactivation: { enabled: boolean; templateId: string };
   };
   autofillLogin?: boolean;
 }
@@ -69,13 +71,17 @@ const defaultSettings: SchoolSettings = {
   expenseCategories: ['Salaries', 'Utilities', 'Rent', 'Maintenance', 'Supplies', 'Marketing', 'Transportation', 'Miscellaneous'],
   messageTemplates: [
     { id: '1', name: 'Absentee Notice', content: 'Dear {father_name}, your child {student_name} of class {class} is absent from school today. Please contact us.' },
-    { id: '2', name: 'Fee Reminder', content: "Dear {father_name}, this is a reminder that your child's fee is due. Total amount: {total_dues}." },
-    { id: '3', name: 'Admission Confirmation', content: 'Welcome to {school_name}! We are delighted to confirm the admission of {student_name} in Class {class}.' }
+    { id: '2', name: 'Fee Payment Receipt', content: "Dear {father_name}, a fee payment of PKR {paid_amount} has been received. Your remaining balance is now PKR {remaining_dues}. Thank you!" },
+    { id: '3', name: 'Admission Confirmation', content: 'Welcome to {school_name}! We are delighted to confirm the admission of {student_name} in Class {class}.' },
+    { id: '4', name: 'Student Deactivation Notice', content: 'Dear {father_name}, your child, {student_name}, has been marked inactive due to 3 or more absences this month. Please contact the school office to discuss this matter.'},
+    { id: '5', name: 'Teacher Deactivation Notice', content: 'Dear {teacher_name}, your status has been set to Inactive due to your attendance record. Please contact the principal.'}
   ],
   automatedMessages: {
     admission: { enabled: true, templateId: '3' },
     absentee: { enabled: true, templateId: '1' },
     payment: { enabled: true, templateId: '2' },
+    studentDeactivation: { enabled: true, templateId: '4' },
+    teacherDeactivation: { enabled: true, templateId: '5' },
   },
   autofillLogin: true,
 };
