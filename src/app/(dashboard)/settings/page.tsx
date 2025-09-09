@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -11,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Bell, BellOff, Lock, AlertTriangle } from 'lucide-react';
+import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Bell, BellOff, Lock, AlertTriangle, PlayCircle, Image as ImageIcon } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -27,6 +28,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { auth } from '@/lib/firebase';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { Switch } from '@/components/ui/switch';
+import { Preloader } from '@/components/ui/preloader';
 
 
 export default function SettingsPage() {
@@ -582,9 +584,10 @@ export default function SettingsPage() {
       <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><SettingsIcon className="w-8 h-8" />Settings</h1>
       
       <Tabs defaultValue="school" className="w-full">
-        <TabsList className="grid w-full grid-cols-7 max-w-5xl">
+        <TabsList className="grid w-full grid-cols-8 max-w-6xl">
           <TabsTrigger value="school">School</TabsTrigger>
           <TabsTrigger value="theme">Theme</TabsTrigger>
+          <TabsTrigger value="preloader">Preloader</TabsTrigger>
           <TabsTrigger value="grading">Grading</TabsTrigger>
           <TabsTrigger value="security">Account &amp; Security</TabsTrigger>
           <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
@@ -747,6 +750,40 @@ export default function SettingsPage() {
                             addActivityLog({ user: 'Admin', action: 'Update Theme', description: 'Customized the application theme colors and fonts.' });
                             toast({ title: "Theme Saved", description: "Your new colors have been applied."});
                         }}>Save Theme</Button>
+                    </div>
+                </CardContent>
+            </Card>
+        </TabsContent>
+        <TabsContent value="preloader" className="mt-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Preloader Settings</CardTitle>
+                    <CardDescription>Customize the loading animation shown when the application is busy.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="flex items-center space-x-2">
+                        <Switch id="preloaderEnabled" checked={settings.preloaderEnabled} onCheckedChange={(checked) => setSettings(prev => ({...prev, preloaderEnabled: checked}))}/>
+                        <Label htmlFor="preloaderEnabled">Show Preloader</Label>
+                    </div>
+                    
+                    <div>
+                        <Label>Preloader Style</Label>
+                        <RadioGroup 
+                            value={settings.preloaderStyle}
+                            onValueChange={(value) => setSettings(prev => ({...prev, preloaderStyle: value}))}
+                            className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mt-2"
+                        >
+                            {Array.from({length: 8}, (_, i) => `style${i+1}`).map(styleName => (
+                                <div key={styleName}>
+                                    <RadioGroupItem value={styleName} id={styleName} className="sr-only" />
+                                    <Label htmlFor={styleName} className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                                       <div className="flex items-center justify-center h-16 w-16">
+                                          <Preloader style={styleName} />
+                                       </div>
+                                    </Label>
+                                </div>
+                            ))}
+                        </RadioGroup>
                     </div>
                 </CardContent>
             </Card>

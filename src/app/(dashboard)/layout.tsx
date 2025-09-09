@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import LockPage from '../lock/page';
+import { Preloader } from '@/components/ui/preloader';
 
 
 function InactivityDetector() {
@@ -63,6 +64,7 @@ function AuthWrapper({ children }: { children: ReactNode }) {
   const [user, loading, error] = useAuthState(auth);
   const router = useRouter();
   const pathname = usePathname();
+  const { settings } = useSettings();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -73,7 +75,7 @@ function AuthWrapper({ children }: { children: ReactNode }) {
   if (loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        {settings.preloaderEnabled ? <Preloader style={settings.preloaderStyle} /> : <Loader2 className="h-8 w-8 animate-spin" />}
       </div>
     );
   }

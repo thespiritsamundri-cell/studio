@@ -37,6 +37,8 @@ export interface SchoolSettings {
     teacherDeactivation: { enabled: boolean; templateId: string };
   };
   autofillLogin?: boolean;
+  preloaderEnabled?: boolean;
+  preloaderStyle?: string;
 }
 
 const defaultSettings: SchoolSettings = {
@@ -84,6 +86,8 @@ const defaultSettings: SchoolSettings = {
     teacherDeactivation: { enabled: true, templateId: '5' },
   },
   autofillLogin: true,
+  preloaderEnabled: true,
+  preloaderStyle: 'style2',
 };
 
 export const SettingsContext = createContext<{
