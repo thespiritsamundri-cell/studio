@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -33,14 +32,9 @@ interface FeeDetailsCardProps {
 
 type PrintType = 'normal' | 'thermal';
 
-export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFee, onAddFee, onDeleteFee, settings }: FeeDetailsCardProps) {
+export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, onDeleteFee, settings }: FeeDetailsCardProps) {
     const { toast } = useToast();
     const { addActivityLog } = useData();
-    const [fees, setFees] = useState(initialFees);
-    
-    useEffect(() => {
-        setFees(initialFees);
-    }, [initialFees, family.id]);
 
     const unpaidFees = fees.filter(f => f.status === 'Unpaid');
     const totalDues = unpaidFees.reduce((acc, fee) => acc + fee.amount, 0);
@@ -51,7 +45,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
     
     useEffect(() => {
         setPaidAmount(totalDues);
-    }, [totalDues]);
+    }, [totalDues, family.id]); // Recalculate when totalDues changes or family changes
 
     const remainingDues = totalDues - paidAmount;
 
