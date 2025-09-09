@@ -169,6 +169,7 @@ export default function EditStudentPage() {
                 <SelectContent>
                   <SelectItem value="Active">Active</SelectItem>
                   <SelectItem value="Inactive">Inactive</SelectItem>
+                  <SelectItem value="Graduated">Graduated</SelectItem>
                   <SelectItem value="Archived">Archived</SelectItem>
                 </SelectContent>
               </Select>

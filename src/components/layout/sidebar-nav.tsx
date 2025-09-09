@@ -38,6 +38,7 @@ import {
   BookCheck,
   CalendarClock,
   Archive,
+  Medal,
 } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import Image from 'next/image';
@@ -181,6 +182,18 @@ export function SidebarNav() {
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
+          <SidebarMenuItem>
+             <SidebarMenuButton
+                asChild
+                isActive={pathname.startsWith('/alumni')}
+                tooltip="Alumni"
+              >
+                <Link href="/alumni">
+                  <Medal />
+                  <span className={cn("truncate min-w-0 transition-opacity duration-200", (isPinned || isMobile) ? "opacity-100" : "opacity-0 group-hover/sidebar:opacity-100")}>Alumni</span>
+                </Link>
+              </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
              <SidebarMenuButton
                 asChild

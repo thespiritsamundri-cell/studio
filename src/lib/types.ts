@@ -8,7 +8,7 @@ export interface Student {
   section?: string;
   admissionDate: string;
   familyId: string;
-  status: 'Active' | 'Inactive' | 'Archived';
+  status: 'Active' | 'Inactive' | 'Archived' | 'Graduated';
   phone: string;
   alternatePhone?: string;
   address: string;
