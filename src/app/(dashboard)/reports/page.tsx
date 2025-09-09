@@ -104,8 +104,10 @@ export default function ReportsPage() {
           
           return { family, students, unpaidFees, totalDue };
         }).filter((item): item is UnpaidFamilyData => item !== null);
+
+        const grandTotalDue = unpaidData.reduce((sum, item) => sum + item.totalDue, 0);
         
-        printContent = renderToString(<UnpaidFeesPrintReport data={unpaidData} date={currentDate} settings={settings} />);
+        printContent = renderToString(<UnpaidFeesPrintReport data={unpaidData} date={currentDate} settings={settings} grandTotal={grandTotalDue} />);
         reportTitle = 'Unpaid Dues Report';
       }
 

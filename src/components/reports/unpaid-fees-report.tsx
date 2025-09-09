@@ -20,10 +20,11 @@ interface UnpaidFeesPrintReportProps {
   data: UnpaidFamilyData[];
   date: Date | null;
   settings: SchoolSettings;
+  grandTotal: number;
 }
 
 export const UnpaidFeesPrintReport = React.forwardRef<HTMLDivElement, UnpaidFeesPrintReportProps>(
-  ({ data, date, settings }, ref) => {
+  ({ data, date, settings, grandTotal }, ref) => {
     return (
       <div ref={ref} className="p-8 font-sans bg-white text-black">
         <header className="flex items-center justify-between pb-4 border-b border-gray-300">
@@ -83,6 +84,15 @@ export const UnpaidFeesPrintReport = React.forwardRef<HTMLDivElement, UnpaidFees
           </Table>
         </main>
         
+        <div className="flex justify-end mt-4">
+            <div className="w-full max-w-sm border-t-2 border-black pt-2">
+                <div className="flex justify-between text-lg font-bold text-gray-800">
+                    <span>Grand Total Due:</span>
+                    <span>PKR {grandTotal.toLocaleString()}</span>
+                </div>
+            </div>
+        </div>
+
         <footer className="mt-12 pt-4 border-t border-gray-300 text-center text-xs text-gray-500">
           <p>This is a computer-generated report.</p>
           <p>&copy; {new Date().getFullYear()} {settings.schoolName}. All rights reserved.</p>
