@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import type { Family, Student, Fee } from '@/lib/types';
 import { Button } from '../ui/button';
@@ -36,16 +36,16 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
     const { toast } = useToast();
     const { addActivityLog } = useData();
 
-    const unpaidFees = fees.filter(f => f.status === 'Unpaid');
-    const totalDues = unpaidFees.reduce((acc, fee) => acc + fee.amount, 0);
-
     const [paidAmount, setPaidAmount] = useState<number>(0);
     const [paymentMethod, setPaymentMethod] = useState('By Hand');
     const [printType, setPrintType] = useState<PrintType>('normal');
     
+    const unpaidFees = useMemo(() => fees.filter(f => f.status === 'Unpaid'), [fees]);
+    const totalDues = useMemo(() => unpaidFees.reduce((acc, fee) => acc + fee.amount, 0), [unpaidFees]);
+    
     useEffect(() => {
         setPaidAmount(totalDues);
-    }, [totalDues, family.id]); // Recalculate when totalDues changes or family changes
+    }, [totalDues]);
 
     const remainingDues = totalDues - paidAmount;
 
@@ -82,7 +82,6 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
             
             const paymentForThisChallan = Math.min(amountToSettle, fee.amount);
 
-            // Create a new "Paid" fee record representing the income
             const paymentRecord: Omit<Fee, 'id'> = {
                 familyId: fee.familyId,
                 amount: paymentForThisChallan,
@@ -99,14 +98,13 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                 newlyPaidFees.push({ ...paymentRecord, id: newFeeId });
             }
             
-            // Update or delete the original "Unpaid" challan
             const remainingAmountInChallan = fee.amount - paymentForThisChallan;
             
             if (remainingAmountInChallan > 0) {
                  const updatedChallan: Partial<Fee> = { amount: remainingAmountInChallan };
-                 onUpdateFee(fee.id, updatedChallan);
+                 await onUpdateFee(fee.id, updatedChallan);
             } else {
-                 onDeleteFee(fee.id);
+                 await onDeleteFee(fee.id);
             }
 
             amountToSettle -= paymentForThisChallan;
@@ -122,11 +120,8 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
             description: `PKR ${collectedAmount.toLocaleString()} collected for Family ${family.id}.`,
         });
         
-        setPaidAmount(newDues);
-        
         triggerPrint(newlyPaidFees, collectedAmount, newDues, paymentMethod);
 
-        // Send WhatsApp receipt if enabled
         if(settings.automatedMessages?.payment.enabled) {
              const paymentTemplate = settings.messageTemplates?.find(t => t.id === settings.automatedMessages?.payment.templateId);
              if (paymentTemplate) {
