@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import Image from 'next/image';
 
 const FacebookIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -69,10 +70,14 @@ export default function LoginPage() {
     <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
       <Card className="w-full max-w-sm mx-auto shadow-2xl">
         <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <div className="p-3 rounded-full bg-primary/10">
-              <School className="w-8 h-8 text-primary" />
-            </div>
+           <div className="flex justify-center mb-4">
+             {isClient && settings.schoolLogo ? (
+                <Image src={settings.schoolLogo} alt="School Logo" width={80} height={80} className="object-contain rounded-full" />
+             ) : (
+                <div className="p-3 rounded-full bg-primary/10">
+                    <School className="w-8 h-8 text-primary" />
+                </div>
+             )}
           </div>
           <CardTitle className="text-2xl font-bold font-headline">{isClient ? settings.schoolName : 'School Management'}</CardTitle>
           <CardDescription>Welcome back! Please login to your account.</CardDescription>
@@ -93,7 +98,7 @@ export default function LoginPage() {
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex-col gap-4 pt-6 border-t">
+        <CardFooter className="flex-col items-center gap-4 pt-4 border-t">
            <p className="text-xs text-muted-foreground">Developed by "Mian Mudassar"</p>
            <div className="flex items-center gap-4">
                 <Link href="https://www.facebook.com/mianmudassar.in" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
