@@ -7,7 +7,6 @@ import { fontVariables } from '@/app/font-config'
 import { ThemeProvider } from '@/components/layout/theme-provider'
 
 export const metadata = {
-  title: 'EduCentral',
   description: 'A comprehensive school management system.',
 }
 
