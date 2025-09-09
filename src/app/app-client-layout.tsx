@@ -16,6 +16,7 @@ export default function AppClientLayout({
   const { settings } = useSettings();
   const pathname = usePathname();
   const [loading, setLoading] = useState(false);
+  const [previousPath, setPreviousPath] = useState(pathname);
 
   useEffect(() => {
     // This code now runs only on the client, after hydration
@@ -44,21 +45,18 @@ export default function AppClientLayout({
 
   }, [settings]);
 
-  useEffect(() => {
-    const handleStart = () => setLoading(true);
-    const handleComplete = () => setLoading(false);
-    
-    // This is a simplified way to detect page transitions with Next.js App Router
-    // A more robust solution might use `next/navigation` events if they become available
-    // for this purpose. For now, we listen to pathname changes.
-    handleComplete(); // Ensure loading is false on initial load
+   useEffect(() => {
+    if (pathname !== previousPath) {
+      setLoading(true);
+      const timer = setTimeout(() => {
+        setLoading(false);
+        setPreviousPath(pathname);
+      }, 500); // Simulate loading time
 
-    return () => {
-        // This is a placeholder for a more robust event listener system
-        // Since we can't directly hook into `router.events` in App Router,
-        // we'll rely on the top-level loading indicators for now.
-    };
-  }, [pathname]);
+      return () => clearTimeout(timer);
+    }
+  }, [pathname, previousPath]);
+
 
   return (
       <>

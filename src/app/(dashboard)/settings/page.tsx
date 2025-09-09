@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Bell, BellOff, Lock, AlertTriangle, PlayCircle, Image as ImageIcon } from 'lucide-react';
+import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Bell, BellOff, Lock, AlertTriangle, PlayCircle, Image as ImageIcon, CheckCircle } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -29,6 +29,7 @@ import { auth } from '@/lib/firebase';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { Switch } from '@/components/ui/switch';
 import { Preloader } from '@/components/ui/preloader';
+import { cn } from '@/lib/utils';
 
 
 export default function SettingsPage() {
@@ -774,8 +775,8 @@ export default function SettingsPage() {
                             className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mt-2"
                         >
                             {Array.from({length: 8}, (_, i) => `style${i+1}`).map(styleName => (
-                                <div key={styleName}>
-                                    <RadioGroupItem value={styleName} id={styleName} className="sr-only" />
+                                <div key={styleName} className="relative">
+                                    <RadioGroupItem value={styleName} id={styleName} className="sr-only peer" />
                                     <Label 
                                         htmlFor={styleName}
                                         className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
@@ -784,9 +785,17 @@ export default function SettingsPage() {
                                           <Preloader style={styleName} />
                                        </div>
                                     </Label>
+                                    <div className="absolute top-2 right-2 hidden peer-data-[state=checked]:block">
+                                        <CheckCircle className="h-5 w-5 text-primary" />
+                                    </div>
                                 </div>
                             ))}
                         </RadioGroup>
+                    </div>
+                    <div className="flex justify-end pt-4 border-t">
+                        <Button onClick={() => toast({ title: "Preloader settings saved!"})}>
+                            Save Preloader Settings
+                        </Button>
                     </div>
                 </CardContent>
             </Card>
