@@ -21,6 +21,7 @@ import { format } from 'date-fns';
 import { useSettings } from '@/context/settings-context';
 import { useData } from '@/context/data-context';
 import type { Student, Family } from '@/lib/types';
+import { SupportDialog } from './support-dialog';
 
 function getTitleFromPathname(pathname: string): string {
   if (pathname === '/dashboard') return 'Dashboard';
@@ -53,6 +54,7 @@ export function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [openSupportDialog, setOpenSupportDialog] = useState(false);
 
   useEffect(() => {
     setDateTime(new Date());
@@ -124,6 +126,7 @@ export function Header() {
 
 
   return (
+    <>
     <header className="sticky top-0 z-30 flex h-20 items-center gap-4 border-b bg-background px-4 md:px-6">
        <div className="flex-1">
         <SidebarTrigger className="md:hidden" />
@@ -206,7 +209,7 @@ export function Header() {
             <DropdownMenuItem asChild>
               <Link href="/settings">Settings</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem>Support</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setOpenSupportDialog(true)}>Support</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link href="/">Logout</Link>
@@ -215,5 +218,7 @@ export function Header() {
         </DropdownMenu>
       </div>
     </header>
+    <SupportDialog open={openSupportDialog} onOpenChange={setOpenSupportDialog} />
+    </>
   );
 }
