@@ -17,6 +17,10 @@ export interface Student {
   cnic?: string;
 }
 
+export interface Alumni extends Omit<Student, 'status'> {
+  graduationYear: number;
+}
+
 export interface Family {
   id:string;
   fatherName: string;

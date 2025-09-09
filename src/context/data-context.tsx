@@ -5,7 +5,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, writeBatch, query, where, getDocs, setDoc, getDoc, runTransaction } from 'firebase/firestore';
-import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData, Attendance } from '@/lib/types';
+import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData, Attendance, Alumni } from '@/lib/types';
 import { students as initialStudents, families as initialFamilies, fees as initialFees, teachers as initialTeachers, teacherAttendances as initialTeacherAttendances, classes as initialClasses, exams as initialExams, expenses as initialExpenses, timetables as initialTimetables } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 
@@ -17,6 +17,7 @@ interface DataContextType {
   teachers: Teacher[];
   attendances: Attendance[];
   teacherAttendances: TeacherAttendance[];
+  alumni: Alumni[];
   classes: Class[];
   exams: Exam[];
   activityLog: ActivityLog[];
@@ -84,6 +85,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [attendances, setAttendances] = useState<Attendance[]>([]);
   const [teacherAttendances, setTeacherAttendances] = useState<TeacherAttendance[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
+  const [alumni, setAlumni] = useState<Alumni[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
   const [activityLog, setActivityLog] = useState<ActivityLog[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -98,6 +100,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       teachers: setTeachers,
       attendances: setAttendances,
       teacherAttendances: setTeacherAttendances,
+      alumni: setAlumni,
       classes: setClasses,
       exams: setExams,
       activityLog: setActivityLog,
@@ -176,7 +179,42 @@ export function DataProvider({ children }: { children: ReactNode }) {
       toast({ title: 'Error Adding Student', description: 'Could not save the new student to the database.', variant: 'destructive' });
     }
   };
-  const updateStudent = updateDocFactory<Student>('students', 'Update Student', d => `Updated details for student: ${d.name || ''} (ID: ${d.id}).`);
+
+  const updateStudent = async (id: string, studentData: Partial<Student>) => {
+    const studentRef = doc(db, 'students', id);
+  
+    if (studentData.status === 'Graduated') {
+      try {
+        await runTransaction(db, async (transaction) => {
+          const studentDoc = await transaction.get(studentRef);
+          if (!studentDoc.exists()) {
+            throw "Student document does not exist!";
+          }
+          const finalStudentData = { ...studentDoc.data(), ...studentData };
+          const alumniData: Alumni = {
+            ...(finalStudentData as Student),
+            graduationYear: new Date().getFullYear(),
+          };
+          const alumniRef = doc(db, 'alumni', id);
+          transaction.set(alumniRef, alumniData);
+          transaction.delete(studentRef);
+        });
+        await addActivityLog({ user: 'Admin', action: 'Graduate Student', description: `Graduated student: ${studentData.name || ''} (ID: ${id}).` });
+        toast({ title: "Student Graduated", description: `${studentData.name || ''} has been moved to alumni.` });
+      } catch (e) {
+        console.error("Error graduating student:", e);
+        toast({ title: "Graduation Failed", variant: "destructive" });
+      }
+    } else {
+      try {
+        await setDoc(studentRef, studentData, { merge: true });
+        await addActivityLog({ user: 'Admin', action: 'Update Student', description: `Updated details for student: ${studentData.name || ''} (ID: ${id}).` });
+      } catch (e) {
+        console.error("Error updating student:", e);
+        toast({ title: "Error updating student", variant: "destructive" });
+      }
+    }
+  };
   
   const deleteStudent = async (studentId: string) => {
     const studentToArchive = students.find((s) => s.id === studentId);
@@ -460,7 +498,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const deleteAllData = async () => {
     toast({ title: "Deleting All Data...", description: "This is irreversible and may take some time." });
     
-    const collectionNames = ['students', 'families', 'fees', 'teachers', 'attendances', 'teacherAttendances', 'classes', 'exams', 'expenses', 'timetables', 'activityLog', 'meta'];
+    const collectionNames = ['students', 'families', 'fees', 'teachers', 'attendances', 'teacherAttendances', 'classes', 'exams', 'expenses', 'timetables', 'activityLog', 'meta', 'alumni'];
 
     try {
       const batch = writeBatch(db);
@@ -497,6 +535,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       teachers,
       attendances,
       teacherAttendances,
+      alumni,
       classes,
       exams,
       activityLog,

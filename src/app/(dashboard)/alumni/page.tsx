@@ -12,20 +12,20 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 export default function AlumniPage() {
-  const { students: allStudents } = useData();
+  const { alumni: allAlumni } = useData();
   const [searchQuery, setSearchQuery] = useState('');
 
   const alumniStudents = useMemo(() => {
-    let students = allStudents.filter(s => s.status === 'Graduated');
+    let students = allAlumni;
     if (searchQuery) {
       students = students.filter((student) =>
         student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         student.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        student.admissionDate.includes(searchQuery)
+        String(student.graduationYear).includes(searchQuery)
       );
     }
-    return students.sort((a, b) => new Date(b.admissionDate).getTime() - new Date(a.admissionDate).getTime());
-  }, [allStudents, searchQuery]);
+    return students.sort((a, b) => b.graduationYear - a.graduationYear);
+  }, [allAlumni, searchQuery]);
 
   return (
     <div className="space-y-6">
@@ -42,7 +42,7 @@ export default function AlumniPage() {
         <CardContent>
           <div className="flex items-center space-x-2 mb-4">
             <Input
-              placeholder="Search alumni by name, ID, or admission year..."
+              placeholder="Search alumni by name, ID, or graduation year..."
               className="max-w-sm"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -55,7 +55,7 @@ export default function AlumniPage() {
                 <TableHead className="w-[100px] hidden sm:table-cell">Image</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Student ID</TableHead>
-                <TableHead>Final Class</TableHead>
+                <TableHead>Graduation Year</TableHead>
                 <TableHead>Admission Date</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -75,7 +75,7 @@ export default function AlumniPage() {
                   </TableCell>
                   <TableCell className="font-medium">{student.name}</TableCell>
                   <TableCell>{student.id}</TableCell>
-                  <TableCell>{student.class}</TableCell>
+                  <TableCell>{student.graduationYear}</TableCell>
                   <TableCell>{student.admissionDate}</TableCell>
                   <TableCell>
                     <Button asChild variant="ghost" size="sm">
