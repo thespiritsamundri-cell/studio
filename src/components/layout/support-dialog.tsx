@@ -43,7 +43,7 @@ interface SupportDialogProps {
 export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
             <div className="flex items-center justify-center flex-col gap-2 pt-4">
                  <div className="p-3 rounded-full bg-primary/10">
@@ -67,11 +67,11 @@ export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
                 </Button>
             </div>
         </div>
-        <DialogFooter className="flex-col gap-4 items-center pt-4 border-t">
-            <div className="text-sm font-semibold text-center">Schoolup – Because Smart Schools Deserve a Unique Platform.</div>
+        <DialogFooter className="flex-col items-center gap-4 pt-4 border-t">
+            <p className="text-sm font-semibold text-center">Schoolup – Because Smart Schools Deserve a Unique Platform.</p>
             <Separator />
             <div className="text-xs text-muted-foreground">Developed by "Mian Muhammad Mudassar"</div>
-             <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4">
                 <Link href="https://wa.link/j5f42q" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                     <WhatsappIcon className="h-5 w-5" />
                 </Link>
@@ -81,7 +81,7 @@ export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
                 <Link href="https://www.instagram.com/mianmudassar" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                     <InstagramIcon className="h-5 w-5" />
                 </Link>
-           </div>
+            </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
