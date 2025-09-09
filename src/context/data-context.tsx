@@ -8,7 +8,9 @@ import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, writeBatch, 
 import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData, Attendance, Alumni } from '@/lib/types';
 import { students as initialStudents, families as initialFamilies, fees as initialFees, teachers as initialTeachers, teacherAttendances as initialTeacherAttendances, classes as initialClasses, exams as initialExams, expenses as initialExpenses, timetables as initialTimetables } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
-import { startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getMonth } from 'date-fns';
+import { startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getMonth, format } from 'date-fns';
+import { useSettings } from './settings-context';
+import { sendWhatsAppMessage } from '@/services/whatsapp-service';
 
 
 interface DataContextType {
@@ -80,6 +82,7 @@ function getDateTimeId() {
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  const { settings } = useSettings();
   const [students, setStudents] = useState<Student[]>([]);
   const [families, setFamilies] = useState<Family[]>([]);
   const [fees, setFees] = useState<Fee[]>([]);
@@ -491,32 +494,60 @@ export function DataProvider({ children }: { children: ReactNode }) {
         await batch.commit();
         await addActivityLog({ user: 'Admin', action: 'Save Teacher Attendance', description: `Saved teacher attendance for date: ${date}.` });
 
-        // Post-save check for late policy
-        const affectedTeachers = new Set(newAttendances.filter(a => a.status === 'Late').map(a => a.teacherId));
+        // Post-save check for late/absence policy
+        const teacherIdsToCheck = [...new Set(newAttendances.map(a => a.teacherId))];
         
-        for (const teacherId of affectedTeachers) {
+        for (const teacherId of teacherIdsToCheck) {
             const teacher = teachers.find(t => t.id === teacherId);
             if (!teacher || teacher.status !== 'Active') continue;
 
             const start = startOfMonth(new Date(date));
             const end = endOfMonth(new Date(date));
-            const allAttendancesForMonth = teacherAttendances.filter(a => a.teacherId === teacherId && new Date(a.date) >= start && new Date(a.date) <= end);
             
-            // Manually include the just-saved attendances in the count
-            const currentMonthLates = allAttendancesForMonth
-                .filter(a => a.status === 'Late')
-                .map(a => a.date) // get dates
-                .concat(newAttendances.filter(a => a.teacherId === teacherId && a.status === 'Late').map(a => a.date)) // add new dates
-                .filter((d, i, self) => self.indexOf(d) === i); // get unique dates
+            // Re-fetch all attendances for the month to get a fresh count including the just-saved one
+            const q = query(
+              collection(db, 'teacherAttendances'), 
+              where('teacherId', '==', teacherId),
+              where('date', '>=', format(start, 'yyyy-MM-dd')),
+              where('date', '<=', format(end, 'yyyy-MM-dd'))
+            );
+            const querySnapshot = await getDocs(q);
+            const monthlyAttendance = querySnapshot.docs.map(doc => doc.data() as TeacherAttendance);
+            
+            const lateCount = monthlyAttendance.filter(a => a.status === 'Late').length;
+            const absenceLeaveCount = monthlyAttendance.filter(a => a.status === 'Absent' || a.status === 'Leave').length;
 
-            if (currentMonthLates.length >= 4) {
+            let reason = '';
+            if (lateCount >= 4) {
+                reason = `accumulating ${lateCount} late marks`;
+            } else if (absenceLeaveCount >= 3) {
+                reason = `accumulating ${absenceLeaveCount} absences/leaves`;
+            }
+
+            if (reason) {
                 await updateTeacher(teacherId, { status: 'Inactive' });
+                const message = `Dear ${teacher.name}, your status has been set to Inactive due to ${reason}. Please contact the principal.`;
                 toast({
                     title: 'Teacher Deactivated',
-                    description: `${teacher.name} has been automatically deactivated due to accumulating 4 or more late marks this month.`,
+                    description: `${teacher.name} has been automatically deactivated. ${reason}.`,
                     variant: 'destructive'
                 });
-                addActivityLog({ user: 'System', action: 'Auto-deactivate Teacher', description: `Deactivated ${teacher.name} for excessive tardiness.` });
+                addActivityLog({ user: 'System', action: 'Auto-deactivate Teacher', description: `Deactivated ${teacher.name} for ${reason}.` });
+                
+                try {
+                    await sendWhatsAppMessage(
+                        teacher.phone, 
+                        message,
+                        settings.whatsappApiUrl,
+                        settings.whatsappApiKey,
+                        settings.whatsappInstanceId,
+                        settings.whatsappPriority
+                    );
+                    addActivityLog({ user: 'System', action: 'Send Deactivation Notice', description: `Sent deactivation notice to ${teacher.name}.` });
+                } catch(e) {
+                     console.error(`Failed to send deactivation message to ${teacher.name}:`, e);
+                     toast({ title: "WhatsApp Failed", description: `Could not send deactivation notice to ${teacher.name}.`, variant: "destructive"});
+                }
             }
         }
 
