@@ -67,22 +67,22 @@ export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
                 </Button>
             </div>
         </div>
-        <DialogFooter className="flex-col items-center gap-4 pt-4 border-t">
-          <p className="text-sm font-semibold text-center">Schoolup – Because Smart Schools Deserve a Unique Platform.</p>
-          <Separator />
-          <div className="flex flex-col items-center gap-2">
-            <div className="text-xs text-muted-foreground">Developed by "Mian Muhammad Mudassar"</div>
-            <div className="flex items-center gap-4">
-                <Link href="https://wa.link/j5f42q" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
-                    <WhatsappIcon className="h-5 w-5" />
-                </Link>
-                <Link href="https://www.facebook.com/mianmudassar.in" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
-                    <FacebookIcon className="h-5 w-5" />
-                </Link>
-                <Link href="https://www.instagram.com/mianmudassar" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
-                    <InstagramIcon className="h-5 w-5" />
-                </Link>
-            </div>
+        <DialogFooter className="flex-col items-center gap-4 pt-6 border-t">
+          <p className="text-sm font-semibold text-center text-gray-700">Schoolup – Because Smart Schools Deserve a Unique Platform.</p>
+          <div className="text-xs text-muted-foreground">Developed by "Mian Muhammad Mudassar"</div>
+          <div className="flex items-center gap-4">
+              <Link href="https://wa.link/j5f42q" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                  <WhatsappIcon className="h-5 w-5" />
+              </Link>
+              <Link href="https://www.facebook.com/mianmudassar.in" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                  <FacebookIcon className="h-5 w-5" />
+              </Link>
+              <Link href="https://www.instagram.com/mianmudassar_" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                  <InstagramIcon className="h-5 w-5" />
+              </Link>
+               <a href="mailto:mianmudassar137@gmail.com" className="text-muted-foreground hover:text-primary transition-colors">
+                  <Mail className="h-5 w-5" />
+              </a>
           </div>
         </DialogFooter>
       </DialogContent>
