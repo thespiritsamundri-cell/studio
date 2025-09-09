@@ -61,10 +61,10 @@ export interface Fee {
   amount: number;
   month: string;
   year: number;
-  paymentDate: string;
+  paymentDate: string; // Only populated for 'Paid' records
   status: 'Paid' | 'Unpaid';
-  originalChallanId?: string; // Used for paid records to link back to the original fee challan
-  paymentMethod?: string;
+  originalChallanId?: string; // Links a 'Paid' record to the original 'Unpaid' challan ID
+  paymentMethod?: string; // e.g., 'Cash', 'Bank Transfer'
 }
 
 export interface Class {

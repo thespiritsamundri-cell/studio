@@ -88,6 +88,7 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
             
             const paymentForThisChallan = Math.min(amountToSettle, fee.amount);
 
+            // Create a new "Paid" fee record representing the income
             const paymentRecord: Omit<Fee, 'id'> = {
                 familyId: fee.familyId,
                 amount: paymentForThisChallan,
@@ -101,9 +102,9 @@ export function FeeDetailsCard({ family, students, fees: initialFees, onUpdateFe
             
             await onAddFee(paymentRecord);
             // We can't know the new ID here, so we push a temporary record for printing.
-            // This might mean the printed receipt ID won't match the DB ID perfectly.
             newlyPaidFees.push({ ...paymentRecord, id: `TEMP-${Date.now()}`});
             
+            // Update or delete the original "Unpaid" challan
             const remainingAmountInChallan = fee.amount - paymentForThisChallan;
             
             if (remainingAmountInChallan > 0) {
