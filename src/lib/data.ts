@@ -33,8 +33,8 @@ export const classes: Class[] = [
 ];
 
 export const teachers: Teacher[] = [
-    { id: 'T01', name: 'Sana Javed', fatherName: 'Javed Iqbal', phone: '03112233445', education: 'M.Sc. Physics', salary: 60000, photoUrl: 'https://picsum.photos/seed/T01/200', assignedSubjects: ['Physics', 'Maths'] },
-    { id: 'T02', name: 'Rashid Mehmood', fatherName: 'Mehmood Ali', phone: '03223344556', education: 'M.A. English', salary: 55000, photoUrl: 'https://picsum.photos/seed/T02/200', assignedSubjects: ['English', 'Social Studies'] },
+    { id: 'T01', name: 'Sana Javed', fatherName: 'Javed Iqbal', phone: '03112233445', education: 'M.Sc. Physics', salary: 60000, photoUrl: 'https://picsum.photos/seed/T01/200', assignedSubjects: ['Physics', 'Maths'], status: 'Active' },
+    { id: 'T02', name: 'Rashid Mehmood', fatherName: 'Mehmood Ali', phone: '03223344556', education: 'M.A. English', salary: 55000, photoUrl: 'https://picsum.photos/seed/T02/200', assignedSubjects: ['English', 'Social Studies'], status: 'Active' },
 ];
 
 export const teacherAttendances: TeacherAttendance[] = [

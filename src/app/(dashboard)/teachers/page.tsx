@@ -6,7 +6,7 @@ import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2, Edit, Phone, GraduationCap } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, Phone, GraduationCap, UserCheck, UserX } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +34,8 @@ import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
 export default function TeachersPage() {
   const { teachers, addTeacher, updateTeacher, deleteTeacher, classes } = useData();
@@ -44,6 +46,7 @@ export default function TeachersPage() {
   const { toast } = useToast();
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [assignedSubjects, setAssignedSubjects] = useState<string[]>([]);
+  const [status, setStatus] = useState<'Active' | 'Inactive'>('Active');
   
   const allSubjects = useMemo(() => {
     const subjectSet = new Set<string>();
@@ -68,7 +71,7 @@ export default function TeachersPage() {
     
     const teacherId = isEditing && selectedTeacher ? selectedTeacher.id : `T${(teachers.reduce((maxId, teacher) => Math.max(maxId, parseInt(teacher.id.replace('T', ''))), 0) + 1).toString().padStart(2, '0')}`;
     
-    const teacherData = {
+    const teacherData: Omit<Teacher, 'id'> = {
       name: formData.get('name') as string,
       fatherName: formData.get('fatherName') as string,
       phone: formData.get('phone') as string,
@@ -76,6 +79,7 @@ export default function TeachersPage() {
       salary: Number(formData.get('salary') as string),
       photoUrl: photoPreview || selectedTeacher?.photoUrl || `https://picsum.photos/seed/${teacherId}/200`,
       assignedSubjects: assignedSubjects,
+      status: status
     };
 
     if(!teacherData.name || !teacherData.phone || !teacherData.education || !teacherData.salary) {
@@ -98,6 +102,7 @@ export default function TeachersPage() {
     setSelectedTeacher(teacher);
     setPhotoPreview(teacher.photoUrl);
     setAssignedSubjects(teacher.assignedSubjects || []);
+    setStatus(teacher.status || 'Active');
     setIsEditing(true);
     setOpenDialog(true);
   };
@@ -121,6 +126,7 @@ export default function TeachersPage() {
         setSelectedTeacher(null);
         setPhotoPreview(null);
         setAssignedSubjects([]);
+        setStatus('Active');
       }
       setOpenDialog(isOpen);
   }
@@ -170,6 +176,18 @@ export default function TeachersPage() {
                     <Label htmlFor="salary">Salary (PKR)</Label>
                     <Input id="salary" name="salary" type="number" defaultValue={selectedTeacher?.salary} required />
                   </div>
+                   <div className="space-y-2">
+                    <Label htmlFor="status">Status</Label>
+                    <Select value={status} onValueChange={(value) => setStatus(value as 'Active' | 'Inactive')}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Active">Active</SelectItem>
+                        <SelectItem value="Inactive">Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="photo">Photo</Label>
                     <Input id="photo" name="photo" type="file" onChange={handlePhotoChange} accept="image/*" />
@@ -212,7 +230,7 @@ export default function TeachersPage() {
        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {teachers.map(teacher => (
           <Card key={teacher.id} className="flex flex-col overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 ease-in-out">
-            <CardHeader className="p-0">
+            <CardHeader className="p-0 relative">
                <div className="aspect-[4/3] w-full overflow-hidden">
                 <Image
                   src={teacher.photoUrl || `https://picsum.photos/seed/${teacher.id}/400/300`}
@@ -223,6 +241,10 @@ export default function TeachersPage() {
                   data-ai-hint="teacher photo"
                 />
                </div>
+                <Badge className={cn("absolute top-2 right-2", teacher.status === 'Active' ? "bg-green-600" : "bg-destructive")}>
+                  {teacher.status === 'Active' ? <UserCheck className="w-3 h-3 mr-1"/> : <UserX className="w-3 h-3 mr-1"/>}
+                  {teacher.status}
+                </Badge>
             </CardHeader>
             <CardContent className="p-4 flex-grow space-y-3">
                 <div>

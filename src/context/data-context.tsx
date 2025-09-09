@@ -2,12 +2,13 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, writeBatch, query, where, getDocs, setDoc, getDoc, runTransaction } from 'firebase/firestore';
 import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData, Attendance, Alumni } from '@/lib/types';
 import { students as initialStudents, families as initialFamilies, fees as initialFees, teachers as initialTeachers, teacherAttendances as initialTeacherAttendances, classes as initialClasses, exams as initialExams, expenses as initialExpenses, timetables as initialTimetables } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
+import { startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
 
 
 interface DataContextType {
@@ -33,7 +34,7 @@ interface DataContextType {
   addFee: (feeData: Omit<Fee, 'id'>) => Promise<string | undefined>;
   updateFee: (id: string, fee: Partial<Fee>) => Promise<void>;
   deleteFee: (id: string) => Promise<void>;
-  addTeacher: (teacher: Teacher) => Promise<void>;
+  addTeacher: (teacher: Omit<Teacher, 'id'>) => Promise<void>;
   updateTeacher: (id: string, teacher: Partial<Teacher>) => Promise<void>;
   deleteTeacher: (id: string) => Promise<void>;
   saveStudentAttendance: (attendances: Attendance[], date: string, className: string) => Promise<void>;
@@ -128,6 +129,71 @@ export function DataProvider({ children }: { children: ReactNode }) {
     // Unsubscribe from all listeners on cleanup
     return () => unsubscribers.forEach(unsub => unsub());
   }, [toast]);
+
+  const updateTeacher = async (id: string, teacherData: Partial<Teacher>) => {
+    try {
+        await setDoc(doc(db, 'teachers', id), teacherData, { merge: true });
+        await addActivityLog({ user: 'Admin', action: 'Update Teacher', description: `Updated teacher: ${teacherData.name || ''}.` });
+    } catch(e) {
+        console.error("Error updating teacher:", e);
+        toast({ title: "Error updating teacher", variant: "destructive" });
+    }
+  };
+
+
+  const checkTeacherAbsences = useCallback(async (teachers: Teacher[], attendances: TeacherAttendance[]) => {
+    if (teachers.length === 0 || attendances.length === 0) return;
+
+    const today = new Date();
+    const start = startOfMonth(today);
+    const end = endOfMonth(today);
+    const monthDays = eachDayOfInterval({ start, end });
+
+    for (const teacher of teachers) {
+      if (teacher.status !== 'Active') continue; // Skip inactive teachers
+
+      const teacherAttendancesForMonth = attendances
+        .filter(a => a.teacherId === teacher.id && new Date(a.date) >= start && new Date(a.date) <= end)
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      
+      const totalAbsences = teacherAttendancesForMonth.filter(a => a.status === 'Absent').length;
+      
+      let consecutiveAbsences = 0;
+      let maxConsecutive = 0;
+      
+      for(const day of monthDays) {
+          const record = teacherAttendancesForMonth.find(a => isSameDay(new Date(a.date), day));
+          if(record?.status === 'Absent') {
+              consecutiveAbsences++;
+          } else {
+              maxConsecutive = Math.max(maxConsecutive, consecutiveAbsences);
+              consecutiveAbsences = 0;
+          }
+      }
+      maxConsecutive = Math.max(maxConsecutive, consecutiveAbsences);
+
+      if (totalAbsences >= 4 || maxConsecutive >= 4) {
+        if(teacher.status === 'Active') {
+          await updateTeacher(teacher.id, { status: 'Inactive' });
+          toast({
+            title: 'Teacher Deactivated',
+            description: `${teacher.name} has been automatically deactivated due to excessive absences.`,
+            variant: 'destructive'
+          });
+          await addActivityLog({ user: 'System', action: 'Auto-deactivate Teacher', description: `Deactivated ${teacher.name} due to ${totalAbsences} total and ${maxConsecutive} consecutive absences.` });
+        }
+      }
+    }
+  }, [toast]); // addActivityLog and updateTeacher are memoized below, so they are stable
+
+  useEffect(() => {
+    // This effect runs the absence check when the component mounts and data is available
+    if(!loading) {
+       checkTeacherAbsences(teachers, teacherAttendances);
+    }
+  }, [loading, teachers, teacherAttendances, checkTeacherAbsences]);
+
+
 
   const addActivityLog = async (activity: Omit<ActivityLog, 'id' | 'timestamp'>) => {
     try {
@@ -351,16 +417,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
   
   // --- TEACHER ---
-  const addTeacher = async (teacher: Teacher) => {
+  const addTeacher = async (teacher: Omit<Teacher, 'id'>) => {
     try {
-      await setDoc(doc(db, "teachers", teacher.id), teacher);
+      const newId = `T${Date.now()}`;
+      await setDoc(doc(db, "teachers", newId), { ...teacher, id: newId });
       await addActivityLog({ user: 'Admin', action: 'Add Teacher', description: `Added new teacher: ${teacher.name}.` });
     } catch (e) {
       console.error('Error adding teacher:', e);
       toast({ title: 'Error Adding Teacher', variant: 'destructive' });
     }
   };
-  const updateTeacher = updateDocFactory<Teacher>('teachers', 'Update Teacher', d => `Updated teacher: ${d.name || ''}.`);
+  
   const deleteTeacher = async (id: string) => {
     const teacherToDelete = teachers.find(t => t.id === id);
     if (!teacherToDelete) return;

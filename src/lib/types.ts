@@ -40,6 +40,7 @@ export interface Teacher {
   salary: number;
   photoUrl: string;
   assignedSubjects?: string[];
+  status: 'Active' | 'Inactive';
   // Props for printing, not stored in DB
   schoolName?: string;
   schoolAddress?: string;
