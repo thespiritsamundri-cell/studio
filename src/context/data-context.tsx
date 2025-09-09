@@ -203,25 +203,39 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const updateFamily = updateDocFactory<Family>('families', 'Update Family', d => `Updated details for family: ${d.fatherName || ''} (ID: ${d.id}).`);
   const deleteFamily = async (id: string) => {
     try {
-        const batch = writeBatch(db);
-        
-        // Delete family
-        const familyRef = doc(db, 'families', id);
-        batch.delete(familyRef);
-        
-        // Delete all students associated with that family
-        const q = query(collection(db, "students"), where("familyId", "==", id));
-        const querySnapshot = await getDocs(q);
-        querySnapshot.forEach((doc) => {
-            batch.delete(doc.ref);
-        });
+      const batch = writeBatch(db);
 
-        await batch.commit();
+      // Delete family document
+      const familyRef = doc(db, 'families', id);
+      batch.delete(familyRef);
 
-        await addActivityLog({ user: 'Admin', action: 'Delete Family', description: `Deleted family ID: ${id} and all associated students.` });
+      // Query and delete associated students
+      const studentsQuery = query(collection(db, 'students'), where('familyId', '==', id));
+      const studentsSnapshot = await getDocs(studentsQuery);
+      studentsSnapshot.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+      
+      // Query and delete associated fees
+      const feesQuery = query(collection(db, 'fees'), where('familyId', '==', id));
+      const feesSnapshot = await getDocs(feesQuery);
+      feesSnapshot.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+
+      await batch.commit();
+
+      await addActivityLog({
+        user: 'Admin',
+        action: 'Delete Family',
+        description: `Deleted family ID: ${id} along with ${studentsSnapshot.size} student(s) and ${feesSnapshot.size} fee record(s).`,
+      });
+
+      toast({ title: 'Family Deleted', description: 'The family and all associated records have been permanently deleted.' });
+      
     } catch (e) {
-        console.error(`Error deleting family and students:`, e);
-        toast({ title: `Error deleting family`, variant: "destructive" });
+      console.error('Error deleting family and associated data:', e);
+      toast({ title: 'Error Deleting Family', variant: 'destructive' });
     }
   };
 
