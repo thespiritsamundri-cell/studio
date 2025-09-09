@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Lock, Search, User, Home } from 'lucide-react';
+import { Lock, Search, User, Home, School } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -53,7 +53,8 @@ export function Header() {
   const [dateTime, setDateTime] = useState<Date | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [openSupportDialog, setOpenSupportDialog] = useState(false);
 
   useEffect(() => {
@@ -84,7 +85,6 @@ export function Header() {
             family.id.toLowerCase().includes(query)
         ).map(f => ({ type: 'family', data: f }));
         
-        // Combine and remove duplicate families that might be implicitly found via students
         const combinedResults = [...studentResults, ...familyResults];
         const uniqueResults: SearchResult[] = [];
         const seen = new Set<string>();
@@ -105,11 +105,11 @@ export function Header() {
             }
         }
 
-      setSearchResults(uniqueResults.slice(0, 7)); // Limit to 7 results
-      setIsDropdownOpen(true);
+      setSearchResults(uniqueResults.slice(0, 7)); 
+      setIsSearchDropdownOpen(true);
     } else {
       setSearchResults([]);
-      setIsDropdownOpen(false);
+      setIsSearchDropdownOpen(false);
     }
   };
 
@@ -121,7 +121,7 @@ export function Header() {
     }
     setSearchQuery('');
     setSearchResults([]);
-    setIsDropdownOpen(false);
+    setIsSearchDropdownOpen(false);
   }
 
 
@@ -141,10 +141,10 @@ export function Header() {
             className="w-full rounded-lg bg-card pl-8 md:w-[200px] lg:w-[280px]"
             value={searchQuery}
             onChange={handleSearchChange}
-            onBlur={() => setTimeout(() => setIsDropdownOpen(false), 150)}
-            onFocus={() => searchQuery.length > 1 && setIsDropdownOpen(true)}
+            onBlur={() => setTimeout(() => setIsSearchDropdownOpen(false), 150)}
+            onFocus={() => searchQuery.length > 1 && setIsSearchDropdownOpen(true)}
           />
-          {isDropdownOpen && searchResults.length > 0 && (
+          {isSearchDropdownOpen && searchResults.length > 0 && (
             <div className="absolute top-full mt-2 w-full max-w-md rounded-md border bg-card shadow-lg z-50">
               <ul>
                 {searchResults.map((result, index) => (
@@ -194,16 +194,16 @@ export function Header() {
             <Lock className="h-4 w-4" />
             <span className="sr-only">Lock screen</span>
         </Button>
-        <DropdownMenu>
+        <DropdownMenu open={isUserDropdownOpen} onOpenChange={setIsUserDropdownOpen}>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+             <Button variant="ghost" className="relative h-9 w-9 rounded-full" onMouseEnter={() => setIsUserDropdownOpen(true)}>
               <Avatar className="h-9 w-9">
-                <AvatarImage src="https://picsum.photos/id/237/100" alt="Admin" data-ai-hint="person avatar" />
-                <AvatarFallback>AD</AvatarFallback>
+                <AvatarImage src={settings.schoolLogo || "https://picsum.photos/id/237/100"} alt={settings.schoolName} />
+                <AvatarFallback><School /></AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" onMouseLeave={() => setIsUserDropdownOpen(false)}>
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
