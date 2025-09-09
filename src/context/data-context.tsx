@@ -464,7 +464,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const batch = writeBatch(db);
       
       newAttendances.forEach(att => {
-        // Create a composite key for the document ID
         const docId = `${att.studentId}_${att.date}`;
         const docRef = doc(db, 'attendances', docId);
         batch.set(docRef, att);
@@ -472,6 +471,59 @@ export function DataProvider({ children }: { children: ReactNode }) {
   
       await batch.commit();
       await addActivityLog({ user: 'Admin', action: 'Save Student Attendance', description: `Saved attendance for class ${className} on date: ${date}.` });
+  
+      // Post-save checks for deactivation
+      const studentsToCheck = newAttendances
+        .filter(a => a.status === 'Absent')
+        .map(a => a.studentId);
+  
+      for (const studentId of studentsToCheck) {
+        const student = students.find(s => s.id === studentId);
+        if (!student || student.status !== 'Active') continue;
+  
+        const start = startOfMonth(new Date(date));
+        const end = endOfMonth(new Date(date));
+        
+        const q = query(
+          collection(db, 'attendances'),
+          where('studentId', '==', studentId),
+          where('date', '>=', format(start, 'yyyy-MM-dd')),
+          where('date', '<=', format(end, 'yyyy-MM-dd')),
+          where('status', '==', 'Absent')
+        );
+        const querySnapshot = await getDocs(q);
+        const absenceCount = querySnapshot.size;
+  
+        if (absenceCount >= 3) {
+          await updateStudent(studentId, { status: 'Inactive' });
+          const family = families.find(f => f.id === student.familyId);
+          const message = `Dear Parent, your child, ${student.name}, has been marked inactive due to 3 or more absences this month. Please contact the school office to discuss this matter.`;
+          
+          toast({
+            title: 'Student Deactivated',
+            description: `${student.name} has been automatically deactivated due to ${absenceCount} absences.`,
+            variant: 'destructive',
+          });
+          addActivityLog({ user: 'System', action: 'Auto-deactivate Student', description: `Deactivated ${student.name} for ${absenceCount} absences.` });
+  
+          if (family) {
+            try {
+              await sendWhatsAppMessage(
+                family.phone,
+                message,
+                settings.whatsappApiUrl,
+                settings.whatsappApiKey,
+                settings.whatsappInstanceId,
+                settings.whatsappPriority
+              );
+              addActivityLog({ user: 'System', action: 'Send Deactivation Notice', description: `Sent deactivation notice to parents of ${student.name}.` });
+            } catch (e) {
+              console.error(`Failed to send deactivation message for ${student.name}:`, e);
+              toast({ title: "WhatsApp Failed", description: `Could not send deactivation notice for ${student.name}.`, variant: "destructive" });
+            }
+          }
+        }
+      }
     } catch (e) {
       console.error('Error saving student attendance: ', e);
       toast({ title: 'Error Saving Attendance', variant: 'destructive' });
