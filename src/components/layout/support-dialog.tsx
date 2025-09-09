@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Mail, Briefcase } from 'lucide-react';
-import { Separator } from '../ui/separator';
 import Image from 'next/image';
 
 const FacebookIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -68,9 +67,8 @@ export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
                 </Button>
             </div>
         </div>
-        <DialogFooter className="flex-col items-center gap-2 pt-4">
+        <DialogFooter className="flex-col items-center gap-4 pt-4 border-t">
            <p className="text-sm font-semibold text-center text-gray-700">Schoolup – Because Smart Schools Deserve a Unique Platform.</p>
-           <Separator className="my-2" />
            <p className="text-xs text-muted-foreground">Developed by "Mian Muhammad Mudassar"</p>
           <div className="flex items-center gap-4">
               <Link href="https://wa.link/j5f42q" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
