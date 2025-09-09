@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Mail, Briefcase } from 'lucide-react';
 import { Separator } from '../ui/separator';
+import Image from 'next/image';
 
 const FacebookIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -47,12 +48,12 @@ export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
         <DialogHeader>
             <div className="flex items-center justify-center flex-col gap-2 pt-4">
                  <div className="p-3 rounded-full bg-primary/10">
-                    <Briefcase className="w-8 h-8 text-primary" />
+                    <Image src="https://firebasestorage.googleapis.com/v0/b/educentral-mxfgr.appspot.com/o/images%2Flogo.png?alt=media&token=2621443c-6902-4467-9b2f-7679d2800334" alt="SchoolUp Logo" width={64} height={64} className="object-contain" />
                  </div>
                 <DialogTitle className="text-2xl">Support</DialogTitle>
             </div>
           <DialogDescription className="text-center px-4">
-            Assistance and contact information for the Schoolup platform.
+            Contact Information for the SchoolUp Platform.
           </DialogDescription>
         </DialogHeader>
         <div className="py-4 px-2 text-sm text-center text-foreground space-y-3">
@@ -67,9 +68,10 @@ export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
                 </Button>
             </div>
         </div>
-        <DialogFooter className="flex-col items-center gap-4 pt-6 border-t">
-          <p className="text-sm font-semibold text-center text-gray-700">Schoolup – Because Smart Schools Deserve a Unique Platform.</p>
-          <div className="text-xs text-muted-foreground">Developed by "Mian Muhammad Mudassar"</div>
+        <DialogFooter className="flex-col items-center gap-2 pt-4">
+           <p className="text-sm font-semibold text-center text-gray-700">Schoolup – Because Smart Schools Deserve a Unique Platform.</p>
+           <Separator className="my-2" />
+           <p className="text-xs text-muted-foreground">Developed by "Mian Muhammad Mudassar"</p>
           <div className="flex items-center gap-4">
               <Link href="https://wa.link/j5f42q" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                   <WhatsappIcon className="h-5 w-5" />
