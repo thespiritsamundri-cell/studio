@@ -22,6 +22,7 @@ import { useSettings } from '@/context/settings-context';
 import { useData } from '@/context/data-context';
 import type { Student, Family } from '@/lib/types';
 import { SupportDialog } from './support-dialog';
+import { ThemeToggle } from './theme-toggle';
 
 function getTitleFromPathname(pathname: string): string {
   if (pathname === '/dashboard') return 'Dashboard';
@@ -190,6 +191,7 @@ export function Header() {
               </div>
            </div>
          )}
+        <ThemeToggle />
         <Button variant="ghost" size="icon" onClick={handleLockClick} className="hidden lg:inline-flex">
             <Lock className="h-4 w-4" />
             <span className="sr-only">Lock screen</span>
