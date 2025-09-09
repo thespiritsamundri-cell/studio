@@ -29,7 +29,6 @@ export default function RootLayout({
             <AppClientLayout>
               {children}
             </AppClientLayout>
-            <Toaster />
           </SettingsProvider>
         </ThemeProvider>
       </body>
