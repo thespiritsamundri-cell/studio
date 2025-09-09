@@ -16,6 +16,21 @@ import { useSettings } from '@/context/settings-context';
 import LockPage from '../lock/page';
 import { Preloader } from '@/components/ui/preloader';
 
+function getTitleFromPathname(pathname: string): string {
+  if (pathname === '/dashboard') return 'Dashboard';
+  const parts = pathname.split('/').filter(Boolean);
+  if (parts.length === 0) return 'Dashboard';
+  
+  const lastPart = parts[parts.length - 1];
+  
+  if (lastPart === 'details' || lastPart === 'edit') {
+    const parent = parts[parts.length - 2];
+    return parent.charAt(0).toUpperCase() + parent.slice(1) + ' ' + lastPart.charAt(0).toUpperCase() + lastPart.slice(1);
+  }
+  
+  return lastPart.replace(/-/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+}
+
 
 function InactivityDetector() {
   const router = useRouter();
@@ -99,10 +114,17 @@ function AuthWrapper({ children }: { children: ReactNode }) {
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [isClient, setIsClient] = useState(false);
   const pathname = usePathname();
+  const { settings } = useSettings();
 
   useEffect(() => {
     setIsClient(true);
   }, []);
+  
+  useEffect(() => {
+      const pageTitle = getTitleFromPathname(pathname);
+      document.title = `${pageTitle} | ${settings.schoolName}`;
+  }, [pathname, settings.schoolName]);
+
 
   if (pathname === '/lock') {
       return <LockPage />;

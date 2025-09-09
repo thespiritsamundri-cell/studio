@@ -20,8 +20,6 @@ export default function AppClientLayout({
 
   useEffect(() => {
     // This code now runs only on the client, after hydration
-    document.title = settings.schoolName || "EduCentral";
-    
     let favicon = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
     if (!favicon) {
       favicon = document.createElement("link");
