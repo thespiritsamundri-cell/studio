@@ -25,6 +25,7 @@ interface DataContextType {
   timetables: Timetable[];
   addStudent: (student: Student) => Promise<void>;
   updateStudent: (id: string, student: Partial<Student>) => Promise<void>;
+  updateAlumni: (id: string, alumni: Partial<Alumni>) => Promise<void>;
   deleteStudent: (id: string) => Promise<void>;
   addFamily: (family: Family) => Promise<void>;
   updateFamily: (id: string, family: Partial<Family>) => Promise<void>;
@@ -225,6 +226,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
     } catch (e) {
         console.error("Error archiving student:", e);
         toast({ title: "Archive Failed", description: "Could not archive student.", variant: "destructive" });
+    }
+  };
+
+  // --- ALUMNI ---
+  const updateAlumni = async (id: string, alumniData: Partial<Alumni>) => {
+    const alumniRef = doc(db, 'alumni', id);
+    try {
+      await setDoc(alumniRef, alumniData, { merge: true });
+      await addActivityLog({ user: 'Admin', action: 'Update Alumni', description: `Updated details for alumnus: ${alumniData.name || ''} (ID: ${id}).` });
+    } catch (e) {
+      console.error("Error updating alumnus:", e);
+      toast({ title: "Error updating alumnus", variant: "destructive" });
     }
   };
 
@@ -543,6 +556,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       timetables,
       addStudent,
       updateStudent, 
+      updateAlumni,
       deleteStudent,
       addFamily,
       updateFamily, 

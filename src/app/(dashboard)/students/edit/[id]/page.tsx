@@ -11,35 +11,51 @@ import { useData } from '@/context/data-context';
 import { notFound, useRouter, useParams } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
-import type { Student } from '@/lib/types';
+import type { Student, Alumni } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 
 export default function EditStudentPage() {
   const router = useRouter();
   const params = useParams();
-  const { students, updateStudent, classes } = useData();
+  const { students, alumni, updateStudent, updateAlumni, classes } = useData();
   const { toast } = useToast();
-  const [student, setStudent] = useState<Student | undefined>(undefined);
+  const [student, setStudent] = useState<Student | Alumni | undefined>(undefined);
+  const [isAlumnus, setIsAlumnus] = useState(false);
 
   useEffect(() => {
-    const studentData = students.find((s) => s.id === params.id);
+    const studentId = params.id as string;
+    let studentData = students.find((s) => s.id === studentId);
     if (studentData) {
       setStudent(studentData);
+      setIsAlumnus(false);
     } else {
-      // notFound();
+      let alumniData = alumni.find((a) => a.id === studentId);
+      if (alumniData) {
+        setStudent(alumniData);
+        setIsAlumnus(true);
+      }
     }
-  }, [params.id, students]);
+  }, [params.id, students, alumni]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (student) {
-        updateStudent(student.id, student);
+      if (isAlumnus) {
+        await updateAlumni(student.id, student as Alumni);
         toast({
-        title: 'Student Updated',
-        description: `${student?.name}'s information has been successfully updated.`,
+          title: 'Alumnus Updated',
+          description: `${student?.name}'s information has been successfully updated.`,
+        });
+        router.push('/alumni');
+      } else {
+        await updateStudent(student.id, student as Student);
+        toast({
+          title: 'Student Updated',
+          description: `${student?.name}'s information has been successfully updated.`,
         });
         router.push('/students');
+      }
     }
   };
   
@@ -48,7 +64,7 @@ export default function EditStudentPage() {
     setStudent(prev => prev ? { ...prev, [id]: value } : undefined);
   }
 
-  const handleSelectChange = (id: keyof Student) => (value: string) => {
+  const handleSelectChange = (id: keyof (Student | Alumni)) => (value: string) => {
     setStudent(prev => prev ? { ...prev, [id]: value } : undefined);
   }
 
@@ -111,7 +127,7 @@ export default function EditStudentPage() {
                 data-ai-hint="student photo"
             />
             <div>
-                <CardTitle className="flex items-center gap-2">{student.name} <Badge variant={student.status === 'Active' ? 'default' : 'destructive'} className={student.status === 'Active' ? 'bg-green-500/20 text-green-700 border-green-500/30' : ''}>{student.status}</Badge></CardTitle>
+                <CardTitle className="flex items-center gap-2">{student.name} <Badge variant={'status' in student && student.status === 'Active' ? 'default' : 'destructive'} className={'status' in student && student.status === 'Active' ? 'bg-green-500/20 text-green-700 border-green-500/30' : ''}>{'status' in student ? student.status : 'Graduated'}</Badge></CardTitle>
                 <CardDescription>Update the student's information below.</CardDescription>
             </div>
           </div>
@@ -160,9 +176,10 @@ export default function EditStudentPage() {
                     </SelectContent>
                 </Select>
             </div>
+            {'status' in student && 
              <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
-              <Select value={student.status} onValueChange={handleSelectChange('status')}>
+              <Select value={student.status} onValueChange={handleSelectChange('status')} disabled={isAlumnus}>
                 <SelectTrigger id="status">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
@@ -174,6 +191,7 @@ export default function EditStudentPage() {
                 </SelectContent>
               </Select>
             </div>
+            }
             <div className="space-y-2">
               <Label htmlFor="familyId">Family Number</Label>
               <Input id="familyId" value={student.familyId} onChange={handleInputChange} placeholder="Enter existing or new family number" />
