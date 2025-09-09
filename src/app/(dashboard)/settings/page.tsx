@@ -776,7 +776,10 @@ export default function SettingsPage() {
                             {Array.from({length: 8}, (_, i) => `style${i+1}`).map(styleName => (
                                 <div key={styleName}>
                                     <RadioGroupItem value={styleName} id={styleName} className="sr-only" />
-                                    <Label htmlFor={styleName} className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                                    <Label 
+                                        htmlFor={styleName}
+                                        className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                                    >
                                        <div className="flex items-center justify-center h-16 w-16">
                                           <Preloader style={styleName} />
                                        </div>
