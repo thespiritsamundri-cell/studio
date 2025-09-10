@@ -266,7 +266,7 @@ export default function AdmissionsPage() {
                         settings.whatsappInstanceId,
                         settings.whatsappPriority
                     );
-                     addActivityLog({ user: 'System', action: 'Admission Message', description: `Sent admission confirmation to ${newStudent.name}.` });
+                     addActivityLog({ user: 'System', action: 'Send WhatsApp Message', description: `Sent admission confirmation to 1 recipient.` });
                 } catch (error) {
                      console.error("Failed to send admission WhatsApp message:", error);
                 }

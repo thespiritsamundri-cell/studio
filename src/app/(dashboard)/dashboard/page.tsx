@@ -37,12 +37,16 @@ export default function DashboardPage() {
     
     const messagesSentToday = useMemo(() => {
         if (!today) return 0;
-        return activityLog.filter(log => {
-            return log.action === 'Send Custom Message' && isToday(new Date(log.timestamp));
-        }).reduce((total, log) => {
-            const match = log.description.match(/Sent message to (\d+)/);
-            return total + (match ? parseInt(match[1], 10) : 0);
-        }, 0);
+        return activityLog
+            .filter(log => {
+                const logIsToday = isToday(new Date(log.timestamp));
+                // Count all WhatsApp messages, regardless of origin
+                return logIsToday && (log.action.includes('Send') && log.action.includes('Message'));
+            })
+            .reduce((total, log) => {
+                const match = log.description.match(/to (\d+)/);
+                return total + (match ? parseInt(match[1], 10) : 1);
+            }, 0);
     }, [activityLog, today]);
 
     const { monthlyIncome, monthlyExpenses, netProfitThisMonth } = useMemo(() => {

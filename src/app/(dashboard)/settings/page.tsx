@@ -299,7 +299,7 @@ export default function SettingsPage() {
     switch (sendTarget) {
         case 'all':
             recipients = families.map(f => ({ phone: f.phone, context: { '{father_name}': f.fatherName, '{school_name}': settings.schoolName } }));
-            targetDescription = 'all families';
+            targetDescription = `all ${recipients.length} families`;
             break;
         case 'class':
             if (!targetClass) {
@@ -364,6 +364,8 @@ export default function SettingsPage() {
 
     toast({ title: 'Sending Messages', description: `Preparing to send messages to ${recipients.length} recipient(s).` });
     
+    addActivityLog({ user: 'Admin', action: 'Send WhatsApp Message', description: `Sent custom message to ${recipients.length} recipients in ${targetDescription}.` });
+    
     let successCount = 0;
     for (const recipient of recipients) {
         let personalizedMessage = message;
@@ -382,7 +384,6 @@ export default function SettingsPage() {
         }
     }
     
-    addActivityLog({ user: 'Admin', action: 'Send Custom Message', description: `Sent message to ${successCount} recipients in ${targetDescription}.` });
     toast({ title: 'Process Complete', description: `Successfully sent messages to ${successCount} out of ${recipients.length} recipients.` });
     setIsSending(false);
   };

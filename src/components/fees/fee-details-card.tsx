@@ -139,6 +139,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                         settings.whatsappInstanceId,
                         settings.whatsappPriority
                     );
+                    addActivityLog({ user: 'System', action: 'Send WhatsApp Message', description: 'Sent fee payment receipt to 1 recipient.' });
                 } catch (error) {
                     console.error("Failed to send payment receipt.", error);
                 }
