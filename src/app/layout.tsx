@@ -4,6 +4,12 @@ import { SettingsProvider } from '@/context/settings-context'
 import AppClientLayout from '@/app/app-client-layout'
 import { fontVariables } from '@/app/font-config'
 import { ThemeProvider } from '@/components/layout/theme-provider'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  manifest: '/manifest.json',
+}
+
 
 export default function RootLayout({
   children,
