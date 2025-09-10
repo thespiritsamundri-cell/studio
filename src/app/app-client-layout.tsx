@@ -47,19 +47,14 @@ export default function AppClientLayout({
 
   // Effect for Favicon ONLY
   useEffect(() => {
-    const head = document.getElementsByTagName("head")[0];
-    // Remove any existing favicon link
-    const existingFavicon = document.querySelector("link[rel~='icon']");
-    if (existingFavicon) {
-      head.removeChild(existingFavicon);
+    let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+    if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.getElementsByTagName('head')[0].appendChild(link);
     }
-  
-    // Create and append the new favicon link
-    const newFavicon = document.createElement("link");
-    newFavicon.rel = "icon";
-    // Append a timestamp to the URL to force the browser to reload the icon, bypassing the cache.
-    newFavicon.href = `${settings.favicon || "/favicon.ico"}?v=${new Date().getTime()}`;
-    head.appendChild(newFavicon);
+    // Use a timestamp as a key to force browser to reload the icon
+    link.href = `${settings.favicon || "/favicon.ico"}?v=${new Date().getTime()}`;
   }, [settings.favicon]);
   
   // Effect for Font and Theme Colors ONLY
