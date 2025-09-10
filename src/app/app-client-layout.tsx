@@ -18,8 +18,8 @@ export default function AppClientLayout({
   const [loading, setLoading] = useState(false);
   const [previousPath, setPreviousPath] = useState(pathname);
 
+  // Effect for Favicon ONLY
   useEffect(() => {
-    // This code now runs only on the client, after hydration
     let favicon = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
     if (!favicon) {
       favicon = document.createElement("link");
@@ -27,7 +27,10 @@ export default function AppClientLayout({
       document.getElementsByTagName("head")[0].appendChild(favicon);
     }
     favicon.href = settings.favicon || "/favicon.ico";
-
+  }, [settings.favicon]);
+  
+  // Effect for Font and Theme Colors ONLY
+  useEffect(() => {
     const selectedFont = fontMap[settings.font as keyof typeof fontMap] || inter;
     
     const allFontClasses = Object.values(fontMap).map(font => font.variable);
@@ -40,8 +43,7 @@ export default function AppClientLayout({
             root.style.setProperty(`--${key}`, value);
         }
     }
-
-  }, [settings]);
+  }, [settings.font, settings.themeColors]);
 
    useEffect(() => {
     if (pathname !== previousPath) {

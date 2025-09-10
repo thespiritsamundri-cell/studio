@@ -126,7 +126,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }, [pathname, settings.schoolName]);
 
 
-  if (pathname === '/lock') {
+  if (isClient && pathname === '/lock') {
       return <LockPage />;
   }
 

@@ -48,6 +48,12 @@ export default function LoginPage() {
     setIsClient(true);
   }, []);
 
+  useEffect(() => {
+      if (settings.schoolName) {
+        document.title = `${settings.schoolName} | Login`;
+      }
+  }, [settings.schoolName]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);

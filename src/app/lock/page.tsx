@@ -53,6 +53,12 @@ export default function LockPage() {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+      if (settings.schoolName) {
+        document.title = `${settings.schoolName} | Locked`;
+      }
+  }, [settings.schoolName]);
   
   const [animatedSchoolName, setAnimatedSchoolName] = useState('');
   useEffect(() => {
