@@ -1,6 +1,5 @@
 import './globals.css'
 import './print-styles.css'
-import { Toaster } from '@/components/ui/toaster'
 import { SettingsProvider } from '@/context/settings-context'
 import AppClientLayout from '@/app/app-client-layout'
 import { fontVariables } from '@/app/font-config'

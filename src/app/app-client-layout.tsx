@@ -8,6 +8,25 @@ import { Toaster } from "@/components/ui/toaster";
 import { Preloader } from "@/components/ui/preloader";
 import { usePathname } from "next/navigation";
 
+function getTitleFromPathname(pathname: string): string {
+  if (pathname === '/lock') return 'Locked';
+  if (pathname === '/') return 'Login';
+  if (pathname === '/dashboard') return 'Dashboard';
+
+  const parts = pathname.split('/').filter(Boolean);
+  if (parts.length === 0) return 'Dashboard';
+  
+  const lastPart = parts[parts.length - 1];
+  
+  if (lastPart === 'details' || lastPart === 'edit') {
+    const parent = parts[parts.length - 2] || '';
+    return parent.charAt(0).toUpperCase() + parent.slice(1) + ' ' + lastPart.charAt(0).toUpperCase() + lastPart.slice(1);
+  }
+  
+  return lastPart.replace(/-/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+}
+
+
 export default function AppClientLayout({
   children,
 }: {
@@ -17,6 +36,14 @@ export default function AppClientLayout({
   const pathname = usePathname();
   const [loading, setLoading] = useState(false);
   const [previousPath, setPreviousPath] = useState(pathname);
+
+  // Effect for Page Title
+  useEffect(() => {
+    const pageTitle = getTitleFromPathname(pathname);
+    const schoolName = settings.schoolName || 'EduCentral';
+    document.title = `${pageTitle} | ${schoolName}`;
+  }, [pathname, settings.schoolName]);
+
 
   // Effect for Favicon ONLY
   useEffect(() => {
