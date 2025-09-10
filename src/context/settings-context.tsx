@@ -1,8 +1,7 @@
 
-
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { Grade, MessageTemplate } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -96,75 +95,85 @@ const defaultSettings: SchoolSettings = {
 export const SettingsContext = createContext<{
   settings: SchoolSettings;
   setSettings: React.Dispatch<React.SetStateAction<SchoolSettings>>;
+  saveSettings: (newSettings: SchoolSettings) => Promise<void>;
 }>({
   settings: defaultSettings,
   setSettings: () => {},
+  saveSettings: async () => {},
 });
 
 export const SettingsProvider = ({ children }: { children: React.ReactNode }) => {
   const [settings, setSettings] = useState<SchoolSettings>(defaultSettings);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Function to save only branding assets to Firestore
-  const saveBrandingToFirestore = async (logoUrl: string, faviconUrl: string) => {
+  // Function to save settings to both Firestore and local storage
+  const saveSettings = useCallback(async (newSettings: SchoolSettings) => {
     try {
-      const brandingRef = doc(db, 'branding', 'school-assets');
-      await setDoc(brandingRef, { schoolLogo: logoUrl, favicon: faviconUrl }, { merge: true });
+      // Update state immediately for responsiveness
+      setSettings(newSettings);
+
+      // Save to Firestore
+      const settingsRef = doc(db, 'settings', 'school-settings');
+      await setDoc(settingsRef, newSettings);
+
+      // Save to local storage as a backup
+      localStorage.setItem('schoolSettings', JSON.stringify(newSettings));
     } catch (error) {
-      console.error("Failed to save branding assets to Firestore:", error);
+      console.error("Failed to save settings:", error);
     }
+  }, []);
+
+  // Effect to load settings on initial app load
+  useEffect(() => {
+    const loadSettings = async () => {
+      let loadedSettings = defaultSettings;
+      try {
+        // Prioritize loading from Firestore
+        const settingsRef = doc(db, 'settings', 'school-settings');
+        const docSnap = await getDoc(settingsRef);
+
+        if (docSnap.exists()) {
+          // If Firestore has data, it's the source of truth
+          loadedSettings = { ...defaultSettings, ...docSnap.data() } as SchoolSettings;
+        } else {
+          // If no data in Firestore, try localStorage (e.g., offline or first time)
+          const localSettings = localStorage.getItem('schoolSettings');
+          if (localSettings) {
+            loadedSettings = { ...defaultSettings, ...JSON.parse(localSettings) };
+          }
+          // Save default/local settings to Firestore if it was empty
+          await setDoc(settingsRef, loadedSettings);
+        }
+      } catch (error) {
+        console.error("Error loading settings from Firestore, trying localStorage:", error);
+        // Fallback to local storage if Firestore fails
+        const localSettings = localStorage.getItem('schoolSettings');
+        if (localSettings) {
+          loadedSettings = { ...defaultSettings, ...JSON.parse(localSettings) };
+        }
+      } finally {
+        setSettings(loadedSettings);
+        setIsInitialized(true);
+      }
+    };
+    
+    loadSettings();
+  }, []);
+  
+  // Create a new context value that includes the save function
+  const contextValue = {
+      settings,
+      setSettings: (value: React.SetStateAction<SchoolSettings>) => {
+        const newSettings = typeof value === 'function' ? value(settings) : value;
+        saveSettings(newSettings);
+      },
+      saveSettings,
   };
 
 
-  useEffect(() => {
-    // Load all settings from localStorage and branding from Firestore
-    const loadSettings = async () => {
-      let combinedSettings = { ...defaultSettings };
-      
-      // 1. Load general settings from localStorage
-      try {
-        const savedSettings = localStorage.getItem('schoolSettings');
-        if (savedSettings) {
-          combinedSettings = { ...combinedSettings, ...JSON.parse(savedSettings) };
-        }
-      } catch (error) {
-        console.error('Failed to parse settings from localStorage', error);
-      }
-
-      // 2. Load branding from Firestore, which overwrites local values
-      try {
-          const brandingRef = doc(db, 'branding', 'school-assets');
-          const docSnap = await getDoc(brandingRef);
-          if (docSnap.exists()) {
-              const firestoreBranding = docSnap.data();
-              combinedSettings.schoolLogo = firestoreBranding.schoolLogo || combinedSettings.schoolLogo;
-              combinedSettings.favicon = firestoreBranding.favicon || combinedSettings.favicon;
-          }
-      } catch (error) {
-          console.error("Failed to load branding from Firestore:", error);
-      }
-      
-      setSettings(combinedSettings);
-      setIsInitialized(true);
-    };
-
-    loadSettings();
-  }, []);
-
-  useEffect(() => {
-    if (isInitialized) {
-        // Save general settings to localStorage
-        const { schoolLogo, favicon, ...otherSettings } = settings;
-        localStorage.setItem('schoolSettings', JSON.stringify(otherSettings));
-
-        // Save branding to Firestore
-        saveBrandingToFirestore(schoolLogo, favicon);
-    }
-  }, [settings, isInitialized]);
-
   return (
-    <SettingsContext.Provider value={{ settings, setSettings }}>
-      {children}
+    <SettingsContext.Provider value={contextValue}>
+      {isInitialized ? children : null}
     </SettingsContext.Provider>
   );
 };
