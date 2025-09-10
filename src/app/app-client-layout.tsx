@@ -11,19 +11,16 @@ import { usePathname } from "next/navigation";
 function getTitleFromPathname(pathname: string): string {
   if (pathname === '/lock') return 'Locked';
   if (pathname === '/') return 'Login';
-  if (pathname === '/dashboard') return 'Dashboard';
-
+  
   const parts = pathname.split('/').filter(Boolean);
   if (parts.length === 0) return 'Dashboard';
   
-  const lastPart = parts[parts.length - 1];
+  const pageName = parts[parts.length - 1].replace(/-/g, ' ');
   
-  if (lastPart === 'details' || lastPart === 'edit') {
-    const parent = parts[parts.length - 2] || '';
-    return parent.charAt(0).toUpperCase() + parent.slice(1) + ' ' + lastPart.charAt(0).toUpperCase() + lastPart.slice(1);
-  }
-  
-  return lastPart.replace(/-/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  return pageName
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 }
 
 
@@ -49,12 +46,13 @@ export default function AppClientLayout({
   useEffect(() => {
     let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
     if (!link) {
-        link = document.createElement('link');
-        link.rel = 'icon';
-        document.getElementsByTagName('head')[0].appendChild(link);
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
     }
     // Use a timestamp as a key to force browser to reload the icon
-    link.href = `${settings.favicon || "/favicon.ico"}?v=${new Date().getTime()}`;
+    const faviconUrl = settings.favicon || '/favicon.ico';
+    link.href = `${faviconUrl}?v=${new Date().getTime()}`;
   }, [settings.favicon]);
   
   // Effect for Font and Theme Colors ONLY
