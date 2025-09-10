@@ -4,6 +4,9 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Grade, MessageTemplate } from '@/lib/types';
+import { db } from '@/lib/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+
 
 export interface SchoolSettings {
   schoolName: string;
@@ -102,22 +105,60 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   const [settings, setSettings] = useState<SchoolSettings>(defaultSettings);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  useEffect(() => {
+  // Function to save only branding assets to Firestore
+  const saveBrandingToFirestore = async (logoUrl: string, faviconUrl: string) => {
     try {
-      const savedSettings = localStorage.getItem('schoolSettings');
-      if (savedSettings) {
-        const parsed = JSON.parse(savedSettings);
-        setSettings({ ...defaultSettings, ...parsed });
-      }
+      const brandingRef = doc(db, 'branding', 'school-assets');
+      await setDoc(brandingRef, { schoolLogo: logoUrl, favicon: faviconUrl }, { merge: true });
     } catch (error) {
-      console.error('Failed to parse settings from localStorage', error);
+      console.error("Failed to save branding assets to Firestore:", error);
     }
-    setIsInitialized(true);
+  };
+
+
+  useEffect(() => {
+    // Load all settings from localStorage and branding from Firestore
+    const loadSettings = async () => {
+      let combinedSettings = { ...defaultSettings };
+      
+      // 1. Load general settings from localStorage
+      try {
+        const savedSettings = localStorage.getItem('schoolSettings');
+        if (savedSettings) {
+          combinedSettings = { ...combinedSettings, ...JSON.parse(savedSettings) };
+        }
+      } catch (error) {
+        console.error('Failed to parse settings from localStorage', error);
+      }
+
+      // 2. Load branding from Firestore, which overwrites local values
+      try {
+          const brandingRef = doc(db, 'branding', 'school-assets');
+          const docSnap = await getDoc(brandingRef);
+          if (docSnap.exists()) {
+              const firestoreBranding = docSnap.data();
+              combinedSettings.schoolLogo = firestoreBranding.schoolLogo || combinedSettings.schoolLogo;
+              combinedSettings.favicon = firestoreBranding.favicon || combinedSettings.favicon;
+          }
+      } catch (error) {
+          console.error("Failed to load branding from Firestore:", error);
+      }
+      
+      setSettings(combinedSettings);
+      setIsInitialized(true);
+    };
+
+    loadSettings();
   }, []);
 
   useEffect(() => {
     if (isInitialized) {
-        localStorage.setItem('schoolSettings', JSON.stringify(settings));
+        // Save general settings to localStorage
+        const { schoolLogo, favicon, ...otherSettings } = settings;
+        localStorage.setItem('schoolSettings', JSON.stringify(otherSettings));
+
+        // Save branding to Firestore
+        saveBrandingToFirestore(schoolLogo, favicon);
     }
   }, [settings, isInitialized]);
 
