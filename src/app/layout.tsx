@@ -6,11 +6,6 @@ import AppClientLayout from '@/app/app-client-layout'
 import { fontVariables } from '@/app/font-config'
 import { ThemeProvider } from '@/components/layout/theme-provider'
 
-export const metadata = {
-  title: 'EduCentral',
-  description: 'A comprehensive school management system.',
-}
-
 export default function RootLayout({
   children,
 }: {
