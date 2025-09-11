@@ -67,6 +67,8 @@ function AuthWrapper({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!loading && !user) {
+      // Clear session storage on logout/session expiry to ensure welcome message shows on next login
+      sessionStorage.removeItem('welcomeShown');
       router.replace('/');
     }
   }, [user, loading, router]);
@@ -104,23 +106,22 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     setIsClient(true);
     
-    // Check if we're coming back from the lock screen
     const unlocked = sessionStorage.getItem('unlocked');
     if (unlocked === 'true') {
+        // Just came from lock screen
         setIsWelcomeBack(true);
         setShowWelcome(true);
         sessionStorage.removeItem('unlocked');
-    } else if (pathname === '/dashboard') {
-        const welcomeShownForThisNav = sessionStorage.getItem('welcomeShownForThisNav');
-        if (welcomeShownForThisNav !== 'true') {
+    } else {
+        // Check for initial session login
+        const welcomeShown = sessionStorage.getItem('welcomeShown');
+        if (welcomeShown !== 'true') {
             setIsWelcomeBack(false);
             setShowWelcome(true);
-            sessionStorage.setItem('welcomeShownForThisNav', 'true');
+            sessionStorage.setItem('welcomeShown', 'true');
         }
-    } else {
-        sessionStorage.removeItem('welcomeShownForThisNav');
     }
-  }, [pathname]);
+  }, []);
 
   if (isClient && pathname === '/lock') {
       return <LockPage />;
