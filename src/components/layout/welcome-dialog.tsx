@@ -35,7 +35,6 @@ export function WelcomeDialog({ open, onOpenChange }: WelcomeDialogProps) {
                 </DialogDescription>
             </DialogHeader>
             <DialogFooter className="flex-col items-center gap-2 pt-4 border-t">
-                <Button onClick={() => onOpenChange(false)}>Continue to Dashboard</Button>
                 <p className="text-xs text-muted-foreground mt-4">Developed by "Mian Muhammad Mudassar"</p>
             </DialogFooter>
         </DialogContent>

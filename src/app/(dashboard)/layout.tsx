@@ -102,11 +102,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setIsClient(true);
-    // Show welcome dialog only once per session when landing on the dashboard
-    const welcomeShown = sessionStorage.getItem('welcomeShown');
-    if (!welcomeShown && pathname === '/dashboard') {
-        setShowWelcome(true);
-        sessionStorage.setItem('welcomeShown', 'true');
+    // Show welcome dialog when landing on dashboard, including after unlock
+    if (pathname === '/dashboard') {
+        // Use a flag to show it only once per navigation to the dashboard
+        const welcomeShownForThisNav = sessionStorage.getItem('welcomeShownForThisNav');
+        if (welcomeShownForThisNav !== 'true') {
+            setShowWelcome(true);
+            sessionStorage.setItem('welcomeShownForThisNav', 'true');
+        }
+    } else {
+        // Reset the flag when navigating away from the dashboard
+        sessionStorage.removeItem('welcomeShownForThisNav');
     }
   }, [pathname]);
 
