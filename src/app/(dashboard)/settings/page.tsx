@@ -185,9 +185,10 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (file) {
         try {
+            toast({ title: 'Uploading...', description: `Uploading ${field}...` });
             const downloadURL = await uploadFile(file, `settings/${field}/${file.name}`);
             setSettings(prev => ({...prev, [field]: downloadURL}));
-            toast({ title: 'Upload Successful', description: `${field} has been uploaded.` });
+            toast({ title: 'Upload Successful', description: `${field} has been uploaded and saved.` });
         } catch (error) {
             console.error(`Error uploading ${field}:`, error);
             toast({ title: 'Upload Failed', variant: 'destructive' });
