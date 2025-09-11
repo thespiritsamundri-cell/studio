@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
 import { Lock, School, LogOut, Phone, MapPin } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { auth } from '@/lib/firebase';
@@ -84,8 +84,7 @@ export default function LockPage() {
     router.push('/');
   }
 
-  const handleUnlock = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleUnlock = useCallback(() => {
     if (!settings.historyClearPin) {
       toast({
         title: 'PIN Not Set',
@@ -110,7 +109,13 @@ export default function LockPage() {
       });
       setPin('');
     }
-  };
+  }, [pin, settings.historyClearPin, toast, router]);
+
+  useEffect(() => {
+    if (pin.length === 4) {
+      handleUnlock();
+    }
+  }, [pin, handleUnlock]);
 
   if (!isClient) {
     return null; // Render nothing on the server to avoid hydration mismatch
@@ -141,7 +146,7 @@ export default function LockPage() {
                 <CardTitle className="text-3xl font-bold font-headline h-10">{animatedSchoolName}</CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleUnlock} className="space-y-4">
+              <form onSubmit={(e) => { e.preventDefault(); handleUnlock(); }} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="pin" className="text-center block">Enter Security PIN to Unlock</Label>
                   <div className="relative">
@@ -154,6 +159,7 @@ export default function LockPage() {
                         onChange={(e) => setPin(e.target.value)}
                         maxLength={4}
                         className="text-center text-lg tracking-[1rem] pl-10"
+                        autoComplete="off"
                     />
                   </div>
                 </div>
