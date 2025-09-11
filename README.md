@@ -27,11 +27,11 @@ This project includes `firestore.rules` and `storage.rules` files with recommend
 
 ## Fixing File Upload Errors (CORS Policy)
 
-If you are seeing a `storage/unknown` error in the console when trying to upload images (like a school logo), you need to update the CORS policy for your Firebase Storage bucket.
+If you are seeing a `storage/unknown` error in the console when trying to upload images (like a school logo), you need to update the CORS policy for your Firebase Storage bucket. This is a common issue and can be fixed with a few command-line steps.
 
-1.  **Install `gcloud`**: If you don't have it, [install the Google Cloud CLI](https://cloud.google.com/sdk/docs/install).
+1.  **Install `gcloud`**: If you don't have it, [install the Google Cloud CLI](https://cloud.google.com/sdk/docs/install). This is the standard tool for managing Google Cloud resources, including your Firebase Storage bucket.
 
-2.  **Create a CORS configuration file**: Create a new file on your local computer named `cors.json` and paste the following content into it:
+2.  **Create a CORS configuration file**: Create a new file on your local computer named `cors.json` and paste the following content into it. This configuration allows your web application to make requests to your storage bucket.
 
     ```json
     [
