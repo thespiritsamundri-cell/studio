@@ -44,10 +44,16 @@ If you are seeing a `storage/unknown` error in the console when trying to upload
     ]
     ```
 
-3.  **Apply the configuration**: Run the following command in your terminal, replacing `[YOUR_BUCKET_URL]` with your actual Firebase Storage bucket URL (e.g., `gs://my-project.appspot.com`):
+3.  **Apply the configuration**: Run one of the following commands in your terminal, replacing `[YOUR_BUCKET_URL]` with your actual Firebase Storage bucket URL (e.g., `gs://my-project.appspot.com`):
 
+    **Recommended (`gcloud`):**
     ```bash
     gcloud storage buckets update [YOUR_BUCKET_URL] --cors-file=cors.json
+    ```
+
+    **Alternative (`gsutil`):**
+    ```bash
+    gsutil cors set cors.json [YOUR_BUCKET_URL]
     ```
 
     You can find your bucket URL at the top of the **Build > Storage > Files** page in your Firebase Console. After running this command, your file uploads should work correctly.
