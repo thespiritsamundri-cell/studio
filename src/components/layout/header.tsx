@@ -55,7 +55,10 @@ export function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
+  
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const [isMobileUserDropdownOpen, setIsMobileUserDropdownOpen] = useState(false);
+
   const [openSupportDialog, setOpenSupportDialog] = useState(false);
 
   useEffect(() => {
@@ -179,16 +182,16 @@ export function Header() {
             <Lock className="h-4 w-4" />
         </Button>
         <ThemeToggle />
-        <DropdownMenu open={isUserDropdownOpen} onOpenChange={setIsUserDropdownOpen}>
+        <DropdownMenu open={isMobileUserDropdownOpen} onOpenChange={setIsMobileUserDropdownOpen}>
           <DropdownMenuTrigger asChild>
-             <Button variant="ghost" className="relative h-9 w-9 rounded-full" onMouseEnter={() => setIsUserDropdownOpen(true)}>
+             <Button variant="ghost" className="relative h-9 w-9 rounded-full">
               <Avatar className="h-9 w-9">
                 <AvatarImage src={settings.schoolLogo || "https://picsum.photos/id/237/100"} alt={settings.schoolName} />
                 <AvatarFallback><School /></AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" onMouseLeave={() => setIsUserDropdownOpen(false)}>
+          <DropdownMenuContent align="end">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
