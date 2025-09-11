@@ -4,6 +4,9 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Grade, MessageTemplate } from '@/lib/types';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
 
 export interface SchoolSettings {
   schoolName: string;
@@ -101,25 +104,53 @@ export const SettingsContext = createContext<{
 export const SettingsProvider = ({ children }: { children: React.ReactNode }) => {
   const [settings, setSettings] = useState<SchoolSettings>(defaultSettings);
   const [isInitialized, setIsInitialized] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
-    try {
-      const savedSettings = localStorage.getItem('schoolSettings');
-      if (savedSettings) {
-        const parsed = JSON.parse(savedSettings);
-        setSettings({ ...defaultSettings, ...parsed });
+    const fetchSettings = async () => {
+        const settingsRef = doc(db, 'meta', 'school-settings');
+        try {
+            const docSnap = await getDoc(settingsRef);
+            if (docSnap.exists()) {
+                const fetchedSettings = docSnap.data() as SchoolSettings;
+                setSettings({ ...defaultSettings, ...fetchedSettings });
+            } else {
+                // If no settings exist in firestore, initialize with defaults
+                await setDoc(settingsRef, defaultSettings);
+                setSettings(defaultSettings);
+            }
+        } catch (error) {
+            console.error('Failed to fetch settings from Firestore:', error);
+            toast({
+              title: "Could not load settings",
+              description: "Falling back to default settings. Your changes may not be saved.",
+              variant: "destructive"
+            });
+        } finally {
+            setIsInitialized(true);
+        }
+    };
+    fetchSettings();
+  }, [toast]);
+
+  useEffect(() => {
+    const saveSettings = async () => {
+      if (isInitialized) {
+        const settingsRef = doc(db, 'meta', 'school-settings');
+        try {
+          await setDoc(settingsRef, settings);
+        } catch (error) {
+          console.error('Failed to save settings to Firestore:', error);
+          toast({
+            title: "Could not save settings",
+            description: "Your recent changes might not be saved.",
+            variant: "destructive"
+          });
+        }
       }
-    } catch (error) {
-      console.error('Failed to parse settings from localStorage', error);
-    }
-    setIsInitialized(true);
-  }, []);
-
-  useEffect(() => {
-    if (isInitialized) {
-        localStorage.setItem('schoolSettings', JSON.stringify(settings));
-    }
-  }, [settings, isInitialized]);
+    };
+    saveSettings();
+  }, [settings, isInitialized, toast]);
 
   return (
     <SettingsContext.Provider value={{ settings, setSettings }}>
