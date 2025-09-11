@@ -1,28 +1,45 @@
+
 rules_version = '2';
 
+// --------------------------------------------------------------------------------
+// WARNING:
+// These rules are open and intended for initial development and testing only.
+// They allow any user to read or write to your entire storage bucket.
+//
+// BEFORE PRODUCTION: You MUST secure these rules.
+// A common secure rule set is provided below. Uncomment it and adapt it to your needs.
+// --------------------------------------------------------------------------------
 service firebase.storage {
   match /b/{bucket}/o {
-    // TEMPORARY: Allow all reads and writes for debugging purposes.
-    // WARNING: This is insecure for production. 
-    // Once the upload issue is resolved, revert to the commented-out rules below.
     match /{allPaths=**} {
+      // Temporary rule for testing file uploads.
       allow read, write: if true;
     }
-
-    /*
-    // SECURE RULES (for production)
-    match /users/{userId}/{allPaths=**} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
-    match /settings/{allPaths=**} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-    match /students/{allPaths=**} {
-        allow read: if true;
-        allow write: if request.auth != null;
-    }
-    */
   }
 }
+
+/*
+// --- RECOMMENDED SECURE RULES ---
+// These rules assume you have an "admins" collection in Firestore where
+// the UID of each admin user is a document ID.
+//
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // All users can read files (e.g., logos, public images)
+    allow read;
+
+    // Only authenticated admins can write files.
+    // This rule checks if the user's UID exists in the /admins/{uid} path in Firestore.
+    // Make sure you have an 'admins' collection with documents whose IDs are the UIDs of your admin users.
+    match /{allPaths=**} {
+      allow write: if request.auth != null && exists(/databases/(default)/documents/admins/$(request.auth.uid));
+    }
+    
+    // Example for user-specific files (e.g., user profile pictures)
+    // match /users/{userId}/{allPaths=**} {
+    //   allow read, write: if request.auth != null && request.auth.uid == userId;
+    // }
+  }
+}
+*/
