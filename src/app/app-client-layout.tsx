@@ -42,17 +42,30 @@ export default function AppClientLayout({
   }, [pathname, settings.schoolName]);
 
 
-  // Effect for Favicon ONLY
+  // Effect for Favicon and Manifest
   useEffect(() => {
-    let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-    if (!link) {
-      link = document.createElement('link');
-      link.rel = 'icon';
-      document.head.appendChild(link);
-    }
-    // Use a timestamp as a key to force browser to reload the icon
     const faviconUrl = settings.favicon || '/favicon.ico';
-    link.href = `${faviconUrl}?v=${new Date().getTime()}`;
+    const uniqueUrl = `${faviconUrl}?v=${new Date().getTime()}`;
+
+    // Update Favicon
+    let faviconLink = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+    if (!faviconLink) {
+      faviconLink = document.createElement('link');
+      faviconLink.rel = 'icon';
+      document.head.appendChild(faviconLink);
+    }
+    faviconLink.href = uniqueUrl;
+
+    // Update Manifest
+    let manifestLink = document.querySelector("link[rel='manifest']") as HTMLLinkElement;
+    if (!manifestLink) {
+        manifestLink = document.createElement('link');
+        manifestLink.rel = 'manifest';
+        document.head.appendChild(manifestLink);
+    }
+    // By re-setting the href, we hint the browser to re-fetch the manifest
+    manifestLink.href = `/manifest.json?v=${new Date().getTime()}`;
+
   }, [settings.favicon]);
   
   // Effect for Font and Theme Colors ONLY

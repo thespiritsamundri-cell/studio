@@ -17,7 +17,8 @@ export async function GET() {
   }
 
   const schoolName = settings.schoolName || 'EduCentral';
-  const favicon = settings.favicon || '/logo.png';
+  // Add a cache-busting query parameter
+  const faviconUrl = `${settings.favicon || '/logo.png'}?v=${new Date().getTime()}`;
 
   const manifest = {
     name: schoolName,
@@ -29,15 +30,16 @@ export async function GET() {
     theme_color: '#6a3fdc', // Default theme color
     icons: [
       {
-        src: favicon,
+        src: faviconUrl,
         sizes: '192x192',
         type: 'image/png',
         purpose: 'any maskable',
       },
       {
-        src: favicon,
+        src: faviconUrl,
         sizes: '512x512',
         type: 'image/png',
+        purpose: 'any maskable',
       },
     ],
   };
