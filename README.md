@@ -57,3 +57,17 @@ If you are seeing a `storage/unknown` error in the console when trying to upload
     ```
 
     You can find your bucket URL at the top of the **Build > Storage > Files** page in your Firebase Console. After running this command, your file uploads should work correctly.
+
+4.  **Verify the configuration**: To confirm that the CORS policy has been applied successfully, run one of the following:
+
+   Using `gcloud`:
+   ```bash
+   gcloud storage buckets describe [YOUR_BUCKET_URL] --format="json(cors)"
+   ```
+
+   Or using `gsutil`:
+   ```bash
+   gsutil cors get [YOUR_BUCKET_URL]
+   ```
+
+    You should see the same JSON you added in `cors.json`.
