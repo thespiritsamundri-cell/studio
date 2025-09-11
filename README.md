@@ -37,7 +37,8 @@ If you are seeing a `storage/unknown` error in the console when trying to upload
     [
       {
         "origin": ["*"],
-        "method": ["GET", "POST", "PUT", "HEAD"],
+        "method": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "responseHeader": ["Content-Type", "Authorization"],
         "maxAgeSeconds": 3600
       }
     ]
