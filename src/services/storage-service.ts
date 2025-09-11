@@ -1,3 +1,4 @@
+
 'use server';
 
 import { storage } from '@/lib/firebase';
@@ -12,10 +13,11 @@ export async function uploadFile(file: File, path: string): Promise<string> {
     return downloadURL;
   } catch (error: any) {
     console.error("Firebase Storage Error:", error.code, error.message);
+    // This is the crucial part: logging the detailed server response.
     if (error.serverResponse) {
         console.error("Raw server response:", error.serverResponse);
     }
-    // Re-throw the original error to be handled by the caller
+    // Re-throw the original error to be handled by the caller, which will show a toast message.
     throw error;
   }
 }
