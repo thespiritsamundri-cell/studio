@@ -146,27 +146,23 @@ export default function LockPage() {
                 <CardTitle className="text-3xl font-bold font-headline h-10">{animatedSchoolName}</CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={(e) => { e.preventDefault(); handleUnlock(); }} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="pin" className="text-center block">Enter Security PIN to Unlock</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        id="pin"
-                        type="password"
-                        required
-                        value={pin}
-                        onChange={(e) => setPin(e.target.value)}
-                        maxLength={4}
-                        className="text-center text-lg tracking-[1rem] pl-10"
-                        autoComplete="off"
-                    />
-                  </div>
+              <div className="space-y-2">
+                <Label htmlFor="pin" className="text-center block">Enter Security PIN to Unlock</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                      id="pin"
+                      type="password"
+                      required
+                      value={pin}
+                      onChange={(e) => setPin(e.target.value)}
+                      maxLength={4}
+                      className="text-center text-lg tracking-[1rem] pl-10"
+                      autoComplete="off"
+                      autoFocus
+                  />
                 </div>
-                <Button type="submit" className="w-full">
-                  Unlock
-                </Button>
-              </form>
+              </div>
               <Button type="button" variant="link" size="sm" className="w-full mt-4 text-muted-foreground" onClick={handleLogoutAndRelogin}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Logout and login with email & password
