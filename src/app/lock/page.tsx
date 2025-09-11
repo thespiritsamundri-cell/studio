@@ -98,7 +98,7 @@ export default function LockPage() {
 
     if (pin === settings.historyClearPin) {
       toast({ title: 'System Unlocked' });
-      sessionStorage.removeItem('locked');
+      sessionStorage.setItem('unlocked', 'true');
       const returnUrl = sessionStorage.getItem('lockedFrom') || '/dashboard';
       sessionStorage.removeItem('lockedFrom'); // Clean up session storage
       router.replace(returnUrl);
@@ -169,7 +169,7 @@ export default function LockPage() {
                 Logout and login with email & password
               </Button>
             </CardContent>
-            <CardFooter className="flex-col gap-4 pt-6 border-t">
+            <CardFooter className="flex-col items-center gap-4 pt-6 border-t">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <MapPin className="h-4 w-4"/>
                     <span>{settings.schoolAddress}</span>
@@ -179,7 +179,7 @@ export default function LockPage() {
                     <span>{settings.schoolPhone}</span>
                 </div>
                 <div className="mt-4 border-t w-full flex flex-col items-center gap-2 pt-4">
-                    <p className="text-xs text-muted-foreground">Developed by "Mian Mudassar"</p>
+                    <p className="text-xs text-muted-foreground">Developed by "Mian Muhammad Mudassar"</p>
                     <div className="flex items-center gap-4">
                         <Link href="https://www.facebook.com/mianmudassar.in" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
                             <FacebookIcon className="h-5 w-5" />

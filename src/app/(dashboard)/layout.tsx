@@ -99,19 +99,25 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [isClient, setIsClient] = useState(false);
   const pathname = usePathname();
   const [showWelcome, setShowWelcome] = useState(false);
+  const [isWelcomeBack, setIsWelcomeBack] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
-    // Show welcome dialog when landing on dashboard, including after unlock
-    if (pathname === '/dashboard') {
-        // Use a flag to show it only once per navigation to the dashboard
+    
+    // Check if we're coming back from the lock screen
+    const unlocked = sessionStorage.getItem('unlocked');
+    if (unlocked === 'true') {
+        setIsWelcomeBack(true);
+        setShowWelcome(true);
+        sessionStorage.removeItem('unlocked');
+    } else if (pathname === '/dashboard') {
         const welcomeShownForThisNav = sessionStorage.getItem('welcomeShownForThisNav');
         if (welcomeShownForThisNav !== 'true') {
+            setIsWelcomeBack(false);
             setShowWelcome(true);
             sessionStorage.setItem('welcomeShownForThisNav', 'true');
         }
     } else {
-        // Reset the flag when navigating away from the dashboard
         sessionStorage.removeItem('welcomeShownForThisNav');
     }
   }, [pathname]);
@@ -137,7 +143,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </div>
           </div>
         </SidebarProvider>
-        {isClient && <WelcomeDialog open={showWelcome} onOpenChange={setShowWelcome} />}
+        {isClient && <WelcomeDialog open={showWelcome} onOpenChange={setShowWelcome} isWelcomeBack={isWelcomeBack} />}
       </DataProvider>
     </AuthWrapper>
   );
