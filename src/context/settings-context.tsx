@@ -126,13 +126,15 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
             }
             
             if (brandingSnap.exists()) {
-                const { schoolLogo, favicon } = brandingSnap.data();
-                if(schoolLogo) fetchedSettings.schoolLogo = schoolLogo;
-                if(favicon) fetchedSettings.favicon = favicon;
+                const brandingData = brandingSnap.data();
+                if(brandingData.schoolLogo) fetchedSettings.schoolLogo = brandingData.schoolLogo;
+                if(brandingData.favicon) fetchedSettings.favicon = brandingData.favicon;
+                if(brandingData.principalSignature) fetchedSettings.principalSignature = brandingData.principalSignature;
             } else {
                 await setDoc(brandingRef, { 
                     schoolLogo: defaultSettings.schoolLogo,
-                    favicon: defaultSettings.favicon
+                    favicon: defaultSettings.favicon,
+                    principalSignature: defaultSettings.principalSignature
                 });
             }
 
@@ -156,16 +158,16 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
     const saveSettings = async () => {
       if (isInitialized) {
         // Separate branding assets from other settings
-        const { schoolLogo, favicon, ...otherSettings } = settings;
+        const { schoolLogo, favicon, principalSignature, ...otherSettings } = settings;
         
         const settingsRef = doc(db, 'meta', 'school-settings');
         const brandingRef = doc(db, 'branding', 'school-assets');
         
         try {
           // Save general settings
-          await setDoc(settingsRef, otherSettings);
+          await setDoc(settingsRef, otherSettings, { merge: true });
           // Save branding assets
-          await setDoc(brandingRef, { schoolLogo, favicon }, { merge: true });
+          await setDoc(brandingRef, { schoolLogo, favicon, principalSignature }, { merge: true });
         } catch (error) {
           console.error('Failed to save settings to Firestore:', error);
           toast({

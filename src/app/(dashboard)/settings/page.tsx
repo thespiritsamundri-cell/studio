@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Bell, BellOff, Lock, AlertTriangle, PlayCircle, Image as ImageIcon, CheckCircle } from 'lucide-react';
+import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Bell, BellOff, Lock, AlertTriangle, PlayCircle, ImageIcon, CheckCircle } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -200,7 +200,7 @@ export default function SettingsPage() {
             toast({ title: 'Upload Successful', description: `${field} has been uploaded and saved.` });
         } catch (error) {
             console.error(`Error uploading ${field}:`, error);
-            toast({ title: 'Upload Failed', variant: 'destructive' });
+            toast({ title: 'Upload Failed', description: 'Could not upload file. Check console and CORS settings.', variant: 'destructive' });
         }
     }
   };
