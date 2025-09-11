@@ -9,9 +9,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogClose,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { School } from 'lucide-react';
 import Image from 'next/image';
@@ -45,11 +43,6 @@ export function WelcomeDialog({ open, onOpenChange, variant }: WelcomeDialogProp
         </DialogHeader>
         <DialogFooter className="flex-col items-center gap-4 pt-4 border-t">
           <p className="text-sm text-muted-foreground">Developed by "Mian Mudassar"</p>
-           <DialogClose asChild>
-            <Button type="button">
-              Continue
-            </Button>
-          </DialogClose>
         </DialogFooter>
       </DialogContent>
     </Dialog>
