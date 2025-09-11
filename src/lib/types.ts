@@ -111,6 +111,7 @@ export interface ActivityLog {
   user: string;
   action: string;
   description: string;
+  recipientCount?: number;
 }
 
 export interface Expense {

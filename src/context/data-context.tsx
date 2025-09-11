@@ -521,7 +521,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                   settings.whatsappInstanceId,
                   settings.whatsappPriority
                 );
-                addActivityLog({ user: 'System', action: 'Send Deactivation Notice', description: `Sent deactivation notice to parents of ${student.name}.` });
+                addActivityLog({ user: 'System', action: 'Send Deactivation Notice', description: `Sent deactivation notice to parents of ${student.name}.`, recipientCount: 1 });
               } catch (e) {
                 console.error(`Failed to send deactivation message for ${student.name}:`, e);
                 toast({ title: "WhatsApp Failed", description: `Could not send deactivation notice for ${student.name}.`, variant: "destructive" });
@@ -604,7 +604,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                                 settings.whatsappInstanceId,
                                 settings.whatsappPriority
                             );
-                            addActivityLog({ user: 'System', action: 'Send Deactivation Notice', description: `Sent deactivation notice to ${teacher.name}.` });
+                            addActivityLog({ user: 'System', action: 'Send Deactivation Notice', description: `Sent deactivation notice to ${teacher.name}.`, recipientCount: 1 });
                         } catch(e) {
                              console.error(`Failed to send deactivation message to ${teacher.name}:`, e);
                              toast({ title: "WhatsApp Failed", description: `Could not send deactivation notice to ${teacher.name}.`, variant: "destructive"});

@@ -364,7 +364,7 @@ export default function SettingsPage() {
 
     toast({ title: 'Sending Messages', description: `Preparing to send messages to ${recipients.length} recipient(s).` });
     
-    addActivityLog({ user: 'Admin', action: 'Send WhatsApp Message', description: `Sent custom message to ${recipients.length} recipients in ${targetDescription}.` });
+    addActivityLog({ user: 'Admin', action: 'Send WhatsApp Message', description: `Sent custom message to ${recipients.length} recipients in ${targetDescription}.`, recipientCount: recipients.length });
     
     let successCount = 0;
     for (const recipient of recipients) {
