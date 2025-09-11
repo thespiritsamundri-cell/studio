@@ -15,6 +15,7 @@ import { Loader2 } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import LockPage from '../lock/page';
 import { Preloader } from '@/components/ui/preloader';
+import { WelcomeDialog } from '@/components/layout/welcome-dialog';
 
 function InactivityDetector() {
   const router = useRouter();
@@ -97,10 +98,17 @@ function AuthWrapper({ children }: { children: ReactNode }) {
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [isClient, setIsClient] = useState(false);
   const pathname = usePathname();
+  const [showWelcome, setShowWelcome] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    // Show welcome dialog only once per session when landing on the dashboard
+    const welcomeShown = sessionStorage.getItem('welcomeShown');
+    if (!welcomeShown && pathname === '/dashboard') {
+        setShowWelcome(true);
+        sessionStorage.setItem('welcomeShown', 'true');
+    }
+  }, [pathname]);
 
   if (isClient && pathname === '/lock') {
       return <LockPage />;
@@ -123,6 +131,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </div>
           </div>
         </SidebarProvider>
+        {isClient && <WelcomeDialog open={showWelcome} onOpenChange={setShowWelcome} />}
       </DataProvider>
     </AuthWrapper>
   );
