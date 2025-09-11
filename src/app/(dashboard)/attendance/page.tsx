@@ -131,7 +131,7 @@ export default function AttendancePage() {
       description: `Sending WhatsApp messages to parents of ${absentStudents.length} absent students.`,
     });
     
-    addActivityLog({ user: 'System', action: 'Send WhatsApp Message', description: `Sending absentee notifications to ${absentStudents.length} recipients for class ${selectedClass}.`});
+    addActivityLog({ user: 'System', action: 'Send WhatsApp Message', description: `Sent absentee notifications to ${absentStudents.length} recipients for class ${selectedClass}.`, recipientCount: absentStudents.length });
     
     let successCount = 0;
     for (const student of absentStudents) {

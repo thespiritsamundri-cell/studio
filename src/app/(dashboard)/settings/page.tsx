@@ -30,6 +30,7 @@ import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 
 import { Switch } from '@/components/ui/switch';
 import { Preloader } from '@/components/ui/preloader';
 import { cn } from '@/lib/utils';
+import { uploadFile } from '@/services/storage-service';
 
 
 export default function SettingsPage() {
@@ -180,14 +181,17 @@ export default function SettingsPage() {
     });
   };
   
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'schoolLogo' | 'principalSignature' | 'favicon') => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: 'schoolLogo' | 'principalSignature' | 'favicon') => {
     const file = e.target.files?.[0];
     if (file) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setSettings(prev => ({...prev, [field]: reader.result as string}));
-        };
-        reader.readAsDataURL(file);
+        try {
+            const downloadURL = await uploadFile(file, `settings/${field}/${file.name}`);
+            setSettings(prev => ({...prev, [field]: downloadURL}));
+            toast({ title: 'Upload Successful', description: `${field} has been uploaded.` });
+        } catch (error) {
+            console.error(`Error uploading ${field}:`, error);
+            toast({ title: 'Upload Failed', variant: 'destructive' });
+        }
     }
   };
 
@@ -364,7 +368,7 @@ export default function SettingsPage() {
 
     toast({ title: 'Sending Messages', description: `Preparing to send messages to ${recipients.length} recipient(s).` });
     
-    addActivityLog({ user: 'Admin', action: 'Send WhatsApp Message', description: `Sent custom message to ${recipients.length} recipients in ${targetDescription}.` });
+    addActivityLog({ user: 'Admin', action: 'Send WhatsApp Message', description: `Sent custom message to ${recipients.length} recipients in ${targetDescription}.`, recipientCount: recipients.length });
     
     let successCount = 0;
     for (const recipient of recipients) {
