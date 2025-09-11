@@ -23,6 +23,7 @@ import { useData } from '@/context/data-context';
 import type { Student, Family } from '@/lib/types';
 import { SupportDialog } from './support-dialog';
 import { ThemeToggle } from './theme-toggle';
+import { cn } from '@/lib/utils';
 
 function getTitleFromPathname(pathname: string): string {
   if (pathname === '/dashboard') return 'Dashboard';
@@ -128,12 +129,34 @@ export function Header() {
 
   return (
     <>
-    <header className="sticky top-0 z-30 flex h-20 items-center gap-4 border-b bg-background px-4 md:px-6">
-       <div className="flex-1">
+    <header className="sticky top-0 z-30 flex h-20 items-center gap-4 border-b bg-background px-4 sm:px-6">
+       <div className="flex items-center gap-2">
         <SidebarTrigger className="md:hidden" />
         <h1 className="text-xl font-semibold hidden md:block">{pageTitle}</h1>
       </div>
-      <div className="flex flex-1 items-center justify-end gap-2 md:gap-4">
+
+      {/* Mobile Header Layout */}
+      <div className="flex md:hidden flex-1 items-center justify-center gap-2">
+         <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Search..."
+            className="w-full rounded-lg bg-card pl-8"
+            value={searchQuery}
+            onChange={handleSearchChange}
+            onBlur={() => setTimeout(() => setIsSearchDropdownOpen(false), 150)}
+            onFocus={() => searchQuery.length > 1 && setIsSearchDropdownOpen(true)}
+          />
+        </div>
+        <Button variant="ghost" size="icon" onClick={handleLockClick}>
+            <Lock className="h-4 w-4" />
+        </Button>
+        <ThemeToggle />
+      </div>
+
+       {/* Desktop Header Layout */}
+      <div className="hidden md:flex flex-1 items-center justify-end gap-2 md:gap-4">
         <div className="relative flex-grow-0">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -196,16 +219,19 @@ export function Header() {
             <Lock className="h-4 w-4" />
             <span className="sr-only">Lock screen</span>
         </Button>
+      </div>
+
+       <div className="flex items-center gap-2">
         <DropdownMenu open={isUserDropdownOpen} onOpenChange={setIsUserDropdownOpen}>
           <DropdownMenuTrigger asChild>
-             <Button variant="ghost" className="relative h-9 w-9 rounded-full" onMouseEnter={() => setIsUserDropdownOpen(true)}>
+             <Button variant="ghost" className="relative h-9 w-9 rounded-full">
               <Avatar className="h-9 w-9">
                 <AvatarImage src={settings.schoolLogo || "https://picsum.photos/id/237/100"} alt={settings.schoolName} />
                 <AvatarFallback><School /></AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" onMouseLeave={() => setIsUserDropdownOpen(false)}>
+          <DropdownMenuContent align="end">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
@@ -218,7 +244,7 @@ export function Header() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-      </div>
+       </div>
     </header>
     <SupportDialog open={openSupportDialog} onOpenChange={setOpenSupportDialog} />
     </>
