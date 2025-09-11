@@ -46,7 +46,11 @@ export default function LoginPage() {
   
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    if(settings.autofillLogin) {
+      setEmail('admin@educentral.com');
+      setPassword('123456');
+    }
+  }, [settings.autofillLogin]);
 
   useEffect(() => {
       if (settings.schoolName) {
@@ -105,7 +109,7 @@ export default function LoginPage() {
           </form>
         </CardContent>
         <CardFooter className="flex-col items-center gap-4 pt-4 border-t">
-           <p className="text-xs text-muted-foreground">Developed by "Mian Mudassar"</p>
+           <p className="text-xs text-muted-foreground">Developed by "Mian Muhammad Mudassar"</p>
            <div className="flex items-center gap-4">
                 <Link href="https://www.facebook.com/mianmudassar.in" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
                     <FacebookIcon className="h-5 w-5" />
