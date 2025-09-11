@@ -30,6 +30,7 @@ import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 
 import { Switch } from '@/components/ui/switch';
 import { Preloader } from '@/components/ui/preloader';
 import { cn } from '@/lib/utils';
+import { uploadFile } from '@/services/storage-service';
 
 
 export default function SettingsPage() {
@@ -79,6 +80,7 @@ export default function SettingsPage() {
   const [resetStep, setResetStep] = useState(1);
   const [resetPin, setResetPin] = useState('');
   const [isResetting, setIsResetting] = useState(false);
+  const [isUploading, setIsUploading] = useState<string | null>(null);
   
 
   const classes = useMemo(() => (dataClasses || []).map(c => c.name), [dataClasses]);
@@ -180,14 +182,20 @@ export default function SettingsPage() {
     });
   };
   
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'schoolLogo' | 'principalSignature' | 'favicon') => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: 'schoolLogo' | 'principalSignature' | 'favicon') => {
     const file = e.target.files?.[0];
     if (file) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setSettings(prev => ({...prev, [field]: reader.result as string}));
-        };
-        reader.readAsDataURL(file);
+        setIsUploading(field);
+        try {
+            const downloadURL = await uploadFile(file, `images/${field}`);
+            setSettings(prev => ({...prev, [field]: downloadURL}));
+            toast({ title: 'Upload Successful', description: `Your ${field.replace('school', '')} has been updated.` });
+        } catch (error) {
+            console.error(`Error uploading ${field}:`, error);
+            toast({ title: 'Upload Failed', description: `Could not upload the ${field}.`, variant: 'destructive' });
+        } finally {
+            setIsUploading(null);
+        }
     }
   };
 
@@ -637,22 +645,23 @@ export default function SettingsPage() {
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="schoolLogo">School Logo</Label>
-                        <Input id="schoolLogoInput" name="schoolLogo" type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'schoolLogo')} className="file:text-primary file:font-medium" />
+                        <Input id="schoolLogoInput" name="schoolLogo" type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'schoolLogo')} className="file:text-primary file:font-medium" disabled={isUploading === 'schoolLogo'}/>
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="principalSignature">Principal's Signature</Label>
-                        <Input id="principalSignatureInput" name="principalSignature" type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'principalSignature')} className="file:text-primary file:font-medium" />
+                        <Input id="principalSignatureInput" name="principalSignature" type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'principalSignature')} className="file:text-primary file:font-medium" disabled={isUploading === 'principalSignature'}/>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="favicon">Favicon (Browser Tab Icon)</Label>
-                        <Input id="faviconInput" name="favicon" type="file" accept="image/x-icon,image/png,image/svg+xml" onChange={(e) => handleFileChange(e, 'favicon')} className="file:text-primary file:font-medium" />
+                        <Input id="faviconInput" name="favicon" type="file" accept="image/x-icon,image/png,image/svg+xml" onChange={(e) => handleFileChange(e, 'favicon')} className="file:text-primary file:font-medium" disabled={isUploading === 'favicon'}/>
                     </div>
                 </div>
                  <div className="flex gap-6">
                     {settings.schoolLogo && (
                         <div className="space-y-2">
                             <Label>Logo Preview</Label>
-                            <div className="flex items-center gap-4 p-4 border rounded-md">
+                            <div className="relative flex items-center gap-4 p-4 border rounded-md">
+                                {isUploading === 'schoolLogo' && <div className="absolute inset-0 bg-background/80 flex items-center justify-center"><Loader2 className="animate-spin"/></div>}
                                 <Image src={settings.schoolLogo} alt="School Logo Preview" width={60} height={60} className="object-contain rounded-md" />
                                 <Button variant="ghost" size="sm" onClick={() => setSettings(prev => ({...prev, schoolLogo: ''}))}>Remove</Button>
                             </div>
@@ -661,7 +670,8 @@ export default function SettingsPage() {
                     {settings.principalSignature && (
                         <div className="space-y-2">
                             <Label>Signature Preview</Label>
-                            <div className="flex items-center gap-4 p-4 border rounded-md bg-white">
+                            <div className="relative flex items-center gap-4 p-4 border rounded-md bg-white">
+                                {isUploading === 'principalSignature' && <div className="absolute inset-0 bg-background/80 flex items-center justify-center"><Loader2 className="animate-spin"/></div>}
                                 <Image src={settings.principalSignature} alt="Principal Signature Preview" width={100} height={60} className="object-contain" />
                                 <Button variant="ghost" size="sm" onClick={() => setSettings(prev => ({...prev, principalSignature: ''}))}>Remove</Button>
                             </div>
@@ -670,7 +680,8 @@ export default function SettingsPage() {
                     {settings.favicon && (
                         <div className="space-y-2">
                             <Label>Favicon Preview</Label>
-                            <div className="flex items-center gap-4 p-4 border rounded-md">
+                            <div className="relative flex items-center gap-4 p-4 border rounded-md">
+                                 {isUploading === 'favicon' && <div className="absolute inset-0 bg-background/80 flex items-center justify-center"><Loader2 className="animate-spin"/></div>}
                                 <Image src={settings.favicon} alt="Favicon Preview" width={32} height={32} className="object-contain" />
                                 <Button variant="ghost" size="sm" onClick={() => setSettings(prev => ({...prev, favicon: ''}))}>Remove</Button>
                             </div>

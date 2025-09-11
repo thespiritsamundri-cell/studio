@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -276,14 +277,14 @@ export function Header() {
           </Button>
           <DropdownMenu open={isUserDropdownOpen} onOpenChange={setIsUserDropdownOpen}>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-9 w-9 rounded-full" onMouseEnter={() => setIsUserDropdownOpen(true)}>
+              <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                 <Avatar className="h-9 w-9">
                   <AvatarImage src={settings.schoolLogo || "https://picsum.photos/id/237/100"} alt={settings.schoolName} />
                   <AvatarFallback><School /></AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" onMouseLeave={() => setIsUserDropdownOpen(false)}>
+            <DropdownMenuContent align="end">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
