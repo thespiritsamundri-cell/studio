@@ -1,4 +1,3 @@
-// src/services/storage-service.ts
 'use server';
 
 import { storage } from '@/lib/firebase';
