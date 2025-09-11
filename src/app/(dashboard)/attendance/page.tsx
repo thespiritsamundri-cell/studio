@@ -148,10 +148,7 @@ export default function AttendancePage() {
             const success = await sendWhatsAppMessage(
                 family.phone, 
                 message,
-                settings.whatsappApiUrl,
-                settings.whatsappApiKey,
-                settings.whatsappInstanceId,
-                settings.whatsappPriority
+                settings
             );
             if(success) successCount++;
             

@@ -246,10 +246,7 @@ export default function AdmissionsPage() {
                     await sendWhatsAppMessage(
                         newStudent.phone, 
                         message,
-                        settings.whatsappApiUrl,
-                        settings.whatsappApiKey,
-                        settings.whatsappInstanceId,
-                        settings.whatsappPriority
+                        settings
                     );
                      addActivityLog({ user: 'System', action: 'Send WhatsApp Message', description: `Sent admission confirmation to 1 recipient.`, recipientCount: 1 });
                 } catch (error) {

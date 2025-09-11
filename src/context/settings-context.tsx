@@ -23,6 +23,8 @@ export interface SchoolSettings {
   whatsappPriority: string;
   whatsappProvider: 'ultramsg' | 'official';
   whatsappConnectionStatus: 'untested' | 'connected' | 'failed';
+  whatsappPhoneNumberId?: string;
+  whatsappAccessToken?: string;
   messageDelay: number;
   historyClearPin?: string;
   autoLockEnabled?: boolean;
@@ -44,7 +46,7 @@ export interface SchoolSettings {
   preloaderStyle?: string;
 }
 
-const defaultSettings: SchoolSettings = {
+export const defaultSettings: SchoolSettings = {
   schoolName: 'The Spirit School Samundri',
   academicYear: '2025-2026',
   schoolAddress: '123 Education Lane, Knowledge City, Pakistan',
@@ -59,6 +61,8 @@ const defaultSettings: SchoolSettings = {
   whatsappPriority: '10',
   whatsappProvider: 'ultramsg',
   whatsappConnectionStatus: 'untested',
+  whatsappPhoneNumberId: '',
+  whatsappAccessToken: '',
   messageDelay: 2,
   historyClearPin: '1234',
   autoLockEnabled: true,

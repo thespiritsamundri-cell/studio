@@ -174,7 +174,7 @@ export default function SettingsPage() {
     setSettings(prev => {
         const valueToSet = isCheckbox ? checked : value;
         const newSettings = {...prev, [id]: valueToSet};
-        if (['whatsappApiUrl', 'whatsappApiKey', 'whatsappInstanceId'].includes(id)) {
+        if (['whatsappApiUrl', 'whatsappApiKey', 'whatsappInstanceId', 'whatsappPhoneNumberId', 'whatsappAccessToken'].includes(id)) {
             newSettings.whatsappConnectionStatus = 'untested';
         }
         return newSettings;
@@ -379,7 +379,7 @@ export default function SettingsPage() {
         }
         
         try {
-             const success = await sendWhatsAppMessage(recipient.phone, personalizedMessage, settings.whatsappApiUrl, settings.whatsappApiKey, settings.whatsappInstanceId, settings.whatsappPriority);
+             const success = await sendWhatsAppMessage(recipient.phone, personalizedMessage, settings);
              if (success) {
                 successCount++;
              }
@@ -406,10 +406,7 @@ export default function SettingsPage() {
             const success = await sendWhatsAppMessage(
                 testPhoneNumber,
                 `This is a test message from ${settings.schoolName}.`, 
-                settings.whatsappApiUrl, 
-                settings.whatsappApiKey, 
-                settings.whatsappInstanceId, 
-                settings.whatsappPriority
+                settings
             );
             if (success) {
                 toast({ title: 'Test Successful', description: 'Your WhatsApp API settings appear to be correct.' });
@@ -942,13 +939,13 @@ export default function SettingsPage() {
                          {settings.whatsappConnectionStatus === 'failed' && <Badge variant="destructive"><WifiOff className="mr-2 h-4 w-4"/>Failed</Badge>}
                          {settings.whatsappConnectionStatus === 'untested' && <Badge variant="secondary">Untested</Badge>}
                     </div>
-                    <CardDescription>Enter your API details to enable messaging features.</CardDescription>
+                    <CardDescription>Select your provider and enter your API details to enable messaging features.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Tabs defaultValue={settings.whatsappProvider || 'ultramsg'} onValueChange={(value) => setSettings(prev => ({...prev, whatsappProvider: value as 'ultramsg' | 'official'}))}>
-                        <TabsList>
+                        <TabsList className="grid w-full grid-cols-2">
                             <TabsTrigger value="ultramsg">UltraMSG API</TabsTrigger>
-                            <TabsTrigger value="official">Official API</TabsTrigger>
+                            <TabsTrigger value="official">Official WhatsApp API</TabsTrigger>
                         </TabsList>
                         <TabsContent value="ultramsg" className="mt-4 space-y-4">
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -974,20 +971,13 @@ export default function SettingsPage() {
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <Label htmlFor="whatsappPhoneNumberId">Phone Number ID</Label>
-                                    <Input id="whatsappPhoneNumberId" placeholder="e.g., 10..." disabled />
+                                    <Input id="whatsappPhoneNumberId" value={settings.whatsappPhoneNumberId} onChange={handleInputChange} placeholder="e.g., 10..." />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="whatsappAccessToken">Permanent Access Token</Label>
-                                    <Input id="whatsappAccessToken" placeholder="e.g., EAA..." disabled />
+                                    <Input id="whatsappAccessToken" value={settings.whatsappAccessToken} onChange={handleInputChange} placeholder="e.g., EAA..." />
                                 </div>
                             </div>
-                             <Alert variant="default">
-                                <Info className="h-4 w-4" />
-                                <AlertTitle>Under Development</AlertTitle>
-                                <AlertDescription>
-                                    Direct integration with the Official WhatsApp Business API is under development. The fields above are placeholders.
-                                </AlertDescription>
-                            </Alert>
                          </TabsContent>
                     </Tabs>
                     <div className="flex items-center gap-4 pt-4 border-t mt-4">
