@@ -13,13 +13,12 @@ interface MasterTimetablePrintProps {
   masterTimetableData: Record<string, TimetableData>;
   timeSlots: string[];
   breakAfterPeriod: number;
-  breakDuration: string;
-  numPeriods: number;
 }
 
 export const MasterTimetablePrint = React.forwardRef<HTMLDivElement, MasterTimetablePrintProps>(
-  ({ settings, classes, teachers, masterTimetableData, timeSlots, breakAfterPeriod, breakDuration, numPeriods }, ref) => {
+  ({ settings, classes, teachers, masterTimetableData, timeSlots, breakAfterPeriod }, ref) => {
     
+    const numPeriods = timeSlots.length;
     const cellStyle: React.CSSProperties = {
         border: '1px solid #000',
         padding: '2px',
@@ -39,8 +38,6 @@ export const MasterTimetablePrint = React.forwardRef<HTMLDivElement, MasterTimet
     const breakStyle: React.CSSProperties = {
         ...headerStyle,
         backgroundColor: '#d1fae5', // green-200
-        writingMode: 'vertical-rl',
-        transform: 'rotate(180deg)',
     };
     
     const sortedClasses = [...classes].sort((a,b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
@@ -68,7 +65,7 @@ export const MasterTimetablePrint = React.forwardRef<HTMLDivElement, MasterTimet
                     {Array.from({ length: numPeriods }).map((_, i) => (
                         <col key={`col-period-${i}`} style={{ width: 'auto' }} />
                     ))}
-                    {(breakAfterPeriod <= numPeriods) && <col style={{ width: '40px' }} />}
+                    {(breakAfterPeriod < numPeriods) && <col style={{ width: '40px' }} />}
                  </colgroup>
                 <thead>
                     <tr>
@@ -76,41 +73,36 @@ export const MasterTimetablePrint = React.forwardRef<HTMLDivElement, MasterTimet
                          {Array.from({ length: numPeriods }).map((_, periodIndex) => (
                              <React.Fragment key={`header-frag-${periodIndex}`}>
                                 {(periodIndex === breakAfterPeriod) && (
-                                    <th key="break-header" style={breakStyle} rowSpan={sortedClasses.length + 1}>
-                                        BREAK ({breakDuration})
-                                    </th>
+                                    <th key="break-header" style={breakStyle}></th>
                                 )}
                                 <th style={headerStyle}>
                                     {`P-${periodIndex + 1}`}<br/>({timeSlots[periodIndex] || 'N/A'})
                                 </th>
                              </React.Fragment>
                          ))}
-                         {(numPeriods === breakAfterPeriod) && (
-                             <th key="break-header-end" style={breakStyle} rowSpan={sortedClasses.length + 1}>
-                                BREAK ({breakDuration})
-                            </th>
-                         )}
                     </tr>
                 </thead>
                 <tbody>
-                    {sortedClasses.map((cls, classIndex) => (
+                    {sortedClasses.map((cls) => (
                         <tr key={cls.id}>
                             <td style={{...cellStyle, fontWeight: 'bold'}}>{cls.name}</td>
                             {Array.from({ length: numPeriods }).map((_, periodIndex) => {
-                                const periodsForClass = numPeriods - Math.max(0, (sortedClasses.length - 1 - classIndex) - (sortedClasses.length - 1 - 8));
-                                if (periodIndex >= periodsForClass) return null;
-                                
                                 const cell = masterTimetableData[cls.id]?.[periodIndex];
                                 const teacher = teachers.find(t => t.id === cell?.teacherId);
                                 return (
-                                    <td key={periodIndex} style={cellStyle}>
-                                        {cell?.subject ? (
-                                            <div>
-                                                <p className="font-bold">{teacher?.name || ''}</p>
-                                                <p>{cell.subject}</p>
-                                            </div>
-                                        ) : null}
-                                    </td>
+                                    <React.Fragment key={`cell-frag-print-${cls.id}-${periodIndex}`}>
+                                        {periodIndex === breakAfterPeriod && (
+                                            <td key={`break-cell-print-${cls.id}`} style={breakStyle}></td>
+                                        )}
+                                        <td style={cellStyle}>
+                                            {cell?.subject ? (
+                                                <div>
+                                                    <p className="font-bold">{teacher?.name || ''}</p>
+                                                    <p>{cell.subject}</p>
+                                                </div>
+                                            ) : null}
+                                        </td>
+                                    </React.Fragment>
                                 );
                             })}
                         </tr>
@@ -123,5 +115,3 @@ export const MasterTimetablePrint = React.forwardRef<HTMLDivElement, MasterTimet
   }
 );
 MasterTimetablePrint.displayName = 'MasterTimetablePrint';
-
-    
