@@ -1002,7 +1002,7 @@ export default function SettingsPage() {
                         </div>
                          <div className="flex justify-end items-center gap-2">
                             <Button onClick={handleSave}><KeyRound className="mr-2"/>Save WhatsApp Settings</Button>
-                            <Button variant="outline" onClick={handleTestConnection} disabled={isTesting || !settings.whatsappApiUrl || !settings.whatsappApiKey}>
+                            <Button variant="outline" onClick={handleTestConnection} disabled={isTesting}>
                                 {isTesting ? <Loader2 className="mr-2 animate-spin"/> : <TestTubeDiagonal className="mr-2"/>}
                                 {isTesting ? 'Testing...' : 'Test Connection'}
                             </Button>
