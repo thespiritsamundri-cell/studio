@@ -110,18 +110,31 @@ function AuthWrapper({ children }: { children: ReactNode }) {
             {children}
             <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
                 <DialogContent className="sm:max-w-md text-center">
-                    <DialogHeader className="items-center">
-                        {settings.schoolLogo ? (
-                            <Image src={settings.schoolLogo} alt="School Logo" width={60} height={60} className="rounded-full object-contain mb-2"/>
-                        ) : (
-                            <School className="w-12 h-12 text-primary mb-2"/>
-                        )}
-                        <DialogTitle className="text-2xl">{welcomeMessage} to {settings.schoolName}</DialogTitle>
-                        <DialogDescription>{format(new Date(), 'EEEE, MMMM do, yyyy')}</DialogDescription>
-                    </DialogHeader>
-                    <div className="py-8">
-                       <p className="text-sm text-muted-foreground">Developed by Mian Mudassar</p>
-                    </div>
+                     {welcomeMessage === 'Welcome' ? (
+                        <>
+                            <DialogHeader className="items-center">
+                                {settings.schoolLogo ? (
+                                    <Image src={settings.schoolLogo} alt="School Logo" width={60} height={60} className="rounded-full object-contain mb-2"/>
+                                ) : (
+                                    <School className="w-12 h-12 text-primary mb-2"/>
+                                )}
+                                <DialogTitle className="text-2xl">{welcomeMessage} to {settings.schoolName}</DialogTitle>
+                                <DialogDescription>{format(new Date(), 'EEEE, MMMM do, yyyy')}</DialogDescription>
+                            </DialogHeader>
+                            <div className="py-8">
+                               <p className="text-sm text-muted-foreground">Developed by Mian Mudassar</p>
+                            </div>
+                        </>
+                    ) : (
+                         <>
+                            <DialogHeader className="items-center">
+                                 <DialogTitle className="text-2xl">{welcomeMessage}</DialogTitle>
+                            </DialogHeader>
+                            <div className="py-8">
+                               <p className="text-sm text-muted-foreground">Developed by Mian Mudassar</p>
+                            </div>
+                        </>
+                    )}
                 </DialogContent>
             </Dialog>
         </>
