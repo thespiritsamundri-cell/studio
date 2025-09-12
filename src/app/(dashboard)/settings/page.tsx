@@ -184,26 +184,37 @@ export default function SettingsPage() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: 'schoolLogo' | 'principalSignature' | 'favicon') => {
     const file = e.target.files?.[0];
     if (file) {
-        try {
-            toast({ title: 'Uploading...', description: `Uploading ${field}...` });
-            const downloadURL = await uploadFile(file, `settings/${field}/${file.name}`);
-            
-            // Save URL to Firestore
-            const settingsRef = doc(db, "Settings", "School Settings");
-            await updateDoc(settingsRef, { [field]: downloadURL });
-
-            // Update local state
-            setSettings(prev => ({...prev, [field]: downloadURL}));
-
-            toast({ title: 'Upload Successful', description: `${field} has been uploaded and saved.` });
-        } catch (error: any) {
-            console.error("Upload error in settings page:", error);
-            toast({ 
-                title: 'Upload Failed', 
-                description: error.message || 'An unknown error occurred. Please check console for details.',
-                variant: 'destructive' 
-            });
+      // Step 1: Instant Local Preview
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result as string;
+        if (dataUrl) {
+          setSettings(prev => ({ ...prev, [field]: dataUrl }));
         }
+      };
+      reader.readAsDataURL(file);
+
+      // Step 2: Background Upload
+      try {
+        toast({ title: 'Uploading...', description: `Uploading ${field} in the background.` });
+        const downloadURL = await uploadFile(file, `settings/${field}/${file.name}`);
+        
+        // Step 3: Save permanent URL to Firestore
+        const settingsRef = doc(db, "Settings", "School Settings");
+        await updateDoc(settingsRef, { [field]: downloadURL });
+        
+        // Step 4: Update state with permanent URL
+        setSettings(prev => ({ ...prev, [field]: downloadURL }));
+
+        toast({ title: 'Upload Successful', description: `${field} has been permanently saved.` });
+      } catch (error: any) {
+        console.error("Upload error in settings page:", error);
+        toast({ 
+            title: 'Upload Failed', 
+            description: error.message || 'An unknown error occurred. Please check console for details.',
+            variant: 'destructive' 
+        });
+      }
     }
   };
 
