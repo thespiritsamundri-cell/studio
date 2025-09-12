@@ -175,6 +175,66 @@ export default function TimetablePage() {
         printWindow.focus();
      }
   };
+  
+    const renderHeaders = () => {
+        const headers = [];
+        for (let i = 0; i < numPeriods; i++) {
+            headers.push(
+                <th key={`header-period-${i}`} className="border p-1 font-semibold text-xs">
+                    <div>Period {i + 1}</div>
+                    <Input 
+                        value={timeSlots[i] || ''}
+                        onChange={(e) => handleTimeSlotChange(i, e.target.value)}
+                        className="h-7 mt-1 text-center text-xs"
+                        placeholder="N/A"
+                    />
+                </th>
+            );
+            if (i + 1 === breakAfterPeriod) {
+                headers.push(
+                    <th key="break-header" className="border p-1 align-middle" rowSpan={classes.length + 1}>
+                        <div className="[writing-mode:vertical-rl] transform rotate-180 h-full w-full flex items-center justify-center text-sm font-bold text-green-700 bg-green-100">
+                           BREAK ({breakDuration})
+                        </div>
+                    </th>
+                );
+            }
+        }
+        return headers;
+    };
+    
+    const renderCell = (classId: string, periodIndex: number) => {
+        const cellData = masterTimetableData[classId]?.[periodIndex];
+        return (
+             <td key={periodIndex} className="border p-0 align-top h-24">
+                <div className="h-full w-full flex flex-col">
+                    <Select
+                        value={cellData?.teacherId || 'none'}
+                        onValueChange={(teacherId) => handleMasterCellChange(classId, periodIndex, 'teacherId', teacherId)}
+                    >
+                        <SelectTrigger className="h-1/2 text-xs border-0 border-b rounded-none focus:ring-0 bg-transparent justify-center font-semibold data-[placeholder]:text-muted-foreground">
+                            <SelectValue placeholder="- Teacher -" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="none">- No Teacher -</SelectItem>
+                            {teachers.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                    <Input
+                        className="h-1/2 text-xs text-center border-0 rounded-none focus-visible:ring-0 bg-transparent placeholder:text-muted-foreground"
+                        placeholder="- Subject -"
+                        value={cellData?.subject || ''}
+                        onChange={(e) => handleMasterCellChange(classId, periodIndex, 'subject', e.target.value)}
+                    />
+                </div>
+            </td>
+        );
+    };
+
+    const sortedClasses = useMemo(() => {
+        return [...classes].sort((a,b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    }, [classes]);
+
 
   return (
     <div className="space-y-6">
@@ -223,7 +283,7 @@ export default function TimetablePage() {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {Array.from({length: numPeriods}).map((_, i) => (
+                                        {Array.from({length: numPeriods - 1}).map((_, i) => (
                                             <SelectItem key={i+1} value={String(i+1)}>After Period {i+1}</SelectItem>
                                         ))}
                                     </SelectContent>
@@ -236,65 +296,32 @@ export default function TimetablePage() {
                         </div>
                     </Card>
                     <div className="border rounded-lg overflow-x-auto">
-                        <table className="w-full border-collapse min-w-[1600px]">
-                             <thead className="text-xs">
+                        <table className="w-full border-collapse min-w-[1600px] table-fixed">
+                             <colgroup>
+                                <col style={{ width: '10%'}} />
+                                {Array.from({ length: numPeriods }).map((_, i) => (
+                                    <col key={i} style={{ width: `${85 / numPeriods}%`}} />
+                                ))}
+                                <col style={{ width: '5%'}} />
+                             </colgroup>
+                             <thead>
                                 <tr className="bg-muted">
-                                    <th className="border p-1 font-semibold w-32 sticky left-0 bg-muted z-10">Class</th>
-                                    {Array.from({ length: numPeriods }).map((_, periodIndex) => {
-                                        const isBreakNext = (periodIndex + 1) === breakAfterPeriod;
-                                        return (
-                                            <React.Fragment key={`header-frag-${periodIndex}`}>
-                                                <th className="border p-1 font-semibold w-48">
-                                                    <p>Period {periodIndex + 1}</p>
-                                                    <Input
-                                                        placeholder="e.g., 8:00"
-                                                        className="h-7 text-xs mt-1"
-                                                        value={timeSlots[periodIndex] || ''}
-                                                        onChange={(e) => handleTimeSlotChange(periodIndex, e.target.value)}
-                                                    />
-                                                </th>
-                                                {isBreakNext && (
-                                                    <th className="border p-1 font-semibold bg-green-200 text-green-800 w-12" rowSpan={classes.length + 1}>
-                                                        <div className="[writing-mode:vertical-rl] transform rotate-180 h-full flex items-center justify-center py-2">
-                                                           BREAK ({breakDuration})
-                                                        </div>
-                                                    </th>
-                                                )}
-                                            </React.Fragment>
-                                        );
-                                    })}
+                                    <th className="border p-1 font-semibold sticky left-0 bg-muted z-10 text-sm">Class</th>
+                                    {renderHeaders()}
                                 </tr>
                             </thead>
                             <tbody>
-                                {classes.map((cls) => (
+                                {sortedClasses.map((cls, classIndex) => (
                                     <tr key={cls.id}>
-                                        <td className="border p-2 font-semibold sticky left-0 bg-background z-10">{cls.name}</td>
+                                        <td className="border p-2 font-semibold sticky left-0 bg-background z-10 text-sm">{cls.name}</td>
                                         {Array.from({ length: numPeriods }).map((_, periodIndex) => {
-                                            const cellData = masterTimetableData[cls.id]?.[periodIndex];
-                                            return (
-                                                <td key={periodIndex} className="border p-0 align-top">
-                                                    <div className="h-24 w-full flex flex-col">
-                                                        <Select
-                                                            value={cellData?.teacherId || 'none'}
-                                                            onValueChange={(teacherId) => handleMasterCellChange(cls.id, periodIndex, 'teacherId', teacherId)}
-                                                        >
-                                                            <SelectTrigger className="h-12 text-xs border-0 border-b rounded-none focus:ring-0 bg-transparent justify-center font-semibold">
-                                                                <SelectValue placeholder="- Teacher -" />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectItem value="none">- No Teacher -</SelectItem>
-                                                                {teachers.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-                                                            </SelectContent>
-                                                        </Select>
-                                                        <Input
-                                                            className="h-12 text-xs text-center border-0 rounded-none focus-visible:ring-0 bg-transparent"
-                                                            placeholder="- Subject -"
-                                                            value={cellData?.subject || ''}
-                                                            onChange={(e) => handleMasterCellChange(cls.id, periodIndex, 'subject', e.target.value)}
-                                                        />
-                                                    </div>
-                                                </td>
-                                            );
+                                            const totalCells = numPeriods + 1; // periods + break
+                                            const cascadeStart = Math.floor(classes.length / 2) + 2;
+
+                                            if (classIndex >= cascadeStart && periodIndex > (totalCells - (classIndex - cascadeStart) -1 )) {
+                                                return null;
+                                            }
+                                            return renderCell(cls.id, periodIndex);
                                         })}
                                     </tr>
                                 ))}

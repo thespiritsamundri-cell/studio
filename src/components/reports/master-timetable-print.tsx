@@ -4,7 +4,6 @@
 import React from 'react';
 import type { SchoolSettings } from '@/context/settings-context';
 import type { Class, Teacher, TimetableData } from '@/lib/types';
-import { School } from 'lucide-react';
 import Image from 'next/image';
 
 interface MasterTimetablePrintProps {
@@ -24,7 +23,7 @@ export const MasterTimetablePrint = React.forwardRef<HTMLDivElement, MasterTimet
     const cellStyle: React.CSSProperties = {
         border: '1px solid #000',
         padding: '2px',
-        height: '50px',
+        height: '40px',
         textAlign: 'center',
         fontSize: '9px',
         wordBreak: 'break-word',
@@ -44,52 +43,7 @@ export const MasterTimetablePrint = React.forwardRef<HTMLDivElement, MasterTimet
         transform: 'rotate(180deg)',
     };
     
-    const renderHeaders = () => {
-        const headers = [];
-        for (let i = 0; i < numPeriods; i++) {
-            headers.push(
-                <th key={`header-period-${i}`} style={headerStyle}>
-                    {`Period ${i + 1}`}<br/>({timeSlots[i] || 'N/A'})
-                </th>
-            );
-            if ((i + 1) === breakAfterPeriod) {
-                headers.push(
-                     <th key="break-header" style={breakStyle} rowSpan={classes.length + 1}>
-                        BREAK ({breakDuration})
-                    </th>
-                );
-            }
-        }
-        return headers;
-    };
-    
-    const renderBody = () => {
-      return classes.map((cls) => (
-        <tr key={cls.id}>
-            <td style={{...cellStyle, fontWeight: 'bold', width: '10%'}}>{cls.name}</td>
-            {Array.from({ length: numPeriods }).map((_, periodIndex) => {
-                const isBreakNext = (periodIndex + 1) === breakAfterPeriod;
-                const cell = masterTimetableData[cls.id]?.[periodIndex];
-                const teacher = teachers.find(t => t.id === cell?.teacherId);
-
-                return (
-                    <React.Fragment key={`cell-frag-${cls.id}-${periodIndex}`}>
-                        <td style={cellStyle}>
-                            {cell?.subject ? (
-                                <div>
-                                    <p className="font-bold">{teacher?.name || 'N/A'}</p>
-                                    <p>{cell.subject}</p>
-                                </div>
-                            ) : null}
-                        </td>
-                        {isBreakNext && <td style={cellStyle} rowSpan={classes.length}></td> /* This should be empty but the break header will span over it */}
-                    </React.Fragment>
-                );
-            })}
-        </tr>
-      ));
-    };
-
+    const sortedClasses = [...classes].sort((a,b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 
     return (
       <div ref={ref} className="p-4 font-sans bg-white text-black">
@@ -109,14 +63,56 @@ export const MasterTimetablePrint = React.forwardRef<HTMLDivElement, MasterTimet
 
         <main className="mt-4">
             <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+                 <colgroup>
+                    <col style={{ width: '10%'}} />
+                    {Array.from({ length: numPeriods }).map((_, i) => (
+                        <col key={i} style={{ width: `${85 / numPeriods}%`}} />
+                    ))}
+                    <col style={{ width: '5%'}} />
+                 </colgroup>
                 <thead>
                     <tr>
                         <th style={{...headerStyle, width: '10%'}}>Class</th>
-                        {renderHeaders()}
+                         {Array.from({ length: numPeriods }).map((_, periodIndex) => (
+                             <React.Fragment key={`header-frag-${periodIndex}`}>
+                                <th style={headerStyle}>
+                                    {`P-${periodIndex + 1}`}<br/>({timeSlots[periodIndex] || 'N/A'})
+                                </th>
+                                {(periodIndex + 1) === breakAfterPeriod && (
+                                    <th key="break-header" style={breakStyle} rowSpan={sortedClasses.length + 1}>
+                                        BREAK ({breakDuration})
+                                    </th>
+                                )}
+                             </React.Fragment>
+                         ))}
                     </tr>
                 </thead>
                 <tbody>
-                    {renderBody()}
+                    {sortedClasses.map((cls, classIndex) => (
+                        <tr key={cls.id}>
+                            <td style={{...cellStyle, fontWeight: 'bold'}}>{cls.name}</td>
+                            {Array.from({ length: numPeriods }).map((_, periodIndex) => {
+                                const totalCells = numPeriods + 1;
+                                const cascadeStart = Math.floor(sortedClasses.length / 2) + 2;
+                                if (classIndex >= cascadeStart && periodIndex > (totalCells - (classIndex - cascadeStart) - 1 )) {
+                                    return null;
+                                }
+                                
+                                const cell = masterTimetableData[cls.id]?.[periodIndex];
+                                const teacher = teachers.find(t => t.id === cell?.teacherId);
+                                return (
+                                    <td key={periodIndex} style={cellStyle}>
+                                        {cell?.subject ? (
+                                            <div>
+                                                <p className="font-bold">{teacher?.name || ''}</p>
+                                                <p>{cell.subject}</p>
+                                            </div>
+                                        ) : null}
+                                    </td>
+                                );
+                            })}
+                        </tr>
+                    ))}
                 </tbody>
             </table>
         </main>
