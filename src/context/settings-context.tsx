@@ -110,64 +110,71 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchSettings = async () => {
-        const settingsRef = doc(db, 'Settings', 'School Settings');
-        const brandingRef = doc(db, 'branding', 'school-assets');
-        try {
-            const settingsSnap = await getDoc(settingsRef);
-            const brandingSnap = await getDoc(brandingRef);
-
-            let fetchedSettings = defaultSettings;
-            if (settingsSnap.exists()) {
-                fetchedSettings = { ...fetchedSettings, ...settingsSnap.data() };
-            } else {
-                 await setDoc(settingsRef, defaultSettings);
-            }
-            
-            if (brandingSnap.exists()) {
-                fetchedSettings = { ...fetchedSettings, ...brandingSnap.data() };
-            } else {
-                await setDoc(brandingRef, { 
-                    schoolLogo: defaultSettings.schoolLogo,
-                    favicon: defaultSettings.favicon,
-                    principalSignature: defaultSettings.principalSignature,
-                });
-            }
-            
-            setSettings(fetchedSettings);
-
-        } catch (error) {
-            console.error('Failed to fetch settings from Firestore:', error);
-            toast({
-              title: "Could not load settings",
-              description: "Falling back to default settings. Your changes may not be saved.",
-              variant: "destructive"
-            });
-        } finally {
-            setIsInitialized(true);
+    const loadSettings = async () => {
+      // 1. Try to load from localStorage first
+      try {
+        const localSettings = localStorage.getItem('schoolSettings');
+        if (localSettings) {
+          setSettings(JSON.parse(localSettings));
         }
+      } catch (error) {
+        console.error("Could not load settings from localStorage:", error);
+      }
+
+      // 2. Then, fetch from Firestore to get the latest version
+      const settingsRef = doc(db, 'Settings', 'School Settings');
+      const brandingRef = doc(db, 'branding', 'school-assets');
+      try {
+          const settingsSnap = await getDoc(settingsRef);
+          const brandingSnap = await getDoc(brandingRef);
+
+          let fetchedSettings = defaultSettings;
+          if (settingsSnap.exists()) {
+              fetchedSettings = { ...fetchedSettings, ...settingsSnap.data() };
+          }
+          
+          if (brandingSnap.exists()) {
+              fetchedSettings = { ...fetchedSettings, ...brandingSnap.data() };
+          }
+          
+          // Update state and localStorage with fetched settings
+          setSettings(fetchedSettings);
+          localStorage.setItem('schoolSettings', JSON.stringify(fetchedSettings));
+
+      } catch (error) {
+          console.error('Failed to fetch settings from Firestore:', error);
+          toast({
+            title: "Could not load settings",
+            description: "Falling back to default or cached settings.",
+            variant: "destructive"
+          });
+      } finally {
+          setIsInitialized(true);
+      }
     };
-    fetchSettings();
+    loadSettings();
   }, [toast]);
 
   useEffect(() => {
     const saveSettings = async () => {
       if (isInitialized) {
+        // Save to localStorage immediately for instant UI feedback
+        localStorage.setItem('schoolSettings', JSON.stringify(settings));
+
+        // Save to Firestore
         const settingsRef = doc(db, 'Settings', 'School Settings');
         const brandingRef = doc(db, 'branding', 'school-assets');
         
         const { schoolLogo, favicon, principalSignature, ...otherSettings } = settings;
 
         try {
-          // Save general settings
           await setDoc(settingsRef, otherSettings, { merge: true });
-          // Save branding assets
           await setDoc(brandingRef, { schoolLogo, favicon, principalSignature }, { merge: true });
         } catch (error) {
           console.error('Failed to save settings to Firestore:', error);
           toast({
-            title: "Could not save settings",
-            description: "Your recent changes might not be saved.",
+            title: "Could not save settings to cloud",
+            description: "Your changes are saved locally but might not be on other devices.",
             variant: "destructive"
           });
         }
