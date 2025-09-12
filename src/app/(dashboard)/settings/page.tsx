@@ -187,13 +187,16 @@ export default function SettingsPage() {
             toast({ title: 'Uploading...', description: `Uploading ${field}...` });
             const downloadURL = await uploadFile(file, `settings/${field}/${file.name}`);
             
-            // Update the local settings context state, which will trigger the save to Firestore
             setSettings(prev => ({...prev, [field]: downloadURL}));
 
             toast({ title: 'Upload Successful', description: `${field} has been uploaded and saved.` });
-        } catch (error) {
+        } catch (error: any) {
             console.error(`Error uploading ${field}:`, error);
-            toast({ title: 'Upload Failed', description: 'Could not upload file. Check console and CORS settings.', variant: 'destructive' });
+            toast({ 
+                title: 'Upload Failed', 
+                description: error.message || 'An unknown error occurred.', 
+                variant: 'destructive' 
+            });
         }
     }
   };
