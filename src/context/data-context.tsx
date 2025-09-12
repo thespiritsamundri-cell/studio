@@ -513,14 +513,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
               message = message.replace(/{father_name}/g, student.fatherName);
               
               try {
-                await sendWhatsAppMessage(
-                  family.phone,
-                  message,
-                  settings.whatsappApiUrl,
-                  settings.whatsappApiKey,
-                  settings.whatsappInstanceId,
-                  settings.whatsappPriority
-                );
+                await sendWhatsAppMessage(family.phone, message);
                 addActivityLog({ user: 'System', action: 'Send Deactivation Notice', description: `Sent deactivation notice to parents of ${student.name}.` });
               } catch (e) {
                 console.error(`Failed to send deactivation message for ${student.name}:`, e);
@@ -596,14 +589,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                         let message = template.content;
                         message = message.replace(/{teacher_name}/g, teacher.name);
                         try {
-                            await sendWhatsAppMessage(
-                                teacher.phone, 
-                                message,
-                                settings.whatsappApiUrl,
-                                settings.whatsappApiKey,
-                                settings.whatsappInstanceId,
-                                settings.whatsappPriority
-                            );
+                            await sendWhatsAppMessage(teacher.phone, message);
                             addActivityLog({ user: 'System', action: 'Send Deactivation Notice', description: `Sent deactivation notice to ${teacher.name}.` });
                         } catch(e) {
                              console.error(`Failed to send deactivation message to ${teacher.name}:`, e);

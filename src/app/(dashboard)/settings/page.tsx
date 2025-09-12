@@ -174,7 +174,7 @@ export default function SettingsPage() {
     setSettings(prev => {
         const valueToSet = isCheckbox ? checked : value;
         const newSettings = {...prev, [id]: valueToSet};
-        if (['whatsappApiUrl', 'whatsappApiKey', 'whatsappInstanceId'].includes(id)) {
+        if (['whatsappApiUrl', 'whatsappApiKey', 'whatsappInstanceId', 'whatsappPhoneNumberId', 'whatsappAccessToken'].includes(id)) {
             newSettings.whatsappConnectionStatus = 'untested';
         }
         return newSettings;
@@ -379,7 +379,7 @@ export default function SettingsPage() {
         }
         
         try {
-             const success = await sendWhatsAppMessage(recipient.phone, personalizedMessage, settings.whatsappApiUrl, settings.whatsappApiKey, settings.whatsappInstanceId, settings.whatsappPriority);
+             const success = await sendWhatsAppMessage(recipient.phone, personalizedMessage);
              if (success) {
                 successCount++;
              }
@@ -403,14 +403,7 @@ export default function SettingsPage() {
             return;
         }
         try {
-            const success = await sendWhatsAppMessage(
-                testPhoneNumber,
-                `This is a test message from ${settings.schoolName}.`, 
-                settings.whatsappApiUrl, 
-                settings.whatsappApiKey, 
-                settings.whatsappInstanceId, 
-                settings.whatsappPriority
-            );
+            const success = await sendWhatsAppMessage(testPhoneNumber, `This is a test message from ${settings.schoolName}.`);
             if (success) {
                 toast({ title: 'Test Successful', description: 'Your WhatsApp API settings appear to be correct.' });
                 setSettings(prev => ({...prev, whatsappConnectionStatus: 'connected'}));
@@ -974,20 +967,13 @@ export default function SettingsPage() {
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <Label htmlFor="whatsappPhoneNumberId">Phone Number ID</Label>
-                                    <Input id="whatsappPhoneNumberId" placeholder="e.g., 10..." disabled />
+                                    <Input id="whatsappPhoneNumberId" value={settings.whatsappPhoneNumberId || ''} onChange={handleInputChange} placeholder="e.g., 10..." />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="whatsappAccessToken">Permanent Access Token</Label>
-                                    <Input id="whatsappAccessToken" placeholder="e.g., EAA..." disabled />
+                                    <Input id="whatsappAccessToken" value={settings.whatsappAccessToken || ''} onChange={handleInputChange} placeholder="e.g., EAA..." />
                                 </div>
                             </div>
-                             <Alert variant="default">
-                                <Info className="h-4 w-4" />
-                                <AlertTitle>Under Development</AlertTitle>
-                                <AlertDescription>
-                                    Direct integration with the Official WhatsApp Business API is under development. The fields above are placeholders.
-                                </AlertDescription>
-                            </Alert>
                          </TabsContent>
                     </Tabs>
                     <div className="flex items-center gap-4 pt-4 border-t mt-4">
@@ -1003,7 +989,7 @@ export default function SettingsPage() {
                         </div>
                          <div className="flex justify-end items-center gap-2">
                             <Button onClick={handleSave}><KeyRound className="mr-2"/>Save WhatsApp Settings</Button>
-                            <Button variant="outline" onClick={handleTestConnection} disabled={isTesting || !settings.whatsappApiUrl || !settings.whatsappApiKey}>
+                            <Button variant="outline" onClick={handleTestConnection} disabled={isTesting}>
                                 {isTesting ? <Loader2 className="mr-2 animate-spin"/> : <TestTubeDiagonal className="mr-2"/>}
                                 {isTesting ? 'Testing...' : 'Test Connection'}
                             </Button>

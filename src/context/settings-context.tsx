@@ -14,10 +14,15 @@ export interface SchoolSettings {
   schoolLogo: string;
   favicon: string;
   principalSignature: string;
+  // For UltraMSG
   whatsappApiUrl: string;
-  whatsappApiKey: string;
   whatsappInstanceId: string;
+  whatsappApiKey: string; // Token for UltraMSG
   whatsappPriority: string;
+  // For Official WhatsApp Business API
+  whatsappPhoneNumberId?: string;
+  whatsappAccessToken?: string;
+  
   whatsappProvider: 'ultramsg' | 'official';
   whatsappConnectionStatus: 'untested' | 'connected' | 'failed';
   messageDelay: number;
