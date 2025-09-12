@@ -112,7 +112,8 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   useEffect(() => {
     const loadSettings = async () => {
       let combinedSettings = { ...defaultSettings };
-      // 1. Try to load from localStorage first for immediate UI
+      
+      // 1. Load from localStorage first for an instant UI update
       try {
         const localSettings = localStorage.getItem('schoolSettings');
         if (localSettings) {
@@ -123,21 +124,30 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
         console.error("Could not load settings from localStorage:", error);
       }
 
-      // 2. Then, fetch from Firestore to get the definitive version
-      const settingsRef = doc(db, 'Settings', 'School Settings');
+      // 2. Fetch general settings and branding assets from Firestore
       try {
-          const settingsSnap = await getDoc(settingsRef);
-          if (settingsSnap.exists()) {
-              combinedSettings = { ...combinedSettings, ...settingsSnap.data() };
-          }
-          
-          setSettings(combinedSettings);
-          localStorage.setItem('schoolSettings', JSON.stringify(combinedSettings));
+        const settingsRef = doc(db, 'Settings', 'School Settings');
+        const brandingRef = doc(db, 'branding', 'school-assets');
+        
+        const [settingsSnap, brandingSnap] = await Promise.all([
+            getDoc(settingsRef),
+            getDoc(brandingRef)
+        ]);
+
+        if (settingsSnap.exists()) {
+            combinedSettings = { ...combinedSettings, ...settingsSnap.data() };
+        }
+        if (brandingSnap.exists()) {
+            combinedSettings = { ...combinedSettings, ...brandingSnap.data() };
+        }
+        
+        setSettings(combinedSettings);
+        localStorage.setItem('schoolSettings', JSON.stringify(combinedSettings));
 
       } catch (error) {
           console.error('Failed to fetch settings from Firestore:', error);
           toast({
-            title: "Could not load settings",
+            title: "Could not load settings from cloud",
             description: "Falling back to default or cached settings.",
             variant: "destructive"
           });
@@ -150,13 +160,19 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
 
   useEffect(() => {
     const saveSettings = async () => {
-      // Save to localStorage immediately for instant UI feedback
+      // Save to localStorage immediately
       localStorage.setItem('schoolSettings', JSON.stringify(settings));
+
+      // Separate branding assets from other settings
+      const { schoolLogo, favicon, principalSignature, ...otherSettings } = settings;
+      const brandingAssets = { schoolLogo, favicon, principalSignature };
 
       // Save to Firestore
       const settingsRef = doc(db, 'Settings', 'School Settings');
+      const brandingRef = doc(db, 'branding', 'school-assets');
       try {
-        await setDoc(settingsRef, settings, { merge: true });
+        await setDoc(settingsRef, otherSettings, { merge: true });
+        await setDoc(brandingRef, brandingAssets, { merge: true });
       } catch (error) {
         console.error('Failed to save settings to Firestore:', error);
         toast({

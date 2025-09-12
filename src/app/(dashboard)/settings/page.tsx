@@ -30,7 +30,7 @@ import { Switch } from '@/components/ui/switch';
 import { Preloader } from '@/components/ui/preloader';
 import { cn } from '@/lib/utils';
 import { uploadFile } from '@/services/storage-service';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 
 
 export default function SettingsPage() {
@@ -164,7 +164,7 @@ export default function SettingsPage() {
              toast({ title: 'An error occurred', description: error.message, variant: 'destructive' });
         }
     }
-  }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value, type } = e.target;
@@ -197,13 +197,13 @@ export default function SettingsPage() {
       // Step 2: Background Upload
       try {
         toast({ title: 'Uploading...', description: `Uploading ${field} in the background.` });
-        const downloadURL = await uploadFile(file, `settings/${field}/${file.name}`);
+        const downloadURL = await uploadFile(file, `branding/${field}/${file.name}`);
         
-        // Step 3: Save permanent URL to Firestore
-        const settingsRef = doc(db, "Settings", "School Settings");
-        await updateDoc(settingsRef, { [field]: downloadURL });
+        // Step 3: Save permanent URL to the dedicated branding document in Firestore
+        const brandingRef = doc(db, "branding", "school-assets");
+        await setDoc(brandingRef, { [field]: downloadURL }, { merge: true });
         
-        // Step 4: Update state with permanent URL
+        // Step 4: Update state with permanent URL (this will also trigger save to localStorage via context)
         setSettings(prev => ({ ...prev, [field]: downloadURL }));
 
         toast({ title: 'Upload Successful', description: `${field} has been permanently saved.` });
@@ -214,6 +214,8 @@ export default function SettingsPage() {
             description: error.message || 'An unknown error occurred. Please check console for details.',
             variant: 'destructive' 
         });
+        // Optional: Revert to previous image if upload fails
+        // To do this, we'd need to store the previous state before the optimistic update.
       }
     }
   };
