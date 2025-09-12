@@ -140,7 +140,7 @@ export default function AccountsPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                  <div>
                     <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><BookCheck /> Financial Accounts</h1>
                     <p className="text-muted-foreground">Generate and review financial reports for your school.</p>
@@ -195,7 +195,7 @@ export default function AccountsPage() {
             </div>
             
             <Tabs defaultValue="pnl">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 h-auto md:h-10">
                     <TabsTrigger value="pnl">Profit & Loss Statement</TabsTrigger>
                     <TabsTrigger value="trial">Trial Balance</TabsTrigger>
                     <TabsTrigger value="balance-sheet">Balance Sheet</TabsTrigger>
@@ -257,7 +257,7 @@ export default function AccountsPage() {
                             <CardDescription>A summary of all debit and credit accounts for the selected period.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                             <ScrollArea className="h-[345px]">
+                             <ScrollArea className="h-[345px] w-full overflow-x-auto">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
@@ -279,12 +279,12 @@ export default function AccountsPage() {
                                     </TableBody>
                                 </Table>
                              </ScrollArea>
-                             <div className="border-t-2 mt-2 pt-2 flex justify-between font-bold">
-                                <div className="flex gap-4">
+                             <div className="border-t-2 mt-2 pt-2 flex flex-col md:flex-row justify-between font-bold gap-2">
+                                <div className="flex justify-between md:gap-4">
                                     <span className="text-red-700">Total Debits</span>
                                     <span className="text-red-700">{monthlyFinancialData.totalExpenses.toLocaleString()}</span>
                                 </div>
-                                <div className="flex gap-4">
+                                <div className="flex justify-between md:gap-4">
                                     <span className="text-green-700">Total Credits</span>
                                     <span className="text-green-700">{monthlyFinancialData.totalIncome.toLocaleString()}</span>
                                 </div>

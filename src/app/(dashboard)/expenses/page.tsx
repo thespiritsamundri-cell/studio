@@ -188,7 +188,7 @@ export default function ExpensesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h1 className="text-3xl font-bold font-headline">Expenses</h1>
         <div className='flex gap-2'>
             <Button variant="outline" onClick={() => setOpenCategoryDialog(true)}>Manage Categories</Button>
@@ -202,10 +202,10 @@ export default function ExpensesPage() {
             <CardDescription>View a detailed history of all school expenses. Total for selection: PKR {totalExpenses.toLocaleString()}</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap items-center gap-4 mb-4">
-              <div className="flex items-center gap-4 flex-grow">
+            <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
+              <div className="flex items-center gap-4 flex-grow w-full">
                   <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                      <SelectTrigger className="w-[180px]">
+                      <SelectTrigger className="w-full md:w-[180px]">
                           <SelectValue placeholder="Filter by category..." />
                       </SelectTrigger>
                       <SelectContent>
@@ -215,7 +215,7 @@ export default function ExpensesPage() {
                   </Select>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button id="date" variant={"outline"} className={cn("w-[300px] justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
+                      <Button id="date" variant={"outline"} className={cn("w-full md:w-[300px] justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {dateRange?.from ? (dateRange.to ? (<>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</>) : (format(dateRange.from, "LLL dd, y"))) : (<span>Pick a date range</span>)}
                       </Button>
@@ -224,54 +224,55 @@ export default function ExpensesPage() {
                       <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2}/>
                     </PopoverContent>
                   </Popover>
-                  <Button variant="ghost" onClick={() => { setDateRange(undefined); setCategoryFilter(''); }}>Clear Filters</Button>
               </div>
+               <Button variant="ghost" onClick={() => { setDateRange(undefined); setCategoryFilter(''); }}>Clear Filters</Button>
             </div>
-
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Voucher ID</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Vendor</TableHead>
-                  <TableHead className="text-right">Amount (PKR)</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredExpenses.map((expense) => (
-                  <TableRow key={expense.id}>
-                    <TableCell>{expense.id}</TableCell>
-                    <TableCell className="font-medium">{format(new Date(expense.date), 'PPP')}</TableCell>
-                    <TableCell>{expense.category}</TableCell>
-                    <TableCell>{expense.description}</TableCell>
-                    <TableCell>{expense.vendor || 'N/A'}</TableCell>
-                    <TableCell className="text-right font-semibold text-destructive">{expense.amount.toLocaleString()}</TableCell>
-                     <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(expense)}>
-                            <Edit className="h-4 w-4" />
-                            <span className="sr-only">Edit</span>
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => triggerPrint(expense)}>
-                            <Printer className="h-4 w-4" />
-                            <span className="sr-only">Print Voucher</span>
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenDeleteDialog(expense)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                            <span className="sr-only">Delete</span>
-                        </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filteredExpenses.length === 0 && (
-                  <TableRow>
-                      <TableCell colSpan={7} className='text-center py-10 text-muted-foreground'>No expense records found for the selected filters.</TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+            <div className="w-full overflow-x-auto">
+                <Table>
+                <TableHeader>
+                    <TableRow>
+                    <TableHead>Voucher ID</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Vendor</TableHead>
+                    <TableHead className="text-right">Amount (PKR)</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {filteredExpenses.map((expense) => (
+                    <TableRow key={expense.id}>
+                        <TableCell>{expense.id}</TableCell>
+                        <TableCell className="font-medium">{format(new Date(expense.date), 'PPP')}</TableCell>
+                        <TableCell>{expense.category}</TableCell>
+                        <TableCell>{expense.description}</TableCell>
+                        <TableCell>{expense.vendor || 'N/A'}</TableCell>
+                        <TableCell className="text-right font-semibold text-destructive">{expense.amount.toLocaleString()}</TableCell>
+                        <TableCell className="text-right">
+                            <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(expense)}>
+                                <Edit className="h-4 w-4" />
+                                <span className="sr-only">Edit</span>
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => triggerPrint(expense)}>
+                                <Printer className="h-4 w-4" />
+                                <span className="sr-only">Print Voucher</span>
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleOpenDeleteDialog(expense)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                                <span className="sr-only">Delete</span>
+                            </Button>
+                        </TableCell>
+                    </TableRow>
+                    ))}
+                    {filteredExpenses.length === 0 && (
+                    <TableRow>
+                        <TableCell colSpan={7} className='text-center py-10 text-muted-foreground'>No expense records found for the selected filters.</TableCell>
+                    </TableRow>
+                    )}
+                </TableBody>
+                </Table>
+            </div>
           </CardContent>
         </Card>
 
