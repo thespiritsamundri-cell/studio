@@ -145,14 +145,7 @@ export default function AttendancePage() {
             message = message.replace(/{class}/g, student.class);
             message = message.replace(/{school_name}/g, settings.schoolName);
             
-            const success = await sendWhatsAppMessage(
-                family.phone, 
-                message,
-                settings.whatsappApiUrl,
-                settings.whatsappApiKey,
-                settings.whatsappInstanceId,
-                settings.whatsappPriority
-            );
+            const success = await sendWhatsAppMessage(family.phone, message);
             if(success) successCount++;
             
         } catch (error) {

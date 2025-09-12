@@ -131,14 +131,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                 message = message.replace(/{remaining_dues}/g, newDues.toLocaleString());
                 message = message.replace(/{school_name}/g, settings.schoolName);
                 try {
-                     await sendWhatsAppMessage(
-                        family.phone, 
-                        message,
-                        settings.whatsappApiUrl,
-                        settings.whatsappApiKey,
-                        settings.whatsappInstanceId,
-                        settings.whatsappPriority
-                    );
+                     await sendWhatsAppMessage(family.phone, message);
                     addActivityLog({ user: 'System', action: 'Send WhatsApp Message', description: 'Sent fee payment receipt to 1 recipient.', recipientCount: 1 });
                 } catch (error) {
                     console.error("Failed to send payment receipt.", error);
