@@ -29,6 +29,7 @@ function InactivityDetector() {
     // Only lock if we are not already on the lock page
     if (window.location.pathname !== '/lock') {
       sessionStorage.setItem('lockedFrom', window.location.pathname);
+      sessionStorage.removeItem('welcomeShown');
       router.push('/lock');
     }
   }
