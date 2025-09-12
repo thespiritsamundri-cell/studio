@@ -1,10 +1,15 @@
 
 'use server';
 
-import { storage } from '@/lib/firebase';
+import { storage, db } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { doc, setDoc } from 'firebase/firestore';
 
 export async function uploadFile(file: File, path: string): Promise<string> {
+  if (!file) {
+    throw new Error('No file provided for upload.');
+  }
+
   const storageRef = ref(storage, path);
   
   try {
@@ -20,13 +25,16 @@ export async function uploadFile(file: File, path: string): Promise<string> {
         console.error("serverResponse:", error.serverResponse);
         try {
             // Attempt to parse JSON for a more readable error object
-            console.error("parsed serverResponse:", JSON.parse(error.serverResponse));
+            const serverError = JSON.parse(error.serverResponse);
+            if (serverError?.error?.message) {
+                 throw new Error(`Upload failed: ${serverError.error.message}`);
+            }
         } catch {
-             // If it's not JSON, log the raw response
+             // If it's not JSON, throw the raw response
             console.error("raw serverResponse:", error.serverResponse);
         }
     }
-    // Re-throw a more informative error to be handled by the UI, which will show a toast.
-    throw new Error(`Upload failed. Check the browser console for detailed Firebase Storage error logs.`);
+    // Re-throw a more informative error to be handled by the UI.
+    throw new Error(error.message || `Upload failed. Check the browser console for detailed Firebase Storage error logs.`);
   }
 }

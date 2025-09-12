@@ -24,12 +24,13 @@ import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { Switch } from '@/components/ui/switch';
 import { Preloader } from '@/components/ui/preloader';
 import { cn } from '@/lib/utils';
 import { uploadFile } from '@/services/storage-service';
+import { doc, updateDoc } from 'firebase/firestore';
 
 
 export default function SettingsPage() {
@@ -187,14 +188,19 @@ export default function SettingsPage() {
             toast({ title: 'Uploading...', description: `Uploading ${field}...` });
             const downloadURL = await uploadFile(file, `settings/${field}/${file.name}`);
             
+            // Save URL to Firestore
+            const settingsRef = doc(db, "Settings", "School Settings");
+            await updateDoc(settingsRef, { [field]: downloadURL });
+
+            // Update local state
             setSettings(prev => ({...prev, [field]: downloadURL}));
 
             toast({ title: 'Upload Successful', description: `${field} has been uploaded and saved.` });
         } catch (error: any) {
-            console.error("Firebase Storage Error:", error);
+            console.error("Upload error in settings page:", error);
             toast({ 
                 title: 'Upload Failed', 
-                description: error.message || 'An unknown error occurred. Please try again.',
+                description: error.message || 'An unknown error occurred. Please check console for details.',
                 variant: 'destructive' 
             });
         }
