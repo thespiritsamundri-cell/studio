@@ -151,7 +151,6 @@ export default function LockPage() {
                 <CardTitle className="text-3xl font-bold font-headline h-10">{animatedSchoolName}</CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleUnlockSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="pin" className="text-center block">Enter Security PIN to Unlock</Label>
                   <div className="relative">
@@ -165,13 +164,10 @@ export default function LockPage() {
                         maxLength={4}
                         className="text-center text-lg tracking-[1rem] pl-10"
                         autoComplete="off"
+                        autoFocus
                     />
                   </div>
                 </div>
-                <Button type="submit" className="w-full">
-                  Unlock
-                </Button>
-              </form>
               <Button type="button" variant="link" size="sm" className="w-full mt-4 text-muted-foreground" onClick={handleLogoutAndRelogin}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Logout and login with email & password
