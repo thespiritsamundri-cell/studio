@@ -19,13 +19,14 @@ export async function uploadFile(file: File, path: string): Promise<string> {
     if (error.serverResponse) {
         console.error("serverResponse:", error.serverResponse);
         try {
-            console.error("parsed:", JSON.parse(error.serverResponse));
+            // Attempt to parse JSON for a more readable error object
+            console.error("parsed serverResponse:", JSON.parse(error.serverResponse));
         } catch {
-            console.error("raw:", error.serverResponse); // In case response is not JSON
+             // If it's not JSON, log the raw response
+            console.error("raw serverResponse:", error.serverResponse);
         }
     }
-    // Re-throw the original error to be handled by the caller, which will show a toast message.
-    throw error;
+    // Re-throw a more informative error to be handled by the UI, which will show a toast.
+    throw new Error(`Upload failed. Check the browser console for detailed Firebase Storage error logs.`);
   }
 }
-
