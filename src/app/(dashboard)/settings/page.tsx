@@ -30,8 +30,6 @@ import { Switch } from '@/components/ui/switch';
 import { Preloader } from '@/components/ui/preloader';
 import { cn } from '@/lib/utils';
 import { uploadFile } from '@/services/storage-service';
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 
 
 export default function SettingsPage() {
@@ -189,11 +187,7 @@ export default function SettingsPage() {
             toast({ title: 'Uploading...', description: `Uploading ${field}...` });
             const downloadURL = await uploadFile(file, `settings/${field}/${file.name}`);
             
-            // Save the URL to the branding document directly
-            const brandingRef = doc(db, 'branding', 'school-assets');
-            await setDoc(brandingRef, { [field]: downloadURL }, { merge: true });
-
-            // Update the local settings context state
+            // Update the local settings context state, which will trigger the save to Firestore
             setSettings(prev => ({...prev, [field]: downloadURL}));
 
             toast({ title: 'Upload Successful', description: `${field} has been uploaded and saved.` });
@@ -1388,5 +1382,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    

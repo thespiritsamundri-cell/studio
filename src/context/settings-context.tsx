@@ -111,11 +111,9 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
 
   useEffect(() => {
     const fetchSettings = async () => {
-        const settingsRef = doc(db, 'meta', 'school-settings');
-        const brandingRef = doc(db, 'branding', 'school-assets');
+        const settingsRef = doc(db, 'Settings', 'School Settings');
         try {
             const settingsSnap = await getDoc(settingsRef);
-            const brandingSnap = await getDoc(brandingRef);
 
             let fetchedSettings = defaultSettings;
             if (settingsSnap.exists()) {
@@ -124,19 +122,6 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
                  await setDoc(settingsRef, defaultSettings);
             }
             
-            if (brandingSnap.exists()) {
-                const brandingData = brandingSnap.data();
-                if(brandingData.schoolLogo) fetchedSettings.schoolLogo = brandingData.schoolLogo;
-                if(brandingData.favicon) fetchedSettings.favicon = brandingData.favicon;
-                if(brandingData.principalSignature) fetchedSettings.principalSignature = brandingData.principalSignature;
-            } else {
-                await setDoc(brandingRef, { 
-                    schoolLogo: defaultSettings.schoolLogo,
-                    favicon: defaultSettings.favicon,
-                    principalSignature: defaultSettings.principalSignature
-                });
-            }
-
             setSettings(fetchedSettings);
 
         } catch (error) {
@@ -156,17 +141,11 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   useEffect(() => {
     const saveSettings = async () => {
       if (isInitialized) {
-        // Separate branding assets from other settings
-        const { schoolLogo, favicon, principalSignature, ...otherSettings } = settings;
-        
-        const settingsRef = doc(db, 'meta', 'school-settings');
-        const brandingRef = doc(db, 'branding', 'school-assets');
+        const settingsRef = doc(db, 'Settings', 'School Settings');
         
         try {
           // Save general settings
-          await setDoc(settingsRef, otherSettings, { merge: true });
-          // Save branding assets
-          await setDoc(brandingRef, { schoolLogo, favicon, principalSignature }, { merge: true });
+          await setDoc(settingsRef, settings, { merge: true });
         } catch (error) {
           console.error('Failed to save settings to Firestore:', error);
           toast({
