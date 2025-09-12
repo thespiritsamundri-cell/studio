@@ -1,8 +1,9 @@
 
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { db } from '@/lib/firebase';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import type { Grade, MessageTemplate } from '@/lib/types';
 
 export interface SchoolSettings {
@@ -46,7 +47,7 @@ export interface SchoolSettings {
   preloaderStyle?: string;
 }
 
-const defaultSettings: SchoolSettings = {
+export const defaultSettings: SchoolSettings = {
   schoolName: 'The Spirit School Samundri',
   academicYear: '2025-2026',
   schoolAddress: '123 Education Lane, Knowledge City, Pakistan',
@@ -97,37 +98,71 @@ const defaultSettings: SchoolSettings = {
 
 export const SettingsContext = createContext<{
   settings: SchoolSettings;
-  setSettings: React.Dispatch<React.SetStateAction<SchoolSettings>>;
+  setSettings: (newSettings: React.SetStateAction<SchoolSettings>) => void;
 }>({
   settings: defaultSettings,
   setSettings: () => {},
 });
 
 export const SettingsProvider = ({ children }: { children: React.ReactNode }) => {
-  const [settings, setSettings] = useState<SchoolSettings>(defaultSettings);
+  const [settings, setSettingsState] = useState<SchoolSettings>(defaultSettings);
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    try {
-      const savedSettings = localStorage.getItem('schoolSettings');
-      if (savedSettings) {
-        const parsed = JSON.parse(savedSettings);
-        setSettings({ ...defaultSettings, ...parsed });
+    const settingsDocRef = doc(db, 'Settings', 'School Settings');
+    const unsubscribe = onSnapshot(settingsDocRef, (doc) => {
+      if (doc.exists()) {
+        const dbSettings = doc.data() as Partial<SchoolSettings>;
+        // Merge with defaults to ensure all keys are present
+        setSettingsState(prev => ({ ...prev, ...dbSettings }));
+      } else {
+        // If no settings in DB, use defaults and save them.
+        setDoc(settingsDocRef, defaultSettings);
       }
-    } catch (error) {
-      console.error('Failed to parse settings from localStorage', error);
-    }
-    setIsInitialized(true);
+      setIsInitialized(true);
+    }, (error) => {
+      console.error("Error fetching settings from Firestore:", error);
+      // Fallback to local storage or defaults if Firestore fails
+      try {
+        const savedSettings = localStorage.getItem('schoolSettings');
+        if (savedSettings) {
+            setSettingsState(JSON.parse(savedSettings));
+        }
+      } catch (localError) {
+        console.error("Could not read from localStorage either:", localError);
+      }
+       setIsInitialized(true);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    if (isInitialized) {
-        localStorage.setItem('schoolSettings', JSON.stringify(settings));
+  const handleSetSettings = (newSettings: React.SetStateAction<SchoolSettings>) => {
+    const updatedSettings = typeof newSettings === 'function' ? newSettings(settings) : newSettings;
+    
+    // Set state locally immediately for responsiveness
+    setSettingsState(updatedSettings);
+
+    // Save to Firestore
+    const settingsDocRef = doc(db, 'Settings', 'School Settings');
+    setDoc(settingsDocRef, updatedSettings, { merge: true }).catch(error => {
+        console.error("Failed to save settings to Firestore:", error);
+    });
+    
+    // Also save to localStorage as a fallback/for offline
+    try {
+        localStorage.setItem('schoolSettings', JSON.stringify(updatedSettings));
+    } catch (e) {
+        console.warn("Could not save settings to localStorage:", e);
     }
-  }, [settings, isInitialized]);
+  };
+  
+  if (!isInitialized) {
+      return null;
+  }
 
   return (
-    <SettingsContext.Provider value={{ settings, setSettings }}>
+    <SettingsContext.Provider value={{ settings, setSettings: handleSetSettings }}>
       {children}
     </SettingsContext.Provider>
   );
