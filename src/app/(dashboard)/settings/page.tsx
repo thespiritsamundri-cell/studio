@@ -191,10 +191,10 @@ export default function SettingsPage() {
 
             toast({ title: 'Upload Successful', description: `${field} has been uploaded and saved.` });
         } catch (error: any) {
-            console.error(`Error uploading ${field}:`, error);
+            console.error("Firebase Storage Error:", error);
             toast({ 
                 title: 'Upload Failed', 
-                description: error.message || 'An unknown error occurred.', 
+                description: error.message || 'An unknown error occurred. Please try again.',
                 variant: 'destructive' 
             });
         }
