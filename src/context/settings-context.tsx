@@ -111,35 +111,28 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
 
   useEffect(() => {
     const loadSettings = async () => {
-      // 1. Try to load from localStorage first
+      let combinedSettings = { ...defaultSettings };
+      // 1. Try to load from localStorage first for immediate UI
       try {
         const localSettings = localStorage.getItem('schoolSettings');
         if (localSettings) {
-          setSettings(JSON.parse(localSettings));
+          combinedSettings = { ...combinedSettings, ...JSON.parse(localSettings) };
+          setSettings(combinedSettings);
         }
       } catch (error) {
         console.error("Could not load settings from localStorage:", error);
       }
 
-      // 2. Then, fetch from Firestore to get the latest version
+      // 2. Then, fetch from Firestore to get the definitive version
       const settingsRef = doc(db, 'Settings', 'School Settings');
-      const brandingRef = doc(db, 'branding', 'school-assets');
       try {
           const settingsSnap = await getDoc(settingsRef);
-          const brandingSnap = await getDoc(brandingRef);
-
-          let fetchedSettings = defaultSettings;
           if (settingsSnap.exists()) {
-              fetchedSettings = { ...fetchedSettings, ...settingsSnap.data() };
+              combinedSettings = { ...combinedSettings, ...settingsSnap.data() };
           }
           
-          if (brandingSnap.exists()) {
-              fetchedSettings = { ...fetchedSettings, ...brandingSnap.data() };
-          }
-          
-          // Update state and localStorage with fetched settings
-          setSettings(fetchedSettings);
-          localStorage.setItem('schoolSettings', JSON.stringify(fetchedSettings));
+          setSettings(combinedSettings);
+          localStorage.setItem('schoolSettings', JSON.stringify(combinedSettings));
 
       } catch (error) {
           console.error('Failed to fetch settings from Firestore:', error);
@@ -157,29 +150,23 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
 
   useEffect(() => {
     const saveSettings = async () => {
-      if (isInitialized) {
-        // Save to localStorage immediately for instant UI feedback
-        localStorage.setItem('schoolSettings', JSON.stringify(settings));
+      // Save to localStorage immediately for instant UI feedback
+      localStorage.setItem('schoolSettings', JSON.stringify(settings));
 
-        // Save to Firestore
-        const settingsRef = doc(db, 'Settings', 'School Settings');
-        const brandingRef = doc(db, 'branding', 'school-assets');
-        
-        const { schoolLogo, favicon, principalSignature, ...otherSettings } = settings;
-
-        try {
-          await setDoc(settingsRef, otherSettings, { merge: true });
-          await setDoc(brandingRef, { schoolLogo, favicon, principalSignature }, { merge: true });
-        } catch (error) {
-          console.error('Failed to save settings to Firestore:', error);
-          toast({
-            title: "Could not save settings to cloud",
-            description: "Your changes are saved locally but might not be on other devices.",
-            variant: "destructive"
-          });
-        }
+      // Save to Firestore
+      const settingsRef = doc(db, 'Settings', 'School Settings');
+      try {
+        await setDoc(settingsRef, settings, { merge: true });
+      } catch (error) {
+        console.error('Failed to save settings to Firestore:', error);
+        toast({
+          title: "Could not save settings to cloud",
+          description: "Your changes are saved locally but might not be on other devices.",
+          variant: "destructive"
+        });
       }
     };
+    
     if (isInitialized) {
         saveSettings();
     }
