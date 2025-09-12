@@ -176,33 +176,6 @@ export default function TimetablePage() {
      }
   };
   
-    const renderHeaders = () => {
-        const headers = [];
-        for (let i = 0; i < numPeriods; i++) {
-            headers.push(
-                <th key={`header-period-${i}`} className="border p-1 font-semibold text-xs">
-                    <div>Period {i + 1}</div>
-                    <Input 
-                        value={timeSlots[i] || ''}
-                        onChange={(e) => handleTimeSlotChange(i, e.target.value)}
-                        className="h-7 mt-1 text-center text-xs"
-                        placeholder="N/A"
-                    />
-                </th>
-            );
-            if (i + 1 === breakAfterPeriod) {
-                headers.push(
-                    <th key="break-header" className="border p-1 align-middle" rowSpan={classes.length + 1}>
-                        <div className="[writing-mode:vertical-rl] transform rotate-180 h-full w-full flex items-center justify-center text-sm font-bold text-green-700 bg-green-100">
-                           BREAK ({breakDuration})
-                        </div>
-                    </th>
-                );
-            }
-        }
-        return headers;
-    };
-    
     const renderCell = (classId: string, periodIndex: number) => {
         const cellData = masterTimetableData[classId]?.[periodIndex];
         return (
@@ -234,7 +207,6 @@ export default function TimetablePage() {
     const sortedClasses = useMemo(() => {
         return [...classes].sort((a,b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
     }, [classes]);
-
 
   return (
     <div className="space-y-6">
@@ -298,16 +270,44 @@ export default function TimetablePage() {
                     <div className="border rounded-lg overflow-x-auto">
                         <table className="w-full border-collapse min-w-[1600px] table-fixed">
                              <colgroup>
-                                <col style={{ width: '10%'}} />
+                                <col style={{ width: '120px' }} />
                                 {Array.from({ length: numPeriods }).map((_, i) => (
-                                    <col key={i} style={{ width: `${85 / numPeriods}%`}} />
+                                    <col key={`col-${i}`} style={{ width: 'auto' }} />
                                 ))}
-                                <col style={{ width: '5%'}} />
+                                <col style={{ width: '40px' }} />
                              </colgroup>
                              <thead>
                                 <tr className="bg-muted">
-                                    <th className="border p-1 font-semibold sticky left-0 bg-muted z-10 text-sm">Class</th>
-                                    {renderHeaders()}
+                                    <th className="border p-1 font-semibold sticky left-0 bg-muted z-10 text-sm">
+                                        Class
+                                    </th>
+                                    {Array.from({ length: numPeriods }).map((_, periodIndex) => (
+                                        <React.Fragment key={`header-frag-${periodIndex}`}>
+                                            {(periodIndex === breakAfterPeriod) && (
+                                                <th key="break-header" className="border p-0 align-middle w-10" rowSpan={sortedClasses.length + 1}>
+                                                    <div className="[writing-mode:vertical-rl] transform rotate-180 h-full w-full flex items-center justify-center text-sm font-bold text-green-700 bg-green-100">
+                                                    BREAK ({breakDuration})
+                                                    </div>
+                                                </th>
+                                            )}
+                                            <th className="border p-1 font-semibold text-xs h-24">
+                                                <div>Period {periodIndex + 1}</div>
+                                                <Input 
+                                                    value={timeSlots[periodIndex] || ''}
+                                                    onChange={(e) => handleTimeSlotChange(periodIndex, e.target.value)}
+                                                    className="h-7 mt-1 text-center text-xs"
+                                                    placeholder="N/A"
+                                                />
+                                            </th>
+                                        </React.Fragment>
+                                    ))}
+                                    {(numPeriods === breakAfterPeriod) && (
+                                        <th key="break-header-end" className="border p-0 align-middle w-10" rowSpan={sortedClasses.length + 1}>
+                                            <div className="[writing-mode:vertical-rl] transform rotate-180 h-full w-full flex items-center justify-center text-sm font-bold text-green-700 bg-green-100">
+                                            BREAK ({breakDuration})
+                                            </div>
+                                        </th>
+                                    )}
                                 </tr>
                             </thead>
                             <tbody>
@@ -315,12 +315,8 @@ export default function TimetablePage() {
                                     <tr key={cls.id}>
                                         <td className="border p-2 font-semibold sticky left-0 bg-background z-10 text-sm">{cls.name}</td>
                                         {Array.from({ length: numPeriods }).map((_, periodIndex) => {
-                                            const totalCells = numPeriods + 1; // periods + break
-                                            const cascadeStart = Math.floor(classes.length / 2) + 2;
-
-                                            if (classIndex >= cascadeStart && periodIndex > (totalCells - (classIndex - cascadeStart) -1 )) {
-                                                return null;
-                                            }
+                                            const periodsForClass = numPeriods - Math.max(0, (sortedClasses.length - 1 - classIndex) - (sortedClasses.length - 1 - 8));
+                                            if (periodIndex >= periodsForClass) return null;
                                             return renderCell(cls.id, periodIndex);
                                         })}
                                     </tr>
@@ -430,3 +426,5 @@ export default function TimetablePage() {
     </div>
   );
 }
+
+    
