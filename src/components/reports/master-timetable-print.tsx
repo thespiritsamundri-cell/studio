@@ -68,23 +68,27 @@ export const MasterTimetablePrint = React.forwardRef<HTMLDivElement, MasterTimet
         <tr key={cls.id}>
             <td style={{...cellStyle, fontWeight: 'bold', width: '10%'}}>{cls.name}</td>
             {Array.from({ length: numPeriods }).map((_, periodIndex) => {
-                const isBreakNext = (periodIndex + 1) === breakAfterPeriod;
                 const cell = masterTimetableData[cls.id]?.[periodIndex];
                 const teacher = teachers.find(t => t.id === cell?.teacherId);
-
-                return (
-                    <React.Fragment key={`cell-frag-${cls.id}-${periodIndex}`}>
-                        <td style={cellStyle}>
-                            {cell?.subject ? (
-                                <div>
-                                    <p className="font-bold">{teacher?.name || 'N/A'}</p>
-                                    <p>{cell.subject}</p>
-                                </div>
-                            ) : null}
-                        </td>
-                        {isBreakNext && <td style={cellStyle} rowSpan={classes.length}></td> /* This should be empty but the break header will span over it */}
-                    </React.Fragment>
-                );
+                 const cellContent = (
+                    <td key={`cell-content-${cls.id}-${periodIndex}`} style={cellStyle}>
+                        {cell?.subject ? (
+                            <div>
+                                <p className="font-bold">{teacher?.name || 'N/A'}</p>
+                                <p>{cell.subject}</p>
+                            </div>
+                        ) : null}
+                    </td>
+                 );
+                 if (periodIndex + 1 === breakAfterPeriod) {
+                     return (
+                         <React.Fragment key={`cell-frag-${cls.id}-${periodIndex}`}>
+                             {cellContent}
+                             <td style={cellStyle}></td>
+                         </React.Fragment>
+                     )
+                 }
+                 return cellContent;
             })}
         </tr>
       ));
