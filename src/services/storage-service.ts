@@ -24,17 +24,17 @@ export async function uploadFile(file: File, path: string): Promise<string> {
     if (error.serverResponse) {
         console.error("serverResponse:", error.serverResponse);
         try {
-            // Attempt to parse JSON for a more readable error object
             const serverError = JSON.parse(error.serverResponse);
             if (serverError?.error?.message) {
-                 throw new Error(`Upload failed: ${serverError.error.message}`);
+                 // Throw the specific message from the server payload
+                 throw new Error(serverError.error.message);
             }
         } catch {
-             // If it's not JSON, throw the raw response
-            console.error("raw serverResponse:", error.serverResponse);
+             // Fallback for non-JSON responses
         }
     }
     // Re-throw a more informative error to be handled by the UI.
+    // This will now be the specific Firebase error if available, otherwise the default one.
     throw new Error(error.message || `Upload failed. Check the browser console for detailed Firebase Storage error logs.`);
   }
 }
