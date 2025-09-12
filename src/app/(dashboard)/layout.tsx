@@ -122,13 +122,6 @@ function AuthWrapper({ children }: { children: ReactNode }) {
                     <div className="py-8">
                        <p className="text-sm text-muted-foreground">Developed by Mian Mudassar</p>
                     </div>
-                    <DialogFooter className="sm:justify-center">
-                        <DialogClose asChild>
-                            <Button type="button" variant="secondary">
-                                Close
-                            </Button>
-                        </DialogClose>
-                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </>
