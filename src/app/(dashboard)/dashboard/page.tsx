@@ -43,10 +43,7 @@ export default function DashboardPage() {
                 // Count all WhatsApp messages, regardless of origin
                 return logIsToday && (log.action.includes('Send') && log.action.includes('Message'));
             })
-            .reduce((total, log) => {
-                const match = log.description.match(/to (\d+)/);
-                return total + (match ? parseInt(match[1], 10) : 1);
-            }, 0);
+            .reduce((total, log) => total + (log.recipientCount || 0), 0);
     }, [activityLog, today]);
 
     const { monthlyIncome, monthlyExpenses, netProfitThisMonth } = useMemo(() => {

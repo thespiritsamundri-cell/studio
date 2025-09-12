@@ -1,9 +1,11 @@
 
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Grade, MessageTemplate } from '@/lib/types';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
 
 export interface SchoolSettings {
   schoolName: string;
@@ -20,6 +22,8 @@ export interface SchoolSettings {
   whatsappPriority: string;
   whatsappProvider: 'ultramsg' | 'official';
   whatsappConnectionStatus: 'untested' | 'connected' | 'failed';
+  whatsappPhoneNumberId?: string;
+  whatsappAccessToken?: string;
   messageDelay: number;
   historyClearPin?: string;
   autoLockEnabled?: boolean;
@@ -41,7 +45,7 @@ export interface SchoolSettings {
   preloaderStyle?: string;
 }
 
-const defaultSettings: SchoolSettings = {
+export const defaultSettings: SchoolSettings = {
   schoolName: 'The Spirit School Samundri',
   academicYear: '2025-2026',
   schoolAddress: '123 Education Lane, Knowledge City, Pakistan',
@@ -56,6 +60,8 @@ const defaultSettings: SchoolSettings = {
   whatsappPriority: '10',
   whatsappProvider: 'ultramsg',
   whatsappConnectionStatus: 'untested',
+  whatsappPhoneNumberId: '',
+  whatsappAccessToken: '',
   messageDelay: 2,
   historyClearPin: '1234',
   autoLockEnabled: true,
@@ -101,25 +107,86 @@ export const SettingsContext = createContext<{
 export const SettingsProvider = ({ children }: { children: React.ReactNode }) => {
   const [settings, setSettings] = useState<SchoolSettings>(defaultSettings);
   const [isInitialized, setIsInitialized] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
-    try {
-      const savedSettings = localStorage.getItem('schoolSettings');
-      if (savedSettings) {
-        const parsed = JSON.parse(savedSettings);
-        setSettings({ ...defaultSettings, ...parsed });
+    const loadSettings = async () => {
+      let combinedSettings = { ...defaultSettings };
+      
+      // 1. Load from localStorage first for an instant UI update
+      try {
+        const localSettings = localStorage.getItem('schoolSettings');
+        if (localSettings) {
+          combinedSettings = { ...combinedSettings, ...JSON.parse(localSettings) };
+          setSettings(combinedSettings);
+        }
+      } catch (error) {
+        console.error("Could not load settings from localStorage:", error);
       }
-    } catch (error) {
-      console.error('Failed to parse settings from localStorage', error);
-    }
-    setIsInitialized(true);
-  }, []);
+
+      // 2. Fetch general settings and branding assets from Firestore
+      try {
+        const settingsRef = doc(db, 'Settings', 'School Settings');
+        const brandingRef = doc(db, 'branding', 'school-assets');
+        
+        const [settingsSnap, brandingSnap] = await Promise.all([
+            getDoc(settingsRef),
+            getDoc(brandingRef)
+        ]);
+
+        if (settingsSnap.exists()) {
+            combinedSettings = { ...combinedSettings, ...settingsSnap.data() };
+        }
+        if (brandingSnap.exists()) {
+            combinedSettings = { ...combinedSettings, ...brandingSnap.data() };
+        }
+        
+        setSettings(combinedSettings);
+        localStorage.setItem('schoolSettings', JSON.stringify(combinedSettings));
+
+      } catch (error) {
+          console.error('Failed to fetch settings from Firestore:', error);
+          toast({
+            title: "Could not load settings from cloud",
+            description: "Falling back to default or cached settings.",
+            variant: "destructive"
+          });
+      } finally {
+          setIsInitialized(true);
+      }
+    };
+    loadSettings();
+  }, [toast]);
 
   useEffect(() => {
+    const saveSettings = async () => {
+      // Save to localStorage immediately
+      localStorage.setItem('schoolSettings', JSON.stringify(settings));
+
+      // Separate branding assets from other settings
+      const { schoolLogo, favicon, principalSignature, ...otherSettings } = settings;
+      const brandingAssets = { schoolLogo, favicon, principalSignature };
+
+      // Save to Firestore
+      const settingsRef = doc(db, 'Settings', 'School Settings');
+      const brandingRef = doc(db, 'branding', 'school-assets');
+      try {
+        await setDoc(settingsRef, otherSettings, { merge: true });
+        await setDoc(brandingRef, brandingAssets, { merge: true });
+      } catch (error) {
+        console.error('Failed to save settings to Firestore:', error);
+        toast({
+          title: "Could not save settings to cloud",
+          description: "Your changes are saved locally but might not be on other devices.",
+          variant: "destructive"
+        });
+      }
+    };
+    
     if (isInitialized) {
-        localStorage.setItem('schoolSettings', JSON.stringify(settings));
+        saveSettings();
     }
-  }, [settings, isInitialized]);
+  }, [settings, isInitialized, toast]);
 
   return (
     <SettingsContext.Provider value={{ settings, setSettings }}>

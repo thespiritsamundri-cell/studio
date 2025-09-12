@@ -42,18 +42,30 @@ export default function AppClientLayout({
   }, [pathname, settings.schoolName]);
 
 
-  // Effect for Favicon ONLY
+  // Effect for Favicon and Manifest
   useEffect(() => {
-    let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-    if (!link) {
-      link = document.createElement('link');
-      link.rel = 'icon';
-      document.head.appendChild(link);
+    const key = new Date().getTime(); // Generate a unique key on settings change
+    
+    // Favicon
+    let faviconLink = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+    if (!faviconLink) {
+      faviconLink = document.createElement('link');
+      faviconLink.rel = 'icon';
+      document.head.appendChild(faviconLink);
     }
-    // Use a timestamp as a key to force browser to reload the icon
     const faviconUrl = settings.favicon || '/favicon.ico';
-    link.href = `${faviconUrl}?v=${new Date().getTime()}`;
-  }, [settings.favicon]);
+    faviconLink.href = `${faviconUrl}?v=${key}`;
+    
+    // Manifest
+    let manifestLink = document.querySelector("link[rel='manifest']") as HTMLLinkElement;
+    if (!manifestLink) {
+        manifestLink = document.createElement('link');
+        manifestLink.rel = 'manifest';
+        document.head.appendChild(manifestLink);
+    }
+    manifestLink.href = `/manifest.json?v=${key}`;
+
+  }, [settings.favicon, settings.schoolName]);
   
   // Effect for Font and Theme Colors ONLY
   useEffect(() => {

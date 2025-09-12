@@ -516,10 +516,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 await sendWhatsAppMessage(
                   family.phone,
                   message,
-                  settings.whatsappApiUrl,
-                  settings.whatsappApiKey,
-                  settings.whatsappInstanceId,
-                  settings.whatsappPriority
+                  settings
                 );
                 addActivityLog({ user: 'System', action: 'Send Deactivation Notice', description: `Sent deactivation notice to parents of ${student.name}.` });
               } catch (e) {
@@ -599,10 +596,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                             await sendWhatsAppMessage(
                                 teacher.phone, 
                                 message,
-                                settings.whatsappApiUrl,
-                                settings.whatsappApiKey,
-                                settings.whatsappInstanceId,
-                                settings.whatsappPriority
+                                settings
                             );
                             addActivityLog({ user: 'System', action: 'Send Deactivation Notice', description: `Sent deactivation notice to ${teacher.name}.` });
                         } catch(e) {

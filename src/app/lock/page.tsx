@@ -84,8 +84,7 @@ export default function LockPage() {
     router.push('/');
   }
 
-  const handleUnlock = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleUnlock = (enteredPin: string) => {
     if (!settings.historyClearPin) {
       toast({
         title: 'PIN Not Set',
@@ -96,9 +95,9 @@ export default function LockPage() {
       return;
     }
 
-    if (pin === settings.historyClearPin) {
+    if (enteredPin === settings.historyClearPin) {
       toast({ title: 'System Unlocked' });
-      sessionStorage.removeItem('locked');
+      sessionStorage.setItem('unlocked', 'true');
       const returnUrl = sessionStorage.getItem('lockedFrom') || '/dashboard';
       sessionStorage.removeItem('lockedFrom'); // Clean up session storage
       router.replace(returnUrl);
@@ -111,6 +110,12 @@ export default function LockPage() {
       setPin('');
     }
   };
+  
+   useEffect(() => {
+    if (pin.length === 4) {
+      handleUnlock(pin);
+    }
+  }, [pin]);
 
   if (!isClient) {
     return null; // Render nothing on the server to avoid hydration mismatch
@@ -141,7 +146,7 @@ export default function LockPage() {
                 <CardTitle className="text-3xl font-bold font-headline h-10">{animatedSchoolName}</CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleUnlock} className="space-y-4">
+              <form onSubmit={(e) => { e.preventDefault(); handleUnlock(pin);}} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="pin" className="text-center block">Enter Security PIN to Unlock</Label>
                   <div className="relative">
@@ -154,12 +159,10 @@ export default function LockPage() {
                         onChange={(e) => setPin(e.target.value)}
                         maxLength={4}
                         className="text-center text-lg tracking-[1rem] pl-10"
+                        autoFocus
                     />
                   </div>
                 </div>
-                <Button type="submit" className="w-full">
-                  Unlock
-                </Button>
               </form>
               <Button type="button" variant="link" size="sm" className="w-full mt-4 text-muted-foreground" onClick={handleLogoutAndRelogin}>
                 <LogOut className="mr-2 h-4 w-4" />
