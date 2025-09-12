@@ -99,7 +99,7 @@ export default function LockPage() {
 
     if (pin === settings.historyClearPin) {
       toast({ title: 'System Unlocked' });
-      sessionStorage.removeItem('locked');
+      sessionStorage.setItem('isUnlocked', 'true'); // Set flag for welcome back message
       const returnUrl = sessionStorage.getItem('lockedFrom') || '/dashboard';
       sessionStorage.removeItem('lockedFrom'); // Clean up session storage
       router.replace(returnUrl);

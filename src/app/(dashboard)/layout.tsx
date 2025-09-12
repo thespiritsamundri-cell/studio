@@ -69,14 +69,19 @@ function AuthWrapper({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { settings } = useSettings();
   const [showWelcome, setShowWelcome] = useState(false);
+  const [welcomeMessage, setWelcomeMessage] = useState('Welcome');
 
   useEffect(() => {
     if (!loading && !user) {
       router.replace('/');
     }
     if (!loading && user) {
-        // Show welcome message only once per session
-        if (!sessionStorage.getItem('welcomeShown')) {
+        if (sessionStorage.getItem('isUnlocked') === 'true') {
+            setWelcomeMessage('Welcome Back');
+            setShowWelcome(true);
+            sessionStorage.removeItem('isUnlocked'); // Clear the flag
+        } else if (!sessionStorage.getItem('welcomeShown')) {
+            setWelcomeMessage('Welcome');
             setShowWelcome(true);
             sessionStorage.setItem('welcomeShown', 'true');
         }
@@ -111,7 +116,7 @@ function AuthWrapper({ children }: { children: ReactNode }) {
                         ) : (
                             <School className="w-12 h-12 text-primary mb-2"/>
                         )}
-                        <DialogTitle className="text-2xl">Welcome to {settings.schoolName}</DialogTitle>
+                        <DialogTitle className="text-2xl">{welcomeMessage} to {settings.schoolName}</DialogTitle>
                         <DialogDescription>{format(new Date(), 'EEEE, MMMM do, yyyy')}</DialogDescription>
                     </DialogHeader>
                     <div className="py-8">
