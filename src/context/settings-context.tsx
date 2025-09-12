@@ -112,14 +112,26 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   useEffect(() => {
     const fetchSettings = async () => {
         const settingsRef = doc(db, 'Settings', 'School Settings');
+        const brandingRef = doc(db, 'branding', 'school-assets');
         try {
             const settingsSnap = await getDoc(settingsRef);
+            const brandingSnap = await getDoc(brandingRef);
 
             let fetchedSettings = defaultSettings;
             if (settingsSnap.exists()) {
                 fetchedSettings = { ...fetchedSettings, ...settingsSnap.data() };
             } else {
                  await setDoc(settingsRef, defaultSettings);
+            }
+            
+            if (brandingSnap.exists()) {
+                fetchedSettings = { ...fetchedSettings, ...brandingSnap.data() };
+            } else {
+                await setDoc(brandingRef, { 
+                    schoolLogo: defaultSettings.schoolLogo,
+                    favicon: defaultSettings.favicon,
+                    principalSignature: defaultSettings.principalSignature,
+                });
             }
             
             setSettings(fetchedSettings);
@@ -142,10 +154,15 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
     const saveSettings = async () => {
       if (isInitialized) {
         const settingsRef = doc(db, 'Settings', 'School Settings');
+        const brandingRef = doc(db, 'branding', 'school-assets');
         
+        const { schoolLogo, favicon, principalSignature, ...otherSettings } = settings;
+
         try {
           // Save general settings
-          await setDoc(settingsRef, settings, { merge: true });
+          await setDoc(settingsRef, otherSettings, { merge: true });
+          // Save branding assets
+          await setDoc(brandingRef, { schoolLogo, favicon, principalSignature }, { merge: true });
         } catch (error) {
           console.error('Failed to save settings to Firestore:', error);
           toast({
