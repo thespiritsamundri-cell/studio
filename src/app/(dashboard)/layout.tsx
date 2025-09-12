@@ -114,7 +114,7 @@ function AuthWrapper({ children }: { children: ReactNode }) {
                         <DialogDescription>{format(new Date(), 'EEEE, MMMM do, yyyy')}</DialogDescription>
                     </DialogHeader>
                     <div className="py-8">
-                       <p className="text-sm text-muted-foreground">Developed by Mian Muhammad Mudassar</p>
+                       <p className="text-sm text-muted-foreground">Developed by Mian Mudassar</p>
                     </div>
                     <DialogFooter className="sm:justify-center">
                         <DialogClose asChild>
