@@ -180,7 +180,7 @@ export default function TimetablePage() {
     const headers = [];
     for (let i = 0; i < numPeriods; i++) {
         headers.push(
-            <th key={`header-period-${i}`} className="border p-2 font-semibold w-48">
+            <th key={`header-period-${i}`} className="p-2 font-semibold w-48 align-top">
                 <p>Period {i + 1}</p>
                 <Input
                     placeholder="e.g., 8:00"
@@ -190,28 +190,23 @@ export default function TimetablePage() {
                 />
             </th>
         );
-        if ((i + 1) === breakAfterPeriod) {
-            headers.push(
-                <th key="break-header" className="border p-2 font-semibold bg-green-200 text-green-800" rowSpan={classes.length + 1}>
-                    <div className="[writing-mode:vertical-rl] transform rotate-180 h-full flex items-center justify-center p-2">
-                        BREAK ({breakDuration})
-                    </div>
-                </th>
-            );
-        }
     }
     return headers;
   };
-
-  const renderMasterTableBody = () => {
+  
+    const renderMasterTableBody = () => {
       return classes.map(cls => (
           <tr key={cls.id}>
               <td className="border p-2 font-semibold sticky left-0 bg-background z-10">{cls.name}</td>
               {Array.from({ length: numPeriods }).map((_, periodIndex) => {
                   const cellData = masterTimetableData[cls.id]?.[periodIndex];
-                  const isBreakNext = (periodIndex + 1) === breakAfterPeriod;
+                   if (periodIndex + 1 === breakAfterPeriod) {
+                       return (
+                           <td key={`break-cell-${cls.id}`} className="border p-0 bg-green-100"></td>
+                       )
+                   }
                   
-                  const cellContent = (
+                  return (
                        <td key={`${cls.id}-${periodIndex}`} className="border p-0 align-top">
                           <div className="h-24 w-full flex flex-col">
                               <Select
@@ -235,11 +230,6 @@ export default function TimetablePage() {
                           </div>
                       </td>
                   );
-
-                  if (isBreakNext) {
-                      return [cellContent, <td key={`break-cell-${cls.id}`} className="border p-0"></td>];
-                  }
-                  return cellContent;
               })}
           </tr>
       ));
@@ -306,12 +296,18 @@ export default function TimetablePage() {
                             </div>
                         </div>
                     </Card>
-                    <div className="border rounded-lg overflow-x-auto">
+                     <div className="border rounded-lg overflow-x-auto">
                         <table className="w-full border-collapse min-w-[1600px]">
-                             <thead>
-                                <tr className="bg-muted">
-                                    <th className="border p-2 font-semibold w-32 sticky left-0 bg-muted z-10">Class</th>
-                                    {renderMasterTableHeader()}
+                             <thead className="bg-muted">
+                                <tr>
+                                    <th className="border p-2 font-semibold w-32 sticky left-0 bg-muted z-10 align-top">Class</th>
+                                    {renderMasterTableHeader().slice(0, breakAfterPeriod)}
+                                    <th className="border p-2 font-semibold bg-green-200 text-green-800" rowSpan={classes.length + 1}>
+                                        <div className="[writing-mode:vertical-rl] transform rotate-180 h-full flex items-center justify-center p-2">
+                                            BREAK ({breakDuration})
+                                        </div>
+                                    </th>
+                                    {renderMasterTableHeader().slice(breakAfterPeriod)}
                                 </tr>
                             </thead>
                             <tbody>
