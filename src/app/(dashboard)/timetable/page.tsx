@@ -180,14 +180,16 @@ export default function TimetablePage() {
     const headers = [];
     for (let i = 0; i < numPeriods; i++) {
         headers.push(
-            <th key={`header-period-${i}`} className="p-2 font-semibold w-48 align-top">
-                <p>Period {i + 1}</p>
-                <Input
-                    placeholder="e.g., 8:00"
-                    className="h-7 text-xs mt-1"
-                    value={timeSlots[i] || ''}
-                    onChange={(e) => handleTimeSlotChange(i, e.target.value)}
-                />
+            <th key={`header-period-${i}`} className="p-0 font-semibold w-48 align-middle">
+                <div className="flex flex-col items-center justify-center h-24">
+                  <p>Period {i + 1}</p>
+                  <Input
+                      placeholder="e.g., 8:00"
+                      className="h-7 text-xs mt-1 w-24 text-center"
+                      value={timeSlots[i] || ''}
+                      onChange={(e) => handleTimeSlotChange(i, e.target.value)}
+                  />
+                </div>
             </th>
         );
     }
@@ -300,7 +302,7 @@ export default function TimetablePage() {
                         <table className="w-full border-collapse min-w-[1600px]">
                              <thead className="bg-muted">
                                 <tr>
-                                    <th className="border p-2 font-semibold w-32 sticky left-0 bg-muted z-10 align-top">Class</th>
+                                    <th className="border p-2 font-semibold w-32 sticky left-0 bg-muted z-10 align-middle">Class</th>
                                     {renderMasterTableHeader().slice(0, breakAfterPeriod)}
                                     <th className="border p-2 font-semibold bg-green-200 text-green-800" rowSpan={classes.length + 1}>
                                         <div className="[writing-mode:vertical-rl] transform rotate-180 h-full flex items-center justify-center p-2">
