@@ -128,6 +128,11 @@ function AuthWrapper({ children }: { children: ReactNode }) {
                     ) : (
                          <>
                             <DialogHeader className="items-center">
+                                {settings.schoolLogo ? (
+                                    <Image src={settings.schoolLogo} alt="School Logo" width={60} height={60} className="rounded-full object-contain mb-2"/>
+                                ) : (
+                                    <School className="w-12 h-12 text-primary mb-2"/>
+                                )}
                                  <DialogTitle className="text-2xl">{welcomeMessage}</DialogTitle>
                             </DialogHeader>
                             <div className="py-8">
