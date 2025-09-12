@@ -35,7 +35,7 @@ export default function TimetablePage() {
   useEffect(() => {
     // This effect initializes the state from the first available timetable settings
     const firstTimetableWithSettings = timetables.find(t => t.timeSlots && t.timeSlots.length > 0);
-    const periodCount = firstTimetableWithSettings?.timeSlots?.length || 8;
+    const periodCount = 8; // Hardcode to 8 periods
     setNumPeriods(periodCount);
     setTimeSlots(firstTimetableWithSettings?.timeSlots || Array(periodCount).fill(''));
     setBreakAfterPeriod(firstTimetableWithSettings?.breakAfterPeriod || 4);
@@ -57,6 +57,7 @@ export default function TimetablePage() {
 
 
   const handleNumPeriodsChange = (newNumPeriods: number) => {
+    // This function is kept for potential future use but the UI controls are removed.
     if (newNumPeriods < 1 || newNumPeriods > 12) return;
 
     setNumPeriods(newNumPeriods);
@@ -107,8 +108,7 @@ export default function TimetablePage() {
 
   const handleSaveAllTimetables = () => {
     Object.keys(masterTimetableData).forEach(classId => {
-        // Here we pass undefined for breakDuration as it's no longer used
-        updateTimetable(classId, masterTimetableData[classId], timeSlots, breakAfterPeriod, undefined);
+        updateTimetable(classId, masterTimetableData[classId], timeSlots, breakAfterPeriod);
     });
     toast({
       title: "All Timetables Saved",
@@ -237,53 +237,32 @@ export default function TimetablePage() {
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <Card className="p-4 bg-muted/50">
-                        <div className="flex flex-wrap items-end gap-6">
-                             <div className="space-y-2">
-                                <Label>Number of Periods</Label>
-                                <div className="flex items-center gap-2">
-                                    <Button size="icon" variant="outline" onClick={() => handleNumPeriodsChange(numPeriods - 1)} disabled={numPeriods <= 1}>
-                                        <MinusCircle className="h-4 w-4"/>
-                                    </Button>
-                                    <span className="font-bold text-lg w-10 text-center">{numPeriods}</span>
-                                     <Button size="icon" variant="outline" onClick={() => handleNumPeriodsChange(numPeriods + 1)} disabled={numPeriods >= 12}>
-                                        <PlusCircle className="h-4 w-4"/>
-                                    </Button>
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="break-after">Break After Period</Label>
-                                <Select value={String(breakAfterPeriod)} onValueChange={(v) => setBreakAfterPeriod(Number(v))}>
-                                    <SelectTrigger className="w-48" id="break-after">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {Array.from({length: numPeriods - 1}).map((_, i) => (
-                                            <SelectItem key={i+1} value={String(i+1)}>After Period {i+1}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-                    </Card>
                     <div className="border rounded-lg overflow-x-auto">
                         <table className="w-full border-collapse min-w-[1600px] table-fixed">
                              <colgroup>
                                 <col style={{ width: '120px' }} />
-                                {Array.from({ length: numPeriods }).map((_, i) => (
-                                    <col key={`col-period-${i}`} style={{ width: 'auto' }} />
-                                ))}
-                                <col style={{ width: '40px' }} />
+                                {/* 8 periods */}
+                                <col style={{ width: 'auto' }} />
+                                <col style={{ width: 'auto' }} />
+                                <col style={{ width: 'auto' }} />
+                                <col style={{ width: 'auto' }} />
+                                {/* Break */}
+                                <col style={{ width: '40px' }} /> 
+                                {/* 4 more periods */}
+                                <col style={{ width: 'auto' }} />
+                                <col style={{ width: 'auto' }} />
+                                <col style={{ width: 'auto' }} />
+                                <col style={{ width: 'auto' }} />
                              </colgroup>
                              <thead>
-                                <tr className="bg-muted">
-                                    <th className="border p-1 font-semibold sticky left-0 bg-muted z-10 text-sm h-24">
+                                <tr className="bg-muted h-24">
+                                    <th className="border p-1 font-semibold sticky left-0 bg-muted z-10 text-sm">
                                         Class
                                     </th>
-                                    {Array.from({ length: numPeriods }).map((_, periodIndex) => (
+                                    {Array.from({ length: 8 }).map((_, periodIndex) => (
                                         <React.Fragment key={`header-frag-${periodIndex}`}>
-                                            {(periodIndex === breakAfterPeriod) && (
-                                                <th key="break-header" className="border p-2 bg-green-100 w-10"></th>
+                                            {periodIndex === 4 && (
+                                                <th key="break-header" className="border bg-green-100 p-0 w-10"></th>
                                             )}
                                             <th className="border p-1 font-semibold text-xs">
                                                 <div>Period {periodIndex + 1}</div>
@@ -296,22 +275,18 @@ export default function TimetablePage() {
                                             </th>
                                         </React.Fragment>
                                     ))}
-                                    {(numPeriods === breakAfterPeriod) && (
-                                        <th key="break-header-end" className="border p-2 bg-green-100 w-10"></th>
-                                    )}
                                 </tr>
                             </thead>
                             <tbody>
                                 {sortedClasses.map((cls) => (
                                     <tr key={cls.id}>
                                         <td className="border p-2 font-semibold sticky left-0 bg-background z-10 text-sm">{cls.name}</td>
-                                        {Array.from({ length: numPeriods }).map((_, periodIndex) => (
+                                        {Array.from({ length: 8 }).map((_, periodIndex) => (
                                              <React.Fragment key={`cell-frag-${cls.id}-${periodIndex}`}>
-                                                {periodIndex === breakAfterPeriod && <td key={`break-cell-${cls.id}`} className="border bg-green-100"></td>}
+                                                {periodIndex === 4 && <td key={`break-cell-${cls.id}`} className="border bg-green-100"></td>}
                                                 {renderCell(cls.id, periodIndex)}
                                             </React.Fragment>
                                         ))}
-                                         {(numPeriods === breakAfterPeriod) && <td key={`break-cell-end-${cls.id}`} className="border bg-green-100"></td>}
                                     </tr>
                                 ))}
                             </tbody>
