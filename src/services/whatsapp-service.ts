@@ -39,27 +39,25 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
   }
 
   try {
-    // Correctly construct the URL by combining the API URL and instance ID.
-    const fullUrl = `${whatsappApiUrl}/${whatsappInstanceId}/messages/chat`;
+    const fullUrl = `${whatsappApiUrl}/messages/chat`;
     
-    // Ensure instanceId is NOT in the body, as it's part of the URL.
-    const body = JSON.stringify({
-      token: whatsappApiKey,
-      to: to,
-      body: message,
-      priority: whatsappPriority || "10",
-    });
+    const params = new URLSearchParams();
+    params.append('token', whatsappApiKey);
+    params.append('to', to);
+    params.append('body', message);
+    params.append('priority', whatsappPriority || '10');
+    params.append('instanceId', whatsappInstanceId);
 
     const response = await fetch(fullUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: body,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params,
     });
 
     const responseJson = await response.json();
 
-    if (!response.ok) {
-      console.error('UltraMSG API Error:', responseJson?.error?.message || `API Error: ${response.status}`, responseJson);
+    if (!response.ok || responseJson.sent !== 'true') {
+      console.error('UltraMSG API Error:', responseJson?.error || `API Error: ${response.status}`, responseJson);
       return false;
     }
     console.log('UltraMSG API Success:', responseJson);
