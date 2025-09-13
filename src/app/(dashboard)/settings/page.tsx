@@ -967,7 +967,7 @@ export default function SettingsPage() {
                             <div className="flex justify-end pt-4">
                                 <Button onClick={() => setSettings(prev => ({...prev, whatsappProvider: 'ultramsg'}))} disabled={settings.whatsappProvider === 'ultramsg'}>
                                   {settings.whatsappProvider === 'ultramsg' ? <CheckCircle className="mr-2" /> : null}
-                                  Activate UltraMSG
+                                  {settings.whatsappProvider === 'ultramsg' ? 'Activated' : 'Activate UltraMSG'}
                                 </Button>
                             </div>
                         </TabsContent>
@@ -985,7 +985,7 @@ export default function SettingsPage() {
                              <div className="flex justify-end pt-4">
                                 <Button onClick={() => setSettings(prev => ({...prev, whatsappProvider: 'official'}))} disabled={settings.whatsappProvider === 'official'}>
                                    {settings.whatsappProvider === 'official' ? <CheckCircle className="mr-2" /> : null}
-                                   Activate Official API
+                                   {settings.whatsappProvider === 'official' ? 'Activated' : 'Activate Official API'}
                                 </Button>
                             </div>
                          </TabsContent>
