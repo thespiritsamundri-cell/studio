@@ -14,6 +14,11 @@ export async function sendWhatsAppMessage(to: string, message: string): Promise<
     }
     const settings = settingsDoc.data() as SchoolSettings;
 
+    if (!settings.whatsappActive) {
+      console.log('WhatsApp messaging is disabled in settings. Skipping send.');
+      return false;
+    }
+
     if (settings.whatsappProvider === 'ultramsg') {
       return sendWithUltraMSG(to, message, settings);
     } else if (settings.whatsappProvider === 'official') {
@@ -24,17 +29,15 @@ export async function sendWhatsAppMessage(to: string, message: string): Promise<
     }
   } catch (error: any) {
     console.error('Failed to send WhatsApp message:', error.message);
-    // Do not re-throw the error to prevent application crashes.
-    // The individual API functions will handle their specific errors.
     return false;
   }
 }
 
 async function sendWithUltraMSG(to: string, message: string, settings: SchoolSettings): Promise<boolean> {
-  const { whatsappApiUrl, whatsappApiKey, whatsappInstanceId, whatsappPriority } = settings;
+  const { whatsappApiUrl, whatsappApiKey, whatsappPriority } = settings;
 
-  if (!whatsappApiUrl || !whatsappApiKey || !whatsappInstanceId) {
-    console.error('UltraMSG API URL, Token, or Instance ID not provided in settings.');
+  if (!whatsappApiUrl || !whatsappApiKey) {
+    console.error('UltraMSG API URL or Token not provided in settings.');
     return false;
   }
 
@@ -46,7 +49,6 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
     params.append('to', to);
     params.append('body', message);
     params.append('priority', whatsappPriority || '10');
-    params.append('instanceId', whatsappInstanceId);
 
     const response = await fetch(fullUrl, {
       method: 'POST',

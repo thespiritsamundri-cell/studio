@@ -25,6 +25,7 @@ export interface SchoolSettings {
   whatsappAccessToken?: string;
   
   whatsappProvider: 'ultramsg' | 'official';
+  whatsappActive: boolean; // Main toggle for WhatsApp functionality
   whatsappConnectionStatus: 'untested' | 'connected' | 'failed';
   messageDelay: number;
   historyClearPin?: string;
@@ -51,16 +52,17 @@ export const defaultSettings: SchoolSettings = {
   schoolName: 'The Spirit School Samundri',
   academicYear: '2025-2026',
   schoolAddress: '123 Education Lane, Knowledge City, Pakistan',
-  schoolPhone: '+92 300 1234567',
+  schoolPhone: '+92 309 9969535',
   schoolEmail: 'info@thespiritschool.edu.pk',
   schoolLogo: 'https://firebasestorage.googleapis.com/v0/b/educentral-mxfgr.appspot.com/o/settings%2FschoolLogo%2Flogo.png?alt=media&token=e1f06b6f-7f6a-4565-b17a-8b9a07106517',
   favicon: 'https://firebasestorage.googleapis.com/v0/b/educentral-mxfgr.appspot.com/o/settings%2Ffavicon%2Ffavicon.ico?alt=media&token=48c8b4a2-996a-4523-832f-410a3c26b527',
   principalSignature: 'https://firebasestorage.googleapis.com/v0/b/educentral-mxfgr.appspot.com/o/settings%2FprincipalSignature%2Fsignature.png?alt=media&token=8a5c3789-9a74-4b53-8b5e-404391694f8d',
-  whatsappApiUrl: '',
-  whatsappApiKey: '',
-  whatsappInstanceId: '',
+  whatsappApiUrl: 'https://api.ultramsg.com/instance141491',
+  whatsappApiKey: '4e8f26fx3a2yi942',
+  whatsappInstanceId: 'instance141491',
   whatsappPriority: '10',
   whatsappProvider: 'ultramsg',
+  whatsappActive: true,
   whatsappConnectionStatus: 'untested',
   messageDelay: 2,
   historyClearPin: '1234',
@@ -114,7 +116,7 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
       if (doc.exists()) {
         const dbSettings = doc.data() as Partial<SchoolSettings>;
         // Merge with defaults to ensure all keys are present
-        setSettingsState(prev => ({ ...prev, ...dbSettings }));
+        setSettingsState(prev => ({ ...defaultSettings, ...prev, ...dbSettings }));
       } else {
         // If no settings in DB, use defaults and save them.
         setDoc(settingsDocRef, defaultSettings);
