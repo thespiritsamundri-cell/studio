@@ -940,10 +940,6 @@ export default function SettingsPage() {
                     <CardDescription>Enter your API details to enable messaging features.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex items-center space-x-2 mb-6">
-                        <Switch id="whatsappActive" checked={settings.whatsappActive} onCheckedChange={(checked) => setSettings(prev => ({...prev, whatsappActive: checked}))}/>
-                        <Label htmlFor="whatsappActive">Enable WhatsApp Messaging</Label>
-                    </div>
                     <Tabs defaultValue={settings.whatsappProvider || 'none'} onValueChange={(value) => setSettings(prev => ({...prev, whatsappProvider: value as 'ultramsg' | 'official' | 'none'}))}>
                         <TabsList>
                             <TabsTrigger value="ultramsg">UltraMSG API</TabsTrigger>

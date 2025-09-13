@@ -30,7 +30,7 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
 
     const body = `token=${encodeURIComponent(whatsappApiKey)}&to=${encodeURIComponent(formattedTo)}&body=${encodeURIComponent(message)}&priority=${encodeURIComponent(whatsappPriority || '10')}`;
 
-    console.log("📤 UltraMSG REQUEST", { fullUrl });
+    console.log("📤 UltraMSG REQUEST", { fullUrl, body });
 
     const response = await fetch(fullUrl, {
       method: 'POST',
@@ -85,10 +85,6 @@ export async function sendWhatsAppMessage(to: string, message: string): Promise<
     console.error('Could not fetch settings. Using default settings.', error);
   }
   
-  if (!settings.whatsappActive) {
-    return { success: false, error: "WhatsApp messaging is disabled in settings."};
-  }
-
   let result: { success: boolean; error?: string };
 
   if (settings.whatsappProvider === 'ultramsg') {
