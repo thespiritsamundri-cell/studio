@@ -19,13 +19,16 @@ export async function sendWhatsAppMessage(to: string, message: string): Promise<
       return false;
     }
 
+    // Only use UltraMSG as per the focus of the issue
     if (settings.whatsappProvider === 'ultramsg') {
       return sendWithUltraMSG(to, message, settings);
-    } else if (settings.whatsappProvider === 'official') {
-      return sendWithOfficialAPI(to, message, settings);
     } else {
-      console.warn(`WhatsApp provider "${settings.whatsappProvider}" is not supported or configured.`);
-      return false;
+       console.warn(`The selected WhatsApp provider "${settings.whatsappProvider}" is not the one being troubleshooted.`);
+       // To be safe, we also try to send with the official API if it's selected.
+       if (settings.whatsappProvider === 'official') {
+            return sendWithOfficialAPI(to, message, settings);
+       }
+       return false;
     }
   } catch (error: any) {
     console.error('Failed to send WhatsApp message:', error.message);
@@ -42,42 +45,42 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
   }
 
   try {
-    const formattedTo = to.replace(/^\+/, ''); // remove leading + if present
+    const formattedTo = to.replace(/^\+/, '');
     const fullUrl = `${whatsappApiUrl}/${whatsappInstanceId}/messages/chat`;
 
-    const body = new URLSearchParams({
-      token: whatsappApiKey,
-      to: formattedTo,
-      body: message,
-      priority: whatsappPriority || '10',
-    }).toString();
+    const params = new URLSearchParams();
+    params.append('token', whatsappApiKey);
+    params.append('to', formattedTo);
+    params.append('body', message);
+    params.append('priority', whatsappPriority || '10');
 
     const response = await fetch(fullUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body,
+      body: params,
     });
 
     const responseJson = await response.json();
 
-    if (!response.ok || responseJson.sent !== true) {
-      console.error('UltraMSG API Error:', responseJson);
+    if (response.ok && responseJson.sent === true) {
+      console.log('UltraMSG API Success:', responseJson);
+      return true;
+    } else {
+      // This will log the exact error from the API to the server console
+      console.error('UltraMSG API Error:', responseJson?.error || `API Error: ${response.status}`, responseJson);
       return false;
     }
-
-    console.log('UltraMSG API Success:', responseJson);
-    return true;
-
   } catch (error: any) {
-    console.error('Error in sendWithUltraMSG:', error);
+    console.error('Fatal Error in sendWithUltraMSG:', error.message);
     if (error instanceof TypeError) {
-      console.error("This might be a network error or CORS issue. Check server logs.");
+        console.error("This might be a network error or CORS issue. Check server logs.");
     }
     return false;
   }
 }
+
 
 async function sendWithOfficialAPI(to: string, message: string, settings: SchoolSettings): Promise<boolean> {
   const { whatsappPhoneNumberId, whatsappAccessToken } = settings;
