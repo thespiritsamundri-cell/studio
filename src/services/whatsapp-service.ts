@@ -15,25 +15,23 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
   }
 
   try {
-    const formattedTo = to.replace(/^\+/, '').replace(/\s/g, '');
-    
-    // Final robust URL check: ensure the URL is built correctly without duplication.
-    const baseUrl = whatsappApiUrl.replace(/\/$/, ''); // Remove trailing slash
-    const fullUrl = `${baseUrl}/${whatsappInstanceId}/messages/chat`;
+    // 1. Robust phone number formatting
+    const numericTo = to.replace(/\D/g, ''); // Remove all non-digit characters
+    const formattedTo = numericTo.startsWith('92') ? numericTo : `92${numericTo.substring(1)}`;
 
-    const body = new URLSearchParams({
-      token: whatsappApiKey,
-      to: formattedTo,
-      body: message,
-      priority: whatsappPriority || '10',
-    }).toString();
+    // 2. Robust URL construction
+    const baseUrl = whatsappApiUrl.replace(/\/$/, ''); // Remove any trailing slash
+    const fullUrl = `${baseUrl}/messages/chat`;
+
+    // 3. Manually construct the body to avoid any issues with URLSearchParams
+    const body = `token=${encodeURIComponent(whatsappApiKey)}&to=${encodeURIComponent(formattedTo)}&body=${encodeURIComponent(message)}&priority=${encodeURIComponent(whatsappPriority || '10')}`;
 
     const response = await fetch(fullUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body,
+      body: body,
     });
 
     const responseJson = await response.json();
@@ -55,10 +53,10 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
   }
 }
 
+
 async function sendWithOfficialAPI(to: string, message: string, settings: SchoolSettings): Promise<boolean> {
-  // This function is a placeholder and not currently used.
   console.log("sendWithOfficialAPI called, but it's not implemented.");
-  return false;
+  return Promise.resolve(false);
 }
 
 
