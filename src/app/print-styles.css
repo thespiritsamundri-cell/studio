@@ -79,11 +79,11 @@
   }
 
   /* --- 3 Copies per Page (Landscape) --- */
-  @page landscape-page {
-    size: A4 landscape;
+  @page landscape {
+    size: landscape;
   }
   [data-print-copies="3"] .voucher-page {
-    page: landscape-page;
+    page: landscape;
     page-break-inside: avoid;
     display: flex;
     flex-direction: row;
@@ -100,11 +100,4 @@
     display: flex; /* Ensure inner content can grow */
   }
 
-  /* --- General Orientation --- */
-  [data-orientation="portrait"] {
-    @page { size: portrait; }
-  }
-  [data-orientation="landscape"] {
-    @page { size: landscape; }
-  }
 }

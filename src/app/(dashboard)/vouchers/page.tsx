@@ -309,15 +309,15 @@ export default function VouchersPage() {
 
                 <div className="flex justify-end items-center gap-4 pt-4 border-t">
                   <div className="space-y-2 w-48">
-                      <Label htmlFor="copies">Layout</Label>
+                      <Label htmlFor="copies">Voucher Copies</Label>
                       <Select value={copies} onValueChange={setCopies}>
                           <SelectTrigger id="copies">
                               <SelectValue placeholder="Select copies" />
                           </SelectTrigger>
                           <SelectContent>
-                              <SelectItem value="1">1 Copy per Page (Portrait)</SelectItem>
-                              <SelectItem value="2">2 Copies per Page (Portrait)</SelectItem>
-                              <SelectItem value="3">3 Copies per Page (Landscape)</SelectItem>
+                              <SelectItem value="1">1 Copy per Page</SelectItem>
+                              <SelectItem value="2">2 Copies per Page</SelectItem>
+                              <SelectItem value="3">3 Copies per Page</SelectItem>
                           </SelectContent>
                       </Select>
                   </div>
@@ -356,4 +356,3 @@ export default function VouchersPage() {
     </div>
   );
 }
-

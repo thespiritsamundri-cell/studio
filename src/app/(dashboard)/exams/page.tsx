@@ -39,7 +39,6 @@ export default function ExamsPage() {
   const [subjectTotals, setSubjectTotals] = useState<{[subject: string]: number}>({});
   const [currentResults, setCurrentResults] = useState<ExamResult[]>([]);
   const [fontSize, setFontSize] = useState('text-sm');
-  const [printOrientation, setPrintOrientation] = useState<'portrait' | 'landscape'>('portrait');
 
 
   const classStudents = useMemo(() => {
@@ -198,7 +197,6 @@ export default function ExamsPage() {
               marksheetData={marksheetData}
               settings={settings}
               fontSize={fontSize}
-              printOrientation={printOrientation}
           />
       );
       const printWindow = window.open('', '_blank');

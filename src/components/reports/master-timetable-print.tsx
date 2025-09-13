@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React from 'react';
@@ -44,7 +43,7 @@ export const MasterTimetablePrint = React.forwardRef<HTMLDivElement, MasterTimet
     const sortedClasses = [...classes].sort((a,b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 
     return (
-      <div ref={ref} className="p-4 font-sans bg-white text-black" data-orientation="landscape">
+      <div ref={ref} className="p-4 font-sans bg-white text-black">
         <header className="flex items-center justify-between pb-2 border-b-2 border-black">
           <div className="flex items-center gap-4">
             {settings.schoolLogo && <Image src={settings.schoolLogo} alt="School Logo" width={60} height={60} className="object-contain" />}

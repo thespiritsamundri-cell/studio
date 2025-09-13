@@ -12,10 +12,9 @@ interface ResultCardPrintProps {
   settings: SchoolSettings;
   classes: Class[];
   remarks: string;
-  printOrientation: 'portrait' | 'landscape';
 }
 
-const ResultCard = ({ student, exams, settings, classes, remarks, printOrientation }: { student: Student, exams: Exam[], settings: SchoolSettings, classes: Class[], remarks: string, printOrientation: 'portrait' | 'landscape' }) => {
+const ResultCard = ({ student, exams, settings, classes, remarks }: { student: Student, exams: Exam[], settings: SchoolSettings, classes: Class[], remarks: string }) => {
     const studentClassInfo = classes.find(c => c.name === student.class);
     const subjects = studentClassInfo?.subjects || [];
     
@@ -57,7 +56,7 @@ const ResultCard = ({ student, exams, settings, classes, remarks, printOrientati
 
 
     return (
-        <div className="p-6 font-sans bg-white text-black border-4 border-double border-gray-800 w-full mx-auto relative" data-orientation={printOrientation}>
+        <div className="p-6 font-sans bg-white text-black border-4 border-double border-gray-800 w-full mx-auto relative">
              {settings.schoolLogo && (
                 <div className="absolute inset-0 flex items-center justify-center z-0">
                     <Image src={settings.schoolLogo} alt="Watermark" width={300} height={300} className="object-contain opacity-10" />
@@ -203,13 +202,13 @@ const ResultCard = ({ student, exams, settings, classes, remarks, printOrientati
 };
 
 
-export const ResultCardPrint = React.forwardRef<HTMLDivElement, ResultCardPrintProps>(
-  ({ students, exams, settings, classes, remarks, printOrientation }, ref) => {
+export const ResultCardPrint = React.forwardRef<HTMLDivElement, Omit<ResultCardPrintProps, 'printOrientation'>>(
+  ({ students, exams, settings, classes, remarks }, ref) => {
     return (
-      <div ref={ref} data-orientation={printOrientation}>
+      <div ref={ref}>
         {students.map(student => (
             <div key={student.id} className="printable-page">
-              <ResultCard student={student} exams={exams} settings={settings} classes={classes} remarks={remarks} printOrientation={printOrientation} />
+              <ResultCard student={student} exams={exams} settings={settings} classes={classes} remarks={remarks} printOrientation="portrait" />
             </div>
         ))}
       </div>

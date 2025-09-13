@@ -26,8 +26,6 @@ export default function ResultCardsPage() {
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [remarks, setRemarks] = useState('Congratulations on your hard work! Keep it up.');
   const [isLoading, setIsLoading] = useState(false);
-  const [printOrientation, setPrintOrientation] = useState<'portrait' | 'landscape'>('portrait');
-
 
   const classExams = useMemo(() => {
     return selectedClass ? allExams.filter(e => e.class === selectedClass) : [];
@@ -85,7 +83,6 @@ export default function ResultCardsPage() {
           settings={settings} 
           classes={classes} 
           remarks={remarks}
-          printOrientation={printOrientation}
         />
       );
 
@@ -218,19 +215,7 @@ export default function ResultCardsPage() {
                     </div>
                 </div>
                  <div>
-                   <h3 className="font-semibold text-lg">5. Print Options</h3>
-                    <div className="mt-2">
-                       <Select value={printOrientation} onValueChange={(value) => setPrintOrientation(value as 'portrait' | 'landscape')}>
-                          <SelectTrigger>
-                              <SelectValue placeholder="Select Orientation" />
-                          </SelectTrigger>
-                          <SelectContent>
-                              <SelectItem value="portrait">Portrait</SelectItem>
-                              <SelectItem value="landscape">Landscape</SelectItem>
-                          </SelectContent>
-                      </Select>
-                    </div>
-                </div>
+                 </div>
               </div>
            <div className="flex justify-end mt-8 pt-6 border-t">
               <Button size="lg" onClick={handlePrint} disabled={isLoading || selectedStudentIds.length === 0 || selectedExamIds.length === 0}>
