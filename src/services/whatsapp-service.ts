@@ -44,15 +44,20 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
   try {
     const fullUrl = `${whatsappApiUrl}/${whatsappInstanceId}/messages/chat`;
     
-    const params = new URLSearchParams();
-    params.append('token', whatsappApiKey);
-    params.append('to', to);
-    params.append('body', message);
-    params.append('priority', whatsappPriority || '10');
+    // Manually construct the x-www-form-urlencoded body
+    const body = new URLSearchParams({
+        token: whatsappApiKey,
+        to: to,
+        body: message,
+        priority: whatsappPriority || '10'
+    }).toString();
 
     const response = await fetch(fullUrl, {
       method: 'POST',
-      body: params,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: body,
     });
 
     const responseJson = await response.json();
@@ -61,11 +66,15 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
       console.error('UltraMSG API Error:', responseJson?.error || `API Error: ${response.status}`, responseJson);
       return false;
     }
+
     console.log('UltraMSG API Success:', responseJson);
     return true;
 
   } catch (error: any) {
-    console.error('Error in sendWithUltraMSG:', error.message);
+    console.error('Error in sendWithUltraMSG:', error);
+    if (error instanceof TypeError) {
+        console.error("This might be a network error or CORS issue. Check server logs.");
+    }
     return false;
   }
 }
