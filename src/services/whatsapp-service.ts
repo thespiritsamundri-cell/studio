@@ -52,7 +52,6 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
 
     const response = await fetch(fullUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: params,
     });
 
