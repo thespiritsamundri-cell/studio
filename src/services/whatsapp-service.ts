@@ -18,8 +18,8 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
   const { whatsappApiUrl, whatsappInstanceId, whatsappApiKey, whatsappPriority } = settings;
 
   if (!whatsappApiUrl || !whatsappInstanceId || !whatsappApiKey) {
-    const errorMsg = '❌ UltraMSG API URL, Instance ID, or Token missing.';
-    console.error(errorMsg);
+    const errorMsg = 'UltraMSG API URL, Instance ID, or Token missing.';
+    console.error(`❌ ${errorMsg}`);
     return { success: false, error: errorMsg };
   }
 
@@ -30,11 +30,13 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
 
     const body = `token=${encodeURIComponent(whatsappApiKey)}&to=${encodeURIComponent(formattedTo)}&body=${encodeURIComponent(message)}&priority=${encodeURIComponent(whatsappPriority || '10')}`;
 
-    console.log("📤 UltraMSG REQUEST", { fullUrl, body });
+    console.log("📤 UltraMSG REQUEST", { fullUrl });
 
     const response = await fetch(fullUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
       body,
     });
 
@@ -87,14 +89,19 @@ export async function sendWhatsAppMessage(to: string, message: string): Promise<
     return { success: false, error: "WhatsApp messaging is disabled in settings."};
   }
 
+  let result: { success: boolean; error?: string };
+
   if (settings.whatsappProvider === 'ultramsg') {
-    return sendWithUltraMSG(to, message, settings);
-  }
-  
-  if (settings.whatsappProvider === 'official') {
-    return sendWithOfficialAPI(to, message, settings);
+    result = await sendWithUltraMSG(to, message, settings);
+  } else if (settings.whatsappProvider === 'official') {
+    result = await sendWithOfficialAPI(to, message, settings);
+  } else {
+    result = { success: false, error: "No active WhatsApp provider is configured." };
   }
 
-  console.log('No active WhatsApp provider is configured. Skipping send.');
-  return { success: false, error: "No active WhatsApp provider is configured." };
+  if (!result.success) {
+    return { success: false, error: result.error || "An unknown error occurred." };
+  }
+
+  return { success: true };
 }
