@@ -32,6 +32,7 @@ export default function TimetablePage() {
   
   const [masterTimetableData, setMasterTimetableData] = useState<Record<string, TimetableData>>({});
   const [timeSlots, setTimeSlots] = useState<string[]>(Array(numPeriods).fill(''));
+  const [printOrientation, setPrintOrientation] = useState<'portrait' | 'landscape'>('landscape');
   
 
   useEffect(() => {
@@ -148,7 +149,8 @@ export default function TimetablePage() {
   const handlePrint = (type: 'master' | 'class' | 'teacher') => {
     let printContent = '';
     let printTitle = 'Timetable';
-    
+    let orientation = printOrientation;
+
     if (type === 'master') {
         printContent = renderToString(<MasterTimetablePrint settings={settings} teachers={teachers} classes={classes} masterTimetableData={masterTimetableData} timeSlots={timeSlots} breakAfterPeriod={breakAfterPeriod} />);
         printTitle = 'Master Timetable';
@@ -160,6 +162,7 @@ export default function TimetablePage() {
         }
         printContent = renderToString(<TimetablePrint classInfo={classInfo} timetableData={masterTimetableData[selectedClassId] || []} timeSlots={timeSlots} breakAfterPeriod={breakAfterPeriod} breakDuration="" numPeriods={numPeriods} settings={settings} teachers={teachers} />);
         printTitle = `Timetable - ${classInfo.name}`;
+        orientation = 'landscape'; // Class timetable is always landscape
     } else if (type === 'teacher') {
         const teacherInfo = teachers.find(t => t.id === selectedTeacherId);
         if (!teacherInfo || !teacherSchedule) {
@@ -168,11 +171,22 @@ export default function TimetablePage() {
         }
         printContent = renderToString(<TeacherSchedulePrint teacher={teacherInfo} schedule={teacherSchedule} settings={settings} />);
         printTitle = `Schedule - ${teacherInfo.name}`;
+        orientation = 'portrait'; // Teacher schedule is always portrait
     }
 
      const printWindow = window.open('', '_blank');
      if (printWindow) {
-        printWindow.document.write(`<html><head><title>${printTitle}</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="/print-styles.css" /></head><body>${printContent}</body></html>`);
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>${printTitle}</title>
+              <script src="https://cdn.tailwindcss.com"></script>
+              <link rel="stylesheet" href="/print-styles.css" />
+            </head>
+            <body data-print-orientation="${orientation}">
+                ${printContent}
+            </body>
+          </html>`);
         printWindow.document.close();
         printWindow.focus();
      }
@@ -230,6 +244,16 @@ export default function TimetablePage() {
                         <CardDescription>Define the daily schedule for all classes. This template applies to all weekdays.</CardDescription>
                         </div>
                         <div className="flex items-center gap-2">
+                            <Label htmlFor="print-layout" className="text-sm font-medium">Print Layout</Label>
+                            <Select value={printOrientation} onValueChange={(value) => setPrintOrientation(value as 'portrait' | 'landscape')}>
+                                <SelectTrigger id="print-layout" className="w-[150px]">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="portrait">Portrait</SelectItem>
+                                    <SelectItem value="landscape">Landscape</SelectItem>
+                                </SelectContent>
+                            </Select>
                             <Button onClick={handleSaveAllTimetables}><Save className="mr-2 h-4 w-4"/>Save All</Button>
                             <Button onClick={() => handlePrint('master')} variant="outline"><Printer className="mr-2 h-4 w-4"/> Print</Button>
                         </div>

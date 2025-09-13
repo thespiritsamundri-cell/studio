@@ -34,6 +34,8 @@ export default function ReportsPage() {
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState<string | null>(null);
+  const [printOrientation, setPrintOrientation] = useState<'portrait' | 'landscape'>('portrait');
+
 
   // States for Attendance Report
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
@@ -118,8 +120,9 @@ export default function ReportsPage() {
             <head>
               <title>${reportTitle}</title>
               <script src="https://cdn.tailwindcss.com"></script>
+              <link rel="stylesheet" href="/print-styles.css">
             </head>
-            <body>
+            <body data-print-orientation="${printOrientation}">
               ${printContent}
             </body>
           </html>
@@ -135,7 +138,21 @@ export default function ReportsPage() {
   
   return (
     <div className="space-y-6 print:hidden">
-      <h1 className="text-3xl font-bold font-headline">Reports</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold font-headline">Reports</h1>
+        <div className="flex items-center gap-2">
+            <Label htmlFor="print-layout">Print Layout</Label>
+            <Select value={printOrientation} onValueChange={(value) => setPrintOrientation(value as 'portrait' | 'landscape')}>
+                <SelectTrigger id="print-layout" className="w-[150px]">
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="portrait">Portrait</SelectItem>
+                    <SelectItem value="landscape">Landscape</SelectItem>
+                </SelectContent>
+            </Select>
+        </div>
+      </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mt-6">
         {/* Student Report */}
         <Card>
