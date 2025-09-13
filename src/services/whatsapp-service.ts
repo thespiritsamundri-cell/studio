@@ -19,15 +19,12 @@ export async function sendWhatsAppMessage(to: string, message: string): Promise<
       return false;
     }
 
-    // Only use UltraMSG as per the focus of the issue
     if (settings.whatsappProvider === 'ultramsg') {
       return sendWithUltraMSG(to, message, settings);
+    } else if (settings.whatsappProvider === 'official') {
+       return sendWithOfficialAPI(to, message, settings);
     } else {
-       console.warn(`The selected WhatsApp provider "${settings.whatsappProvider}" is not the one being troubleshooted.`);
-       // To be safe, we also try to send with the official API if it's selected.
-       if (settings.whatsappProvider === 'official') {
-            return sendWithOfficialAPI(to, message, settings);
-       }
+       console.warn(`Unknown or unsupported WhatsApp provider: "${settings.whatsappProvider}".`);
        return false;
     }
   } catch (error: any) {
@@ -45,7 +42,7 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
   }
 
   try {
-    const formattedTo = to.replace(/^\+/, '');
+    const formattedTo = to.replace(/^\+/, '').replace(/\s/g, ''); // Remove leading + and any spaces
     const fullUrl = `${whatsappApiUrl}/${whatsappInstanceId}/messages/chat`;
 
     const params = new URLSearchParams();
