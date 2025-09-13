@@ -46,7 +46,7 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
       priority: whatsappPriority || "10",
     });
 
-    const fullUrl = `${whatsappApiUrl}/messages/chat`;
+    const fullUrl = `${whatsappApiUrl}/${whatsappInstanceId}/messages/chat`;
     const response = await fetch(fullUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
