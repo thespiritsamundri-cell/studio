@@ -3,7 +3,7 @@
 
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import type { SchoolSettings } from '@/context/settings-context';
+import type { SchoolSettings } from '@/lib/types';
 import { defaultSettings } from '@/context/settings-context';
 
 // Phone number normalize function
@@ -25,7 +25,9 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
 
   try {
     const formattedTo = normalizePhone(to);
-    const baseUrl = whatsappApiUrl.replace(/\/$/, '');
+    
+    // Robust URL construction
+    const baseUrl = whatsappApiUrl.replace(/\/instance\d+/, '').replace(/\/$/, '');
     const fullUrl = `${baseUrl}/${whatsappInstanceId}/messages/chat`;
 
     const body = `token=${encodeURIComponent(whatsappApiKey)}&to=${encodeURIComponent(formattedTo)}&body=${encodeURIComponent(message)}&priority=${encodeURIComponent(whatsappPriority || '10')}`;
@@ -74,15 +76,20 @@ async function sendWithOfficialAPI(to: string, message: string, settings: School
 }
 
 
-export async function sendWhatsAppMessage(to: string, message: string): Promise<{ success: boolean; error?: string }> {
+export async function sendWhatsAppMessage(to: string, message: string, clientSettings?: SchoolSettings): Promise<{ success: boolean; error?: string }> {
   let settings: SchoolSettings = defaultSettings;
-  try {
-    const settingsDoc = await getDoc(doc(db, 'Settings', 'School Settings'));
-    if (settingsDoc.exists()) {
-      settings = { ...defaultSettings, ...settingsDoc.data() };
+  
+  if (clientSettings) {
+    settings = { ...defaultSettings, ...clientSettings };
+  } else {
+    try {
+      const settingsDoc = await getDoc(doc(db, 'Settings', 'School Settings'));
+      if (settingsDoc.exists()) {
+        settings = { ...defaultSettings, ...settingsDoc.data() };
+      }
+    } catch (error) {
+      console.error('Could not fetch settings. Using default settings.', error);
     }
-  } catch (error) {
-    console.error('Could not fetch settings. Using default settings.', error);
   }
   
   let result: { success: boolean; error?: string };

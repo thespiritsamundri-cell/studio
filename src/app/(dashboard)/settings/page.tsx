@@ -19,7 +19,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { sendWhatsAppMessage } from '@/services/whatsapp-service';
-import type { Grade, MessageTemplate } from '@/lib/types';
+import type { Grade, MessageTemplate, SchoolSettings } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -405,7 +405,7 @@ export default function SettingsPage() {
             return;
         }
         try {
-            const result = await sendWhatsAppMessage(testPhoneNumber, `This is a test message from ${settings.schoolName}.`);
+            const result = await sendWhatsAppMessage(testPhoneNumber, `This is a test message from ${settings.schoolName}.`, settings);
             if (result.success) {
                 toast({ title: 'Test Successful', description: 'Your WhatsApp API settings appear to be correct.' });
                 setSettings(prev => ({...prev, whatsappConnectionStatus: 'connected'}));
@@ -965,7 +965,7 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                             <div className="flex justify-end pt-4">
-                               <Button
+                                <Button
                                   onClick={() => {
                                     if (settings.whatsappProvider === 'ultramsg') {
                                       setSettings(prev => ({...prev, whatsappProvider: 'none'}));
