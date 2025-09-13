@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -31,6 +32,8 @@ export default function TimetablePage() {
   
   const [masterTimetableData, setMasterTimetableData] = useState<Record<string, TimetableData>>({});
   const [timeSlots, setTimeSlots] = useState<string[]>(Array(numPeriods).fill(''));
+  const [printOrientation, setPrintOrientation] = useState<'portrait' | 'landscape'>('landscape');
+
 
   useEffect(() => {
     // This effect initializes the state from the first available timetable settings
@@ -146,12 +149,11 @@ export default function TimetablePage() {
   const handlePrint = (type: 'master' | 'class' | 'teacher') => {
     let printContent = '';
     let printTitle = 'Timetable';
-    let isLandscape = false;
+    let isLandscape = printOrientation === 'landscape';
     
     if (type === 'master') {
-        printContent = renderToString(<MasterTimetablePrint settings={settings} teachers={teachers} classes={classes} masterTimetableData={masterTimetableData} timeSlots={timeSlots} breakAfterPeriod={breakAfterPeriod} />);
+        printContent = renderToString(<MasterTimetablePrint settings={settings} teachers={teachers} classes={classes} masterTimetableData={masterTimetableData} timeSlots={timeSlots} breakAfterPeriod={breakAfterPeriod} printOrientation={printOrientation} />);
         printTitle = 'Master Timetable';
-        isLandscape = true;
     } else if (type === 'class') {
         const classInfo = classes.find(c => c.id === selectedClassId);
         if (!classInfo || !masterTimetableData[selectedClassId]) {
@@ -169,6 +171,7 @@ export default function TimetablePage() {
         }
         printContent = renderToString(<TeacherSchedulePrint teacher={teacherInfo} schedule={teacherSchedule} settings={settings} />);
         printTitle = `Schedule - ${teacherInfo.name}`;
+        isLandscape = false;
     }
 
      const printWindow = window.open('', '_blank');
@@ -232,6 +235,15 @@ export default function TimetablePage() {
                         </div>
                         <div className="flex items-center gap-2">
                             <Button onClick={handleSaveAllTimetables}><Save className="mr-2 h-4 w-4"/>Save All Changes</Button>
+                            <Select value={printOrientation} onValueChange={(value) => setPrintOrientation(value as 'portrait' | 'landscape')}>
+                                <SelectTrigger className="w-[150px]">
+                                    <SelectValue placeholder="Orientation" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="portrait">Portrait</SelectItem>
+                                    <SelectItem value="landscape">Landscape</SelectItem>
+                                </SelectContent>
+                            </Select>
                             <Button onClick={() => handlePrint('master')} variant="outline"><Printer className="mr-2 h-4 w-4"/> Print Master</Button>
                         </div>
                     </div>
