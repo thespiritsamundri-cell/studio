@@ -79,24 +79,19 @@
     page-break-before: always;
   }
 
-  /* --- 3 Copies per Page (Landscape) --- */
-  [data-print-orientation="landscape"][data-print-copies="3"] .voucher-page,
-  [data-print-orientation="landscape"][data-print-copies="3"] .voucher-wrapper {
+  /* --- 3 Copies per Page --- */
+  [data-print-copies="3"] .voucher-page {
+    page-break-inside: avoid;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
+    height: 98vh;
+    justify-content: space-between;
     gap: 0.25in;
   }
-  
-  [data-print-orientation="landscape"][data-print-copies="3"] .voucher-wrapper {
-    width: 32%;
-    height: 100%;
+  [data-print-copies="3"] .voucher-wrapper {
+    height: 32%;
+    width: 100%;
+    box-sizing: border-box;
   }
 
-  [data-print-orientation="portrait"] {
-    @page { size: portrait; }
-  }
-
-  [data-print-orientation="landscape"] {
-    @page { size: landscape; }
-  }
 }

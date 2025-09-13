@@ -29,7 +29,7 @@ interface UnpaidFamilyData {
 }
 
 export default function ReportsPage() {
-  const { students: allStudents, fees: allFees, families, classes } = useData();
+  const { students: allStudents, fees: allFees, families, classes } from 'useData';
   const { settings } = useSettings();
   const { toast } = useToast();
 
