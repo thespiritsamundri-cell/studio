@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React from 'react';
@@ -120,4 +119,5 @@ export const TimetablePrint = React.forwardRef<HTMLDivElement, TimetablePrintPro
   }
 );
 TimetablePrint.displayName = 'TimetablePrint';
+
 
