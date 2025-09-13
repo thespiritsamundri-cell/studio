@@ -57,7 +57,7 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
 
     const responseJson = await response.json();
 
-    if (!response.ok || responseJson.sent !== 'true') {
+    if (!response.ok || responseJson.sent !== true) {
       console.error('UltraMSG API Error:', responseJson?.error || `API Error: ${response.status}`, responseJson);
       return false;
     }
