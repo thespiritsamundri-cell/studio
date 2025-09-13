@@ -148,7 +148,6 @@ export default function TimetablePage() {
   const handlePrint = (type: 'master' | 'class' | 'teacher') => {
     let printContent = '';
     let printTitle = 'Timetable';
-    let isLandscape = true;
     
     if (type === 'master') {
         printContent = renderToString(<MasterTimetablePrint settings={settings} teachers={teachers} classes={classes} masterTimetableData={masterTimetableData} timeSlots={timeSlots} breakAfterPeriod={breakAfterPeriod} />);
@@ -161,7 +160,6 @@ export default function TimetablePage() {
         }
         printContent = renderToString(<TimetablePrint classInfo={classInfo} timetableData={masterTimetableData[selectedClassId] || []} timeSlots={timeSlots} breakAfterPeriod={breakAfterPeriod} breakDuration="" numPeriods={numPeriods} settings={settings} teachers={teachers} />);
         printTitle = `Timetable - ${classInfo.name}`;
-        isLandscape = true;
     } else if (type === 'teacher') {
         const teacherInfo = teachers.find(t => t.id === selectedTeacherId);
         if (!teacherInfo || !teacherSchedule) {
@@ -170,12 +168,11 @@ export default function TimetablePage() {
         }
         printContent = renderToString(<TeacherSchedulePrint teacher={teacherInfo} schedule={teacherSchedule} settings={settings} />);
         printTitle = `Schedule - ${teacherInfo.name}`;
-        isLandscape = false;
     }
 
      const printWindow = window.open('', '_blank');
      if (printWindow) {
-        printWindow.document.write(`<html><head><title>${printTitle}</title><script src="https://cdn.tailwindcss.com"></script><style>@page { size: ${isLandscape ? 'landscape' : 'portrait'}; }</style><link rel="stylesheet" href="/print-styles.css" /></head><body>${printContent}</body></html>`);
+        printWindow.document.write(`<html><head><title>${printTitle}</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="/print-styles.css" /></head><body>${printContent}</body></html>`);
         printWindow.document.close();
         printWindow.focus();
      }

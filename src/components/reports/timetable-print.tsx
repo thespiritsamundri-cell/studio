@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -40,7 +41,7 @@ export const TimetablePrint = React.forwardRef<HTMLDivElement, TimetablePrintPro
     };
 
     return (
-      <div ref={ref} className="p-4 font-sans bg-white text-black landscape">
+      <div ref={ref} className="p-4 font-sans bg-white text-black">
         <header className="flex items-center justify-between pb-4 border-b-2 border-black">
           <div className="flex items-center gap-4">
             {settings.schoolLogo && <Image src={settings.schoolLogo} alt="School Logo" width={80} height={80} className="object-contain" />}
