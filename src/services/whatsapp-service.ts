@@ -1,18 +1,22 @@
-
 'use server';
 
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import type { SchoolSettings } from '@/context/settings-context';
+import { defaultSettings } from '@/context/settings-context';
 
 export async function sendWhatsAppMessage(to: string, message: string): Promise<boolean> {
   try {
     const settingsDoc = await getDoc(doc(db, 'Settings', 'School Settings'));
-    if (!settingsDoc.exists()) {
+    
+    let settings: SchoolSettings = defaultSettings;
+    if (settingsDoc.exists()) {
+      // Merge with defaults to ensure all fields are present
+      settings = { ...defaultSettings, ...settingsDoc.data() };
+    } else {
       console.warn('School settings are not configured in the database. Cannot send WhatsApp message.');
       return false;
     }
-    const settings = settingsDoc.data() as SchoolSettings;
 
     if (!settings.whatsappActive) {
       console.log('WhatsApp messaging is disabled in settings. Skipping send.');
@@ -45,32 +49,34 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
     const formattedTo = to.replace(/^\+/, '').replace(/\s/g, ''); // Remove leading + and any spaces
     const fullUrl = `${whatsappApiUrl}/${whatsappInstanceId}/messages/chat`;
 
-    const params = new URLSearchParams();
-    params.append('token', whatsappApiKey);
-    params.append('to', formattedTo);
-    params.append('body', message);
-    params.append('priority', whatsappPriority || '10');
+    const body = new URLSearchParams({
+      token: whatsappApiKey,
+      to: formattedTo,
+      body: message,
+      priority: whatsappPriority || '10',
+    }).toString();
 
     const response = await fetch(fullUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: params,
+      body,
     });
 
     const responseJson = await response.json();
 
-    if (response.ok && responseJson.sent === true) {
-      console.log('UltraMSG API Success:', responseJson);
-      return true;
-    } else {
+    if (!response.ok || responseJson.sent !== true) {
       // This will log the exact error from the API to the server console
-      console.error('UltraMSG API Error:', responseJson?.error || `API Error: ${response.status}`, responseJson);
+      console.error('UltraMSG API Error:', responseJson);
       return false;
     }
+
+    console.log('UltraMSG API Success:', responseJson);
+    return true;
+
   } catch (error: any) {
-    console.error('Fatal Error in sendWithUltraMSG:', error.message);
+    console.error('Fatal Error in sendWithUltraMSG:', error);
     if (error instanceof TypeError) {
         console.error("This might be a network error or CORS issue. Check server logs.");
     }
