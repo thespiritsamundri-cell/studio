@@ -29,7 +29,6 @@ function InactivityDetector() {
     // Only lock if we are not already on the lock page
     if (window.location.pathname !== '/lock') {
       sessionStorage.setItem('lockedFrom', window.location.pathname);
-      sessionStorage.removeItem('welcomeShown');
       router.push('/lock');
     }
   }
@@ -73,6 +72,7 @@ function AuthWrapper({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!loading && !user) {
+      sessionStorage.removeItem('welcomeShown'); // Clear on logout/unauthenticated
       router.replace('/');
     }
     if (!loading && user) {
