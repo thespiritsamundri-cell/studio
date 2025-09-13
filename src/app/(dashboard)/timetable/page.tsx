@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -28,33 +29,37 @@ export default function TimetablePage() {
   
   const [numPeriods, setNumPeriods] = useState(8);
   const [breakAfterPeriod, setBreakAfterPeriod] = useState<number>(4);
-  const [breakDuration, setBreakDuration] = useState('30 minutes');
   
   const [masterTimetableData, setMasterTimetableData] = useState<Record<string, TimetableData>>({});
   const [timeSlots, setTimeSlots] = useState<string[]>(Array(numPeriods).fill(''));
+  
 
   useEffect(() => {
-    const firstTimetableWithSettings = timetables.find(t => t.breakAfterPeriod !== undefined);
-    const periodCount = firstTimetableWithSettings?.timeSlots?.length || 8;
+    // This effect initializes the state from the first available timetable settings
+    const firstTimetableWithSettings = timetables.find(t => t.timeSlots && t.timeSlots.length > 0);
+    const periodCount = 8; // Hardcode to 8 periods
     setNumPeriods(periodCount);
-    setBreakAfterPeriod(firstTimetableWithSettings?.breakAfterPeriod || 4);
-    setBreakDuration(firstTimetableWithSettings?.breakDuration || '30 minutes');
     setTimeSlots(firstTimetableWithSettings?.timeSlots || Array(periodCount).fill(''));
-
+    setBreakAfterPeriod(firstTimetableWithSettings?.breakAfterPeriod || 4);
+    
+    // Initialize master data for all classes based on the determined period count
     const initialMasterData: Record<string, TimetableData> = {};
     classes.forEach(c => {
         const tt = timetables.find(t => t.classId === c.id);
-        const dataLength = tt?.data?.length || periodCount;
-        const classData = tt?.data || Array.from({ length: dataLength }, () => ({ teacherId: '', subject: '' }));
+        // Ensure every class has an array of the correct length
+        const classData = tt?.data || [];
         while (classData.length < periodCount) {
              classData.push({ teacherId: '', subject: '' });
         }
         initialMasterData[c.id] = classData.slice(0, periodCount);
     });
     setMasterTimetableData(initialMasterData);
+
   }, [timetables, classes]);
-  
+
+
   const handleNumPeriodsChange = (newNumPeriods: number) => {
+    // This function is kept for potential future use but the UI controls are removed.
     if (newNumPeriods < 1 || newNumPeriods > 12) return;
 
     setNumPeriods(newNumPeriods);
@@ -105,7 +110,7 @@ export default function TimetablePage() {
 
   const handleSaveAllTimetables = () => {
     Object.keys(masterTimetableData).forEach(classId => {
-        updateTimetable(classId, masterTimetableData[classId], timeSlots, breakAfterPeriod, breakDuration);
+        updateTimetable(classId, masterTimetableData[classId], timeSlots, breakAfterPeriod);
     });
     toast({
       title: "All Timetables Saved",
@@ -143,21 +148,18 @@ export default function TimetablePage() {
   const handlePrint = (type: 'master' | 'class' | 'teacher') => {
     let printContent = '';
     let printTitle = 'Timetable';
-    let isLandscape = false;
-    
+
     if (type === 'master') {
-        printContent = renderToString(<MasterTimetablePrint settings={settings} teachers={teachers} classes={classes} masterTimetableData={masterTimetableData} timeSlots={timeSlots} breakAfterPeriod={breakAfterPeriod} breakDuration={breakDuration} numPeriods={numPeriods} />);
+        printContent = renderToString(<MasterTimetablePrint settings={settings} teachers={teachers} classes={classes} masterTimetableData={masterTimetableData} timeSlots={timeSlots} breakAfterPeriod={breakAfterPeriod} />);
         printTitle = 'Master Timetable';
-        isLandscape = true;
     } else if (type === 'class') {
         const classInfo = classes.find(c => c.id === selectedClassId);
         if (!classInfo || !masterTimetableData[selectedClassId]) {
             toast({ title: "Please select a class.", variant: "destructive" });
             return;
         }
-        printContent = renderToString(<TimetablePrint classInfo={classInfo} timetableData={masterTimetableData[selectedClassId] || []} timeSlots={timeSlots} breakAfterPeriod={breakAfterPeriod} breakDuration={breakDuration} numPeriods={numPeriods} settings={settings} teachers={teachers} />);
+        printContent = renderToString(<TimetablePrint classInfo={classInfo} timetableData={masterTimetableData[selectedClassId] || []} timeSlots={timeSlots} breakAfterPeriod={breakAfterPeriod} breakDuration="" numPeriods={numPeriods} settings={settings} teachers={teachers} />);
         printTitle = `Timetable - ${classInfo.name}`;
-        isLandscape = true;
     } else if (type === 'teacher') {
         const teacherInfo = teachers.find(t => t.id === selectedTeacherId);
         if (!teacherInfo || !teacherSchedule) {
@@ -170,88 +172,56 @@ export default function TimetablePage() {
 
      const printWindow = window.open('', '_blank');
      if (printWindow) {
-        printWindow.document.write(`<html><head><title>${printTitle}</title><script src="https://cdn.tailwindcss.com"></script><style>@page { size: ${isLandscape ? 'landscape' : 'portrait'}; }</style><link rel="stylesheet" href="/print-styles.css" /></head><body>${printContent}</body></html>`);
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>${printTitle}</title>
+              <script src="https://cdn.tailwindcss.com"></script>
+              <link rel="stylesheet" href="/print-styles.css" />
+            </head>
+            <body>
+                ${printContent}
+            </body>
+          </html>`);
         printWindow.document.close();
         printWindow.focus();
      }
   };
 
-  const renderMasterTableHeader = () => {
-    const headers: React.ReactNode[] = [];
-    for (let i = 0; i < numPeriods; i++) {
-        headers.push(
-            <th key={`header-period-${i}`} className="p-0 font-semibold align-middle" style={{height: '80px', minWidth: '150px'}}>
-                <div className="flex flex-col items-center justify-center h-full">
-                    <p>Period {i + 1}</p>
+  
+    const renderCell = (classId: string, periodIndex: number) => {
+        const cellData = masterTimetableData[classId]?.[periodIndex];
+        return (
+             <td key={periodIndex} className="border p-0 align-top h-24">
+                <div className="h-full w-full flex flex-col">
+                    <Select
+                        value={cellData?.teacherId || 'none'}
+                        onValueChange={(teacherId) => handleMasterCellChange(classId, periodIndex, 'teacherId', teacherId)}
+                    >
+                        <SelectTrigger className="h-1/2 text-xs border-0 border-b rounded-none focus:ring-0 bg-transparent justify-center font-semibold data-[placeholder]:text-muted-foreground">
+                            <SelectValue placeholder="- Teacher -" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="none">- No Teacher -</SelectItem>
+                            {teachers.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
                     <Input
-                        placeholder="e.g., 8:00"
-                        className="h-7 text-xs mt-1 w-24 text-center"
-                        value={timeSlots[i] || ''}
-                        onChange={(e) => handleTimeSlotChange(i, e.target.value)}
+                        className="h-1/2 text-xs text-center border-0 rounded-none focus-visible:ring-0 bg-transparent placeholder:text-muted-foreground"
+                        placeholder="- Subject -"
+                        value={cellData?.subject || ''}
+                        onChange={(e) => handleMasterCellChange(classId, periodIndex, 'subject', e.target.value)}
                     />
                 </div>
-            </th>
-        );
-        if ((i + 1) === breakAfterPeriod) {
-            headers.push(
-                <th key="break-header" className="p-2 font-semibold bg-green-200 text-green-800" rowSpan={classes.length + 1} style={{width: '50px'}}>
-                    <div className="[writing-mode:vertical-rl] transform rotate-180 h-full flex items-center justify-center p-2">
-                        BREAK ({breakDuration})
-                    </div>
-                </th>
-            );
-        }
-    }
-    return headers;
-  };
-
-  const renderMasterTableBody = () => {
-    return classes.map(cls => (
-      <tr key={cls.id}>
-        <td className="border p-2 font-semibold sticky left-0 bg-background z-10">{cls.name}</td>
-        {Array.from({ length: numPeriods }).map((_, periodIndex) => {
-          const cellData = masterTimetableData[cls.id]?.[periodIndex];
-          const cellNode = (
-            <td key={`${cls.id}-${periodIndex}`} className="border p-0 align-top">
-              <div className="h-24 w-full flex flex-col">
-                <Select
-                  value={cellData?.teacherId || 'none'}
-                  onValueChange={(teacherId) => handleMasterCellChange(cls.id, periodIndex, 'teacherId', teacherId)}
-                >
-                  <SelectTrigger className="h-12 text-xs border-0 border-b rounded-none focus:ring-0 bg-transparent justify-center font-semibold">
-                    <SelectValue placeholder="- Teacher -" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">- No Teacher -</SelectItem>
-                    {teachers.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Input
-                  className="h-12 text-xs text-center border-0 rounded-none focus-visible:ring-0 bg-transparent"
-                  placeholder="- Subject -"
-                  value={cellData?.subject || ''}
-                  onChange={(e) => handleMasterCellChange(cls.id, periodIndex, 'subject', e.target.value)}
-                />
-              </div>
             </td>
-          );
-
-          if (periodIndex + 1 === breakAfterPeriod) {
-            return (
-              <React.Fragment key={`fragment-${cls.id}-${periodIndex}`}>
-                {cellNode}
-                <td className="border p-0 bg-green-100/50" />
-              </React.Fragment>
-            );
-          }
-          return cellNode;
-        })}
-      </tr>
-    ));
-  };
+        );
+    };
 
 
-  
+    const sortedClasses = useMemo(() => {
+        return [...classes].sort((a,b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    }, [classes]);
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><CalendarClock /> Timetable Management</h1>
@@ -272,55 +242,66 @@ export default function TimetablePage() {
                         <CardDescription>Define the daily schedule for all classes. This template applies to all weekdays.</CardDescription>
                         </div>
                         <div className="flex items-center gap-2">
-                            <Button onClick={handleSaveAllTimetables}><Save className="mr-2 h-4 w-4"/>Save All Changes</Button>
-                            <Button onClick={() => handlePrint('master')} variant="outline"><Printer className="mr-2 h-4 w-4"/> Print Master</Button>
+                            <Button onClick={handleSaveAllTimetables}><Save className="mr-2 h-4 w-4"/>Save All</Button>
+                            <Button onClick={() => handlePrint('master')} variant="outline"><Printer className="mr-2 h-4 w-4"/> Print</Button>
                         </div>
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <Card className="p-4 bg-muted/50">
-                        <div className="flex flex-wrap items-end gap-6">
-                             <div className="space-y-2">
-                                <Label>Number of Periods</Label>
-                                <div className="flex items-center gap-2">
-                                    <Button size="icon" variant="outline" onClick={() => handleNumPeriodsChange(numPeriods - 1)} disabled={numPeriods <= 1}>
-                                        <MinusCircle className="h-4 w-4"/>
-                                    </Button>
-                                    <span className="font-bold text-lg w-10 text-center">{numPeriods}</span>
-                                     <Button size="icon" variant="outline" onClick={() => handleNumPeriodsChange(numPeriods + 1)} disabled={numPeriods >= 12}>
-                                        <PlusCircle className="h-4 w-4"/>
-                                    </Button>
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="break-after">Break After Period</Label>
-                                <Select value={String(breakAfterPeriod)} onValueChange={(v) => setBreakAfterPeriod(Number(v))}>
-                                    <SelectTrigger className="w-48" id="break-after">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {Array.from({length: numPeriods}).map((_, i) => (
-                                            <SelectItem key={i+1} value={String(i+1)}>After Period {i+1}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="break-duration">Break Duration</Label>
-                                <Input id="break-duration" value={breakDuration} onChange={(e) => setBreakDuration(e.target.value)} placeholder="e.g., 30 minutes" />
-                            </div>
-                        </div>
-                    </Card>
-                     <div className="border rounded-lg overflow-x-auto">
-                        <table className="w-full border-collapse">
-                             <thead className="bg-muted">
-                                <tr>
-                                    <th className="border p-2 font-semibold w-32 sticky left-0 bg-muted z-10 align-middle">Class</th>
-                                    {renderMasterTableHeader()}
+
+                    <div className="border rounded-lg overflow-x-auto">
+                        <table className="w-full border-collapse min-w-[1600px] table-fixed">
+                             <colgroup>
+                                <col style={{ width: '120px' }} />
+                                {/* 8 periods */}
+                                <col style={{ width: 'auto' }} />
+                                <col style={{ width: 'auto' }} />
+                                <col style={{ width: 'auto' }} />
+                                <col style={{ width: 'auto' }} />
+                                {/* Break */}
+                                <col style={{ width: '40px' }} /> 
+                                {/* 4 more periods */}
+                                <col style={{ width: 'auto' }} />
+                                <col style={{ width: 'auto' }} />
+                                <col style={{ width: 'auto' }} />
+                                <col style={{ width: 'auto' }} />
+                             </colgroup>
+                             <thead>
+                                <tr className="bg-muted h-24">
+                                    <th className="border p-1 font-semibold sticky left-0 bg-muted z-10 text-sm">
+                                        Class
+                                    </th>
+                                    {Array.from({ length: 8 }).map((_, periodIndex) => (
+                                        <React.Fragment key={`header-frag-${periodIndex}`}>
+                                            {periodIndex === 4 && (
+                                                <th key="break-header" className="border bg-green-100 p-0 w-10"></th>
+                                            )}
+                                            <th className="border p-1 font-semibold text-xs">
+                                                <div>Period {periodIndex + 1}</div>
+                                                <Input 
+                                                    value={timeSlots[periodIndex] || ''}
+                                                    onChange={(e) => handleTimeSlotChange(periodIndex, e.target.value)}
+                                                    className="h-7 mt-1 text-center text-xs"
+                                                    placeholder="N/A"
+                                                />
+                                            </th>
+                                        </React.Fragment>
+                                    ))}
                                 </tr>
                             </thead>
                             <tbody>
-                                {renderMasterTableBody()}
+                                {sortedClasses.map((cls) => (
+                                    <tr key={cls.id}>
+                                        <td className="border p-2 font-semibold sticky left-0 bg-background z-10 text-sm">{cls.name}</td>
+                                        {Array.from({ length: 8 }).map((_, periodIndex) => (
+                                             <React.Fragment key={`cell-frag-${cls.id}-${periodIndex}`}>
+                                                {periodIndex === 4 && <td key={`break-cell-${cls.id}`} className="border bg-green-100"></td>}
+                                                {renderCell(cls.id, periodIndex)}
+                                            </React.Fragment>
+                                        ))}
+                                    </tr>
+                                ))}
+
                             </tbody>
                         </table>
                     </div>
@@ -352,7 +333,7 @@ export default function TimetablePage() {
             <CardContent>
               {selectedClassId ? (
                  <div className="border rounded-lg overflow-x-auto">
-                    <TimetablePrint classInfo={classes.find(c => c.id === selectedClassId)!} timetableData={masterTimetableData[selectedClassId] || []} timeSlots={timeSlots} breakAfterPeriod={breakAfterPeriod} breakDuration={breakDuration} numPeriods={numPeriods} settings={settings} teachers={teachers} />
+                    <TimetablePrint classInfo={classes.find(c => c.id === selectedClassId)!} timetableData={masterTimetableData[selectedClassId] || []} timeSlots={timeSlots} breakAfterPeriod={breakAfterPeriod} breakDuration="" numPeriods={numPeriods} settings={settings} teachers={teachers} />
                  </div>
               ) : (
                  <div className="flex items-center justify-center h-64 border rounded-lg bg-gray-50">

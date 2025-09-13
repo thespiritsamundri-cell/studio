@@ -112,5 +112,3 @@ export const MarksheetPrintReport = React.forwardRef<HTMLDivElement, MarksheetPr
 );
 
 MarksheetPrintReport.displayName = 'MarksheetPrintReport';
-
-    

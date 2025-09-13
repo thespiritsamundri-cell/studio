@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -69,7 +70,7 @@ export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
         </div>
         <DialogFooter className="flex-col items-center gap-4 pt-4 border-t">
            <p className="text-sm font-semibold text-center text-gray-700">Schoolup – Because Smart Schools Deserve a Unique Platform.</p>
-           <p className="text-xs text-muted-foreground">Developed by "Mian Muhammad Mudassar"</p>
+           <p className="text-xs text-muted-foreground">Developed by "Mian Mudassar"</p>
           <div className="flex items-center gap-4">
               <Link href="https://wa.link/j5f42q" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                   <WhatsappIcon className="h-5 w-5" />

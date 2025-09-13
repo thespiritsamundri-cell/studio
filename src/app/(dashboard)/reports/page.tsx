@@ -29,11 +29,12 @@ interface UnpaidFamilyData {
 }
 
 export default function ReportsPage() {
-  const { students: allStudents, fees: allFees, families, classes } = useData();
+  const { students: allStudents, fees: allFees, families, classes } from 'useData';
   const { settings } = useSettings();
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState<string | null>(null);
+  
 
   // States for Attendance Report
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
@@ -118,6 +119,7 @@ export default function ReportsPage() {
             <head>
               <title>${reportTitle}</title>
               <script src="https://cdn.tailwindcss.com"></script>
+              <link rel="stylesheet" href="/print-styles.css">
             </head>
             <body>
               ${printContent}
@@ -135,7 +137,9 @@ export default function ReportsPage() {
   
   return (
     <div className="space-y-6 print:hidden">
-      <h1 className="text-3xl font-bold font-headline">Reports</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold font-headline">Reports</h1>
+      </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mt-6">
         {/* Student Report */}
         <Card>

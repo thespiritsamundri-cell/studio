@@ -243,11 +243,7 @@ export default function AdmissionsPage() {
                 message = message.replace(/{class}/g, newStudent.class);
                 message = message.replace(/{school_name}/g, settings.schoolName);
                 try {
-                    await sendWhatsAppMessage(
-                        newStudent.phone, 
-                        message,
-                        settings
-                    );
+                    await sendWhatsAppMessage(newStudent.phone, message);
                      addActivityLog({ user: 'System', action: 'Send WhatsApp Message', description: `Sent admission confirmation to 1 recipient.`, recipientCount: 1 });
                 } catch (error) {
                      console.error("Failed to send admission WhatsApp message:", error);

@@ -513,15 +513,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
               message = message.replace(/{father_name}/g, student.fatherName);
               
               try {
-                await sendWhatsAppMessage(
-                  family.phone,
-                  message,
-                  settings
-                );
-                addActivityLog({ user: 'System', action: 'Send Deactivation Notice', description: `Sent deactivation notice to parents of ${student.name}.` });
-              } catch (e) {
+
+                const result = await sendWhatsAppMessage(family.phone, message);
+                if (result.success) {
+                    addActivityLog({ user: 'System', action: 'Send Deactivation Notice', description: `Sent deactivation notice to parents of ${student.name}.` });
+                } else {
+                    throw new Error(result.error);
+                }
+              } catch (e: any) {
+
                 console.error(`Failed to send deactivation message for ${student.name}:`, e);
-                toast({ title: "WhatsApp Failed", description: `Could not send deactivation notice for ${student.name}.`, variant: "destructive" });
+                toast({ title: "WhatsApp Failed", description: `Could not send deactivation notice for ${student.name}. Error: ${e.message}`, variant: "destructive" });
               }
             }
           }
@@ -593,15 +595,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
                         let message = template.content;
                         message = message.replace(/{teacher_name}/g, teacher.name);
                         try {
-                            await sendWhatsAppMessage(
-                                teacher.phone, 
-                                message,
-                                settings
-                            );
-                            addActivityLog({ user: 'System', action: 'Send Deactivation Notice', description: `Sent deactivation notice to ${teacher.name}.` });
-                        } catch(e) {
+
+                            const result = await sendWhatsAppMessage(teacher.phone, message);
+                            if (result.success) {
+                                addActivityLog({ user: 'System', action: 'Send Deactivation Notice', description: `Sent deactivation notice to ${teacher.name}.` });
+                            } else {
+                                throw new Error(result.error);
+                            }
+                        } catch(e: any) {
+
                              console.error(`Failed to send deactivation message to ${teacher.name}:`, e);
-                             toast({ title: "WhatsApp Failed", description: `Could not send deactivation notice to ${teacher.name}.`, variant: "destructive"});
+                             toast({ title: "WhatsApp Failed", description: `Could not send deactivation notice to ${teacher.name}. Error: ${e.message}`, variant: "destructive"});
                         }
                     }
                 }

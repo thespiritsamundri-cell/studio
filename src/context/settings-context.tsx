@@ -2,6 +2,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { db } from '@/lib/firebase';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import type { Grade, MessageTemplate } from '@/lib/types';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -16,11 +18,16 @@ export interface SchoolSettings {
   schoolLogo: string;
   favicon: string;
   principalSignature: string;
+  // For UltraMSG
   whatsappApiUrl: string;
-  whatsappApiKey: string;
   whatsappInstanceId: string;
+  whatsappApiKey: string; // Token for UltraMSG
   whatsappPriority: string;
-  whatsappProvider: 'ultramsg' | 'official';
+  // For Official WhatsApp Business API
+  whatsappPhoneNumberId?: string;
+  whatsappAccessToken?: string;
+  
+  whatsappProvider?: 'ultramsg' | 'official' | 'none';
   whatsappConnectionStatus: 'untested' | 'connected' | 'failed';
   whatsappPhoneNumberId?: string;
   whatsappAccessToken?: string;
@@ -49,14 +56,14 @@ export const defaultSettings: SchoolSettings = {
   schoolName: 'The Spirit School Samundri',
   academicYear: '2025-2026',
   schoolAddress: '123 Education Lane, Knowledge City, Pakistan',
-  schoolPhone: '+92 300 1234567',
+  schoolPhone: '+92 309 9969535',
   schoolEmail: 'info@thespiritschool.edu.pk',
-  schoolLogo: '/logo.png',
-  favicon: '/logo.png',
-  principalSignature: '',
-  whatsappApiUrl: '',
-  whatsappApiKey: '',
-  whatsappInstanceId: '',
+  schoolLogo: 'https://firebasestorage.googleapis.com/v0/b/educentral-mxfgr.appspot.com/o/settings%2FschoolLogo%2Flogo.png?alt=media&token=e1f06b6f-7f6a-4565-b17a-8b9a07106517',
+  favicon: 'https://firebasestorage.googleapis.com/v0/b/educentral-mxfgr.appspot.com/o/settings%2Ffavicon%2Ffavicon.ico?alt=media&token=48c8b4a2-996a-4523-832f-410a3c26b527',
+  principalSignature: 'https://firebasestorage.googleapis.com/v0/b/educentral-mxfgr.appspot.com/o/settings%2FprincipalSignature%2Fsignature.png?alt=media&token=8a5c3789-9a74-4b53-8b5e-404391694f8d',
+  whatsappApiUrl: 'https://api.ultramsg.com',
+  whatsappApiKey: '4e8f26fx3a2yi942',
+  whatsappInstanceId: 'instance141491',
   whatsappPriority: '10',
   whatsappProvider: 'ultramsg',
   whatsappConnectionStatus: 'untested',
@@ -98,98 +105,74 @@ export const defaultSettings: SchoolSettings = {
 
 export const SettingsContext = createContext<{
   settings: SchoolSettings;
-  setSettings: React.Dispatch<React.SetStateAction<SchoolSettings>>;
+  setSettings: (newSettings: React.SetStateAction<SchoolSettings>) => void;
 }>({
   settings: defaultSettings,
   setSettings: () => {},
 });
 
 export const SettingsProvider = ({ children }: { children: React.ReactNode }) => {
-  const [settings, setSettings] = useState<SchoolSettings>(defaultSettings);
+  const [settings, setSettingsState] = useState<SchoolSettings>(defaultSettings);
   const [isInitialized, setIsInitialized] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    const loadSettings = async () => {
-      let combinedSettings = { ...defaultSettings };
-      
-      // 1. Load from localStorage first for an instant UI update
-      try {
-        const localSettings = localStorage.getItem('schoolSettings');
-        if (localSettings) {
-          combinedSettings = { ...combinedSettings, ...JSON.parse(localSettings) };
-          setSettings(combinedSettings);
-        }
-      } catch (error) {
-        console.error("Could not load settings from localStorage:", error);
+
+    const settingsDocRef = doc(db, 'Settings', 'School Settings');
+    const unsubscribe = onSnapshot(settingsDocRef, (doc) => {
+      if (doc.exists()) {
+        const dbSettings = doc.data() as Partial<SchoolSettings>;
+        // Merge with defaults to ensure all keys are present
+        setSettingsState(prev => ({ ...defaultSettings, ...prev, ...dbSettings }));
+      } else {
+        // If no settings in DB, use defaults and save them.
+        setDoc(settingsDocRef, defaultSettings);
       }
-
-      // 2. Fetch general settings and branding assets from Firestore
+      setIsInitialized(true);
+    }, (error) => {
+      console.error("Error fetching settings from Firestore:", error);
+      // Fallback to local storage or defaults if Firestore fails
       try {
-        const settingsRef = doc(db, 'Settings', 'School Settings');
-        const brandingRef = doc(db, 'branding', 'school-assets');
-        
-        const [settingsSnap, brandingSnap] = await Promise.all([
-            getDoc(settingsRef),
-            getDoc(brandingRef)
-        ]);
-
-        if (settingsSnap.exists()) {
-            combinedSettings = { ...combinedSettings, ...settingsSnap.data() };
+        const savedSettings = localStorage.getItem('schoolSettings');
+        if (savedSettings) {
+            setSettingsState(JSON.parse(savedSettings));
         }
-        if (brandingSnap.exists()) {
-            combinedSettings = { ...combinedSettings, ...brandingSnap.data() };
-        }
-        
-        setSettings(combinedSettings);
-        localStorage.setItem('schoolSettings', JSON.stringify(combinedSettings));
-
-      } catch (error) {
-          console.error('Failed to fetch settings from Firestore:', error);
-          toast({
-            title: "Could not load settings from cloud",
-            description: "Falling back to default or cached settings.",
-            variant: "destructive"
-          });
-      } finally {
-          setIsInitialized(true);
+      } catch (localError) {
+        console.error("Could not read from localStorage either:", localError);
       }
-    };
-    loadSettings();
-  }, [toast]);
+       setIsInitialized(true);
+    });
 
-  useEffect(() => {
-    const saveSettings = async () => {
-      // Save to localStorage immediately
-      localStorage.setItem('schoolSettings', JSON.stringify(settings));
+    return () => unsubscribe();
+  }, []);
 
-      // Separate branding assets from other settings
-      const { schoolLogo, favicon, principalSignature, ...otherSettings } = settings;
-      const brandingAssets = { schoolLogo, favicon, principalSignature };
-
-      // Save to Firestore
-      const settingsRef = doc(db, 'Settings', 'School Settings');
-      const brandingRef = doc(db, 'branding', 'school-assets');
-      try {
-        await setDoc(settingsRef, otherSettings, { merge: true });
-        await setDoc(brandingRef, brandingAssets, { merge: true });
-      } catch (error) {
-        console.error('Failed to save settings to Firestore:', error);
-        toast({
-          title: "Could not save settings to cloud",
-          description: "Your changes are saved locally but might not be on other devices.",
-          variant: "destructive"
-        });
-      }
-    };
+  const handleSetSettings = (newSettings: React.SetStateAction<SchoolSettings>) => {
+    const updatedSettings = typeof newSettings === 'function' ? newSettings(settings) : newSettings;
     
-    if (isInitialized) {
-        saveSettings();
+    // Set state locally immediately for responsiveness
+    setSettingsState(updatedSettings);
+
+    // Save to Firestore
+    const settingsDocRef = doc(db, 'Settings', 'School Settings');
+    setDoc(settingsDocRef, updatedSettings, { merge: true }).catch(error => {
+        console.error("Failed to save settings to Firestore:", error);
+    });
+    
+    // Also save to localStorage as a fallback/for offline
+    try {
+        localStorage.setItem('schoolSettings', JSON.stringify(updatedSettings));
+    } catch (e) {
+        console.warn("Could not save settings to localStorage:", e);
     }
-  }, [settings, isInitialized, toast]);
+  };
+  
+  if (!isInitialized) {
+      return null;
+  }
+
 
   return (
-    <SettingsContext.Provider value={{ settings, setSettings }}>
+    <SettingsContext.Provider value={{ settings, setSettings: handleSetSettings }}>
       {children}
     </SettingsContext.Provider>
   );

@@ -40,6 +40,7 @@ export default function ExamsPage() {
   const [currentResults, setCurrentResults] = useState<ExamResult[]>([]);
   const [fontSize, setFontSize] = useState('text-sm');
 
+
   const classStudents = useMemo(() => {
     return selectedClass ? allStudents.filter(s => s.class === selectedClass) : [];
   }, [selectedClass, allStudents]);
@@ -205,6 +206,7 @@ export default function ExamsPage() {
             <head>
               <title>${exam.name} - ${selectedClass} - Marksheet</title>
               <script src="https://cdn.tailwindcss.com"></script>
+              <link rel="stylesheet" href="/print-styles.css">
             </head>
             <body>
               ${printContent}
@@ -370,5 +372,3 @@ export default function ExamsPage() {
     </div>
   );
 }
-
-    

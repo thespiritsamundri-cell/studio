@@ -1,20 +1,25 @@
 
 import { NextResponse } from 'next/server';
 import { defaultSettings } from '@/context/settings-context';
+import { db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import type { SchoolSettings } from '@/context/settings-context';
 
-// This is a dynamic route that generates the manifest.json file.
-// Because it's a route handler, we cannot use the useSettings() hook directly.
-// In a real-world, more complex app, we might fetch these settings from a database
-// using the request object for authentication, but for this context, we will
-// assume we are serving a manifest for the default settings or a single tenant.
-// For the purpose of this prototype, using the default settings is sufficient to
-// demonstrate the dynamic nature of the manifest.
 
 export async function GET(request: Request) {
-  // In a multi-tenant app, you'd determine the tenant from the request (e.g., subdomain or user session)
-  // and fetch the appropriate settings from Firestore.
-  const schoolName = defaultSettings.schoolName;
-  const favicon = defaultSettings.favicon;
+
+  let schoolSettings = defaultSettings;
+  try {
+      const settingsDoc = await getDoc(doc(db, 'Settings', 'School Settings'));
+      if (settingsDoc.exists()) {
+          schoolSettings = { ...defaultSettings, ...settingsDoc.data() } as SchoolSettings;
+      }
+  } catch (error) {
+      console.error("Could not fetch settings for manifest, using defaults.", error);
+  }
+
+  const schoolName = schoolSettings.schoolName;
+  const favicon = schoolSettings.favicon;
   
   // Cache-busting query parameter
   const { searchParams } = new URL(request.url);

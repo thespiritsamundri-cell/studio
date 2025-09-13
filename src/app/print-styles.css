@@ -1,7 +1,5 @@
 
 
-
-
 @media print {
   @page {
     margin: 0.25in;
@@ -81,25 +79,19 @@
     page-break-before: always;
   }
 
-  /* --- 3 Copies per Page (Landscape) --- */
-  @page landscape-page {
-    size: A4 landscape;
-  }
+  /* --- 3 Copies per Page --- */
   [data-print-copies="3"] .voucher-page {
-    page: landscape-page;
     page-break-inside: avoid;
     display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: stretch;
-    width: 100%;
+    flex-direction: column;
     height: 98vh;
+    justify-content: space-between;
     gap: 0.25in;
   }
   [data-print-copies="3"] .voucher-wrapper {
-    width: 32%;
-    height: 100%;
+    height: 32%;
+    width: 100%;
     box-sizing: border-box;
-    display: flex; /* Ensure inner content can grow */
   }
+
 }

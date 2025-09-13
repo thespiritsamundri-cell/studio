@@ -1,104 +1,111 @@
 
 'use server';
 
-import type { SchoolSettings } from "@/context/settings-context";
+import { db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import type { SchoolSettings } from '@/lib/types';
+import { defaultSettings } from '@/context/settings-context';
 
-export async function sendWhatsAppMessage(
-    to: string, 
-    message: string, 
-    settings: SchoolSettings
-): Promise<boolean> {
-  console.log(`Attempting to send WhatsApp message to ${to} via ${settings.whatsappProvider}`);
+// Phone number normalize function
+function normalizePhone(to: string): string {
+  let numeric = to.replace(/\D/g, '');
+  if (numeric.startsWith('92')) return numeric;
+  if (numeric.startsWith('0')) return '92' + numeric.substring(1);
+  return '92' + numeric;
+}
+
+async function sendWithUltraMSG(to: string, message: string, settings: SchoolSettings): Promise<{ success: boolean; error?: string }> {
+  const { whatsappApiUrl, whatsappInstanceId, whatsappApiKey, whatsappPriority } = settings;
+
+  if (!whatsappApiUrl || !whatsappInstanceId || !whatsappApiKey) {
+    const errorMsg = 'UltraMSG API URL, Instance ID, or Token missing.';
+    console.error(`❌ ${errorMsg}`);
+    return { success: false, error: errorMsg };
+  }
+
+  try {
+    const formattedTo = normalizePhone(to);
+    
+    // Robust URL construction
+    const baseUrl = whatsappApiUrl.replace(/\/instance\d+/, '').replace(/\/$/, '');
+    const fullUrl = `${baseUrl}/${whatsappInstanceId}/messages/chat`;
+
+    const body = `token=${encodeURIComponent(whatsappApiKey)}&to=${encodeURIComponent(formattedTo)}&body=${encodeURIComponent(message)}&priority=${encodeURIComponent(whatsappPriority || '10')}`;
+
+    console.log("📤 UltraMSG REQUEST", { fullUrl, body });
+
+    const response = await fetch(fullUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body,
+    });
+
+    const responseText = await response.text();
+    console.log("📥 UltraMSG RAW RESPONSE:", responseText);
+
+    let responseJson: any = {};
+    try {
+      responseJson = JSON.parse(responseText);
+    } catch {
+      const errorMsg = `Response not JSON: ${responseText}`;
+      console.error(`❌ ${errorMsg}`);
+      return { success: false, error: errorMsg };
+    }
+
+    if (!response.ok || responseJson.sent !== 'true') {
+      const errorMsg = `API Error: ${responseJson.error || responseText}`;
+      console.error('❌ UltraMSG API Error:', responseJson);
+      return { success: false, error: errorMsg };
+    }
+
+    console.log('✅ UltraMSG API Success:', responseJson);
+    return { success: true };
+
+  } catch (error: any) {
+    console.error('❌ Error in sendWithUltraMSG:', error);
+    return { success: false, error: error.message };
+  }
+
+}
+
+
+async function sendWithOfficialAPI(to: string, message: string, settings: SchoolSettings): Promise<{ success: boolean; error?: string }> {
+  console.log("sendWithOfficialAPI called, but it's not implemented.");
+  return Promise.resolve({ success: false, error: "Official API not implemented." });
+}
+
+
+export async function sendWhatsAppMessage(to: string, message: string, clientSettings?: SchoolSettings): Promise<{ success: boolean; error?: string }> {
+  let settings: SchoolSettings = defaultSettings;
+  
+  if (clientSettings) {
+    settings = { ...defaultSettings, ...clientSettings };
+  } else {
+    try {
+      const settingsDoc = await getDoc(doc(db, 'Settings', 'School Settings'));
+      if (settingsDoc.exists()) {
+        settings = { ...defaultSettings, ...settingsDoc.data() };
+      }
+    } catch (error) {
+      console.error('Could not fetch settings. Using default settings.', error);
+    }
+  }
+  
+  let result: { success: boolean; error?: string };
 
   if (settings.whatsappProvider === 'ultramsg') {
-    return sendWithUltraMSG(to, message, settings);
+    result = await sendWithUltraMSG(to, message, settings);
   } else if (settings.whatsappProvider === 'official') {
-    return sendWithOfficialAPI(to, message, settings);
+    result = await sendWithOfficialAPI(to, message, settings);
   } else {
-    console.error('No valid WhatsApp provider selected in settings.');
-    throw new Error('No valid WhatsApp provider selected.');
+    result = { success: false, error: "No active WhatsApp provider is configured." };
   }
-}
 
-async function sendWithUltraMSG(to: string, message: string, settings: SchoolSettings): Promise<boolean> {
-    const { whatsappApiUrl, whatsappApiKey, whatsappInstanceId, whatsappPriority } = settings;
-    if (!whatsappApiUrl || !whatsappApiKey || !whatsappInstanceId) {
-        console.error('UltraMSG API URL, Token, or Instance ID not provided in settings.');
-        throw new Error('UltraMSG API credentials are not configured.');
-    }
-  
-    const body = JSON.stringify({
-        token: whatsappApiKey,
-        to: to,
-        body: message,
-        priority: whatsappPriority || "10",
-        referenceId: "",
-    });
+  if (!result.success) {
+    return { success: false, error: result.error || "An unknown error occurred." };
+  }
 
-    try {
-        const fullUrl = `${whatsappApiUrl}/messages/chat`;
-        const response = await fetch(fullUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: body
-        });
-        const responseJson = await response.json();
-
-        if (!response.ok) {
-            const errorMsg = responseJson?.error?.message || `API Error: ${response.status}`;
-            console.error('UltraMSG API Error:', errorMsg, responseJson);
-            throw new Error(errorMsg);
-        }
-        
-        console.log('UltraMSG API Success:', responseJson);
-        return true;
-
-    } catch (error: any) {
-        console.error('Failed to send WhatsApp message with UltraMSG:', error);
-        throw error;
-    }
-}
-
-async function sendWithOfficialAPI(to: string, message: string, settings: SchoolSettings): Promise<boolean> {
-    const { whatsappPhoneNumberId, whatsappAccessToken } = settings;
-    if (!whatsappPhoneNumberId || !whatsappAccessToken) {
-        console.error('Official WhatsApp API Phone Number ID or Access Token not provided.');
-        throw new Error('Official WhatsApp API credentials are not configured.');
-    }
-
-    const body = JSON.stringify({
-        messaging_product: "whatsapp",
-        to: to,
-        type: "text",
-        text: {
-            preview_url: false,
-            body: message
-        }
-    });
-
-    try {
-        const url = `https://graph.facebook.com/v19.0/${whatsappPhoneNumberId}/messages`;
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${whatsappAccessToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: body
-        });
-        const responseJson = await response.json();
-
-        if (!response.ok) {
-            const errorMsg = responseJson?.error?.message || `API Error: ${response.status}`;
-            console.error('Official WhatsApp API Error:', errorMsg, responseJson);
-            throw new Error(errorMsg);
-        }
-
-        console.log('Official WhatsApp API Success:', responseJson);
-        return true;
-
-    } catch (error: any) {
-        console.error('Failed to send WhatsApp message with Official API:', error);
-        throw error;
-    }
+  return { success: true };
 }

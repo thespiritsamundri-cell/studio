@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -242,13 +241,13 @@ export default function IncomePage() {
             <CardDescription>View a detailed history of all collected fees. Total income for selection: PKR {totalIncome.toLocaleString()}</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap items-center gap-4 mb-4">
-              <div className="flex items-center gap-4 flex-grow">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-4">
+              <div className="flex flex-col md:flex-row items-center gap-4 flex-grow w-full">
                   <Input
                     placeholder="Filter by Family ID..."
                     value={familyIdFilter}
                     onChange={(e) => setFamilyIdFilter(e.target.value)}
-                    className="max-w-xs"
+                    className="w-full md:max-w-xs"
                   />
                   <Popover>
                     <PopoverTrigger asChild>
@@ -256,7 +255,7 @@ export default function IncomePage() {
                         id="date"
                         variant={"outline"}
                         className={cn(
-                          "w-[300px] justify-start text-left font-normal",
+                          "w-full md:w-[300px] justify-start text-left font-normal",
                           !dateRange && "text-muted-foreground"
                         )}
                       >
@@ -294,46 +293,48 @@ export default function IncomePage() {
               </div>
             </div>
 
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Payment ID</TableHead>
-                  <TableHead>Family ID</TableHead>
-                  <TableHead>Father's Name</TableHead>
-                  <TableHead>Payment Date</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead className="text-right">Amount (PKR)</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredFees.map((fee) => (
-                  <TableRow key={fee.id}>
-                    <TableCell>{fee.id}</TableCell>
-                    <TableCell className="font-medium">{fee.familyId}</TableCell>
-                    <TableCell>{fee.fatherName}</TableCell>
-                    <TableCell>{fee.paymentDate && format(new Date(fee.paymentDate), 'PPP')}</TableCell>
-                    <TableCell>{fee.month}, {fee.year}</TableCell>
-                    <TableCell className="text-right font-semibold text-green-600">{fee.amount.toLocaleString()}</TableCell>
-                     <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(fee)}>
-                            <Edit className="h-4 w-4" />
-                            <span className="sr-only">Edit Payment</span>
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenCancelDialog(fee)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                            <span className="sr-only">Cancel Payment</span>
-                        </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filteredFees.length === 0 && (
-                  <TableRow>
-                      <TableCell colSpan={7} className='text-center py-10 text-muted-foreground'>No income records found for the selected filters.</TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+            <div className="w-full overflow-x-auto">
+                <Table>
+                <TableHeader>
+                    <TableRow>
+                    <TableHead>Payment ID</TableHead>
+                    <TableHead>Family ID</TableHead>
+                    <TableHead>Father's Name</TableHead>
+                    <TableHead>Payment Date</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead className="text-right">Amount (PKR)</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {filteredFees.map((fee) => (
+                    <TableRow key={fee.id}>
+                        <TableCell>{fee.id}</TableCell>
+                        <TableCell className="font-medium">{fee.familyId}</TableCell>
+                        <TableCell>{fee.fatherName}</TableCell>
+                        <TableCell>{fee.paymentDate && format(new Date(fee.paymentDate), 'PPP')}</TableCell>
+                        <TableCell>{fee.month}, {fee.year}</TableCell>
+                        <TableCell className="text-right font-semibold text-green-600">{fee.amount.toLocaleString()}</TableCell>
+                        <TableCell className="text-right">
+                            <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(fee)}>
+                                <Edit className="h-4 w-4" />
+                                <span className="sr-only">Edit Payment</span>
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleOpenCancelDialog(fee)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                                <span className="sr-only">Cancel Payment</span>
+                            </Button>
+                        </TableCell>
+                    </TableRow>
+                    ))}
+                    {filteredFees.length === 0 && (
+                    <TableRow>
+                        <TableCell colSpan={7} className='text-center py-10 text-muted-foreground'>No income records found for the selected filters.</TableCell>
+                    </TableRow>
+                    )}
+                </TableBody>
+                </Table>
+            </div>
           </CardContent>
         </Card>
       </div>

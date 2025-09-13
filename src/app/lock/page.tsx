@@ -1,4 +1,5 @@
 
+
 'use client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -7,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
 import { Lock, School, LogOut, Phone, MapPin } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { auth } from '@/lib/firebase';
@@ -79,12 +80,8 @@ export default function LockPage() {
   }, [settings.schoolName]);
 
 
-  const handleLogoutAndRelogin = async () => {
-    await auth.signOut();
-    router.push('/');
-  }
+  const attemptUnlock = useCallback(() => {
 
-  const handleUnlock = (enteredPin: string) => {
     if (!settings.historyClearPin) {
       toast({
         title: 'PIN Not Set',
@@ -97,7 +94,9 @@ export default function LockPage() {
 
     if (enteredPin === settings.historyClearPin) {
       toast({ title: 'System Unlocked' });
-      sessionStorage.setItem('unlocked', 'true');
+
+      sessionStorage.setItem('isUnlocked', 'true'); // Set flag for welcome back message
+
       const returnUrl = sessionStorage.getItem('lockedFrom') || '/dashboard';
       sessionStorage.removeItem('lockedFrom'); // Clean up session storage
       router.replace(returnUrl);
@@ -109,6 +108,22 @@ export default function LockPage() {
       });
       setPin('');
     }
+  }, [pin, settings.historyClearPin, router, toast]);
+
+  useEffect(() => {
+    if (pin.length === 4) {
+      attemptUnlock();
+    }
+  }, [pin, attemptUnlock]);
+
+  const handleLogoutAndRelogin = async () => {
+    await auth.signOut();
+    router.push('/');
+  }
+
+  const handleUnlockSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    attemptUnlock();
   };
   
    useEffect(() => {
@@ -146,7 +161,7 @@ export default function LockPage() {
                 <CardTitle className="text-3xl font-bold font-headline h-10">{animatedSchoolName}</CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={(e) => { e.preventDefault(); handleUnlock(pin);}} className="space-y-4">
+
                 <div className="space-y-2">
                   <Label htmlFor="pin" className="text-center block">Enter Security PIN to Unlock</Label>
                   <div className="relative">
@@ -159,11 +174,14 @@ export default function LockPage() {
                         onChange={(e) => setPin(e.target.value)}
                         maxLength={4}
                         className="text-center text-lg tracking-[1rem] pl-10"
+
+                        autoComplete="off"
+
                         autoFocus
                     />
                   </div>
                 </div>
-              </form>
+
               <Button type="button" variant="link" size="sm" className="w-full mt-4 text-muted-foreground" onClick={handleLogoutAndRelogin}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Logout and login with email & password

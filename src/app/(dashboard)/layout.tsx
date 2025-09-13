@@ -11,11 +11,16 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, X, School } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import LockPage from '../lock/page';
 import { Preloader } from '@/components/ui/preloader';
-import { WelcomeDialog } from '@/components/layout/welcome-dialog';
+
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { format } from 'date-fns';
+import Image from 'next/image';
+
 
 function InactivityDetector() {
   const router = useRouter();
@@ -64,10 +69,24 @@ function AuthWrapper({ children }: { children: ReactNode }) {
   const [user, loading, error] = useAuthState(auth);
   const router = useRouter();
   const { settings } = useSettings();
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [welcomeMessage, setWelcomeMessage] = useState('Welcome');
 
   useEffect(() => {
     if (!loading && !user) {
+      sessionStorage.removeItem('welcomeShown'); // Clear on logout/unauthenticated
       router.replace('/');
+    }
+    if (!loading && user) {
+        if (sessionStorage.getItem('isUnlocked') === 'true') {
+            setWelcomeMessage('Welcome Back');
+            setShowWelcome(true);
+            sessionStorage.removeItem('isUnlocked'); // Clear the flag
+        } else if (!sessionStorage.getItem('welcomeShown')) {
+            setWelcomeMessage('Welcome');
+            setShowWelcome(true);
+            sessionStorage.setItem('welcomeShown', 'true');
+        }
     }
   }, [user, loading, router]);
   
@@ -88,7 +107,45 @@ function AuthWrapper({ children }: { children: ReactNode }) {
   }
 
   if (user) {
-     return <>{children}</>;
+     return (
+        <>
+            {children}
+            <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
+                <DialogContent className="sm:max-w-md text-center">
+                     {welcomeMessage === 'Welcome' ? (
+                        <>
+                            <DialogHeader className="items-center">
+                                {settings.schoolLogo ? (
+                                    <Image src={settings.schoolLogo} alt="School Logo" width={60} height={60} className="rounded-full object-contain mb-2"/>
+                                ) : (
+                                    <School className="w-12 h-12 text-primary mb-2"/>
+                                )}
+                                <DialogTitle className="text-2xl">{welcomeMessage} to {settings.schoolName}</DialogTitle>
+                                <DialogDescription>{format(new Date(), 'EEEE, MMMM do, yyyy')}</DialogDescription>
+                            </DialogHeader>
+                            <div className="py-8">
+                               <p className="text-sm text-muted-foreground">Developed by Mian Mudassar</p>
+                            </div>
+                        </>
+                    ) : (
+                         <>
+                            <DialogHeader className="items-center">
+                                {settings.schoolLogo ? (
+                                    <Image src={settings.schoolLogo} alt="School Logo" width={60} height={60} className="rounded-full object-contain mb-2"/>
+                                ) : (
+                                    <School className="w-12 h-12 text-primary mb-2"/>
+                                )}
+                                 <DialogTitle className="text-2xl">{welcomeMessage}</DialogTitle>
+                            </DialogHeader>
+                            <div className="py-8">
+                               <p className="text-sm text-muted-foreground">Developed by Mian Mudassar</p>
+                            </div>
+                        </>
+                    )}
+                </DialogContent>
+            </Dialog>
+        </>
+     );
   }
 
   return null;

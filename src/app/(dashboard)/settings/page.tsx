@@ -18,7 +18,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { sendWhatsAppMessage } from '@/services/whatsapp-service';
-import type { Grade, MessageTemplate } from '@/lib/types';
+import type { Grade, MessageTemplate, SchoolSettings } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -403,9 +403,12 @@ export default function SettingsPage() {
         }
         
         try {
-             const success = await sendWhatsAppMessage(recipient.phone, personalizedMessage, settings);
-             if (success) {
+
+             const result = await sendWhatsAppMessage(recipient.phone, personalizedMessage);
+             if (result.success) {
                 successCount++;
+             } else {
+                toast({ title: 'Message Failed', description: `Failed to send to ${recipient.phone}: ${result.error}`, variant: 'destructive' });
              }
             await sleep(Number(settings.messageDelay) * 1000 || 2000); 
         } catch (error) {
@@ -427,17 +430,15 @@ export default function SettingsPage() {
             return;
         }
         try {
-            const success = await sendWhatsAppMessage(
-                testPhoneNumber,
-                `This is a test message from ${settings.schoolName}.`, 
-                settings
-            );
-            if (success) {
+
+            const result = await sendWhatsAppMessage(testPhoneNumber, `This is a test message from ${settings.schoolName}.`, settings);
+            if (result.success) {
+
                 toast({ title: 'Test Successful', description: 'Your WhatsApp API settings appear to be correct.' });
                 setSettings(prev => ({...prev, whatsappConnectionStatus: 'connected'}));
             } else {
                 setSettings(prev => ({...prev, whatsappConnectionStatus: 'failed'}));
-                throw new Error("API returned failure. Check console for details.");
+                throw new Error(result.error || "API returned failure.");
             }
         } catch (error: any) {
             toast({ title: 'Test Failed', description: error.message || 'Could not connect using the provided API settings.', variant: 'destructive' });
@@ -966,42 +967,74 @@ export default function SettingsPage() {
                     <CardDescription>Select your provider and enter your API details to enable messaging features.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Tabs defaultValue={settings.whatsappProvider || 'ultramsg'} onValueChange={(value) => setSettings(prev => ({...prev, whatsappProvider: value as 'ultramsg' | 'official'}))}>
-                        <TabsList className="grid w-full grid-cols-2">
+
+                    <Tabs defaultValue={settings.whatsappProvider || 'none'}>
+                        <TabsList>
+
                             <TabsTrigger value="ultramsg">UltraMSG API</TabsTrigger>
                             <TabsTrigger value="official">Official WhatsApp API</TabsTrigger>
                         </TabsList>
                         <TabsContent value="ultramsg" className="mt-4 space-y-4">
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <Label htmlFor="whatsappApiUrl">API URL / Gateway</Label>
-                                    <Input id="whatsappApiUrl" value={settings.whatsappApiUrl} onChange={handleInputChange} placeholder="e.g. https://api.ultramsg.com/instance12345" />
+                                    <Label htmlFor="whatsappApiUrl">API URL</Label>
+                                    <Input id="whatsappApiUrl" value={settings.whatsappApiUrl} onChange={handleInputChange} placeholder="e.g. https://api.ultramsg.com" />
+                                </div>
+                                 <div className="space-y-2">
+                                    <Label htmlFor="whatsappInstanceId">Instance ID</Label>
+                                    <Input id="whatsappInstanceId" value={settings.whatsappInstanceId} onChange={handleInputChange} placeholder="e.g. instance12345" />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="whatsappApiKey">Token (API Key)</Label>
                                     <Input id="whatsappApiKey" value={settings.whatsappApiKey} onChange={handleInputChange} placeholder="Enter UltraMSG Token" />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="whatsappInstanceId">Instance ID</Label>
-                                    <Input id="whatsappInstanceId" value={settings.whatsappInstanceId} onChange={handleInputChange} placeholder="e.g. instance12345" />
-                                </div>
-                                <div className="space-y-2">
                                     <Label htmlFor="whatsappPriority">Priority</Label>
                                     <Input id="whatsappPriority" value={settings.whatsappPriority} onChange={handleInputChange} placeholder="e.g. 10" />
                                 </div>
+                            </div>
+                            <div className="flex justify-end pt-4">
+                                <Button
+                                  onClick={() => {
+                                    if (settings.whatsappProvider === 'ultramsg') {
+                                      setSettings(prev => ({...prev, whatsappProvider: 'none'}));
+                                    } else {
+                                      setSettings(prev => ({...prev, whatsappProvider: 'ultramsg'}));
+                                    }
+                                  }}
+                                  variant={settings.whatsappProvider === 'ultramsg' ? 'destructive' : 'default'}
+                                >
+                                  {settings.whatsappProvider === 'ultramsg' ? 'Deactivate' : 'Activate UltraMSG'}
+                                </Button>
                             </div>
                         </TabsContent>
                          <TabsContent value="official" className="mt-4 space-y-4">
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <Label htmlFor="whatsappPhoneNumberId">Phone Number ID</Label>
-                                    <Input id="whatsappPhoneNumberId" value={settings.whatsappPhoneNumberId} onChange={handleInputChange} placeholder="e.g., 10..." />
+
+                                    <Input id="whatsappPhoneNumberId" value={settings.whatsappPhoneNumberId || ''} onChange={handleInputChange} placeholder="e.g., 10..." />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="whatsappAccessToken">Permanent Access Token</Label>
-                                    <Input id="whatsappAccessToken" value={settings.whatsappAccessToken} onChange={handleInputChange} placeholder="e.g., EAA..." />
+                                    <Input id="whatsappAccessToken" value={settings.whatsappAccessToken || ''} onChange={handleInputChange} placeholder="e.g., EAA..." />
                                 </div>
                             </div>
+                             <div className="flex justify-end pt-4">
+                                <Button
+                                  onClick={() => {
+                                    if (settings.whatsappProvider === 'official') {
+                                      setSettings(prev => ({...prev, whatsappProvider: 'none'}));
+                                    } else {
+                                      setSettings(prev => ({...prev, whatsappProvider: 'official'}));
+                                    }
+                                  }}
+                                  variant={settings.whatsappProvider === 'official' ? 'destructive' : 'default'}
+                                >
+                                  {settings.whatsappProvider === 'official' ? 'Deactivate' : 'Activate Official API'}
+                                </Button>
+                            </div>
+
                          </TabsContent>
                     </Tabs>
                     <div className="flex items-center gap-4 pt-4 border-t mt-4">
