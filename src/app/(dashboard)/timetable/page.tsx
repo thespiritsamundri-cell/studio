@@ -235,15 +235,6 @@ export default function TimetablePage() {
                         </div>
                         <div className="flex items-center gap-2">
                             <Button onClick={handleSaveAllTimetables}><Save className="mr-2 h-4 w-4"/>Save All Changes</Button>
-                            <Select value={printOrientation} onValueChange={(value) => setPrintOrientation(value as 'portrait' | 'landscape')}>
-                                <SelectTrigger className="w-[150px]">
-                                    <SelectValue placeholder="Orientation" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="portrait">Portrait</SelectItem>
-                                    <SelectItem value="landscape">Landscape</SelectItem>
-                                </SelectContent>
-                            </Select>
                             <Button onClick={() => handlePrint('master')} variant="outline"><Printer className="mr-2 h-4 w-4"/> Print Master</Button>
                         </div>
                     </div>

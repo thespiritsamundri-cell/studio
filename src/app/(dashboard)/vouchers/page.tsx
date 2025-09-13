@@ -309,7 +309,7 @@ export default function VouchersPage() {
 
                 <div className="flex justify-end items-center gap-4 pt-4 border-t">
                   <div className="space-y-2 w-48">
-                      <Label htmlFor="copies">Print Layout</Label>
+                      <Label htmlFor="copies">Layout</Label>
                       <Select value={copies} onValueChange={setCopies}>
                           <SelectTrigger id="copies">
                               <SelectValue placeholder="Select copies" />

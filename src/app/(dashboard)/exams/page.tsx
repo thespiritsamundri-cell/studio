@@ -295,15 +295,6 @@ export default function ExamsPage() {
                         <SelectItem value="text-base">Large</SelectItem>
                     </SelectContent>
                 </Select>
-                 <Select value={printOrientation} onValueChange={(value) => setPrintOrientation(value as 'portrait' | 'landscape')}>
-                    <SelectTrigger className="w-[150px]">
-                        <SelectValue placeholder="Orientation" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="portrait">Portrait</SelectItem>
-                        <SelectItem value="landscape">Landscape</SelectItem>
-                    </SelectContent>
-                </Select>
                 <Button variant="outline" onClick={handlePrintMarksheet}><Printer className="mr-2 h-4 w-4"/>Print Marksheet</Button>
             </div>
           </CardHeader>
