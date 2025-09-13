@@ -15,28 +15,30 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
   }
 
   try {
-    // 1. Robust phone number formatting
-    const numericTo = to.replace(/\D/g, ''); // Remove all non-digit characters
-    const formattedTo = numericTo.startsWith('92') ? numericTo : `92${numericTo.substring(1)}`;
+    // 1. Proper phone number formatting
+    let numericTo = to.replace(/\D/g, '');
+    if (numericTo.startsWith('0')) {
+      numericTo = numericTo.substring(1);
+    }
+    const formattedTo = numericTo.startsWith('92') ? numericTo : `92${numericTo}`;
 
-    // 2. Robust URL construction
-    const baseUrl = whatsappApiUrl.replace(/\/$/, ''); // Remove any trailing slash
-    const fullUrl = `${baseUrl}/messages/chat`;
+    // 2. Correct API URL
+    const baseUrl = whatsappApiUrl.replace(/\/$/, '');
+    const fullUrl = `${baseUrl}/${whatsappInstanceId}/messages/chat`;
 
-    // 3. Manually construct the body to avoid any issues with URLSearchParams
+    // 3. Body encode
     const body = `token=${encodeURIComponent(whatsappApiKey)}&to=${encodeURIComponent(formattedTo)}&body=${encodeURIComponent(message)}&priority=${encodeURIComponent(whatsappPriority || '10')}`;
 
     const response = await fetch(fullUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: body,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
     });
 
     const responseJson = await response.json();
 
-    if (!response.ok || responseJson.sent !== true) {
+    // 4. Fix response check (string not boolean)
+    if (!response.ok || responseJson.sent !== 'true') {
       console.error('UltraMSG API Error:', responseJson);
       return false;
     }
@@ -46,9 +48,6 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
 
   } catch (error: any) {
     console.error('Error in sendWithUltraMSG:', error);
-    if (error instanceof TypeError) {
-      console.error("This might be a network error or CORS issue. Check server logs.");
-    }
     return false;
   }
 }
@@ -82,3 +81,4 @@ export async function sendWhatsAppMessage(to: string, message: string): Promise<
   console.log('No active WhatsApp provider is configured. Skipping send.');
   return false;
 }
+
