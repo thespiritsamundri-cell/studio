@@ -15,10 +15,12 @@ import { Loader2, X, School } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import LockPage from '../lock/page';
 import { Preloader } from '@/components/ui/preloader';
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import Image from 'next/image';
+
 
 function InactivityDetector() {
   const router = useRouter();
@@ -153,9 +155,24 @@ function AuthWrapper({ children }: { children: ReactNode }) {
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [isClient, setIsClient] = useState(false);
   const pathname = usePathname();
+  const [welcomeVariant, setWelcomeVariant] = useState<'welcome' | 'welcome-back' | null>(null);
+  const [showWelcome, setShowWelcome] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
+    const hasBeenWelcomed = sessionStorage.getItem('hasBeenWelcomed');
+    const unlocked = sessionStorage.getItem('unlocked');
+    
+    if (unlocked === 'true') {
+        setWelcomeVariant('welcome-back');
+        setShowWelcome(true);
+        sessionStorage.removeItem('unlocked');
+    } else if (!hasBeenWelcomed) {
+        setWelcomeVariant('welcome');
+        setShowWelcome(true);
+        sessionStorage.setItem('hasBeenWelcomed', 'true');
+    }
+
   }, []);
 
   if (isClient && pathname === '/lock') {
@@ -167,6 +184,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <DataProvider>
         {isClient && <InactivityDetector />}
         <SidebarProvider>
+          {welcomeVariant && <WelcomeDialog open={showWelcome} onOpenChange={setShowWelcome} variant={welcomeVariant} />}
           <div className="flex min-h-screen w-full bg-muted/40">
             <Sidebar>
               <SidebarNav />

@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -12,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Bell, BellOff, Lock, AlertTriangle, PlayCircle, Image as ImageIcon, CheckCircle } from 'lucide-react';
+import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Bell, BellOff, Lock, AlertTriangle, PlayCircle, ImageIcon, CheckCircle } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -25,12 +24,13 @@ import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { Switch } from '@/components/ui/switch';
 import { Preloader } from '@/components/ui/preloader';
 import { cn } from '@/lib/utils';
 import { uploadFile } from '@/services/storage-service';
+import { doc, setDoc } from 'firebase/firestore';
 
 
 export default function SettingsPage() {
@@ -164,7 +164,7 @@ export default function SettingsPage() {
              toast({ title: 'An error occurred', description: error.message, variant: 'destructive' });
         }
     }
-  }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value, type } = e.target;
@@ -184,15 +184,39 @@ export default function SettingsPage() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: 'schoolLogo' | 'principalSignature' | 'favicon') => {
     const file = e.target.files?.[0];
     if (file) {
-        try {
-            toast({ title: 'Uploading...', description: `Uploading ${field}...` });
-            const downloadURL = await uploadFile(file, `settings/${field}/${file.name}`);
-            setSettings(prev => ({...prev, [field]: downloadURL}));
-            toast({ title: 'Upload Successful', description: `${field} has been uploaded and saved.` });
-        } catch (error) {
-            console.error(`Error uploading ${field}:`, error);
-            toast({ title: 'Upload Failed', variant: 'destructive' });
+      // Step 1: Instant Local Preview
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result as string;
+        if (dataUrl) {
+          setSettings(prev => ({ ...prev, [field]: dataUrl }));
         }
+      };
+      reader.readAsDataURL(file);
+
+      // Step 2: Background Upload
+      try {
+        toast({ title: 'Uploading...', description: `Uploading ${field} in the background.` });
+        const downloadURL = await uploadFile(file, `branding/${field}/${file.name}`);
+        
+        // Step 3: Save permanent URL to the dedicated branding document in Firestore
+        const brandingRef = doc(db, "branding", "school-assets");
+        await setDoc(brandingRef, { [field]: downloadURL }, { merge: true });
+        
+        // Step 4: Update state with permanent URL (this will also trigger save to localStorage via context)
+        setSettings(prev => ({ ...prev, [field]: downloadURL }));
+
+        toast({ title: 'Upload Successful', description: `${field} has been permanently saved.` });
+      } catch (error: any) {
+        console.error("Upload error in settings page:", error);
+        toast({ 
+            title: 'Upload Failed', 
+            description: error.message || 'An unknown error occurred. Please check console for details.',
+            variant: 'destructive' 
+        });
+        // Optional: Revert to previous image if upload fails
+        // To do this, we'd need to store the previous state before the optimistic update.
+      }
     }
   };
 
@@ -379,6 +403,7 @@ export default function SettingsPage() {
         }
         
         try {
+
              const result = await sendWhatsAppMessage(recipient.phone, personalizedMessage);
              if (result.success) {
                 successCount++;
@@ -405,8 +430,10 @@ export default function SettingsPage() {
             return;
         }
         try {
+
             const result = await sendWhatsAppMessage(testPhoneNumber, `This is a test message from ${settings.schoolName}.`, settings);
             if (result.success) {
+
                 toast({ title: 'Test Successful', description: 'Your WhatsApp API settings appear to be correct.' });
                 setSettings(prev => ({...prev, whatsappConnectionStatus: 'connected'}));
             } else {
@@ -937,13 +964,15 @@ export default function SettingsPage() {
                          {settings.whatsappConnectionStatus === 'failed' && <Badge variant="destructive"><WifiOff className="mr-2 h-4 w-4"/>Failed</Badge>}
                          {settings.whatsappConnectionStatus === 'untested' && <Badge variant="secondary">Untested</Badge>}
                     </div>
-                    <CardDescription>Enter your API details to enable messaging features.</CardDescription>
+                    <CardDescription>Select your provider and enter your API details to enable messaging features.</CardDescription>
                 </CardHeader>
                 <CardContent>
+
                     <Tabs defaultValue={settings.whatsappProvider || 'none'}>
                         <TabsList>
+
                             <TabsTrigger value="ultramsg">UltraMSG API</TabsTrigger>
-                            <TabsTrigger value="official">Official API</TabsTrigger>
+                            <TabsTrigger value="official">Official WhatsApp API</TabsTrigger>
                         </TabsList>
                         <TabsContent value="ultramsg" className="mt-4 space-y-4">
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -983,6 +1012,7 @@ export default function SettingsPage() {
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <Label htmlFor="whatsappPhoneNumberId">Phone Number ID</Label>
+
                                     <Input id="whatsappPhoneNumberId" value={settings.whatsappPhoneNumberId || ''} onChange={handleInputChange} placeholder="e.g., 10..." />
                                 </div>
                                 <div className="space-y-2">
@@ -1004,6 +1034,7 @@ export default function SettingsPage() {
                                   {settings.whatsappProvider === 'official' ? 'Deactivate' : 'Activate Official API'}
                                 </Button>
                             </div>
+
                          </TabsContent>
                     </Tabs>
                     <div className="flex items-center gap-4 pt-4 border-t mt-4">

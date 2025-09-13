@@ -1,11 +1,13 @@
 
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import type { Grade, MessageTemplate } from '@/lib/types';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
 
 export interface SchoolSettings {
   schoolName: string;
@@ -27,6 +29,8 @@ export interface SchoolSettings {
   
   whatsappProvider?: 'ultramsg' | 'official' | 'none';
   whatsappConnectionStatus: 'untested' | 'connected' | 'failed';
+  whatsappPhoneNumberId?: string;
+  whatsappAccessToken?: string;
   messageDelay: number;
   historyClearPin?: string;
   autoLockEnabled?: boolean;
@@ -63,6 +67,8 @@ export const defaultSettings: SchoolSettings = {
   whatsappPriority: '10',
   whatsappProvider: 'ultramsg',
   whatsappConnectionStatus: 'untested',
+  whatsappPhoneNumberId: '',
+  whatsappAccessToken: '',
   messageDelay: 2,
   historyClearPin: '1234',
   autoLockEnabled: true,
@@ -108,8 +114,10 @@ export const SettingsContext = createContext<{
 export const SettingsProvider = ({ children }: { children: React.ReactNode }) => {
   const [settings, setSettingsState] = useState<SchoolSettings>(defaultSettings);
   const [isInitialized, setIsInitialized] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
+
     const settingsDocRef = doc(db, 'Settings', 'School Settings');
     const unsubscribe = onSnapshot(settingsDocRef, (doc) => {
       if (doc.exists()) {
@@ -161,6 +169,7 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   if (!isInitialized) {
       return null;
   }
+
 
   return (
     <SettingsContext.Provider value={{ settings, setSettings: handleSetSettings }}>
