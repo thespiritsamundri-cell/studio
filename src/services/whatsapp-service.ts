@@ -6,28 +6,30 @@ import { doc, getDoc } from 'firebase/firestore';
 import type { SchoolSettings } from '@/context/settings-context';
 import { defaultSettings } from '@/context/settings-context';
 
+// Phone number normalize function
+function normalizePhone(to: string): string {
+  let numeric = to.replace(/\D/g, '');
+  if (numeric.startsWith('92')) return numeric;
+  if (numeric.startsWith('0')) return '92' + numeric.substring(1);
+  return '92' + numeric;
+}
+
 async function sendWithUltraMSG(to: string, message: string, settings: SchoolSettings): Promise<boolean> {
   const { whatsappApiUrl, whatsappInstanceId, whatsappApiKey, whatsappPriority } = settings;
 
   if (!whatsappApiUrl || !whatsappInstanceId || !whatsappApiKey) {
-    console.error('UltraMSG API URL, Instance ID, or Token not provided in settings.');
+    console.error('❌ UltraMSG API URL, Instance ID, or Token missing.');
     return false;
   }
 
   try {
-    // 1. Proper phone number formatting
-    let numericTo = to.replace(/\D/g, '');
-    if (numericTo.startsWith('0')) {
-      numericTo = numericTo.substring(1);
-    }
-    const formattedTo = numericTo.startsWith('92') ? numericTo : `92${numericTo}`;
-
-    // 2. Correct API URL
+    const formattedTo = normalizePhone(to);
     const baseUrl = whatsappApiUrl.replace(/\/$/, '');
     const fullUrl = `${baseUrl}/${whatsappInstanceId}/messages/chat`;
 
-    // 3. Body encode
     const body = `token=${encodeURIComponent(whatsappApiKey)}&to=${encodeURIComponent(formattedTo)}&body=${encodeURIComponent(message)}&priority=${encodeURIComponent(whatsappPriority || '10')}`;
+
+    console.log("📤 UltraMSG REQUEST", { fullUrl, body });
 
     const response = await fetch(fullUrl, {
       method: 'POST',
@@ -35,19 +37,27 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
       body,
     });
 
-    const responseJson = await response.json();
+    const responseText = await response.text();
+    console.log("📥 UltraMSG RAW RESPONSE:", responseText);
 
-    // 4. Fix response check (string not boolean)
-    if (!response.ok || responseJson.sent !== 'true') {
-      console.error('UltraMSG API Error:', responseJson);
+    let responseJson: any = {};
+    try {
+      responseJson = JSON.parse(responseText);
+    } catch {
+      console.error("❌ Response not JSON:", responseText);
       return false;
     }
 
-    console.log('UltraMSG API Success:', responseJson);
+    if (!response.ok || responseJson.sent !== 'true') {
+      console.error('❌ UltraMSG API Error:', responseJson);
+      return false;
+    }
+
+    console.log('✅ UltraMSG API Success:', responseJson);
     return true;
 
   } catch (error: any) {
-    console.error('Error in sendWithUltraMSG:', error);
+    console.error('❌ Error in sendWithUltraMSG:', error);
     return false;
   }
 }
@@ -81,4 +91,3 @@ export async function sendWhatsAppMessage(to: string, message: string): Promise<
   console.log('No active WhatsApp provider is configured. Skipping send.');
   return false;
 }
-
