@@ -32,8 +32,7 @@ export default function TimetablePage() {
   
   const [masterTimetableData, setMasterTimetableData] = useState<Record<string, TimetableData>>({});
   const [timeSlots, setTimeSlots] = useState<string[]>(Array(numPeriods).fill(''));
-  const [printOrientation, setPrintOrientation] = useState<'portrait' | 'landscape'>('landscape');
-
+  
 
   useEffect(() => {
     // This effect initializes the state from the first available timetable settings
@@ -149,10 +148,10 @@ export default function TimetablePage() {
   const handlePrint = (type: 'master' | 'class' | 'teacher') => {
     let printContent = '';
     let printTitle = 'Timetable';
-    let isLandscape = printOrientation === 'landscape';
+    let isLandscape = true;
     
     if (type === 'master') {
-        printContent = renderToString(<MasterTimetablePrint settings={settings} teachers={teachers} classes={classes} masterTimetableData={masterTimetableData} timeSlots={timeSlots} breakAfterPeriod={breakAfterPeriod} printOrientation={printOrientation} />);
+        printContent = renderToString(<MasterTimetablePrint settings={settings} teachers={teachers} classes={classes} masterTimetableData={masterTimetableData} timeSlots={timeSlots} breakAfterPeriod={breakAfterPeriod} />);
         printTitle = 'Master Timetable';
     } else if (type === 'class') {
         const classInfo = classes.find(c => c.id === selectedClassId);
@@ -234,15 +233,6 @@ export default function TimetablePage() {
                         <CardDescription>Define the daily schedule for all classes. This template applies to all weekdays.</CardDescription>
                         </div>
                         <div className="flex items-center gap-2">
-                             <Select value={printOrientation} onValueChange={(value) => setPrintOrientation(value as 'portrait' | 'landscape')}>
-                                <SelectTrigger className="w-[150px]">
-                                    <SelectValue placeholder="Select Orientation" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="portrait">Portrait</SelectItem>
-                                    <SelectItem value="landscape">Landscape</SelectItem>
-                                </SelectContent>
-                            </Select>
                             <Button onClick={handleSaveAllTimetables}><Save className="mr-2 h-4 w-4"/>Save All</Button>
                             <Button onClick={() => handlePrint('master')} variant="outline"><Printer className="mr-2 h-4 w-4"/> Print</Button>
                         </div>
