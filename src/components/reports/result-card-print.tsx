@@ -57,7 +57,7 @@ const ResultCard = ({ student, exams, settings, classes, remarks, printOrientati
 
 
     return (
-        <div className="p-6 font-sans bg-white text-black border-4 border-double border-gray-800 w-full mx-auto relative" style={{ breakAfter: 'page', pageBreakAfter: 'always' }}>
+        <div className="p-6 font-sans bg-white text-black border-4 border-double border-gray-800 w-full mx-auto relative" data-orientation={printOrientation}>
              {settings.schoolLogo && (
                 <div className="absolute inset-0 flex items-center justify-center z-0">
                     <Image src={settings.schoolLogo} alt="Watermark" width={300} height={300} className="object-contain opacity-10" />

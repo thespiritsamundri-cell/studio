@@ -39,6 +39,8 @@ export default function ExamsPage() {
   const [subjectTotals, setSubjectTotals] = useState<{[subject: string]: number}>({});
   const [currentResults, setCurrentResults] = useState<ExamResult[]>([]);
   const [fontSize, setFontSize] = useState('text-sm');
+  const [printOrientation, setPrintOrientation] = useState<'portrait' | 'landscape'>('portrait');
+
 
   const classStudents = useMemo(() => {
     return selectedClass ? allStudents.filter(s => s.class === selectedClass) : [];
@@ -196,6 +198,7 @@ export default function ExamsPage() {
               marksheetData={marksheetData}
               settings={settings}
               fontSize={fontSize}
+              printOrientation={printOrientation}
           />
       );
       const printWindow = window.open('', '_blank');
@@ -205,6 +208,7 @@ export default function ExamsPage() {
             <head>
               <title>${exam.name} - ${selectedClass} - Marksheet</title>
               <script src="https://cdn.tailwindcss.com"></script>
+              <link rel="stylesheet" href="/print-styles.css">
             </head>
             <body>
               ${printContent}
@@ -291,6 +295,15 @@ export default function ExamsPage() {
                         <SelectItem value="text-base">Large</SelectItem>
                     </SelectContent>
                 </Select>
+                 <Select value={printOrientation} onValueChange={(value) => setPrintOrientation(value as 'portrait' | 'landscape')}>
+                    <SelectTrigger className="w-[150px]">
+                        <SelectValue placeholder="Orientation" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="portrait">Portrait</SelectItem>
+                        <SelectItem value="landscape">Landscape</SelectItem>
+                    </SelectContent>
+                </Select>
                 <Button variant="outline" onClick={handlePrintMarksheet}><Printer className="mr-2 h-4 w-4"/>Print Marksheet</Button>
             </div>
           </CardHeader>
@@ -370,5 +383,3 @@ export default function ExamsPage() {
     </div>
   );
 }
-
-    

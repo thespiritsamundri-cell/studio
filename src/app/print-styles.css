@@ -1,7 +1,4 @@
 
-
-
-
 @media print {
   @page {
     margin: 0.25in;
@@ -101,5 +98,13 @@
     height: 100%;
     box-sizing: border-box;
     display: flex; /* Ensure inner content can grow */
+  }
+
+  /* --- General Orientation --- */
+  [data-orientation="portrait"] {
+    @page { size: portrait; }
+  }
+  [data-orientation="landscape"] {
+    @page { size: landscape; }
   }
 }

@@ -25,10 +25,11 @@ interface MarksheetPrintReportProps {
   marksheetData: MarksheetData[];
   settings: SchoolSettings;
   fontSize: string;
+  printOrientation: 'portrait' | 'landscape';
 }
 
 export const MarksheetPrintReport = React.forwardRef<HTMLDivElement, MarksheetPrintReportProps>(
-  ({ examName, className, subjects, marksheetData, settings, fontSize }, ref) => {
+  ({ examName, className, subjects, marksheetData, settings, fontSize, printOrientation }, ref) => {
     // Style for table cells to ensure borders are visible on print
     const cellStyle: React.CSSProperties = {
         border: '1px solid #ccc',
@@ -47,7 +48,7 @@ export const MarksheetPrintReport = React.forwardRef<HTMLDivElement, MarksheetPr
 
 
     return (
-      <div ref={ref} className={`p-8 font-sans bg-white text-black ${fontSize}`}>
+      <div ref={ref} className={`p-8 font-sans bg-white text-black ${fontSize}`} data-orientation={printOrientation}>
         <header className="flex items-start justify-between pb-4 border-b border-gray-300">
           <div className="flex items-center gap-4">
             {settings.schoolLogo ? (
@@ -112,5 +113,3 @@ export const MarksheetPrintReport = React.forwardRef<HTMLDivElement, MarksheetPr
 );
 
 MarksheetPrintReport.displayName = 'MarksheetPrintReport';
-
-    
