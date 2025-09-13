@@ -940,7 +940,7 @@ export default function SettingsPage() {
                     <CardDescription>Enter your API details to enable messaging features.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Tabs defaultValue={settings.whatsappProvider || 'none'} onValueChange={(value) => setSettings(prev => ({...prev, whatsappProvider: value as 'ultramsg' | 'official' | 'none'}))}>
+                    <Tabs defaultValue={settings.whatsappProvider || 'none'}>
                         <TabsList>
                             <TabsTrigger value="ultramsg">UltraMSG API</TabsTrigger>
                             <TabsTrigger value="official">Official API</TabsTrigger>
@@ -965,9 +965,17 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                             <div className="flex justify-end pt-4">
-                                <Button onClick={() => setSettings(prev => ({...prev, whatsappProvider: 'ultramsg'}))} disabled={settings.whatsappProvider === 'ultramsg'}>
-                                  {settings.whatsappProvider === 'ultramsg' ? <CheckCircle className="mr-2" /> : null}
-                                  {settings.whatsappProvider === 'ultramsg' ? 'Activated' : 'Activate UltraMSG'}
+                               <Button
+                                  onClick={() => {
+                                    if (settings.whatsappProvider === 'ultramsg') {
+                                      setSettings(prev => ({...prev, whatsappProvider: 'none'}));
+                                    } else {
+                                      setSettings(prev => ({...prev, whatsappProvider: 'ultramsg'}));
+                                    }
+                                  }}
+                                  variant={settings.whatsappProvider === 'ultramsg' ? 'destructive' : 'default'}
+                                >
+                                  {settings.whatsappProvider === 'ultramsg' ? 'Deactivate' : 'Activate UltraMSG'}
                                 </Button>
                             </div>
                         </TabsContent>
@@ -983,9 +991,17 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                              <div className="flex justify-end pt-4">
-                                <Button onClick={() => setSettings(prev => ({...prev, whatsappProvider: 'official'}))} disabled={settings.whatsappProvider === 'official'}>
-                                   {settings.whatsappProvider === 'official' ? <CheckCircle className="mr-2" /> : null}
-                                   {settings.whatsappProvider === 'official' ? 'Activated' : 'Activate Official API'}
+                                <Button
+                                  onClick={() => {
+                                    if (settings.whatsappProvider === 'official') {
+                                      setSettings(prev => ({...prev, whatsappProvider: 'none'}));
+                                    } else {
+                                      setSettings(prev => ({...prev, whatsappProvider: 'official'}));
+                                    }
+                                  }}
+                                  variant={settings.whatsappProvider === 'official' ? 'destructive' : 'default'}
+                                >
+                                  {settings.whatsappProvider === 'official' ? 'Deactivate' : 'Activate Official API'}
                                 </Button>
                             </div>
                          </TabsContent>
