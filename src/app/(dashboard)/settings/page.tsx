@@ -946,16 +946,16 @@ export default function SettingsPage() {
                         <TabsContent value="ultramsg" className="mt-4 space-y-4">
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <Label htmlFor="whatsappApiUrl">API URL / Gateway</Label>
-                                    <Input id="whatsappApiUrl" value={settings.whatsappApiUrl} onChange={handleInputChange} placeholder="e.g. https://api.ultramsg.com/instance12345" />
+                                    <Label htmlFor="whatsappApiUrl">API URL</Label>
+                                    <Input id="whatsappApiUrl" value={settings.whatsappApiUrl} onChange={handleInputChange} placeholder="e.g. https://api.ultramsg.com" />
+                                </div>
+                                 <div className="space-y-2">
+                                    <Label htmlFor="whatsappInstanceId">Instance ID</Label>
+                                    <Input id="whatsappInstanceId" value={settings.whatsappInstanceId} onChange={handleInputChange} placeholder="e.g. instance12345" />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="whatsappApiKey">Token (API Key)</Label>
                                     <Input id="whatsappApiKey" value={settings.whatsappApiKey} onChange={handleInputChange} placeholder="Enter UltraMSG Token" />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="whatsappInstanceId">Instance ID</Label>
-                                    <Input id="whatsappInstanceId" value={settings.whatsappInstanceId} onChange={handleInputChange} placeholder="e.g. instance12345" />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="whatsappPriority">Priority</Label>

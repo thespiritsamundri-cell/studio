@@ -34,15 +34,15 @@ export async function sendWhatsAppMessage(to: string, message: string): Promise<
 }
 
 async function sendWithUltraMSG(to: string, message: string, settings: SchoolSettings): Promise<boolean> {
-  const { whatsappApiUrl, whatsappApiKey, whatsappPriority } = settings;
+  const { whatsappApiUrl, whatsappInstanceId, whatsappApiKey, whatsappPriority } = settings;
 
-  if (!whatsappApiUrl || !whatsappApiKey) {
-    console.error('UltraMSG API URL or Token not provided in settings.');
+  if (!whatsappApiUrl || !whatsappInstanceId || !whatsappApiKey) {
+    console.error('UltraMSG API URL, Instance ID, or Token not provided in settings.');
     return false;
   }
 
   try {
-    const fullUrl = `${whatsappApiUrl}/messages/chat`;
+    const fullUrl = `${whatsappApiUrl}/${whatsappInstanceId}/messages/chat`;
     
     const params = new URLSearchParams();
     params.append('token', whatsappApiKey);
