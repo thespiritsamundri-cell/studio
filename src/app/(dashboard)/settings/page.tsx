@@ -382,6 +382,8 @@ export default function SettingsPage() {
              const result = await sendWhatsAppMessage(recipient.phone, personalizedMessage);
              if (result.success) {
                 successCount++;
+             } else {
+                toast({ title: 'Message Failed', description: `Failed to send to ${recipient.phone}: ${result.error}`, variant: 'destructive' });
              }
             await sleep(Number(settings.messageDelay) * 1000 || 2000); 
         } catch (error) {
@@ -942,7 +944,7 @@ export default function SettingsPage() {
                         <Switch id="whatsappActive" checked={settings.whatsappActive} onCheckedChange={(checked) => setSettings(prev => ({...prev, whatsappActive: checked}))}/>
                         <Label htmlFor="whatsappActive">Enable WhatsApp Messaging</Label>
                     </div>
-                    <Tabs defaultValue={settings.whatsappProvider || 'none'}>
+                    <Tabs defaultValue={settings.whatsappProvider || 'none'} onValueChange={(value) => setSettings(prev => ({...prev, whatsappProvider: value as 'ultramsg' | 'official' | 'none'}))}>
                         <TabsList>
                             <TabsTrigger value="ultramsg">UltraMSG API</TabsTrigger>
                             <TabsTrigger value="official">Official API</TabsTrigger>
