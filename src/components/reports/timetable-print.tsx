@@ -119,5 +119,3 @@ export const TimetablePrint = React.forwardRef<HTMLDivElement, TimetablePrintPro
   }
 );
 TimetablePrint.displayName = 'TimetablePrint';
-
-
