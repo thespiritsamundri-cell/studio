@@ -17,8 +17,8 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
   try {
     const formattedTo = to.replace(/^\+/, '').replace(/\s/g, '');
     
-    // Correctly construct the URL, ensuring no double slashes or duplicated instance IDs.
-    const baseUrl = whatsappApiUrl.replace(/\/$/, ''); // Remove trailing slash if it exists
+    // Final robust URL check: ensure the URL is built correctly without duplication.
+    const baseUrl = whatsappApiUrl.replace(/\/$/, ''); // Remove trailing slash
     const fullUrl = `${baseUrl}/${whatsappInstanceId}/messages/chat`;
 
     const body = new URLSearchParams({
@@ -73,11 +73,6 @@ export async function sendWhatsAppMessage(to: string, message: string): Promise<
     console.error('Could not fetch settings. Using default settings.', error);
   }
 
-  if (!settings.whatsappActive) {
-    console.log('WhatsApp messaging is disabled in settings. Skipping send.');
-    return false;
-  }
-
   if (settings.whatsappProvider === 'ultramsg') {
     return sendWithUltraMSG(to, message, settings);
   }
@@ -86,6 +81,6 @@ export async function sendWhatsAppMessage(to: string, message: string): Promise<
     return sendWithOfficialAPI(to, message, settings);
   }
 
-  console.error(`Unknown WhatsApp provider: ${settings.whatsappProvider}`);
+  console.log('No active WhatsApp provider is configured. Skipping send.');
   return false;
 }

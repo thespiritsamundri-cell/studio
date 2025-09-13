@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
@@ -24,8 +25,7 @@ export interface SchoolSettings {
   whatsappPhoneNumberId?: string;
   whatsappAccessToken?: string;
   
-  whatsappProvider: 'ultramsg' | 'official';
-  whatsappActive: boolean; // Main toggle for WhatsApp functionality
+  whatsappProvider?: 'ultramsg' | 'official' | 'none';
   whatsappConnectionStatus: 'untested' | 'connected' | 'failed';
   messageDelay: number;
   historyClearPin?: string;
@@ -62,7 +62,6 @@ export const defaultSettings: SchoolSettings = {
   whatsappInstanceId: 'instance141491',
   whatsappPriority: '10',
   whatsappProvider: 'ultramsg',
-  whatsappActive: true,
   whatsappConnectionStatus: 'untested',
   messageDelay: 2,
   historyClearPin: '1234',

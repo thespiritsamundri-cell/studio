@@ -938,12 +938,7 @@ export default function SettingsPage() {
                     <CardDescription>Enter your API details to enable messaging features.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex items-center space-x-2 mb-4 p-4 border rounded-md">
-                        <Switch id="whatsappActive" checked={settings.whatsappActive} onCheckedChange={(checked) => setSettings(prev => ({ ...prev, whatsappActive: checked }))} />
-                        <Label htmlFor="whatsappActive" className="text-base font-medium">Enable WhatsApp Messaging</Label>
-                    </div>
-
-                    <Tabs defaultValue={settings.whatsappProvider || 'ultramsg'} onValueChange={(value) => setSettings(prev => ({...prev, whatsappProvider: value as 'ultramsg' | 'official'}))}>
+                    <Tabs defaultValue={settings.whatsappProvider || 'none'}>
                         <TabsList>
                             <TabsTrigger value="ultramsg">UltraMSG API</TabsTrigger>
                             <TabsTrigger value="official">Official API</TabsTrigger>
@@ -967,6 +962,12 @@ export default function SettingsPage() {
                                     <Input id="whatsappPriority" value={settings.whatsappPriority} onChange={handleInputChange} placeholder="e.g. 10" />
                                 </div>
                             </div>
+                            <div className="flex justify-end pt-4">
+                                <Button onClick={() => setSettings(prev => ({...prev, whatsappProvider: 'ultramsg'}))} disabled={settings.whatsappProvider === 'ultramsg'}>
+                                  {settings.whatsappProvider === 'ultramsg' ? <CheckCircle className="mr-2" /> : null}
+                                  Activate UltraMSG
+                                </Button>
+                            </div>
                         </TabsContent>
                          <TabsContent value="official" className="mt-4 space-y-4">
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -978,6 +979,12 @@ export default function SettingsPage() {
                                     <Label htmlFor="whatsappAccessToken">Permanent Access Token</Label>
                                     <Input id="whatsappAccessToken" value={settings.whatsappAccessToken || ''} onChange={handleInputChange} placeholder="e.g., EAA..." />
                                 </div>
+                            </div>
+                             <div className="flex justify-end pt-4">
+                                <Button onClick={() => setSettings(prev => ({...prev, whatsappProvider: 'official'}))} disabled={settings.whatsappProvider === 'official'}>
+                                   {settings.whatsappProvider === 'official' ? <CheckCircle className="mr-2" /> : null}
+                                   Activate Official API
+                                </Button>
                             </div>
                          </TabsContent>
                     </Tabs>
