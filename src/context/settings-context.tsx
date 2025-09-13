@@ -25,6 +25,7 @@ export interface SchoolSettings {
   whatsappPhoneNumberId?: string;
   whatsappAccessToken?: string;
   
+  whatsappActive?: boolean;
   whatsappProvider?: 'ultramsg' | 'official' | 'none';
   whatsappConnectionStatus: 'untested' | 'connected' | 'failed';
   messageDelay: number;
@@ -61,6 +62,7 @@ export const defaultSettings: SchoolSettings = {
   whatsappApiKey: '4e8f26fx3a2yi942',
   whatsappInstanceId: 'instance141491',
   whatsappPriority: '10',
+  whatsappActive: true,
   whatsappProvider: 'ultramsg',
   whatsappConnectionStatus: 'untested',
   messageDelay: 2,

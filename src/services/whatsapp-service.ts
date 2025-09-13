@@ -14,12 +14,13 @@ function normalizePhone(to: string): string {
   return '92' + numeric;
 }
 
-async function sendWithUltraMSG(to: string, message: string, settings: SchoolSettings): Promise<boolean> {
+async function sendWithUltraMSG(to: string, message: string, settings: SchoolSettings): Promise<{ success: boolean; error?: string }> {
   const { whatsappApiUrl, whatsappInstanceId, whatsappApiKey, whatsappPriority } = settings;
 
   if (!whatsappApiUrl || !whatsappInstanceId || !whatsappApiKey) {
-    console.error('❌ UltraMSG API URL, Instance ID, or Token missing.');
-    return false;
+    const errorMsg = '❌ UltraMSG API URL, Instance ID, or Token missing.';
+    console.error(errorMsg);
+    return { success: false, error: errorMsg };
   }
 
   try {
@@ -44,32 +45,34 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
     try {
       responseJson = JSON.parse(responseText);
     } catch {
-      console.error("❌ Response not JSON:", responseText);
-      return false;
+      const errorMsg = `Response not JSON: ${responseText}`;
+      console.error(`❌ ${errorMsg}`);
+      return { success: false, error: errorMsg };
     }
 
     if (!response.ok || responseJson.sent !== 'true') {
+      const errorMsg = `API Error: ${responseJson.error || responseText}`;
       console.error('❌ UltraMSG API Error:', responseJson);
-      return false;
+      return { success: false, error: errorMsg };
     }
 
     console.log('✅ UltraMSG API Success:', responseJson);
-    return true;
+    return { success: true };
 
   } catch (error: any) {
     console.error('❌ Error in sendWithUltraMSG:', error);
-    return false;
+    return { success: false, error: error.message };
   }
 }
 
 
-async function sendWithOfficialAPI(to: string, message: string, settings: SchoolSettings): Promise<boolean> {
+async function sendWithOfficialAPI(to: string, message: string, settings: SchoolSettings): Promise<{ success: boolean; error?: string }> {
   console.log("sendWithOfficialAPI called, but it's not implemented.");
-  return Promise.resolve(false);
+  return Promise.resolve({ success: false, error: "Official API not implemented." });
 }
 
 
-export async function sendWhatsAppMessage(to: string, message: string): Promise<boolean> {
+export async function sendWhatsAppMessage(to: string, message: string): Promise<{ success: boolean; error?: string }> {
   let settings: SchoolSettings = defaultSettings;
   try {
     const settingsDoc = await getDoc(doc(db, 'Settings', 'School Settings'));
@@ -78,6 +81,10 @@ export async function sendWhatsAppMessage(to: string, message: string): Promise<
     }
   } catch (error) {
     console.error('Could not fetch settings. Using default settings.', error);
+  }
+  
+  if (!settings.whatsappActive) {
+    return { success: false, error: "WhatsApp messaging is disabled in settings."};
   }
 
   if (settings.whatsappProvider === 'ultramsg') {
@@ -89,5 +96,5 @@ export async function sendWhatsAppMessage(to: string, message: string): Promise<
   }
 
   console.log('No active WhatsApp provider is configured. Skipping send.');
-  return false;
+  return { success: false, error: "No active WhatsApp provider is configured." };
 }

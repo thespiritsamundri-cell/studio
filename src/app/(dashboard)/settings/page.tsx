@@ -379,8 +379,8 @@ export default function SettingsPage() {
         }
         
         try {
-             const success = await sendWhatsAppMessage(recipient.phone, personalizedMessage);
-             if (success) {
+             const result = await sendWhatsAppMessage(recipient.phone, personalizedMessage);
+             if (result.success) {
                 successCount++;
              }
             await sleep(Number(settings.messageDelay) * 1000 || 2000); 
@@ -403,13 +403,13 @@ export default function SettingsPage() {
             return;
         }
         try {
-            const success = await sendWhatsAppMessage(testPhoneNumber, `This is a test message from ${settings.schoolName}.`);
-            if (success) {
+            const result = await sendWhatsAppMessage(testPhoneNumber, `This is a test message from ${settings.schoolName}.`);
+            if (result.success) {
                 toast({ title: 'Test Successful', description: 'Your WhatsApp API settings appear to be correct.' });
                 setSettings(prev => ({...prev, whatsappConnectionStatus: 'connected'}));
             } else {
                 setSettings(prev => ({...prev, whatsappConnectionStatus: 'failed'}));
-                throw new Error("API returned failure. Check console for details.");
+                throw new Error(result.error || "API returned failure.");
             }
         } catch (error: any) {
             toast({ title: 'Test Failed', description: error.message || 'Could not connect using the provided API settings.', variant: 'destructive' });
@@ -938,6 +938,10 @@ export default function SettingsPage() {
                     <CardDescription>Enter your API details to enable messaging features.</CardDescription>
                 </CardHeader>
                 <CardContent>
+                    <div className="flex items-center space-x-2 mb-6">
+                        <Switch id="whatsappActive" checked={settings.whatsappActive} onCheckedChange={(checked) => setSettings(prev => ({...prev, whatsappActive: checked}))}/>
+                        <Label htmlFor="whatsappActive">Enable WhatsApp Messaging</Label>
+                    </div>
                     <Tabs defaultValue={settings.whatsappProvider || 'none'}>
                         <TabsList>
                             <TabsTrigger value="ultramsg">UltraMSG API</TabsTrigger>
