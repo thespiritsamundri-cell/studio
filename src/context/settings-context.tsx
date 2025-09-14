@@ -57,12 +57,11 @@ export const defaultSettings: SchoolSettings = {
   schoolAddress: '123 Education Lane, Knowledge City, Pakistan',
   schoolPhone: '+92 309 9969535',
   schoolEmail: 'info@thespiritschool.edu.pk',
-  schoolLogo:
-    'https://firebasestorage.googleapis.com/v0/b/educentral-mxfgr.appspot.com/o/settings%2FschoolLogo%2Flogo.png?alt=media&token=e1f06b6f-7f6a-4565-b17a-8b9a07106517',
-  favicon:
-    'https://firebasestorage.googleapis.com/v0/b/educentral-mxfgr.appspot.com/o/settings%2Ffavicon%2Ffavicon.ico?alt=media&token=48c8b4a2-996a-4523-832f-410a3c26b527',
-  principalSignature:
-    'https://firebasestorage.googleapis.com/v0/b/educentral-mxfgr.appspot.com/o/settings%2FprincipalSignature%2Fsignature.png?alt=media&token=8a5c3789-9a74-4b53-8b5e-404391694f8d',
+
+  // 🔹 Updated with Postimages links
+  schoolLogo: 'https://i.postimg.cc/Xv35Y5XZ/The-Spirit.jpg',
+  favicon: 'https://i.postimg.cc/Xv35Y5XZ/The-Spirit.jpg',
+  principalSignature: 'https://i.postimg.cc/XXXXXXX/signature.png', // ⚠️ Replace XXXXXXX with actual direct link
 
   // UltraMSG Defaults
   whatsappApiUrl: 'https://api.ultramsg.com',
