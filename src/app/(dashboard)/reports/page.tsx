@@ -27,13 +27,14 @@ interface UnpaidFamilyData {
 }
 
 export default function ReportsPage() {
-  const { students: allStudents, fees: allFees, families, classes } = useData();
-  const { settings } = useSettings();
+  // ✅ FIXED: useData ko hook ki tarah call kiya
+  const { students: allStudents = [], fees: allFees = [], families = [], classes = [] } = useData() || {};
+  const { settings = {} } = useSettings() || {};
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState<string | null>(null);
 
-  // States for Attendance Report
+  // Attendance states
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [attendanceDate, setAttendanceDate] = useState<Date | undefined>(new Date());
 
@@ -47,27 +48,20 @@ export default function ReportsPage() {
 
       if (type === 'students') {
         printContent = renderToString(
-          <AllStudentsPrintReport
-            students={allStudents}
-            date={currentDate}
-            settings={settings}
-          />
+          <AllStudentsPrintReport students={allStudents} date={currentDate} settings={settings} />
         );
         reportTitle = 'All Students Report';
       } else if (type === 'fees') {
         const feesWithFatherName = allFees
-          .filter((fee) => fee.status === 'Paid' && fee.paymentDate)
-          .map((fee) => {
-            const family = families.find((f) => f.id === fee.familyId);
+          .filter(fee => fee.status === 'Paid' && fee.paymentDate)
+          .map(fee => {
+            const family = families.find(f => f.id === fee.familyId);
             return { ...fee, fatherName: family?.fatherName || 'N/A' };
           });
+
         const totalIncome = feesWithFatherName.reduce((acc, fee) => acc + fee.amount, 0);
         printContent = renderToString(
-          <IncomePrintReport
-            fees={feesWithFatherName}
-            totalIncome={totalIncome}
-            settings={settings}
-          />
+          <IncomePrintReport fees={feesWithFatherName} totalIncome={totalIncome} settings={settings} />
         );
         reportTitle = 'Fee Collection Report';
       } else if (type === 'attendance') {
@@ -76,14 +70,17 @@ export default function ReportsPage() {
           setIsLoading(null);
           return;
         }
-        const classStudents = allStudents.filter((s) => s.class === selectedClass);
+
+        const classStudents = allStudents.filter(s => s.class === selectedClass);
         const mockAttendance: Record<string, 'Present' | 'Absent' | 'Leave'> = {};
-        classStudents.forEach((s) => {
+
+        classStudents.forEach(s => {
           const rand = Math.random();
           if (rand < 0.9) mockAttendance[s.id] = 'Present';
           else if (rand < 0.95) mockAttendance[s.id] = 'Absent';
           else mockAttendance[s.id] = 'Leave';
         });
+
         printContent = renderToString(
           <AttendancePrintReport
             className={selectedClass}
@@ -96,7 +93,7 @@ export default function ReportsPage() {
         reportTitle = `Attendance Report - ${selectedClass}`;
       } else if (type === 'unpaid-fees') {
         const unpaidFeesByFamily: Record<string, Fee[]> = allFees
-          .filter((f) => f.status === 'Unpaid')
+          .filter(f => f.status === 'Unpaid')
           .reduce((acc, fee) => {
             if (!acc[fee.familyId]) {
               acc[fee.familyId] = [];
@@ -106,11 +103,11 @@ export default function ReportsPage() {
           }, {} as Record<string, Fee[]>);
 
         const unpaidData: UnpaidFamilyData[] = Object.keys(unpaidFeesByFamily)
-          .map((familyId) => {
-            const family = families.find((f) => f.id === familyId);
+          .map(familyId => {
+            const family = families.find(f => f.id === familyId);
             if (!family) return null;
 
-            const students = allStudents.filter((s) => s.familyId === familyId);
+            const students = allStudents.filter(s => s.familyId === familyId);
             const unpaidFees = unpaidFeesByFamily[familyId];
             const totalDue = unpaidFees.reduce((sum, fee) => sum + fee.amount, 0);
 
@@ -158,6 +155,7 @@ export default function ReportsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold font-headline">Reports</h1>
       </div>
+
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mt-6">
         {/* Student Report */}
         <Card>
@@ -166,22 +164,15 @@ export default function ReportsPage() {
               <Users className="w-8 h-8 text-primary" />
               <div>
                 <CardTitle>Student Data Report</CardTitle>
-                <CardDescription>
-                  Generate a printable report of all students.
-                </CardDescription>
+                <CardDescription>Generate a printable report of all students.</CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <Button
-              onClick={() => generateReport('students')}
-              disabled={isLoading === 'students'}
-            >
-              {isLoading === 'students' ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Printer className="mr-2 h-4 w-4" />
-              )}
+            <Button onClick={() => generateReport('students')} disabled={isLoading === 'students'}>
+              {isLoading === 'students'
+                ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                : <Printer className="mr-2 h-4 w-4" />}
               Print Report
             </Button>
           </CardContent>
@@ -194,22 +185,15 @@ export default function ReportsPage() {
               <DollarSign className="w-8 h-8 text-primary" />
               <div>
                 <CardTitle>Fee Collection Report</CardTitle>
-                <CardDescription>
-                  Generate a report of all fee collections.
-                </CardDescription>
+                <CardDescription>Generate a report of all fee collections.</CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <Button
-              onClick={() => generateReport('fees')}
-              disabled={isLoading === 'fees'}
-            >
-              {isLoading === 'fees' ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Printer className="mr-2 h-4 w-4" />
-              )}
+            <Button onClick={() => generateReport('fees')} disabled={isLoading === 'fees'}>
+              {isLoading === 'fees'
+                ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                : <Printer className="mr-2 h-4 w-4" />}
               Print Report
             </Button>
           </CardContent>
@@ -222,9 +206,7 @@ export default function ReportsPage() {
               <UserX className="w-8 h-8 text-destructive" />
               <div>
                 <CardTitle>Unpaid Dues Report</CardTitle>
-                <CardDescription>
-                  View a list of all families with outstanding fees.
-                </CardDescription>
+                <CardDescription>View a list of all families with outstanding fees.</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -234,11 +216,9 @@ export default function ReportsPage() {
               onClick={() => generateReport('unpaid-fees')}
               disabled={isLoading === 'unpaid-fees'}
             >
-              {isLoading === 'unpaid-fees' ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Printer className="mr-2 h-4 w-4" />
-              )}
+              {isLoading === 'unpaid-fees'
+                ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                : <Printer className="mr-2 h-4 w-4" />}
               Print Report
             </Button>
           </CardContent>
@@ -251,9 +231,7 @@ export default function ReportsPage() {
               <BookOpenCheck className="w-8 h-8 text-primary" />
               <div>
                 <CardTitle>Attendance Report</CardTitle>
-                <CardDescription>
-                  Print a daily report for a selected class.
-                </CardDescription>
+                <CardDescription>Print a daily report for a selected class.</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -263,52 +241,42 @@ export default function ReportsPage() {
                 <SelectValue placeholder="Select a class" />
               </SelectTrigger>
               <SelectContent>
-                {classes.map((c) => (
-                  <SelectItem key={c.id} value={c.name}>
-                    {c.name}
-                  </SelectItem>
+                {classes.map(c => (
+                  <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
+
             <Popover>
               <PopoverTrigger asChild>
                 <Button
-                  variant={'outline'}
+                  variant="outline"
                   className={cn(
-                    'w-full justify-start text-left font-normal',
-                    !attendanceDate && 'text-muted-foreground'
+                    "w-full justify-start text-left font-normal",
+                    !attendanceDate && "text-muted-foreground"
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {attendanceDate ? (
-                    format(attendanceDate, 'PPP')
-                  ) : (
-                    <span>Pick a date</span>
-                  )}
+                  {attendanceDate ? format(attendanceDate, "PPP") : <span>Pick a date</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
                 <Calendar
                   mode="single"
                   selected={attendanceDate}
-                  onSelect={(date) => setAttendanceDate(date || new Date())}
+                  onSelect={date => setAttendanceDate(date || new Date())}
                   initialFocus
                 />
               </PopoverContent>
             </Popover>
+
             <Button
               onClick={() => generateReport('attendance')}
               disabled={!selectedClass || isLoading === 'attendance'}
             >
-              {isLoading === 'attendance' ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...
-                </>
-              ) : (
-                <>
-                  <Printer className="mr-2 h-4 w-4" /> Print Report
-                </>
-              )}
+              {isLoading === 'attendance'
+                ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...</>
+                : <><Printer className="mr-2 h-4 w-4" /> Print Report</>}
             </Button>
           </CardContent>
         </Card>
