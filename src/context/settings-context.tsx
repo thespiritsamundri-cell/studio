@@ -16,24 +16,24 @@ export interface SchoolSettings {
   favicon: string;
   principalSignature: string;
 
-  // For UltraMSG
+  // 🔹 UltraMSG
   whatsappApiUrl: string;
   whatsappInstanceId: string;
-  whatsappApiKey: string; // Token for UltraMSG
+  whatsappApiKey: string;
   whatsappPriority: string;
 
-  // For Official WhatsApp Business API
+  // 🔹 Official WhatsApp Business API
   whatsappPhoneNumberId?: string;
   whatsappAccessToken?: string;
 
-  // Provider selection
+  // 🔹 Common
   whatsappProvider?: 'ultramsg' | 'official' | 'none';
   whatsappConnectionStatus: 'untested' | 'connected' | 'failed';
 
   messageDelay: number;
   historyClearPin?: string;
   autoLockEnabled?: boolean;
-  autoLockDuration?: number; // in seconds
+  autoLockDuration?: number;
   themeColors?: { [key: string]: string };
   font: 'inter' | 'roboto' | 'open-sans' | 'lato' | 'montserrat' | 'poppins';
   gradingSystem: Grade[];
@@ -64,19 +64,19 @@ export const defaultSettings: SchoolSettings = {
   principalSignature:
     'https://firebasestorage.googleapis.com/v0/b/educentral-mxfgr.appspot.com/o/settings%2FprincipalSignature%2Fsignature.png?alt=media&token=8a5c3789-9a74-4b53-8b5e-404391694f8d',
 
-  // UltraMSG defaults
+  // UltraMSG Defaults
   whatsappApiUrl: 'https://api.ultramsg.com',
-  whatsappApiKey: 'xxxxxx', // apna UltraMSG API key dalna
-  whatsappInstanceId: 'instance141491',
+  whatsappApiKey: '',
+  whatsappInstanceId: '',
   whatsappPriority: '10',
 
-  // Official WhatsApp defaults
-  whatsappPhoneNumberId: '',
-  whatsappAccessToken: '',
-
-  // Default provider
+  // WhatsApp Provider
   whatsappProvider: 'ultramsg',
   whatsappConnectionStatus: 'untested',
+
+  // Official API Defaults
+  whatsappPhoneNumberId: '',
+  whatsappAccessToken: '',
 
   messageDelay: 2,
   historyClearPin: '1234',
@@ -84,6 +84,7 @@ export const defaultSettings: SchoolSettings = {
   autoLockDuration: 300,
   themeColors: {},
   font: 'inter',
+
   gradingSystem: [
     { name: 'A+', minPercentage: 90 },
     { name: 'A', minPercentage: 80 },
@@ -92,6 +93,7 @@ export const defaultSettings: SchoolSettings = {
     { name: 'D', minPercentage: 50 },
     { name: 'F', minPercentage: 0 },
   ],
+
   expenseCategories: [
     'Salaries',
     'Utilities',
@@ -102,6 +104,7 @@ export const defaultSettings: SchoolSettings = {
     'Transportation',
     'Miscellaneous',
   ],
+
   messageTemplates: [
     {
       id: '1',
@@ -134,6 +137,7 @@ export const defaultSettings: SchoolSettings = {
         'Dear {teacher_name}, your status has been set to Inactive due to your attendance record. Please contact the principal.',
     },
   ],
+
   automatedMessages: {
     admission: { enabled: true, templateId: '3' },
     absentee: { enabled: true, templateId: '1' },
@@ -141,6 +145,7 @@ export const defaultSettings: SchoolSettings = {
     studentDeactivation: { enabled: true, templateId: '4' },
     teacherDeactivation: { enabled: true, templateId: '5' },
   },
+
   autofillLogin: true,
   preloaderEnabled: true,
   preloaderStyle: 'style2',
@@ -161,11 +166,12 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
 
   useEffect(() => {
     const settingsDocRef = doc(db, 'Settings', 'School Settings');
+
     const unsubscribe = onSnapshot(
       settingsDocRef,
-      (docSnapshot) => {
-        if (docSnapshot.exists()) {
-          const dbSettings = docSnapshot.data() as Partial<SchoolSettings>;
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const dbSettings = docSnap.data() as Partial<SchoolSettings>;
           setSettingsState((prev) => ({ ...defaultSettings, ...prev, ...dbSettings }));
         } else {
           setDoc(settingsDocRef, defaultSettings);
@@ -174,13 +180,14 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
       },
       (error) => {
         console.error('Error fetching settings from Firestore:', error);
+
         try {
           const savedSettings = localStorage.getItem('schoolSettings');
           if (savedSettings) {
             setSettingsState(JSON.parse(savedSettings));
           }
         } catch (localError) {
-          console.error('Could not read from localStorage either:', localError);
+          console.error('Could not read from localStorage:', localError);
         }
         setIsInitialized(true);
       }
@@ -191,13 +198,14 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
 
   const handleSetSettings = (newSettings: React.SetStateAction<SchoolSettings>) => {
     const updatedSettings =
-      typeof newSettings === 'function' ? newSettings(settings) : newSettings;
+      typeof newSettings === 'function' ? (newSettings as (prev: SchoolSettings) => SchoolSettings)(settings) : newSettings;
 
     setSettingsState(updatedSettings);
 
     const settingsDocRef = doc(db, 'Settings', 'School Settings');
     setDoc(settingsDocRef, updatedSettings, { merge: true }).catch((error) => {
       console.error('Failed to save settings to Firestore:', error);
+      toast({ title: 'Failed to save settings', description: error.message, variant: 'destructive' });
     });
 
     try {
@@ -207,15 +215,9 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
     }
   };
 
-  if (!isInitialized) {
-    return null;
-  }
+  if (!isInitialized) return null;
 
-  return (
-    <SettingsContext.Provider value={{ settings, setSettings: handleSetSettings }}>
-      {children}
-    </SettingsContext.Provider>
-  );
+  return <SettingsContext.Provider value={{ settings, setSettings: handleSetSettings }}>{children}</SettingsContext.Provider>;
 };
 
 export const useSettings = () => {
