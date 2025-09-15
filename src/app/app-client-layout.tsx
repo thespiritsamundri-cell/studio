@@ -1,7 +1,7 @@
 
 "use client";
 
-import { SettingsProvider, useSettings } from "@/context/settings-context";
+import { useSettings } from "@/context/settings-context";
 import React, { useEffect, ReactNode, useState } from "react";
 import { fontMap, inter } from "./font-config";
 import { Toaster } from "@/components/ui/toaster";
@@ -111,8 +111,6 @@ export default function AppClientLayout({
   children: React.ReactNode;
 }) {
   return (
-    <SettingsProvider>
       <AppContent>{children}</AppContent>
-    </SettingsProvider>
   );
 }

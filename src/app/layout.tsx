@@ -19,9 +19,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <AppClientLayout>
-            {children}
-          </AppClientLayout>
+          <SettingsProvider>
+            <AppClientLayout>
+              {children}
+            </AppClientLayout>
+          </SettingsProvider>
         </ThemeProvider>
       </body>
     </html>

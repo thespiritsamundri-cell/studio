@@ -12,7 +12,7 @@ import { auth, db } from '@/lib/firebase';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Loader2, X, School } from 'lucide-react';
-import { useSettings } from '@/context/settings-context';
+import { SettingsProvider, useSettings } from '@/context/settings-context';
 import LockPage from '../lock/page';
 import { Preloader } from '@/components/ui/preloader';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -205,6 +205,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <AuthWrapper>
+      <SettingsProvider>
         <DataProvider>
             {isClient && <InactivityDetector />}
             <SidebarProvider>
@@ -221,6 +222,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </div>
             </SidebarProvider>
         </DataProvider>
+      </SettingsProvider>
     </AuthWrapper>
   );
 }
