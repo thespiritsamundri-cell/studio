@@ -109,7 +109,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm mx-auto shadow-2xl">
         <CardHeader className="text-center">
            <div className="flex justify-center mb-4">
-             {isClient && settings.schoolLogo ? (
+             {isClient && isSettingsInitialized && settings.schoolLogo ? (
                 <Image src={settings.schoolLogo} alt="School Logo" width={80} height={80} className="object-contain rounded-full" />
              ) : (
                 <div className="p-3 rounded-full bg-primary/10">

@@ -1,20 +1,18 @@
 
 "use client";
 
-import { useSettings, SettingsProvider } from "@/context/settings-context";
+import { useSettings } from "@/context/settings-context";
 import React, { useEffect, ReactNode, useState } from "react";
 import { fontMap, inter } from "./font-config";
 import { Toaster } from "@/components/ui/toaster";
 import { Preloader } from "@/components/ui/preloader";
 import { usePathname } from "next/navigation";
-import { Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
 
 const ClientLoader = dynamic(
   () => import("lucide-react").then((mod) => mod.Loader2),
   { ssr: false }
 );
-
 
 function getTitleFromPathname(pathname: string): string {
   if (pathname === '/lock') return 'Locked';
@@ -138,8 +136,6 @@ export default function AppClientLayout({
   children: React.ReactNode;
 }) {
   return (
-    <SettingsProvider>
         <AppContent>{children}</AppContent>
-    </SettingsProvider>
   );
 }
