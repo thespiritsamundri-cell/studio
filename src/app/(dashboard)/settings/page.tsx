@@ -581,7 +581,7 @@ export default function SettingsPage() {
       <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><SettingsIcon className="w-8 h-8" />Settings</h1>
       
       <Tabs defaultValue="school" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 max-w-6xl h-auto">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 h-auto">
           <TabsTrigger value="school">School</TabsTrigger>
           <TabsTrigger value="theme">Theme</TabsTrigger>
           <TabsTrigger value="preloader">Preloader</TabsTrigger>
@@ -1000,16 +1000,18 @@ export default function SettingsPage() {
                         </div>
                     </div>
                     <div className="border-t pt-4 mt-4 space-y-4">
-                         <div className="space-y-2">
-                            <Label htmlFor="testPhoneNumber">Test Phone Number</Label>
-                            <Input id="testPhoneNumber" value={testPhoneNumber} onChange={(e) => setTestPhoneNumber(e.target.value)} placeholder="Enter a number with country code (e.g. 92300...)" />
-                        </div>
-                         <div className="flex justify-end items-center gap-2">
-                            <Button onClick={handleSave}><KeyRound className="mr-2"/>Save WhatsApp Settings</Button>
-                            <Button variant="outline" onClick={handleTestConnection} disabled={isTesting}>
-                                {isTesting ? <Loader2 className="mr-2 animate-spin"/> : <TestTubeDiagonal className="mr-2"/>}
-                                {isTesting ? 'Testing...' : 'Test Connection'}
-                            </Button>
+                         <div className="flex flex-col md:flex-row md:items-end gap-4">
+                            <div className="space-y-2 flex-grow">
+                                <Label htmlFor="testPhoneNumber">Test Phone Number</Label>
+                                <Input id="testPhoneNumber" value={testPhoneNumber} onChange={(e) => setTestPhoneNumber(e.target.value)} placeholder="Enter a number with country code (e.g. 92300...)" />
+                            </div>
+                             <div className="flex gap-2">
+                                <Button onClick={handleSave}><KeyRound className="mr-2"/>Save WhatsApp Settings</Button>
+                                <Button variant="outline" onClick={handleTestConnection} disabled={isTesting}>
+                                    {isTesting ? <Loader2 className="mr-2 animate-spin"/> : <TestTubeDiagonal className="mr-2"/>}
+                                    {isTesting ? 'Testing...' : 'Test Connection'}
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </CardContent>
