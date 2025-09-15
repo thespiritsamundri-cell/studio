@@ -6,19 +6,59 @@ import type { ReactNode } from 'react';
 import { SidebarProvider, Sidebar } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/layout/sidebar-nav';
 import { Header } from '@/components/layout/header';
-import { DataProvider } from '@/context/data-context';
+import { DataProvider, useData } from '@/context/data-context';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { useRouter, usePathname } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Loader2, X, School } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import LockPage from '../lock/page';
 import { Preloader } from '@/components/ui/preloader';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import Image from 'next/image';
+import { doc, getDoc } from 'firebase/firestore';
+
+function SessionValidator() {
+  const router = useRouter();
+
+  const validateSession = useCallback(async () => {
+    const sessionId = sessionStorage.getItem('sessionId');
+    if (!sessionId) {
+      // No session, force logout
+      router.push('/');
+      return;
+    }
+
+    const sessionRef = doc(db, 'sessions', sessionId);
+    const sessionDoc = await getDoc(sessionRef);
+
+    if (!sessionDoc.exists()) {
+      // Session has been remotely terminated
+      sessionStorage.removeItem('sessionId');
+      sessionStorage.removeItem('welcomeShown');
+      sessionStorage.removeItem('isUnlocked');
+      await auth.signOut();
+      router.push('/');
+    }
+  }, [router]);
+
+  useEffect(() => {
+    // Check every 30 seconds
+    const interval = setInterval(validateSession, 30000);
+    // Also check when the window gains focus
+    window.addEventListener('focus', validateSession);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', validateSession);
+    };
+  }, [validateSession]);
+
+  return null;
+}
+
 
 function InactivityDetector() {
   const router = useRouter();
@@ -33,12 +73,12 @@ function InactivityDetector() {
     }
   }
 
-  const resetTimer = () => {
+  const resetTimer = useCallback(() => {
     if (!settings.autoLockEnabled) return;
     
     clearTimeout(inactivityTimer.current);
     inactivityTimer.current = setTimeout(handleLock, (settings.autoLockDuration || 300) * 1000);
-  };
+  }, [settings.autoLockEnabled, settings.autoLockDuration, router]);
 
   useEffect(() => {
     if (!settings.autoLockEnabled) {
@@ -57,7 +97,7 @@ function InactivityDetector() {
       events.forEach(event => window.removeEventListener(event, eventHandler));
       clearTimeout(inactivityTimer.current);
     };
-  }, [settings.autoLockEnabled, settings.autoLockDuration, router]);
+  }, [settings.autoLockEnabled, resetTimer]);
 
   return null;
 }
@@ -106,7 +146,8 @@ function AuthWrapper({ children }: { children: ReactNode }) {
 
   if (user) {
      return (
-        <DataProvider>
+        <>
+            <SessionValidator />
             {children}
             <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
                 <DialogContent className="sm:max-w-md text-center">
@@ -142,7 +183,7 @@ function AuthWrapper({ children }: { children: ReactNode }) {
                     )}
                 </DialogContent>
             </Dialog>
-        </DataProvider>
+        </>
      );
   }
 
@@ -164,20 +205,22 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <AuthWrapper>
-        {isClient && <InactivityDetector />}
-        <SidebarProvider>
-          <div className="flex min-h-screen w-full bg-muted/40">
-            <Sidebar>
-              <SidebarNav />
-            </Sidebar>
-            <div className="flex flex-1 flex-col">
-              <Header />
-              <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6 lg:p-8">
-                {children}
-              </main>
+        <DataProvider>
+            {isClient && <InactivityDetector />}
+            <SidebarProvider>
+            <div className="flex min-h-screen w-full bg-muted/40">
+                <Sidebar>
+                <SidebarNav />
+                </Sidebar>
+                <div className="flex flex-1 flex-col">
+                <Header />
+                <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6 lg:p-8">
+                    {children}
+                </main>
+                </div>
             </div>
-          </div>
-        </SidebarProvider>
+            </SidebarProvider>
+        </DataProvider>
     </AuthWrapper>
   );
 }

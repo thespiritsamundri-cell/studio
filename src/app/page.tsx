@@ -68,8 +68,8 @@ export default function LoginPage() {
       if (user) {
         // Create session document
         const sessionId = `SESS-${Date.now()}`;
-        const ipResponse = await fetch('https://api.ipify.org?format=json');
-        const ipData = await ipResponse.json();
+        const ipResponse = await fetch('https://api.ipify.org?format=json').catch(() => null);
+        const ipData = ipResponse ? await ipResponse.json() : {};
 
         const newSession: Session = {
             id: sessionId,
