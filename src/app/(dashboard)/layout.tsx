@@ -201,32 +201,28 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   if (isClient && pathname === '/lock') {
       return (
-        <SettingsProvider>
-            <LockPage />
-        </SettingsProvider>
+          <LockPage />
       );
   }
 
   return (
-    <SettingsProvider>
-      <AuthWrapper>
-          <DataProvider>
-              {isClient && <InactivityDetector />}
-              <SidebarProvider>
-              <div className="flex min-h-screen w-full bg-muted/40">
-                  <Sidebar>
-                  <SidebarNav />
-                  </Sidebar>
-                  <div className="flex flex-1 flex-col">
-                  <Header />
-                  <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6 lg:p-8">
-                      {children}
-                  </main>
-                  </div>
-              </div>
-              </SidebarProvider>
-          </DataProvider>
-      </AuthWrapper>
-    </SettingsProvider>
+    <AuthWrapper>
+        <DataProvider>
+            {isClient && <InactivityDetector />}
+            <SidebarProvider>
+            <div className="flex min-h-screen w-full bg-muted/40">
+                <Sidebar>
+                <SidebarNav />
+                </Sidebar>
+                <div className="flex flex-1 flex-col">
+                <Header />
+                <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6 lg:p-8">
+                    {children}
+                </main>
+                </div>
+            </div>
+            </SidebarProvider>
+        </DataProvider>
+    </AuthWrapper>
   );
 }

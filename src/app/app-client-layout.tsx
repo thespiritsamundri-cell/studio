@@ -97,7 +97,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
   }, [pathname, previousPath]);
 
 
-  if (!isSettingsInitialized) {
+  if (!isSettingsInitialized && pathname !== '/') {
     return (
       <div className="fixed inset-0 z-[200] flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -125,9 +125,23 @@ export default function AppClientLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const isDashboard = pathname.startsWith('/dashboard') || pathname === '/lock';
+
+  if (isDashboard) {
+      return (
+        <SettingsProvider>
+            <AppContent>{children}</AppContent>
+        </SettingsProvider>
+      );
+  }
+
+  // For public pages like login, we still need a "lightweight" settings provider
+  // that doesn't fetch from the DB.
   return (
-    <SettingsProvider>
-      <AppContent>{children}</AppContent>
-    </SettingsProvider>
+      <SettingsProvider>
+          {children}
+          <Toaster />
+      </SettingsProvider>
   );
 }
