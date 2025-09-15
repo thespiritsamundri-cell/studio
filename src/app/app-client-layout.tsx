@@ -8,6 +8,13 @@ import { Toaster } from "@/components/ui/toaster";
 import { Preloader } from "@/components/ui/preloader";
 import { usePathname } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import dynamic from "next/dynamic";
+
+const ClientLoader = dynamic(
+  () => import("lucide-react").then((mod) => mod.Loader2),
+  { ssr: false }
+);
+
 
 function getTitleFromPathname(pathname: string): string {
   if (pathname === '/lock') return 'Locked';
@@ -102,10 +109,10 @@ function AppContent({ children }: { children: React.ReactNode }) {
   }, [pathname, previousPath]);
 
   // Show initial loader only on the client after mounting, if settings are not ready.
-  if (!isMounted || (!isSettingsInitialized && pathname !== '/')) {
+  if (isMounted && !isSettingsInitialized && pathname !== '/') {
     return (
       <div className="fixed inset-0 z-[200] flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <ClientLoader className="h-8 w-8 animate-spin" />
       </div>
     );
   }
