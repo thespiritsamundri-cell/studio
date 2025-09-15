@@ -81,32 +81,45 @@ export default function LockPage() {
     }
   }, [settings.schoolName]);
 
-  const attemptUnlock = useCallback(() => {
-    if (!settings.historyClearPin) {
-      toast({
-        title: 'PIN Not Set',
-        description: 'No security PIN has been configured. Please log in again.',
-        variant: 'destructive',
-      });
-      router.push('/');
-      return;
-    }
+  const attemptUnlock = useCallback(async () => {
+    // This function will now fetch the PIN from Firestore to ensure it's the latest.
+    const settingsDocRef = doc(db, 'Settings', 'School Settings');
+    try {
+        const settingsDoc = await getDoc(settingsDocRef);
+        const latestSettings = settingsDoc.data();
+        
+        if (!latestSettings?.historyClearPin) {
+            toast({
+                title: 'PIN Not Set',
+                description: 'No security PIN has been configured in settings.',
+                variant: 'destructive',
+            });
+            return;
+        }
 
-    if (pin === settings.historyClearPin) {
-      toast({ title: 'System Unlocked' });
-      sessionStorage.setItem('isUnlocked', 'true'); // Set flag for welcome back message
-      const returnUrl = sessionStorage.getItem('lockedFrom') || '/dashboard';
-      sessionStorage.removeItem('lockedFrom'); // Clean up session storage
-      router.replace(returnUrl);
-    } else {
-      toast({
-        title: 'Incorrect PIN',
-        description: 'The PIN you entered is incorrect.',
-        variant: 'destructive',
-      });
-      setPin('');
+        if (pin === latestSettings.historyClearPin) {
+            toast({ title: 'System Unlocked' });
+            sessionStorage.setItem('isUnlocked', 'true');
+            const returnUrl = sessionStorage.getItem('lockedFrom') || '/dashboard';
+            sessionStorage.removeItem('lockedFrom');
+            router.replace(returnUrl);
+        } else {
+            toast({
+                title: 'Incorrect PIN',
+                description: 'The PIN you entered is incorrect.',
+                variant: 'destructive',
+            });
+            setPin('');
+        }
+    } catch (error) {
+        console.error("Error fetching PIN from Firestore:", error);
+        toast({
+            title: 'Unlock Error',
+            description: 'Could not verify PIN. Check your network and try again.',
+            variant: 'destructive',
+        });
     }
-  }, [pin, settings.historyClearPin, router, toast]);
+  }, [pin, router, toast]);
 
   useEffect(() => {
     if (pin.length === 4) {
@@ -115,8 +128,18 @@ export default function LockPage() {
   }, [pin, attemptUnlock]);
 
   const handleLogoutAndRelogin = async () => {
-    await auth.signOut();
-    router.push('/');
+    try {
+      await auth.signOut();
+    } catch (error) {
+        console.error("Error signing out:", error);
+        toast({
+            title: "Logout Error",
+            description: "Could not sign out cleanly, but will still redirect.",
+            variant: "destructive"
+        });
+    } finally {
+        router.push('/');
+    }
   }
 
   const handleUnlockSubmit = (e: React.FormEvent) => {
@@ -204,5 +227,3 @@ export default function LockPage() {
     </div>
   );
 }
-
-    
