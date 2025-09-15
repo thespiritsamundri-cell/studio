@@ -43,20 +43,27 @@ function useSidebar() {
 
 const useLocalStorage = <T,>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] => {
   const [storedValue, setStoredValue] = React.useState<T>(initialValue);
+  const [isMounted, setIsMounted] = React.useState(false);
 
   React.useEffect(() => {
-    // This effect runs only on the client, after hydration
-    try {
-      const item = window.localStorage.getItem(key);
-      setStoredValue(item ? JSON.parse(item) : initialValue);
-    } catch (error) {
-      console.log(error);
-      setStoredValue(initialValue);
+    setIsMounted(true);
+  }, []);
+
+  React.useEffect(() => {
+    if (isMounted) {
+      try {
+        const item = window.localStorage.getItem(key);
+        setStoredValue(item ? JSON.parse(item) : initialValue);
+      } catch (error) {
+        console.log(error);
+        setStoredValue(initialValue);
+      }
     }
-  }, [key, initialValue]);
+  }, [isMounted, key, initialValue]);
 
 
   const setValue = (value: T | ((val: T) => T)) => {
+    if (!isMounted) return;
     try {
       const valueToStore = value instanceof Function ? value(storedValue) : value;
       setStoredValue(valueToStore);

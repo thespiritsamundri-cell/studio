@@ -65,20 +65,20 @@ function InactivityDetector() {
   const { settings } = useSettings();
   const inactivityTimer = useRef<NodeJS.Timeout>();
   
-  const handleLock = () => {
+  const handleLock = useCallback(() => {
     // Only lock if we are not already on the lock page
     if (window.location.pathname !== '/lock') {
       sessionStorage.setItem('lockedFrom', window.location.pathname);
       router.push('/lock');
     }
-  }
+  }, [router]);
 
   const resetTimer = useCallback(() => {
     if (!settings.autoLockEnabled) return;
     
     clearTimeout(inactivityTimer.current);
     inactivityTimer.current = setTimeout(handleLock, (settings.autoLockDuration || 300) * 1000);
-  }, [settings.autoLockEnabled, settings.autoLockDuration, router]);
+  }, [settings.autoLockEnabled, settings.autoLockDuration, handleLock]);
 
   useEffect(() => {
     if (!settings.autoLockEnabled) {
@@ -109,24 +109,31 @@ function AuthWrapper({ children }: { children: ReactNode }) {
   const { settings } = useSettings();
   const [showWelcome, setShowWelcome] = useState(false);
   const [welcomeMessage, setWelcomeMessage] = useState('Welcome');
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) {
-      sessionStorage.removeItem('welcomeShown'); // Clear on logout/unauthenticated
+      if (isClient) {
+        sessionStorage.removeItem('welcomeShown');
+      }
       router.replace('/');
     }
-    if (!loading && user) {
-        if (sessionStorage.getItem('isUnlocked') === 'true') {
-            setWelcomeMessage('Welcome Back');
-            setShowWelcome(true);
-            sessionStorage.removeItem('isUnlocked'); // Clear the flag
-        } else if (!sessionStorage.getItem('welcomeShown')) {
-            setWelcomeMessage('Welcome');
-            setShowWelcome(true);
-            sessionStorage.setItem('welcomeShown', 'true');
-        }
+    if (!loading && user && isClient) {
+      if (sessionStorage.getItem('isUnlocked') === 'true') {
+        setWelcomeMessage('Welcome Back');
+        setShowWelcome(true);
+        sessionStorage.removeItem('isUnlocked');
+      } else if (!sessionStorage.getItem('welcomeShown')) {
+        setWelcomeMessage('Welcome');
+        setShowWelcome(true);
+        sessionStorage.setItem('welcomeShown', 'true');
+      }
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, isClient]);
   
   if (loading) {
     return (
@@ -147,7 +154,7 @@ function AuthWrapper({ children }: { children: ReactNode }) {
   if (user) {
      return (
         <>
-            <SessionValidator />
+            {isClient && <SessionValidator />}
             {children}
             <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
                 <DialogContent className="sm:max-w-md text-center">
