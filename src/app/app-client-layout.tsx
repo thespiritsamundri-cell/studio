@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useSettings } from "@/context/settings-context";
+import { useSettings, SettingsProvider } from "@/context/settings-context";
 import React, { useEffect, ReactNode, useState } from "react";
 import { fontMap, inter } from "./font-config";
 import { Toaster } from "@/components/ui/toaster";
@@ -135,7 +135,15 @@ export default function AppClientLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const isDashboard = pathname.startsWith('/(dashboard)') || pathname === '/dashboard';
+
+  // The SettingsProvider is the key. We wrap all pages in it, but the provider itself
+  // is now smart enough to only fetch data from Firestore if a user is logged in.
+  // For public pages like login/lock, it provides default values without hitting the database.
   return (
-        <AppContent>{children}</AppContent>
+    <SettingsProvider>
+      <AppContent>{children}</AppContent>
+    </SettingsProvider>
   );
 }

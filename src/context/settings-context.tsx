@@ -2,9 +2,11 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import type { Grade, MessageTemplate } from '@/lib/types';
+import { onAuthStateChanged } from 'firebase/auth';
+
 
 export interface SchoolSettings {
   schoolName: string;
@@ -109,36 +111,61 @@ export const SettingsContext = createContext<{
 export const SettingsProvider = ({ children }: { children: React.ReactNode }) => {
   const [settings, setSettingsState] = useState<SchoolSettings>(defaultSettings);
   const [isSettingsInitialized, setIsSettingsInitialized] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    // This effect ensures we only run this logic on the client
-    const settingsDocRef = doc(db, 'Settings', 'School Settings');
-    const unsubscribe = onSnapshot(settingsDocRef, (doc) => {
-      if (doc.exists()) {
-        const dbSettings = doc.data() as Partial<SchoolSettings>;
-        setSettingsState(prev => ({ ...defaultSettings, ...prev, ...dbSettings }));
-      } else {
-        // If settings do not exist in DB, create it with default values
-        setDoc(settingsDocRef, defaultSettings);
-      }
-      setIsSettingsInitialized(true);
-    }, (error) => {
-      console.error("Error fetching settings from Firestore:", error);
-      setIsSettingsInitialized(true); // Still mark as initialized to unblock UI
+    // Listen for auth state changes
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      setIsLoggedIn(!!user);
     });
-
-    return () => unsubscribe();
+    return () => unsubscribeAuth();
   }, []);
+
+  useEffect(() => {
+    let unsubscribeDb: (() => void) | undefined;
+
+    if (isLoggedIn) {
+      // If user is logged in, fetch settings from Firestore
+      const settingsDocRef = doc(db, 'Settings', 'School Settings');
+      unsubscribeDb = onSnapshot(settingsDocRef, (doc) => {
+        if (doc.exists()) {
+          const dbSettings = doc.data() as Partial<SchoolSettings>;
+          setSettingsState(prev => ({ ...defaultSettings, ...prev, ...dbSettings }));
+        } else {
+          // If settings do not exist in DB, create it with default values
+          setDoc(settingsDocRef, defaultSettings);
+        }
+        setIsSettingsInitialized(true);
+      }, (error) => {
+        console.error("Error fetching settings from Firestore:", error);
+        setIsSettingsInitialized(true); // Still mark as initialized to unblock UI
+      });
+    } else {
+      // If user is not logged in, use default settings and mark as initialized
+      setSettingsState(defaultSettings);
+      setIsSettingsInitialized(true);
+    }
+    
+    // Cleanup Firestore listener on re-render or unmount
+    return () => {
+      if (unsubscribeDb) {
+        unsubscribeDb();
+      }
+    };
+  }, [isLoggedIn]); // Re-run effect when login status changes
 
   const handleSetSettings = (newSettings: React.SetStateAction<SchoolSettings>) => {
     const updatedSettings = typeof newSettings === 'function' ? newSettings(settings) : newSettings;
     
     setSettingsState(updatedSettings);
-
-    const settingsDocRef = doc(db, 'Settings', 'School Settings');
-    setDoc(settingsDocRef, updatedSettings, { merge: true }).catch(error => {
-        console.error("Failed to save settings to Firestore:", error);
-    });
+    
+    // Only save to DB if logged in
+    if(isLoggedIn) {
+        const settingsDocRef = doc(db, 'Settings', 'School Settings');
+        setDoc(settingsDocRef, updatedSettings, { merge: true }).catch(error => {
+            console.error("Failed to save settings to Firestore:", error);
+        });
+    }
   };
 
   return (
