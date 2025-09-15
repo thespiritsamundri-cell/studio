@@ -11,7 +11,8 @@ import { useSettings } from '@/context/settings-context';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
 import Link from 'next/link';
 
@@ -37,13 +38,24 @@ const WhatsappIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 export default function LockPage() {
   const router = useRouter();
-  const { settings } = useSettings();
+  const { settings, setSettings } = useSettings();
   const { toast } = useToast();
   const [pin, setPin] = useState('');
   const [isClient, setIsClient] = useState(false);
   const [dateTime, setDateTime] = useState<Date | null>(null);
   const [backgroundImageUrl, setBackgroundImageUrl] = useState('');
   
+  // Fetch latest settings on mount to ensure PIN is up-to-date
+  useEffect(() => {
+    const fetchSettings = async () => {
+      const settingsDoc = await getDoc(doc(db, 'Settings', 'School Settings'));
+      if (settingsDoc.exists()) {
+        setSettings(prev => ({...prev, ...settingsDoc.data()}));
+      }
+    };
+    fetchSettings();
+  }, [setSettings]);
+
   useEffect(() => {
     setIsClient(true);
     setDateTime(new Date());

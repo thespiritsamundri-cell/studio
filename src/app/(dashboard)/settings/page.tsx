@@ -25,12 +25,13 @@ import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { Switch } from '@/components/ui/switch';
 import { Preloader } from '@/components/ui/preloader';
 import { cn } from '@/lib/utils';
 import { uploadFile } from '@/services/storage-service';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 
 export default function SettingsPage() {
@@ -93,78 +94,79 @@ export default function SettingsPage() {
   };
   
   const handleAccountSave = async () => {
-    if (newPassword && !currentPassword) {
-      toast({ title: 'Current password is required to set a new one.', variant: 'destructive'});
-      return;
-    }
-    
     if (newPin && newPin !== confirmPin) {
         toast({ title: 'PINs do not match.', variant: 'destructive'});
         return;
     }
-    
+
     const user = auth.currentUser;
     if (!user || !user.email) {
         toast({ title: 'You must be logged in to change settings.', variant: 'destructive' });
         return;
     }
-    if (!currentPassword) {
-        toast({ title: 'Please enter your current password to save changes.', variant: 'destructive' });
-        return;
-    }
-
-    const credential = EmailAuthProvider.credential(user.email, currentPassword);
     
     let changesMade = false;
-
-    try {
-        await reauthenticateWithCredential(user, credential);
-        // User re-authenticated. Now we can change things.
-        
-        if (newPassword) {
-            await updatePassword(user, newPassword);
-            changesMade = true;
-        }
-        
-        if (newPin) {
+    
+    // Logic to update only PIN without password
+    if (newPin && !newPassword) {
+        try {
             setSettings(prev => ({ ...prev, historyClearPin: newPin }));
-            changesMade = true;
-        }
-        
-        if(settings.autoLockEnabled) {
-            changesMade = true;
-        }
-
-        setSettings(prev => ({ ...prev, historyClearPin: newPin || prev.historyClearPin }));
-
-        if (changesMade) {
-             addActivityLog({ user: 'Admin', action: 'Update Credentials', description: 'Updated admin login credentials or PIN.' });
-             toast({
-                title: "Account Settings Saved",
-                description: "Your changes have been saved successfully.",
-             });
-        } else {
-             toast({
-                title: "No Changes",
-                description: "No new information was provided to save.",
-             });
-        }
-        
-        // Clear password fields after operation
-        setCurrentPassword('');
-        setNewPassword('');
-        setNewPin('');
-        setConfirmPin('');
-
-    } catch (error: any) {
-        console.error(error);
-        if (error.code === 'auth/wrong-password') {
-             toast({ title: 'Authentication Failed', description: 'The password you entered is incorrect.', variant: 'destructive' });
-        } else {
-             toast({ title: 'An error occurred', description: error.message, variant: 'destructive' });
+            await addActivityLog({ user: 'Admin', action: 'Update PIN', description: 'Updated security PIN.' });
+            toast({ title: "Security PIN Updated", description: "Your new PIN has been saved." });
+            setNewPin('');
+            setConfirmPin('');
+            return; // Exit after successful PIN update
+        } catch (error: any) {
+            toast({ title: 'PIN Update Failed', description: error.message, variant: 'destructive' });
+            return;
         }
     }
+    
+    // Logic to update password (and optionally PIN at the same time)
+    if (newPassword) {
+        if (!currentPassword) {
+            toast({ title: 'Current password is required to set a new one.', variant: 'destructive'});
+            return;
+        }
+        
+        const credential = EmailAuthProvider.credential(user.email, currentPassword);
+        try {
+            await reauthenticateWithCredential(user, credential);
+            await updatePassword(user, newPassword);
+            changesMade = true;
+            
+            if (newPin) {
+                setSettings(prev => ({ ...prev, historyClearPin: newPin }));
+            }
+            
+            await addActivityLog({ user: 'Admin', action: 'Update Credentials', description: 'Updated admin login credentials.' });
+            toast({ title: "Account Settings Saved", description: "Your changes have been saved successfully." });
+            
+            setCurrentPassword('');
+            setNewPassword('');
+            setNewPin('');
+            setConfirmPin('');
+
+        } catch (error: any) {
+            console.error(error);
+            if (error.code === 'auth/wrong-password') {
+                toast({ title: 'Authentication Failed', description: 'The password you entered is incorrect.', variant: 'destructive' });
+            } else {
+                toast({ title: 'An error occurred', description: error.message, variant: 'destructive' });
+            }
+        }
+        return;
+    }
+    
+    // If only auto-lock settings were changed
+    if (!newPin && !newPassword) {
+        setSettings(prev => ({...prev, autoLockEnabled: settings.autoLockEnabled, autoLockDuration: settings.autoLockDuration }));
+        await addActivityLog({ user: 'Admin', action: 'Update Security', description: 'Updated auto-lock settings.' });
+        toast({ title: "Security Settings Saved" });
+        return;
+    }
   }
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value, type } = e.target;
@@ -913,9 +915,9 @@ export default function SettingsPage() {
                     <div className="border-t pt-6 space-y-4">
                          <div className="space-y-2 max-w-sm">
                             <Label htmlFor="currentPasswordForSecurity">Current Password</Label>
-                             <p className="text-xs text-muted-foreground">To save any changes on this page, please enter your current password.</p>
+                             <p className="text-xs text-muted-foreground">To change your password, please enter your current password.</p>
                             <div className="relative">
-                                <Input id="currentPasswordForSecurity" type={showCurrentPassword ? 'text' : 'password'} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
+                                <Input id="currentPasswordForSecurity" type={showCurrentPassword ? 'text' : 'password'} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
                                 <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowCurrentPassword(prev => !prev)}>
                                     {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                 </Button>
@@ -967,15 +969,11 @@ export default function SettingsPage() {
                             <div className="flex justify-end pt-4">
                                 <Button
                                   onClick={() => {
-                                    if (settings.whatsappProvider === 'ultramsg') {
-                                      setSettings(prev => ({...prev, whatsappProvider: 'none'}));
-                                    } else {
-                                      setSettings(prev => ({...prev, whatsappProvider: 'ultramsg'}));
-                                    }
+                                    setSettings(prev => ({...prev, whatsappProvider: prev.whatsappProvider === 'ultramsg' ? 'none' : 'ultramsg'}));
                                   }}
                                   variant={settings.whatsappProvider === 'ultramsg' ? 'destructive' : 'default'}
                                 >
-                                  {settings.whatsappProvider === 'ultramsg' ? 'Deactivate' : 'Activate UltraMSG'}
+                                  {settings.whatsappProvider === 'ultramsg' ? 'Deactivate UltraMSG' : 'Activate UltraMSG'}
                                 </Button>
                             </div>
                         </TabsContent>
@@ -993,15 +991,11 @@ export default function SettingsPage() {
                              <div className="flex justify-end pt-4">
                                 <Button
                                   onClick={() => {
-                                    if (settings.whatsappProvider === 'official') {
-                                      setSettings(prev => ({...prev, whatsappProvider: 'none'}));
-                                    } else {
-                                      setSettings(prev => ({...prev, whatsappProvider: 'official'}));
-                                    }
+                                    setSettings(prev => ({...prev, whatsappProvider: prev.whatsappProvider === 'official' ? 'none' : 'official'}));
                                   }}
                                   variant={settings.whatsappProvider === 'official' ? 'destructive' : 'default'}
                                 >
-                                  {settings.whatsappProvider === 'official' ? 'Deactivate' : 'Activate Official API'}
+                                  {settings.whatsappProvider === 'official' ? 'Deactivate Official API' : 'Activate Official API'}
                                 </Button>
                             </div>
                          </TabsContent>
