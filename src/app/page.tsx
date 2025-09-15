@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSettings } from '@/context/settings-context';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { Loader2, School } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -14,6 +14,9 @@ import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import Image from 'next/image';
+import { doc, setDoc } from 'firebase/firestore';
+import type { Session } from '@/lib/types';
+
 
 const FacebookIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -59,7 +62,28 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      if (user) {
+        // Create session document
+        const sessionId = `SESS-${Date.now()}`;
+        const ipResponse = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipResponse.json();
+
+        const newSession: Session = {
+            id: sessionId,
+            userId: user.uid,
+            loginTime: new Date().toISOString(),
+            lastAccess: new Date().toISOString(),
+            ipAddress: ipData.ip || 'Unknown',
+            userAgent: navigator.userAgent,
+            location: 'Unknown',
+        };
+        await setDoc(doc(db, 'sessions', sessionId), newSession);
+        sessionStorage.setItem('sessionId', sessionId);
+      }
+      
       router.push('/dashboard');
     } catch (error: any) {
       console.error("Firebase login failed:", error);

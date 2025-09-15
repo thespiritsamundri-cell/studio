@@ -164,7 +164,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <AuthWrapper>
-      <DataProvider>
         {isClient && <InactivityDetector />}
         <SidebarProvider>
           <div className="flex min-h-screen w-full bg-muted/40">
@@ -179,7 +178,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </div>
           </div>
         </SidebarProvider>
-      </DataProvider>
     </AuthWrapper>
   );
 }

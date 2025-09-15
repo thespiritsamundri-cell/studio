@@ -144,6 +144,17 @@ export interface MessageTemplate {
   content: string;
 }
 
+export interface Session {
+  id: string;
+  userId: string;
+  loginTime: string;
+  lastAccess: string;
+  ipAddress: string;
+  userAgent: string;
+  location?: string;
+}
+
+
 // Add this at the end
 export interface YearbookData {
     year: number;

@@ -3,14 +3,15 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, writeBatch, query, where, getDocs, setDoc, getDoc, runTransaction } from 'firebase/firestore';
-import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData, Attendance, Alumni } from '@/lib/types';
+import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData, Attendance, Alumni, Session } from '@/lib/types';
 import { students as initialStudents, families as initialFamilies, fees as initialFees, teachers as initialTeachers, teacherAttendances as initialTeacherAttendances, classes as initialClasses, exams as initialExams, expenses as initialExpenses, timetables as initialTimetables } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import { startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getMonth, format } from 'date-fns';
 import { useSettings } from './settings-context';
 import { sendWhatsAppMessage } from '@/services/whatsapp-service';
+import { onAuthStateChanged } from 'firebase/auth';
 
 
 interface DataContextType {
@@ -26,6 +27,7 @@ interface DataContextType {
   activityLog: ActivityLog[];
   expenses: Expense[];
   timetables: Timetable[];
+  sessions: Session[];
   addStudent: (student: Student) => Promise<void>;
   updateStudent: (id: string, student: Partial<Student>) => Promise<void>;
   updateAlumni: (id: string, alumni: Partial<Alumni>) => Promise<void>;
@@ -53,6 +55,7 @@ interface DataContextType {
   updateExpense: (id: string, expense: Partial<Expense>) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
   updateTimetable: (classId: string, data: TimetableData, timeSlots?: string[], breakAfterPeriod?: number, breakDuration?: string) => Promise<void>;
+  signOutSession: (sessionId: string) => Promise<void>;
   loadData: (data: any) => Promise<void>;
   seedDatabase: () => Promise<void>;
   deleteAllData: () => Promise<void>;
@@ -95,43 +98,82 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [activityLog, setActivityLog] = useState<ActivityLog[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [timetables, setTimetables] = useState<Timetable[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const collections = {
-      students: setStudents,
-      families: setFamilies,
-      fees: setFees,
-      teachers: setTeachers,
-      attendances: setAttendances,
-      teacherAttendances: setTeacherAttendances,
-      alumni: setAlumni,
-      classes: setClasses,
-      exams: setExams,
-      activityLog: setActivityLog,
-      expenses: setExpenses,
-      timetables: setTimetables,
-    };
-
-    const unsubscribers = Object.entries(collections).map(([name, setter]) => {
-      const collRef = collection(db, name);
-      return onSnapshot(collRef, (snapshot) => {
-        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
-        if(name === 'activityLog') {
-            data.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-        }
-        setter(data);
-      }, (error) => {
-        console.error(`Error fetching ${name}:`, error);
-        toast({ title: `Error Fetching ${name}`, description: "Could not connect to the database. Please check your Firebase setup and security rules.", variant: "destructive"});
-      });
+    const unsubscribers: (() => void)[] = [];
+  
+    const authUnsubscribe = onAuthStateChanged(auth, user => {
+      // Clear all listeners when auth state changes
+      unsubscribers.forEach(unsub => unsub());
+      unsubscribers.length = 0;
+  
+      if (user) {
+        // User is signed in, set up listeners
+        const collections: { [key: string]: React.Dispatch<React.SetStateAction<any[]>> } = {
+          students: setStudents,
+          families: setFamilies,
+          fees: setFees,
+          teachers: setTeachers,
+          attendances: setAttendances,
+          teacherAttendances: setTeacherAttendances,
+          alumni: setAlumni,
+          classes: setClasses,
+          exams: setExams,
+          activityLog: setActivityLog,
+          expenses: setExpenses,
+          timetables: setTimetables,
+        };
+  
+        Object.entries(collections).forEach(([name, setter]) => {
+          const collRef = collection(db, name);
+          const unsub = onSnapshot(collRef, (snapshot) => {
+            const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
+            if (name === 'activityLog') {
+              data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            }
+            setter(data);
+          }, (error) => {
+            console.error(`Error fetching ${name}:`, error);
+            toast({ title: `Error Fetching ${name}`, description: "Could not connect to the database.", variant: "destructive" });
+          });
+          unsubscribers.push(unsub);
+        });
+  
+        // Session listener
+        const sessionQuery = query(collection(db, 'sessions'), where('userId', '==', user.uid));
+        const sessionUnsub = onSnapshot(sessionQuery, (snapshot) => {
+            const sessionData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Session[];
+            setSessions(sessionData);
+        }, (error) => {
+            console.error("Error fetching sessions:", error);
+        });
+        unsubscribers.push(sessionUnsub);
+  
+      } else {
+        // User is signed out, clear all local data
+        setStudents([]);
+        setFamilies([]);
+        setFees([]);
+        setTeachers([]);
+        setAttendances([]);
+        setTeacherAttendances([]);
+        setAlumni([]);
+        setClasses([]);
+        setExams([]);
+        setActivityLog([]);
+        setExpenses([]);
+        setTimetables([]);
+        setSessions([]);
+      }
+      setLoading(false);
     });
-    
-    setLoading(false);
-
-    // Unsubscribe from all listeners on cleanup
-    return () => unsubscribers.forEach(unsub => unsub());
+  
+    // Cleanup auth listener
+    return () => authUnsubscribe();
   }, [toast]);
+  
 
   const addActivityLog = async (activity: Omit<ActivityLog, 'id' | 'timestamp'>) => {
     try {
@@ -626,6 +668,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const signOutSession = async (sessionId: string) => {
+    try {
+        await deleteDoc(doc(db, 'sessions', sessionId));
+        await addActivityLog({user: 'Admin', action: 'Sign Out Session', description: `Remotely signed out session ID: ${sessionId}`});
+    } catch (e) {
+        console.error("Error signing out session:", e);
+        toast({ title: 'Error Signing Out', variant: 'destructive'});
+    }
+  };
+
+
   const seedDatabase = async () => {
     toast({ title: "Seeding Database...", description: "This may take a moment."});
     try {
@@ -665,7 +718,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const deleteAllData = async () => {
     toast({ title: "Deleting All Data...", description: "This is irreversible and may take some time." });
     
-    const collectionNames = ['students', 'families', 'fees', 'teachers', 'attendances', 'teacherAttendances', 'classes', 'exams', 'expenses', 'timetables', 'activityLog', 'meta', 'alumni'];
+    const collectionNames = ['students', 'families', 'fees', 'teachers', 'attendances', 'teacherAttendances', 'classes', 'exams', 'expenses', 'timetables', 'activityLog', 'meta', 'alumni', 'sessions'];
 
     try {
       const batch = writeBatch(db);
@@ -708,6 +761,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       activityLog,
       expenses,
       timetables,
+      sessions,
       addStudent,
       updateStudent, 
       updateAlumni,
@@ -735,6 +789,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       updateExpense,
       deleteExpense,
       updateTimetable,
+      signOutSession,
       loadData,
       seedDatabase,
       deleteAllData,

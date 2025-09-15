@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Bell, BellOff, Lock, AlertTriangle, PlayCircle, Image as ImageIcon, CheckCircle } from 'lucide-react';
+import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Bell, BellOff, Lock, AlertTriangle, PlayCircle, Image as ImageIcon, CheckCircle, LogIn } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -32,6 +32,7 @@ import { Preloader } from '@/components/ui/preloader';
 import { cn } from '@/lib/utils';
 import { uploadFile } from '@/services/storage-service';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { LoginHistory } from './login-history';
 
 
 export default function SettingsPage() {
@@ -581,12 +582,13 @@ export default function SettingsPage() {
       <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><SettingsIcon className="w-8 h-8" />Settings</h1>
       
       <Tabs defaultValue="school" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 h-auto">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 h-auto">
           <TabsTrigger value="school">School</TabsTrigger>
           <TabsTrigger value="theme">Theme</TabsTrigger>
           <TabsTrigger value="preloader">Preloader</TabsTrigger>
           <TabsTrigger value="grading">Grading</TabsTrigger>
           <TabsTrigger value="security">Account &amp; Security</TabsTrigger>
+          <TabsTrigger value="logins">Logins</TabsTrigger>
           <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
           <TabsTrigger value="backup">Backup</TabsTrigger>
@@ -923,6 +925,9 @@ export default function SettingsPage() {
                 </CardContent>
             </Card>
         </TabsContent>
+        <TabsContent value="logins" className="mt-6">
+            <LoginHistory />
+        </TabsContent>
         <TabsContent value="whatsapp" className="mt-6 space-y-6">
             <Card>
                 <CardHeader>
@@ -960,12 +965,7 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                             <div className="flex justify-end pt-4">
-                                <Button
-                                  onClick={() => {
-                                    setSettings(prev => ({...prev, whatsappProvider: prev.whatsappProvider === 'ultramsg' ? 'none' : 'ultramsg'}));
-                                  }}
-                                  variant={settings.whatsappProvider === 'ultramsg' ? 'destructive' : 'default'}
-                                >
+                               <Button onClick={() => setSettings(prev => ({...prev, whatsappProvider: prev.whatsappProvider === 'ultramsg' ? 'none' : 'ultramsg'}))}>
                                   {settings.whatsappProvider === 'ultramsg' ? 'Deactivate UltraMSG' : 'Activate UltraMSG'}
                                 </Button>
                             </div>
@@ -982,12 +982,7 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                              <div className="flex justify-end pt-4">
-                                <Button
-                                  onClick={() => {
-                                    setSettings(prev => ({...prev, whatsappProvider: prev.whatsappProvider === 'official' ? 'none' : 'official'}));
-                                  }}
-                                  variant={settings.whatsappProvider === 'official' ? 'destructive' : 'default'}
-                                >
+                                <Button onClick={() => setSettings(prev => ({...prev, whatsappProvider: prev.whatsappProvider === 'official' ? 'none' : 'official'}))}>
                                   {settings.whatsappProvider === 'official' ? 'Deactivate Official API' : 'Activate Official API'}
                                 </Button>
                             </div>
