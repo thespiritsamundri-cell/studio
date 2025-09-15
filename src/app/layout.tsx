@@ -1,9 +1,9 @@
 import './globals.css'
 import './print-styles.css'
-import { SettingsProvider } from '@/context/settings-context'
 import AppClientLayout from '@/app/app-client-layout'
 import { fontVariables } from '@/app/font-config'
 import { ThemeProvider } from '@/components/layout/theme-provider'
+import { SettingsProvider } from '@/context/settings-context'
 
 export default function RootLayout({
   children,
@@ -19,11 +19,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <SettingsProvider>
             <AppClientLayout>
               {children}
             </AppClientLayout>
-          </SettingsProvider>
         </ThemeProvider>
       </body>
     </html>
