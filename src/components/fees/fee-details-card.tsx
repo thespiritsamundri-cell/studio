@@ -131,6 +131,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                 message = message.replace(/{remaining_dues}/g, newDues.toLocaleString());
                 message = message.replace(/{school_name}/g, settings.schoolName);
                 try {
+
                      const result = await sendWhatsAppMessage(family.phone, message);
                      if (result.success) {
                         addActivityLog({ user: 'System', action: 'Send WhatsApp Message', description: 'Sent fee payment receipt to 1 recipient.', recipientCount: 1 });
@@ -138,6 +139,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                         throw new Error(result.error);
                      }
                 } catch (error: any) {
+
                     console.error("Failed to send payment receipt.", error);
                     toast({ title: 'WhatsApp Failed', description: `Could not send payment receipt. Error: ${error.message}`, variant: 'destructive'});
                 }

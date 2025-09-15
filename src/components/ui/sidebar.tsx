@@ -95,9 +95,15 @@ const SidebarProvider = React.forwardRef<
     },
     ref
   ) => {
-    const isMobile = useIsMobile()
+    const isMobileDevice = useIsMobile()
     const [openMobile, setOpenMobile] = React.useState(false)
     const [isPinned, setIsPinned] = useLocalStorage("sidebar-pinned", false);
+
+    // State to manage client-side readiness
+    const [isClient, setIsClient] = React.useState(false);
+    React.useEffect(() => {
+        setIsClient(true);
+    }, []);
 
 
     const toggleMobile = React.useCallback(() => {
@@ -108,14 +114,9 @@ const SidebarProvider = React.forwardRef<
       setIsPinned((pinned) => !pinned)
     }, [setIsPinned])
     
-    const [isClient, setIsClient] = React.useState(false);
-    React.useEffect(() => {
-        setIsClient(true);
-    }, []);
-
     const contextValue = React.useMemo<SidebarContext>(
       () => ({
-        isMobile: isClient ? isMobile : false, // Default to non-mobile on server
+        isMobile: isClient ? isMobileDevice : false, // Defer mobile check to client
         openMobile,
         setOpenMobile,
         toggleMobile,
@@ -123,7 +124,7 @@ const SidebarProvider = React.forwardRef<
         setIsPinned,
         togglePinned
       }),
-      [isClient, isMobile, openMobile, setOpenMobile, toggleMobile, isPinned, setIsPinned, togglePinned]
+      [isClient, isMobileDevice, openMobile, setOpenMobile, toggleMobile, isPinned, setIsPinned, togglePinned]
     )
 
     return (
@@ -453,4 +454,3 @@ export {
   useSidebar,
 }
 
-    

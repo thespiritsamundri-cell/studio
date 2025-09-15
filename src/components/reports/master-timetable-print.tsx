@@ -40,7 +40,9 @@ export const MasterTimetablePrint = React.forwardRef<HTMLDivElement, MasterTimet
         backgroundColor: '#d1fae5', // green-200
     };
     
+
     const sortedClasses = [...classes].sort((a,b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+
 
     return (
       <div ref={ref} className="p-4 font-sans bg-white text-black">
