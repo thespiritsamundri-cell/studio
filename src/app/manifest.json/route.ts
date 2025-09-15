@@ -1,49 +1,35 @@
 
 import { NextResponse } from 'next/server';
-import { defaultSettings } from '@/context/settings-context';
-import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import type { SchoolSettings } from '@/context/settings-context';
-
 
 export async function GET(request: Request) {
-
-  let schoolSettings = defaultSettings;
-  try {
-      const settingsDoc = await getDoc(doc(db, 'Settings', 'School Settings'));
-      if (settingsDoc.exists()) {
-          schoolSettings = { ...defaultSettings, ...settingsDoc.data() } as SchoolSettings;
-      }
-  } catch (error) {
-      console.error("Could not fetch settings for manifest, using defaults.", error);
-  }
-
-  const schoolName = schoolSettings.schoolName;
-  const favicon = schoolSettings.favicon;
-  
-  // Cache-busting query parameter
-  const { searchParams } = new URL(request.url);
-  const version = searchParams.get('v') || '1';
+  // This route is called by the browser to get the manifest file.
+  // It should not access the database, as it's an unauthenticated request.
+  // The dynamic title and favicon are handled on the client-side in app-client-layout.tsx.
 
   const manifest = {
-    name: schoolName,
-    short_name: schoolName,
-    description: `Management Portal for ${schoolName}`,
-    start_url: '/',
-    display: 'standalone',
-    background_color: '#ffffff',
-    theme_color: '#6a3fdc', // This should ideally come from settings as well
+    name: "EduCentral School Management",
+    short_name: "EduCentral",
+    description: "Management Portal for your School",
+    start_url: "/",
+    display: "standalone",
+    background_color: "#ffffff",
+    theme_color: "#6a3fdc",
     icons: [
       {
-        src: `${favicon}?v=${version}`,
-        sizes: '192x192',
-        type: 'image/png',
+        src: "/favicon.ico",
+        sizes: "any",
+        type: "image/x-icon",
       },
       {
-        src: `${favicon}?v=${version}`,
-        sizes: '512x512',
-        type: 'image/png',
+        src: "/logo192.png",
+        type: "image/png",
+        sizes: "192x192"
       },
+      {
+        src: "/logo512.png",
+        type: "image/png",
+        sizes: "512x512"
+      }
     ],
   };
 
