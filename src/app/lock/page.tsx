@@ -38,23 +38,13 @@ const WhatsappIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 export default function LockPage() {
   const router = useRouter();
-  const { settings, setSettings } = useSettings();
+  const { settings } = useSettings();
   const { toast } = useToast();
   const [pin, setPin] = useState('');
   const [isClient, setIsClient] = useState(false);
   const [dateTime, setDateTime] = useState<Date | null>(null);
   const [backgroundImageUrl, setBackgroundImageUrl] = useState('');
   
-  // Fetch latest settings on mount to ensure PIN is up-to-date
-  useEffect(() => {
-    const fetchSettings = async () => {
-      const settingsDoc = await getDoc(doc(db, 'Settings', 'School Settings'));
-      if (settingsDoc.exists()) {
-        setSettings(prev => ({...prev, ...settingsDoc.data()}));
-      }
-    };
-    fetchSettings();
-  }, [setSettings]);
 
   useEffect(() => {
     setIsClient(true);
