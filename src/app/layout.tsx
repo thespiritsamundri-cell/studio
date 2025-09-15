@@ -14,10 +14,13 @@ export default function RootLayout({
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#6a3fdc" />
-        <link rel="apple-touch-icon" href="https://i.postimg.cc/qNbqmzs0/The-Spirit.jpg"/>
+        <link
+          rel="apple-touch-icon"
+          href="https://i.postimg.cc/qNbqmzs0/The-Spirit.jpg"
+        />
       </head>
       <body
-        className={${fontVariables} font-sans antialiased}
+        className={`${fontVariables} font-sans antialiased`}
         suppressHydrationWarning
       >
         <ThemeProvider
