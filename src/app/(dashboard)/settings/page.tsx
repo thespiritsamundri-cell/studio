@@ -105,23 +105,25 @@ export default function SettingsPage() {
         return;
     }
     
-    let changesMade = false;
-    
-    // Logic to update only PIN without password
+    // If we are only changing the PIN, we don't need re-authentication.
     if (newPin && !newPassword) {
-        try {
-            setSettings(prev => ({ ...prev, historyClearPin: newPin }));
-            await addActivityLog({ user: 'Admin', action: 'Update PIN', description: 'Updated security PIN.' });
-            toast({ title: "Security PIN Updated", description: "Your new PIN has been saved." });
-            setNewPin('');
-            setConfirmPin('');
-            return; // Exit after successful PIN update
-        } catch (error: any) {
-            toast({ title: 'PIN Update Failed', description: error.message, variant: 'destructive' });
-            return;
-        }
+      setSettings(prev => ({...prev, historyClearPin: newPin}));
+      await addActivityLog({ user: 'Admin', action: 'Update PIN', description: 'Updated security PIN.' });
+      toast({ title: "Security PIN Updated", description: "Your new PIN has been saved." });
+      setNewPin('');
+      setConfirmPin('');
+      return;
     }
     
+    // If we are only changing auto-lock settings.
+    if (!newPin && !newPassword) {
+        // This is handled by the Switch's onCheckedChange, but a save button gives user confidence.
+        setSettings(prev => ({...prev, autoLockEnabled: settings.autoLockEnabled, autoLockDuration: settings.autoLockDuration }));
+        await addActivityLog({ user: 'Admin', action: 'Update Security', description: 'Updated auto-lock settings.' });
+        toast({ title: "Security Settings Saved" });
+        return;
+    }
+
     // Logic to update password (and optionally PIN at the same time)
     if (newPassword) {
         if (!currentPassword) {
@@ -133,14 +135,13 @@ export default function SettingsPage() {
         try {
             await reauthenticateWithCredential(user, credential);
             await updatePassword(user, newPassword);
-            changesMade = true;
             
             if (newPin) {
                 setSettings(prev => ({ ...prev, historyClearPin: newPin }));
             }
             
             await addActivityLog({ user: 'Admin', action: 'Update Credentials', description: 'Updated admin login credentials.' });
-            toast({ title: "Account Settings Saved", description: "Your changes have been saved successfully." });
+            toast({ title: "Account Settings Saved", description: "Your password and/or PIN have been saved." });
             
             setCurrentPassword('');
             setNewPassword('');
@@ -155,14 +156,6 @@ export default function SettingsPage() {
                 toast({ title: 'An error occurred', description: error.message, variant: 'destructive' });
             }
         }
-        return;
-    }
-    
-    // If only auto-lock settings were changed
-    if (!newPin && !newPassword) {
-        setSettings(prev => ({...prev, autoLockEnabled: settings.autoLockEnabled, autoLockDuration: settings.autoLockDuration }));
-        await addActivityLog({ user: 'Admin', action: 'Update Security', description: 'Updated auto-lock settings.' });
-        toast({ title: "Security Settings Saved" });
         return;
     }
   }
@@ -1400,3 +1393,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
