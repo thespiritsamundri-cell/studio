@@ -102,76 +102,47 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribers: (() => void)[] = [];
-  
-    const authUnsubscribe = onAuthStateChanged(auth, user => {
-      // Clear all listeners when auth state changes
-      unsubscribers.forEach(unsub => unsub());
-      unsubscribers.length = 0;
-  
-      if (user) {
-        // User is signed in, set up listeners
-        const collections: { [key: string]: React.Dispatch<React.SetStateAction<any[]>> } = {
-          students: setStudents,
-          families: setFamilies,
-          fees: setFees,
-          teachers: setTeachers,
-          attendances: setAttendances,
-          teacherAttendances: setTeacherAttendances,
-          alumni: setAlumni,
-          classes: setClasses,
-          exams: setExams,
-          activityLog: setActivityLog,
-          expenses: setExpenses,
-          timetables: setTimetables,
-        };
-  
-        Object.entries(collections).forEach(([name, setter]) => {
-          const collRef = collection(db, name);
-          const unsub = onSnapshot(collRef, (snapshot) => {
-            const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
-            if (name === 'activityLog') {
-              data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-            }
-            setter(data);
-          }, (error) => {
-            console.error(`Error fetching ${name}:`, error);
-            toast({ title: `Error Fetching ${name}`, description: "Could not connect to the database.", variant: "destructive" });
-          });
-          unsubscribers.push(unsub);
-        });
-  
-        // Session listener
-        const sessionQuery = query(collection(db, 'sessions'), where('userId', '==', user.uid));
-        const sessionUnsub = onSnapshot(sessionQuery, (snapshot) => {
-            const sessionData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Session[];
-            setSessions(sessionData);
-        }, (error) => {
-            console.error("Error fetching sessions:", error);
-        });
-        unsubscribers.push(sessionUnsub);
-  
-      } else {
-        // User is signed out, clear all local data
-        setStudents([]);
-        setFamilies([]);
-        setFees([]);
-        setTeachers([]);
-        setAttendances([]);
-        setTeacherAttendances([]);
-        setAlumni([]);
-        setClasses([]);
-        setExams([]);
-        setActivityLog([]);
-        setExpenses([]);
-        setTimetables([]);
-        setSessions([]);
-      }
-      setLoading(false);
+    const collections: { [key: string]: React.Dispatch<React.SetStateAction<any[]>> } = {
+        students: setStudents,
+        families: setFamilies,
+        fees: setFees,
+        teachers: setTeachers,
+        attendances: setAttendances,
+        teacherAttendances: setTeacherAttendances,
+        alumni: setAlumni,
+        classes: setClasses,
+        exams: setExams,
+        activityLog: setActivityLog,
+        expenses: setExpenses,
+        timetables: setTimetables,
+    };
+    
+    const unsubscribers = Object.entries(collections).map(([name, setter]) => {
+      const collRef = collection(db, name);
+      return onSnapshot(collRef, (snapshot) => {
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
+        if (name === 'activityLog') {
+          // Sort activity log by timestamp descending
+          data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        }
+        setter(data);
+      }, (error) => {
+        console.error(`Error fetching ${name}:`, error);
+        toast({ title: `Error Fetching ${name}`, description: "Could not connect to the database.", variant: "destructive" });
+      });
     });
-  
-    // Cleanup auth listener
-    return () => authUnsubscribe();
+
+    const sessionUnsub = onSnapshot(collection(db, 'sessions'), (snapshot) => {
+        const sessionData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Session[];
+        setSessions(sessionData);
+    }, (error) => {
+        console.error("Error fetching sessions:", error);
+    });
+    unsubscribers.push(sessionUnsub);
+
+    setLoading(false);
+
+    return () => unsubscribers.forEach(unsub => unsub());
   }, [toast]);
   
 
@@ -810,3 +781,6 @@ export function useData() {
   }
   return context;
 }
+
+
+    
