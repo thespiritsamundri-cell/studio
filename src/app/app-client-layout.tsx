@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useSettings } from "@/context/settings-context";
+import { SettingsProvider, useSettings } from "@/context/settings-context";
 import React, { useEffect, ReactNode, useState } from "react";
 import { fontMap, inter } from "./font-config";
 import { Toaster } from "@/components/ui/toaster";
@@ -23,12 +23,7 @@ function getTitleFromPathname(pathname: string): string {
     .join(' ');
 }
 
-
-export default function AppClientLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function AppContent({ children }: { children: React.ReactNode }) {
   const { settings } = useSettings();
   const pathname = usePathname();
   const [loading, setLoading] = useState(false);
@@ -106,5 +101,18 @@ export default function AppClientLayout({
           {children}
           <Toaster />
       </>
+  );
+}
+
+
+export default function AppClientLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <SettingsProvider>
+      <AppContent>{children}</AppContent>
+    </SettingsProvider>
   );
 }
