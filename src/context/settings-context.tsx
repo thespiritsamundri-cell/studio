@@ -100,39 +100,32 @@ export const defaultSettings: SchoolSettings = {
 export const SettingsContext = createContext<{
   settings: SchoolSettings;
   setSettings: (newSettings: React.SetStateAction<SchoolSettings>) => void;
+  isSettingsInitialized: boolean;
 }>({
   settings: defaultSettings,
   setSettings: () => {},
+  isSettingsInitialized: false,
 });
 
 export const SettingsProvider = ({ children }: { children: React.ReactNode }) => {
   const [settings, setSettingsState] = useState<SchoolSettings>(defaultSettings);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [isSettingsInitialized, setIsSettingsInitialized] = useState(false);
 
   useEffect(() => {
+    // This effect ensures we only run this logic on the client
     const settingsDocRef = doc(db, 'Settings', 'School Settings');
     const unsubscribe = onSnapshot(settingsDocRef, (doc) => {
       if (doc.exists()) {
         const dbSettings = doc.data() as Partial<SchoolSettings>;
-        // Merge with defaults to ensure all keys are present
         setSettingsState(prev => ({ ...defaultSettings, ...prev, ...dbSettings }));
       } else {
-        // If no settings in DB, use defaults and save them.
+        // If settings do not exist in DB, create it with default values
         setDoc(settingsDocRef, defaultSettings);
       }
-      setIsInitialized(true);
+      setIsSettingsInitialized(true);
     }, (error) => {
       console.error("Error fetching settings from Firestore:", error);
-      // Fallback to local storage or defaults if Firestore fails
-      try {
-        const savedSettings = localStorage.getItem('schoolSettings');
-        if (savedSettings) {
-            setSettingsState(JSON.parse(savedSettings));
-        }
-      } catch (localError) {
-        console.error("Could not read from localStorage either:", localError);
-      }
-       setIsInitialized(true);
+      setIsSettingsInitialized(true); // Still mark as initialized to unblock UI
     });
 
     return () => unsubscribe();
@@ -141,29 +134,16 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   const handleSetSettings = (newSettings: React.SetStateAction<SchoolSettings>) => {
     const updatedSettings = typeof newSettings === 'function' ? newSettings(settings) : newSettings;
     
-    // Set state locally immediately for responsiveness
     setSettingsState(updatedSettings);
 
-    // Save to Firestore
     const settingsDocRef = doc(db, 'Settings', 'School Settings');
     setDoc(settingsDocRef, updatedSettings, { merge: true }).catch(error => {
         console.error("Failed to save settings to Firestore:", error);
     });
-    
-    // Also save to localStorage as a fallback/for offline
-    try {
-        localStorage.setItem('schoolSettings', JSON.stringify(updatedSettings));
-    } catch (e) {
-        console.warn("Could not save settings to localStorage:", e);
-    }
   };
-  
-  if (!isInitialized) {
-      return null;
-  }
 
   return (
-    <SettingsContext.Provider value={{ settings, setSettings: handleSetSettings }}>
+    <SettingsContext.Provider value={{ settings, setSettings: handleSetSettings, isSettingsInitialized }}>
       {children}
     </SettingsContext.Provider>
   );

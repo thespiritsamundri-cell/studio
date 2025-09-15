@@ -39,7 +39,7 @@ const WhatsappIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 export default function LoginPage() {
-  const { settings } = useSettings();
+  const { settings, isSettingsInitialized } = useSettings();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -53,10 +53,10 @@ export default function LoginPage() {
   }, []);
 
   useEffect(() => {
-      if (settings.schoolName) {
+      if (isSettingsInitialized && settings.schoolName) {
         document.title = `${settings.schoolName} | Login`;
       }
-  }, [settings.schoolName]);
+  }, [settings.schoolName, isSettingsInitialized]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,7 +110,7 @@ export default function LoginPage() {
                 </div>
              )}
           </div>
-          <CardTitle className="text-2xl font-bold font-headline">{isClient ? settings.schoolName : 'School Management'}</CardTitle>
+          <CardTitle className="text-2xl font-bold font-headline">{isClient && isSettingsInitialized ? settings.schoolName : 'School Management'}</CardTitle>
           <CardDescription>Welcome back! Please login to your account.</CardDescription>
         </CardHeader>
         <CardContent>
