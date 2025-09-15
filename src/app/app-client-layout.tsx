@@ -125,23 +125,9 @@ export default function AppClientLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
-  const isDashboard = pathname.startsWith('/dashboard') || pathname === '/lock';
-
-  if (isDashboard) {
-      return (
-        <SettingsProvider>
-            <AppContent>{children}</AppContent>
-        </SettingsProvider>
-      );
-  }
-
-  // For public pages like login, do not use the full SettingsProvider
-  // to avoid unauthenticated Firestore reads.
   return (
-      <>
-          {children}
-          <Toaster />
-      </>
+    <SettingsProvider>
+        <AppContent>{children}</AppContent>
+    </SettingsProvider>
   );
 }
