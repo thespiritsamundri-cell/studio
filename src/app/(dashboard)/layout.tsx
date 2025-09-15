@@ -106,7 +106,7 @@ function AuthWrapper({ children }: { children: ReactNode }) {
 
   if (user) {
      return (
-        <>
+        <DataProvider>
             {children}
             <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
                 <DialogContent className="sm:max-w-md text-center">
@@ -142,7 +142,7 @@ function AuthWrapper({ children }: { children: ReactNode }) {
                     )}
                 </DialogContent>
             </Dialog>
-        </>
+        </DataProvider>
      );
   }
 
