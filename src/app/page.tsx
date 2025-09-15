@@ -86,7 +86,6 @@ export default function LoginPage() {
       
       router.push('/dashboard');
     } catch (error: any) {
-      console.error("Firebase login failed:", error);
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
            toast({
                 title: 'Login Failed',
@@ -94,6 +93,7 @@ export default function LoginPage() {
                 variant: 'destructive',
            });
       } else {
+           console.error("Firebase login failed:", error);
            toast({
                 title: 'Login Failed',
                 description: 'An unexpected error occurred. Please check your network and try again.',
