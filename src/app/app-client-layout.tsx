@@ -29,7 +29,11 @@ function AppContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [loading, setLoading] = useState(false);
   const [previousPath, setPreviousPath] = useState(pathname);
-  const [showInitialLoader, setShowInitialLoader] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Effect for Page Title
   useEffect(() => {
@@ -97,17 +101,8 @@ function AppContent({ children }: { children: React.ReactNode }) {
     }
   }, [pathname, previousPath]);
 
-   useEffect(() => {
-    // This runs only on the client, after hydration
-    if (!isSettingsInitialized && pathname !== '/') {
-        setShowInitialLoader(true);
-    } else {
-        setShowInitialLoader(false);
-    }
-  }, [isSettingsInitialized, pathname]);
-
-
-  if (showInitialLoader) {
+  // Show initial loader only on the client after mounting, if settings are not ready.
+  if (!isMounted || (!isSettingsInitialized && pathname !== '/')) {
     return (
       <div className="fixed inset-0 z-[200] flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin" />
