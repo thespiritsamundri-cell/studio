@@ -29,6 +29,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [loading, setLoading] = useState(false);
   const [previousPath, setPreviousPath] = useState(pathname);
+  const [showInitialLoader, setShowInitialLoader] = useState(true);
 
   // Effect for Page Title
   useEffect(() => {
@@ -96,8 +97,17 @@ function AppContent({ children }: { children: React.ReactNode }) {
     }
   }, [pathname, previousPath]);
 
+   useEffect(() => {
+    // This runs only on the client, after hydration
+    if (!isSettingsInitialized && pathname !== '/') {
+        setShowInitialLoader(true);
+    } else {
+        setShowInitialLoader(false);
+    }
+  }, [isSettingsInitialized, pathname]);
 
-  if (!isSettingsInitialized && pathname !== '/') {
+
+  if (showInitialLoader) {
     return (
       <div className="fixed inset-0 z-[200] flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin" />
