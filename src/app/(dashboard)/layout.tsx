@@ -12,7 +12,7 @@ import { auth, db } from '@/lib/firebase';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Loader2, X, School } from 'lucide-react';
-import { SettingsProvider, useSettings } from '@/context/settings-context';
+import { useSettings } from '@/context/settings-context';
 import LockPage from '../lock/page';
 import { Preloader } from '@/components/ui/preloader';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';

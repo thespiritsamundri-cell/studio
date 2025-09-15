@@ -136,12 +136,12 @@ export default function AppClientLayout({
       );
   }
 
-  // For public pages like login, we still need a "lightweight" settings provider
-  // that doesn't fetch from the DB.
+  // For public pages like login, do not use the full SettingsProvider
+  // to avoid unauthenticated Firestore reads.
   return (
-      <SettingsProvider>
+      <>
           {children}
           <Toaster />
-      </SettingsProvider>
+      </>
   );
 }
