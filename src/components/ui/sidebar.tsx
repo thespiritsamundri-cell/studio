@@ -42,8 +42,8 @@ function useSidebar() {
 }
 
 const useLocalStorage = <T,>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] => {
-  const [storedValue, setStoredValue] = React.useState<T>(initialValue);
   const [isMounted, setIsMounted] = React.useState(false);
+  const [storedValue, setStoredValue] = React.useState<T>(initialValue);
 
   React.useEffect(() => {
     setIsMounted(true);
@@ -59,11 +59,14 @@ const useLocalStorage = <T,>(key: string, initialValue: T): [T, React.Dispatch<R
         setStoredValue(initialValue);
       }
     }
-  }, [isMounted, key, initialValue]);
+  // We only want to run this on mount, so we don't add dependencies.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMounted]);
 
 
   const setValue = (value: T | ((val: T) => T)) => {
     if (!isMounted) return;
+
     try {
       const valueToStore = value instanceof Function ? value(storedValue) : value;
       setStoredValue(valueToStore);
