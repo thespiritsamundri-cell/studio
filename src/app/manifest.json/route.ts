@@ -7,9 +7,9 @@ export async function GET(request: Request) {
   // The dynamic title and favicon are handled on the client-side in app-client-layout.tsx.
 
   const manifest = {
-    name: "EduCentral School Management",
-    short_name: "EduCentral",
-    description: "Management Portal for your School",
+    name: "The Spirit School Samundri",
+    short_name: "Spirit School Samundri",
+    description: "At Schoolup – A Unique Platform for Smart Schools",
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
