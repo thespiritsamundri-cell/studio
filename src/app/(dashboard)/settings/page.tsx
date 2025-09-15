@@ -11,7 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Bell, BellOff, Lock, AlertTriangle, PlayCircle, ImageIcon, CheckCircle } from 'lucide-react';
+import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Bell, BellOff, Lock, AlertTriangle, PlayCircle, Image as ImageIcon, CheckCircle, LogIn } from 'lucide-react';
+
 import { useData } from '@/context/data-context';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -30,7 +31,9 @@ import { Switch } from '@/components/ui/switch';
 import { Preloader } from '@/components/ui/preloader';
 import { cn } from '@/lib/utils';
 import { uploadFile } from '@/services/storage-service';
-import { doc, setDoc } from 'firebase/firestore';
+
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { LoginHistory } from './login-history';
 
 
 export default function SettingsPage() {
@@ -93,78 +96,72 @@ export default function SettingsPage() {
   };
   
   const handleAccountSave = async () => {
-    if (newPassword && !currentPassword) {
-      toast({ title: 'Current password is required to set a new one.', variant: 'destructive'});
-      return;
-    }
-    
     if (newPin && newPin !== confirmPin) {
         toast({ title: 'PINs do not match.', variant: 'destructive'});
         return;
     }
-    
+
     const user = auth.currentUser;
     if (!user || !user.email) {
         toast({ title: 'You must be logged in to change settings.', variant: 'destructive' });
         return;
     }
-    if (!currentPassword) {
-        toast({ title: 'Please enter your current password to save changes.', variant: 'destructive' });
+    
+    // If we are only changing the PIN, we don't need re-authentication.
+    if (newPin && !newPassword) {
+      setSettings(prev => ({...prev, historyClearPin: newPin}));
+      await addActivityLog({ user: 'Admin', action: 'Update PIN', description: 'Updated security PIN.' });
+      toast({ title: "Security PIN Updated", description: "Your new PIN has been saved." });
+      setNewPin('');
+      setConfirmPin('');
+      return;
+    }
+    
+    // If we are only changing auto-lock settings.
+    if (!newPin && !newPassword) {
+        // This is handled by the Switch's onCheckedChange, but a save button gives user confidence.
+        setSettings(prev => ({...prev, autoLockEnabled: settings.autoLockEnabled, autoLockDuration: settings.autoLockDuration }));
+        await addActivityLog({ user: 'Admin', action: 'Update Security', description: 'Updated auto-lock settings.' });
+        toast({ title: "Security Settings Saved" });
         return;
     }
 
-    const credential = EmailAuthProvider.credential(user.email, currentPassword);
-    
-    let changesMade = false;
-
-    try {
-        await reauthenticateWithCredential(user, credential);
-        // User re-authenticated. Now we can change things.
+    // Logic to update password (and optionally PIN at the same time)
+    if (newPassword) {
+        if (!currentPassword) {
+            toast({ title: 'Current password is required to set a new one.', variant: 'destructive'});
+            return;
+        }
         
-        if (newPassword) {
+        const credential = EmailAuthProvider.credential(user.email, currentPassword);
+        try {
+            await reauthenticateWithCredential(user, credential);
             await updatePassword(user, newPassword);
-            changesMade = true;
-        }
-        
-        if (newPin) {
-            setSettings(prev => ({ ...prev, historyClearPin: newPin }));
-            changesMade = true;
-        }
-        
-        if(settings.autoLockEnabled) {
-            changesMade = true;
-        }
+            
+            if (newPin) {
+                setSettings(prev => ({ ...prev, historyClearPin: newPin }));
+            }
+            
+            await addActivityLog({ user: 'Admin', action: 'Update Credentials', description: 'Updated admin login credentials.' });
+            toast({ title: "Account Settings Saved", description: "Your password and/or PIN have been saved." });
+            
+            setCurrentPassword('');
+            setNewPassword('');
+            setNewPin('');
+            setConfirmPin('');
 
-        setSettings(prev => ({ ...prev, historyClearPin: newPin || prev.historyClearPin }));
-
-        if (changesMade) {
-             addActivityLog({ user: 'Admin', action: 'Update Credentials', description: 'Updated admin login credentials or PIN.' });
-             toast({
-                title: "Account Settings Saved",
-                description: "Your changes have been saved successfully.",
-             });
-        } else {
-             toast({
-                title: "No Changes",
-                description: "No new information was provided to save.",
-             });
+        } catch (error: any) {
+            console.error(error);
+            if (error.code === 'auth/wrong-password') {
+                toast({ title: 'Authentication Failed', description: 'The password you entered is incorrect.', variant: 'destructive' });
+            } else {
+                toast({ title: 'An error occurred', description: error.message, variant: 'destructive' });
+            }
         }
-        
-        // Clear password fields after operation
-        setCurrentPassword('');
-        setNewPassword('');
-        setNewPin('');
-        setConfirmPin('');
-
-    } catch (error: any) {
-        console.error(error);
-        if (error.code === 'auth/wrong-password') {
-             toast({ title: 'Authentication Failed', description: 'The password you entered is incorrect.', variant: 'destructive' });
-        } else {
-             toast({ title: 'An error occurred', description: error.message, variant: 'destructive' });
-        }
+        return;
     }
   };
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value, type } = e.target;
@@ -613,12 +610,13 @@ export default function SettingsPage() {
       <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><SettingsIcon className="w-8 h-8" />Settings</h1>
       
       <Tabs defaultValue="school" className="w-full">
-        <TabsList className="grid w-full grid-cols-8 max-w-6xl">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 h-auto">
           <TabsTrigger value="school">School</TabsTrigger>
           <TabsTrigger value="theme">Theme</TabsTrigger>
           <TabsTrigger value="preloader">Preloader</TabsTrigger>
           <TabsTrigger value="grading">Grading</TabsTrigger>
           <TabsTrigger value="security">Account &amp; Security</TabsTrigger>
+          <TabsTrigger value="logins">Logins</TabsTrigger>
           <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
           <TabsTrigger value="backup">Backup</TabsTrigger>
@@ -940,9 +938,9 @@ export default function SettingsPage() {
                     <div className="border-t pt-6 space-y-4">
                          <div className="space-y-2 max-w-sm">
                             <Label htmlFor="currentPasswordForSecurity">Current Password</Label>
-                             <p className="text-xs text-muted-foreground">To save any changes on this page, please enter your current password.</p>
+                             <p className="text-xs text-muted-foreground">To change your password, please enter your current password.</p>
                             <div className="relative">
-                                <Input id="currentPasswordForSecurity" type={showCurrentPassword ? 'text' : 'password'} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
+                                <Input id="currentPasswordForSecurity" type={showCurrentPassword ? 'text' : 'password'} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
                                 <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowCurrentPassword(prev => !prev)}>
                                     {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                 </Button>
@@ -954,6 +952,9 @@ export default function SettingsPage() {
                     </div>
                 </CardContent>
             </Card>
+        </TabsContent>
+        <TabsContent value="logins" className="mt-6">
+            <LoginHistory />
         </TabsContent>
         <TabsContent value="whatsapp" className="mt-6 space-y-6">
             <Card>
@@ -994,17 +995,8 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                             <div className="flex justify-end pt-4">
-                                <Button
-                                  onClick={() => {
-                                    if (settings.whatsappProvider === 'ultramsg') {
-                                      setSettings(prev => ({...prev, whatsappProvider: 'none'}));
-                                    } else {
-                                      setSettings(prev => ({...prev, whatsappProvider: 'ultramsg'}));
-                                    }
-                                  }}
-                                  variant={settings.whatsappProvider === 'ultramsg' ? 'destructive' : 'default'}
-                                >
-                                  {settings.whatsappProvider === 'ultramsg' ? 'Deactivate' : 'Activate UltraMSG'}
+                               <Button onClick={() => setSettings(prev => ({...prev, whatsappProvider: prev.whatsappProvider === 'ultramsg' ? 'none' : 'ultramsg'}))}>
+                                  {settings.whatsappProvider === 'ultramsg' ? 'Deactivate UltraMSG' : 'Activate UltraMSG'}
                                 </Button>
                             </div>
                         </TabsContent>
@@ -1021,17 +1013,8 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                              <div className="flex justify-end pt-4">
-                                <Button
-                                  onClick={() => {
-                                    if (settings.whatsappProvider === 'official') {
-                                      setSettings(prev => ({...prev, whatsappProvider: 'none'}));
-                                    } else {
-                                      setSettings(prev => ({...prev, whatsappProvider: 'official'}));
-                                    }
-                                  }}
-                                  variant={settings.whatsappProvider === 'official' ? 'destructive' : 'default'}
-                                >
-                                  {settings.whatsappProvider === 'official' ? 'Deactivate' : 'Activate Official API'}
+                                <Button onClick={() => setSettings(prev => ({...prev, whatsappProvider: prev.whatsappProvider === 'official' ? 'none' : 'official'}))}>
+                                  {settings.whatsappProvider === 'official' ? 'Deactivate Official API' : 'Activate Official API'}
                                 </Button>
                             </div>
 
@@ -1044,16 +1027,18 @@ export default function SettingsPage() {
                         </div>
                     </div>
                     <div className="border-t pt-4 mt-4 space-y-4">
-                         <div className="space-y-2">
-                            <Label htmlFor="testPhoneNumber">Test Phone Number</Label>
-                            <Input id="testPhoneNumber" value={testPhoneNumber} onChange={(e) => setTestPhoneNumber(e.target.value)} placeholder="Enter a number with country code (e.g. 92300...)" />
-                        </div>
-                         <div className="flex justify-end items-center gap-2">
-                            <Button onClick={handleSave}><KeyRound className="mr-2"/>Save WhatsApp Settings</Button>
-                            <Button variant="outline" onClick={handleTestConnection} disabled={isTesting}>
-                                {isTesting ? <Loader2 className="mr-2 animate-spin"/> : <TestTubeDiagonal className="mr-2"/>}
-                                {isTesting ? 'Testing...' : 'Test Connection'}
-                            </Button>
+                         <div className="flex flex-col md:flex-row md:items-end gap-4">
+                            <div className="space-y-2 flex-grow">
+                                <Label htmlFor="testPhoneNumber">Test Phone Number</Label>
+                                <Input id="testPhoneNumber" value={testPhoneNumber} onChange={(e) => setTestPhoneNumber(e.target.value)} placeholder="Enter a number with country code (e.g. 92300...)" />
+                            </div>
+                             <div className="flex gap-2">
+                                <Button onClick={handleSave}><KeyRound className="mr-2"/>Save WhatsApp Settings</Button>
+                                <Button variant="outline" onClick={handleTestConnection} disabled={isTesting}>
+                                    {isTesting ? <Loader2 className="mr-2 animate-spin"/> : <TestTubeDiagonal className="mr-2"/>}
+                                    {isTesting ? 'Testing...' : 'Test Connection'}
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </CardContent>
@@ -1437,3 +1422,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    

@@ -1,12 +1,11 @@
 
-
 'use client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSettings } from '@/context/settings-context';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { Loader2, School } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -14,6 +13,9 @@ import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import Image from 'next/image';
+import { doc, setDoc } from 'firebase/firestore';
+import type { Session } from '@/lib/types';
+
 
 const FacebookIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -36,7 +38,7 @@ const WhatsappIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 export default function LoginPage() {
-  const { settings } = useSettings();
+  const { settings, isSettingsInitialized } = useSettings();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -50,24 +52,53 @@ export default function LoginPage() {
   }, []);
 
   useEffect(() => {
-      if (settings.schoolName) {
+      if (isSettingsInitialized && settings.schoolName) {
         document.title = `${settings.schoolName} | Login`;
       }
-  }, [settings.schoolName]);
+  }, [settings.schoolName, isSettingsInitialized]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      if (user) {
+        // Create session document
+        const sessionId = `SESS-${Date.now()}`;
+        const ipResponse = await fetch('https://api.ipify.org?format=json').catch(() => null);
+        const ipData = ipResponse ? await ipResponse.json() : {};
+
+        const newSession: Session = {
+            id: sessionId,
+            userId: user.uid,
+            loginTime: new Date().toISOString(),
+            lastAccess: new Date().toISOString(),
+            ipAddress: ipData.ip || 'Unknown',
+            userAgent: navigator.userAgent,
+            location: 'Unknown',
+        };
+        await setDoc(doc(db, 'sessions', sessionId), newSession);
+        sessionStorage.setItem('sessionId', sessionId);
+      }
+      
       router.push('/dashboard');
     } catch (error: any) {
-      console.error("Firebase login failed:", error);
-      toast({
-        title: 'Login Failed',
-        description: 'Please check your email and password.',
-        variant: 'destructive',
-      });
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+           toast({
+                title: 'Login Failed',
+                description: 'Invalid email or password. Please try again.',
+                variant: 'destructive',
+           });
+      } else {
+           console.error("Firebase login failed:", error);
+           toast({
+                title: 'Login Failed',
+                description: 'An unexpected error occurred. Please check your network and try again.',
+                variant: 'destructive',
+           });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -78,7 +109,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm mx-auto shadow-2xl">
         <CardHeader className="text-center">
            <div className="flex justify-center mb-4">
-             {isClient && settings.schoolLogo ? (
+             {isClient && isSettingsInitialized && settings.schoolLogo ? (
                 <Image src={settings.schoolLogo} alt="School Logo" width={80} height={80} className="object-contain rounded-full" />
              ) : (
                 <div className="p-3 rounded-full bg-primary/10">
@@ -86,7 +117,7 @@ export default function LoginPage() {
                 </div>
              )}
           </div>
-          <CardTitle className="text-2xl font-bold font-headline">{isClient ? settings.schoolName : 'School Management'}</CardTitle>
+          <CardTitle className="text-2xl font-bold font-headline">{isClient && isSettingsInitialized ? settings.schoolName : 'School Management'}</CardTitle>
           <CardDescription>Welcome back! Please login to your account.</CardDescription>
         </CardHeader>
         <CardContent>

@@ -1,10 +1,14 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import type { Grade, MessageTemplate } from '@/lib/types';
-import { useToast } from '@/hooks/use-toast';
+
+import { onAuthStateChanged } from 'firebase/auth';
+
+
 
 export interface SchoolSettings {
   schoolName: string;
@@ -153,70 +157,82 @@ export const defaultSettings: SchoolSettings = {
 export const SettingsContext = createContext<{
   settings: SchoolSettings;
   setSettings: (newSettings: React.SetStateAction<SchoolSettings>) => void;
+  isSettingsInitialized: boolean;
 }>({
   settings: defaultSettings,
   setSettings: () => {},
+  isSettingsInitialized: false,
 });
 
 export const SettingsProvider = ({ children }: { children: React.ReactNode }) => {
   const [settings, setSettingsState] = useState<SchoolSettings>(defaultSettings);
-  const [isInitialized, setIsInitialized] = useState(false);
-  const { toast } = useToast();
+
+  const [isSettingsInitialized, setIsSettingsInitialized] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    const settingsDocRef = doc(db, 'Settings', 'School Settings');
+    // Listen for auth state changes
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      setIsLoggedIn(!!user);
+    });
+    return () => unsubscribeAuth();
 
-    const unsubscribe = onSnapshot(
-      settingsDocRef,
-      (docSnap) => {
-        if (docSnap.exists()) {
-          const dbSettings = docSnap.data() as Partial<SchoolSettings>;
-          setSettingsState((prev) => ({ ...defaultSettings, ...prev, ...dbSettings }));
-        } else {
-          setDoc(settingsDocRef, defaultSettings);
-        }
-        setIsInitialized(true);
-      },
-      (error) => {
-        console.error('Error fetching settings from Firestore:', error);
-
-        try {
-          const savedSettings = localStorage.getItem('schoolSettings');
-          if (savedSettings) {
-            setSettingsState(JSON.parse(savedSettings));
-          }
-        } catch (localError) {
-          console.error('Could not read from localStorage:', localError);
-        }
-        setIsInitialized(true);
-      }
-    );
-
-    return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    let unsubscribeDb: (() => void) | undefined;
+
+    if (isLoggedIn) {
+      // If user is logged in, fetch settings from Firestore
+      const settingsDocRef = doc(db, 'Settings', 'School Settings');
+      unsubscribeDb = onSnapshot(settingsDocRef, (doc) => {
+        if (doc.exists()) {
+          const dbSettings = doc.data() as Partial<SchoolSettings>;
+          setSettingsState(prev => ({ ...defaultSettings, ...prev, ...dbSettings }));
+        } else {
+          // If settings do not exist in DB, create it with default values
+          setDoc(settingsDocRef, defaultSettings);
+        }
+        setIsSettingsInitialized(true);
+      }, (error) => {
+        console.error("Error fetching settings from Firestore:", error);
+        setIsSettingsInitialized(true); // Still mark as initialized to unblock UI
+      });
+    } else {
+      // If user is not logged in, use default settings and mark as initialized
+      setSettingsState(defaultSettings);
+      setIsSettingsInitialized(true);
+    }
+    
+    // Cleanup Firestore listener on re-render or unmount
+    return () => {
+      if (unsubscribeDb) {
+        unsubscribeDb();
+      }
+    };
+  }, [isLoggedIn]); // Re-run effect when login status changes
+
   const handleSetSettings = (newSettings: React.SetStateAction<SchoolSettings>) => {
-    const updatedSettings =
-      typeof newSettings === 'function' ? (newSettings as (prev: SchoolSettings) => SchoolSettings)(settings) : newSettings;
 
+    const updatedSettings = typeof newSettings === 'function' ? newSettings(settings) : newSettings;
+    
     setSettingsState(updatedSettings);
-
-    const settingsDocRef = doc(db, 'Settings', 'School Settings');
-    setDoc(settingsDocRef, updatedSettings, { merge: true }).catch((error) => {
-      console.error('Failed to save settings to Firestore:', error);
-      toast({ title: 'Failed to save settings', description: error.message, variant: 'destructive' });
-    });
-
-    try {
-      localStorage.setItem('schoolSettings', JSON.stringify(updatedSettings));
-    } catch (e) {
-      console.warn('Could not save settings to localStorage:', e);
+    
+    // Only save to DB if logged in
+    if(isLoggedIn) {
+        const settingsDocRef = doc(db, 'Settings', 'School Settings');
+        setDoc(settingsDocRef, updatedSettings, { merge: true }).catch(error => {
+            console.error("Failed to save settings to Firestore:", error);
+        });
     }
   };
 
-  if (!isInitialized) return null;
+  return (
+    <SettingsContext.Provider value={{ settings, setSettings: handleSetSettings, isSettingsInitialized }}>
+      {children}
+    </SettingsContext.Provider>
+  );
 
-  return <SettingsContext.Provider value={{ settings, setSettings: handleSetSettings }}>{children}</SettingsContext.Provider>;
 };
 
 export const useSettings = () => {

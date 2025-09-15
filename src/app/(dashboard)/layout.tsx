@@ -8,18 +8,59 @@ import { SidebarNav } from '@/components/layout/sidebar-nav';
 import { Header } from '@/components/layout/header';
 import { DataProvider } from '@/context/data-context';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { useRouter, usePathname } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
-import { Loader2, X, School } from 'lucide-react';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { Loader2, School } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import LockPage from '../lock/page';
 import { Preloader } from '@/components/ui/preloader';
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+
 import { format } from 'date-fns';
 import Image from 'next/image';
+import { doc, getDoc } from 'firebase/firestore';
+
+function SessionValidator() {
+  const router = useRouter();
+
+  const validateSession = useCallback(async () => {
+    const sessionId = sessionStorage.getItem('sessionId');
+    if (!sessionId) {
+      // No session, force logout
+      router.push('/');
+      return;
+    }
+
+    const sessionRef = doc(db, 'sessions', sessionId);
+    const sessionDoc = await getDoc(sessionRef);
+
+    if (!sessionDoc.exists()) {
+      // Session has been remotely terminated
+      sessionStorage.removeItem('sessionId');
+      sessionStorage.removeItem('welcomeShown');
+      sessionStorage.removeItem('isUnlocked');
+      await auth.signOut();
+      router.push('/');
+    }
+  }, [router]);
+
+  useEffect(() => {
+    // Check every 30 seconds
+    const interval = setInterval(validateSession, 30000);
+    // Also check when the window gains focus
+    window.addEventListener('focus', validateSession);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', validateSession);
+    };
+  }, [validateSession]);
+
+  return null;
+}
+
 
 
 function InactivityDetector() {
@@ -27,20 +68,20 @@ function InactivityDetector() {
   const { settings } = useSettings();
   const inactivityTimer = useRef<NodeJS.Timeout>();
   
-  const handleLock = () => {
+  const handleLock = useCallback(() => {
     // Only lock if we are not already on the lock page
     if (window.location.pathname !== '/lock') {
       sessionStorage.setItem('lockedFrom', window.location.pathname);
       router.push('/lock');
     }
-  }
+  }, [router]);
 
-  const resetTimer = () => {
+  const resetTimer = useCallback(() => {
     if (!settings.autoLockEnabled) return;
     
     clearTimeout(inactivityTimer.current);
     inactivityTimer.current = setTimeout(handleLock, (settings.autoLockDuration || 300) * 1000);
-  };
+  }, [settings.autoLockEnabled, settings.autoLockDuration, handleLock]);
 
   useEffect(() => {
     if (!settings.autoLockEnabled) {
@@ -59,7 +100,7 @@ function InactivityDetector() {
       events.forEach(event => window.removeEventListener(event, eventHandler));
       clearTimeout(inactivityTimer.current);
     };
-  }, [settings.autoLockEnabled, settings.autoLockDuration, router]);
+  }, [settings.autoLockEnabled, resetTimer]);
 
   return null;
 }
@@ -71,24 +112,31 @@ function AuthWrapper({ children }: { children: ReactNode }) {
   const { settings } = useSettings();
   const [showWelcome, setShowWelcome] = useState(false);
   const [welcomeMessage, setWelcomeMessage] = useState('Welcome');
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) {
-      sessionStorage.removeItem('welcomeShown'); // Clear on logout/unauthenticated
+      if (isClient) {
+        sessionStorage.removeItem('welcomeShown');
+      }
       router.replace('/');
     }
-    if (!loading && user) {
-        if (sessionStorage.getItem('isUnlocked') === 'true') {
-            setWelcomeMessage('Welcome Back');
-            setShowWelcome(true);
-            sessionStorage.removeItem('isUnlocked'); // Clear the flag
-        } else if (!sessionStorage.getItem('welcomeShown')) {
-            setWelcomeMessage('Welcome');
-            setShowWelcome(true);
-            sessionStorage.setItem('welcomeShown', 'true');
-        }
+    if (!loading && user && isClient) {
+      if (sessionStorage.getItem('isUnlocked') === 'true') {
+        setWelcomeMessage('Welcome Back');
+        setShowWelcome(true);
+        sessionStorage.removeItem('isUnlocked');
+      } else if (!sessionStorage.getItem('welcomeShown')) {
+        setWelcomeMessage('Welcome');
+        setShowWelcome(true);
+        sessionStorage.setItem('welcomeShown', 'true');
+      }
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, isClient]);
   
   if (loading) {
     return (
@@ -109,6 +157,7 @@ function AuthWrapper({ children }: { children: ReactNode }) {
   if (user) {
      return (
         <>
+            {isClient && <SessionValidator />}
             {children}
             <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
                 <DialogContent className="sm:max-w-md text-center">
@@ -176,28 +225,32 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }, []);
 
   if (isClient && pathname === '/lock') {
-      return <LockPage />;
+      return (
+          <LockPage />
+      );
   }
 
   return (
     <AuthWrapper>
-      <DataProvider>
-        {isClient && <InactivityDetector />}
-        <SidebarProvider>
-          {welcomeVariant && <WelcomeDialog open={showWelcome} onOpenChange={setShowWelcome} variant={welcomeVariant} />}
-          <div className="flex min-h-screen w-full bg-muted/40">
-            <Sidebar>
-              <SidebarNav />
-            </Sidebar>
-            <div className="flex flex-1 flex-col">
-              <Header />
-              <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6 lg:p-8">
-                {children}
-              </main>
+
+        <DataProvider>
+            {isClient && <InactivityDetector />}
+            <SidebarProvider>
+            <div className="flex min-h-screen w-full bg-muted/40">
+                <Sidebar>
+                <SidebarNav />
+                </Sidebar>
+                <div className="flex flex-1 flex-col">
+                <Header />
+                <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6 lg:p-8">
+                    {children}
+                </main>
+                </div>
+
             </div>
-          </div>
-        </SidebarProvider>
-      </DataProvider>
+            </SidebarProvider>
+        </DataProvider>
     </AuthWrapper>
   );
 }
+
