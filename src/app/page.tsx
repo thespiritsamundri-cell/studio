@@ -87,11 +87,19 @@ export default function LoginPage() {
       router.push('/dashboard');
     } catch (error: any) {
       console.error("Firebase login failed:", error);
-      toast({
-        title: 'Login Failed',
-        description: 'Please check your email and password.',
-        variant: 'destructive',
-      });
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+           toast({
+                title: 'Login Failed',
+                description: 'Invalid email or password. Please try again.',
+                variant: 'destructive',
+           });
+      } else {
+           toast({
+                title: 'Login Failed',
+                description: 'An unexpected error occurred. Please check your network and try again.',
+                variant: 'destructive',
+           });
+      }
     } finally {
       setIsLoading(false);
     }
