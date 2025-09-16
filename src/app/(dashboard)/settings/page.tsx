@@ -587,6 +587,19 @@ export default function SettingsPage() {
         }
         setOpenFactoryResetDialog(open);
     }
+    
+    const handleActivateProvider = (provider: 'ultramsg' | 'official' | 'none') => {
+        const newProvider = settings.whatsappProvider === provider ? 'none' : provider;
+        setSettings(prev => ({
+            ...prev,
+            whatsappProvider: newProvider,
+            whatsappConnectionStatus: 'untested'
+        }));
+        toast({
+            title: `Provider ${newProvider !== 'none' ? 'Activated' : 'Deactivated'}`,
+            description: `WhatsApp provider set to ${newProvider}.`
+        });
+    };
 
     const automatedMessages = useMemo(() => ({
         admission: settings.automatedMessages?.admission || { enabled: false, templateId: '' },
@@ -985,7 +998,7 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                             <div className="flex justify-end pt-4">
-                               <Button onClick={() => setSettings(prev => ({...prev, whatsappProvider: prev.whatsappProvider === 'ultramsg' ? 'none' : 'ultramsg'}))}>
+                               <Button onClick={() => handleActivateProvider('ultramsg')}>
                                   {settings.whatsappProvider === 'ultramsg' ? 'Deactivate UltraMSG' : 'Activate UltraMSG'}
                                 </Button>
                             </div>
@@ -1002,7 +1015,7 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                              <div className="flex justify-end pt-4">
-                                <Button onClick={() => setSettings(prev => ({...prev, whatsappProvider: prev.whatsappProvider === 'official' ? 'none' : 'official'}))}>
+                                <Button onClick={() => handleActivateProvider('official')}>
                                   {settings.whatsappProvider === 'official' ? 'Deactivate Official API' : 'Activate Official API'}
                                 </Button>
                             </div>
