@@ -588,17 +588,8 @@ export default function SettingsPage() {
         setOpenFactoryResetDialog(open);
     }
     
-    const handleActivateProvider = (provider: 'ultramsg' | 'official' | 'none') => {
-        const newProvider = settings.whatsappProvider === provider ? 'none' : provider;
-        setSettings(prev => ({
-            ...prev,
-            whatsappProvider: newProvider,
-            whatsappConnectionStatus: 'untested'
-        }));
-        toast({
-            title: `Provider ${newProvider !== 'none' ? 'Activated' : 'Deactivated'}`,
-            description: `WhatsApp provider set to ${newProvider}.`
-        });
+    const handleActivateProvider = (provider: 'ultramsg' | 'official') => {
+      setSettings(prev => ({...prev, whatsappProvider: prev.whatsappProvider === provider ? 'none' : provider, whatsappConnectionStatus: 'untested'}));
     };
 
     const automatedMessages = useMemo(() => ({
