@@ -3,7 +3,7 @@
 
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import type { SchoolSettings } from '@/lib/types';
+import type { SchoolSettings } from '@/context/settings-context';
 import { defaultSettings } from '@/context/settings-context';
 
 // Phone number normalize function
@@ -26,20 +26,24 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
   try {
     const formattedTo = normalizePhone(to);
     
-    // Robust URL construction
-    const baseUrl = whatsappApiUrl.replace(/\/instance\d+/, '').replace(/\/$/, '');
-    const fullUrl = `${baseUrl}/${whatsappInstanceId}/messages/chat`;
+    // Correct URL construction for UltraMSG
+    const fullUrl = `${whatsappApiUrl}/${whatsappInstanceId}/messages/chat`;
 
-    const body = `token=${encodeURIComponent(whatsappApiKey)}&to=${encodeURIComponent(formattedTo)}&body=${encodeURIComponent(message)}&priority=${encodeURIComponent(whatsappPriority || '10')}`;
+    // Use URLSearchParams for robust body encoding
+    const params = new URLSearchParams();
+    params.append('token', whatsappApiKey);
+    params.append('to', formattedTo);
+    params.append('body', message);
+    params.append('priority', whatsappPriority || '10');
 
-    console.log("📤 UltraMSG REQUEST", { fullUrl, body });
+    console.log("📤 UltraMSG REQUEST", { fullUrl, body: params.toString() });
 
     const response = await fetch(fullUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body,
+      body: params.toString(),
     });
 
     const responseText = await response.text();
@@ -49,13 +53,14 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
     try {
       responseJson = JSON.parse(responseText);
     } catch {
+      // If the response is not JSON, it might be a simple error string from a proxy or firewall
       const errorMsg = `Response not JSON: ${responseText}`;
       console.error(`❌ ${errorMsg}`);
       return { success: false, error: errorMsg };
     }
 
-    if (!response.ok || responseJson.sent !== 'true') {
-      const errorMsg = `API Error: ${responseJson.error || responseText}`;
+    if (!response.ok || (responseJson.sent !== 'true' && !responseJson.id)) {
+      const errorMsg = `API Error: ${responseJson.error || 'Unknown error'}`;
       console.error('❌ UltraMSG API Error:', responseJson);
       return { success: false, error: errorMsg };
     }
@@ -77,7 +82,7 @@ async function sendWithOfficialAPI(to: string, message: string, settings: School
 
 
 export async function sendWhatsAppMessage(to: string, message: string, clientSettings?: SchoolSettings): Promise<{ success: boolean; error?: string }> {
-  let settings: SchoolSettings = defaultSettings;
+  let settings: SchoolSettings;
   
   if (clientSettings) {
     settings = { ...defaultSettings, ...clientSettings };
@@ -86,9 +91,12 @@ export async function sendWhatsAppMessage(to: string, message: string, clientSet
       const settingsDoc = await getDoc(doc(db, 'Settings', 'School Settings'));
       if (settingsDoc.exists()) {
         settings = { ...defaultSettings, ...settingsDoc.data() };
+      } else {
+        settings = defaultSettings;
       }
     } catch (error) {
       console.error('Could not fetch settings. Using default settings.', error);
+      settings = defaultSettings;
     }
   }
   
