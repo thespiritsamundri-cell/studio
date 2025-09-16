@@ -15,10 +15,10 @@ function normalizePhone(to: string): string {
 }
 
 async function sendWithUltraMSG(to: string, message: string, settings: SchoolSettings): Promise<{ success: boolean; error?: string }> {
-  const { whatsappApiUrl, whatsappInstanceId, whatsappApiKey } = settings;
+  const { whatsappApiUrl, whatsappApiKey } = settings;
 
-  if (!whatsappApiUrl || !whatsappInstanceId || !whatsappApiKey) {
-    const errorMsg = 'UltraMSG API URL, Instance ID, or Token missing.';
+  if (!whatsappApiUrl || !whatsappApiKey) {
+    const errorMsg = 'UltraMSG API URL or Token missing.';
     console.error(`❌ ${errorMsg}`);
     return { success: false, error: errorMsg };
   }
@@ -27,7 +27,7 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
     const formattedTo = normalizePhone(to);
     
     // The API URL from settings should already contain the instance ID.
-    // e.g., https://api.ultramsg.com/instance12345
+    // e.g., https://api.ultramsg.com/instance12345/
     const baseUrl = whatsappApiUrl.endsWith('/') ? whatsappApiUrl : `${whatsappApiUrl}/`;
     const fullUrl = `${baseUrl}messages/chat`;
     
@@ -50,13 +50,19 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
     try {
       responseJson = JSON.parse(responseText);
     } catch {
-       const errorMsg = `API responded with non-JSON text: ${responseText}`;
-       console.error(`❌ ${errorMsg}`);
-       return { success: false, error: errorMsg };
+       // If parsing fails, it might be a plain text error (like "Not Found")
+       if (!response.ok) {
+           const errorMsg = `API responded with non-JSON text: ${responseText}`;
+           console.error(`❌ ${errorMsg}`);
+           return { success: false, error: errorMsg };
+       }
+       // If response is OK but not JSON, it could be a simple success message
+       console.log('✅ UltraMSG API Success (non-JSON):', responseText);
+       return { success: true };
     }
 
     if (!response.ok || (responseJson.sent !== 'true' && !responseJson.id)) {
-      const errorMsg = `API Error: ${responseJson.error?.message || responseJson.error || 'Path not found in Method: POST'}`;
+      const errorMsg = `API Error: ${responseJson.error?.message || responseJson.error || 'Unknown API error'}`;
       console.error('❌ UltraMSG API Error:', responseJson);
       return { success: false, error: errorMsg };
     }
@@ -77,20 +83,20 @@ async function sendWithOfficialAPI(to: string, message: string, settings: School
 }
 
 
-export async function sendWhatsAppMessage(to: string, message: string, settings?: SchoolSettings): Promise<{ success: boolean; error?: string }> {
+export async function sendWhatsAppMessage(to: string, message: string, liveSettings?: SchoolSettings): Promise<{ success: boolean; error?: string }> {
   let effectiveSettings: SchoolSettings;
 
-  if (settings) {
+  if (liveSettings) {
     // If settings are passed directly (e.g., from the test button), use them.
     // This ensures the test button always uses the live data from the settings page.
-    effectiveSettings = { ...defaultSettings, ...settings };
+    effectiveSettings = { ...defaultSettings, ...liveSettings };
   } else {
     // For all other cases (automated, custom messages), fetch the latest from DB.
     // This ensures consistency and uses the saved configuration.
     try {
       const settingsDoc = await getDoc(doc(db, 'Settings', 'School Settings'));
       if (settingsDoc.exists()) {
-        effectiveSettings = { ...defaultSettings, ...settingsDoc.data() };
+        effectiveSettings = { ...defaultSettings, ...(settingsDoc.data() as Partial<SchoolSettings>) };
       } else {
         // This case should ideally not happen if settings are saved upon setup.
         console.error('Settings document not found in Firestore. Falling back to default settings.');

@@ -522,14 +522,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const start = startOfMonth(new Date(date));
         const end = endOfMonth(new Date(date));
         
+        // This query is simplified to avoid needing a composite index.
         const q = query(
           collection(db, 'attendances'),
-          where('studentId', '==', studentId),
-          where('date', '>=', format(start, 'yyyy-MM-dd')),
-          where('date', '<=', format(end, 'yyyy-MM-dd'))
+          where('studentId', '==', studentId)
         );
         const querySnapshot = await getDocs(q);
-        const monthlyRecords = querySnapshot.docs.map(doc => doc.data());
+        
+        // Filter by date in memory
+        const monthlyRecords = querySnapshot.docs.map(doc => doc.data()).filter(r => {
+            const recordDate = new Date(r.date);
+            return recordDate >= start && recordDate <= end;
+        });
+
         const absenceCount = monthlyRecords.filter(r => r.status === 'Absent').length;
   
         if (absenceCount >= 3) {
@@ -599,12 +604,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
             
             const q = query(
               collection(db, 'teacherAttendances'), 
-              where('teacherId', '==', teacherId),
-              where('date', '>=', format(start, 'yyyy-MM-dd')),
-              where('date', '<=', format(end, 'yyyy-MM-dd'))
+              where('teacherId', '==', teacherId)
             );
             const querySnapshot = await getDocs(q);
-            const monthlyAttendance = querySnapshot.docs.map(doc => doc.data() as TeacherAttendance);
+            
+            // Filter by date in memory
+            const monthlyAttendance = querySnapshot.docs.map(doc => doc.data() as TeacherAttendance).filter(r => {
+                const recordDate = new Date(r.date);
+                return recordDate >= start && recordDate <= end;
+            });
             
             const lateCount = monthlyAttendance.filter(a => a.status === 'Late').length;
             const absenceLeaveCount = monthlyAttendance.filter(a => a.status === 'Absent' || a.status === 'Leave').length;
