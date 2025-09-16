@@ -42,7 +42,7 @@ export default function SettingsPage() {
   
   // Custom Messaging State
   const [message, setMessage] = useState('');
-  const [sendTarget, setSendTarget] = useState('all');
+  const [sendTarget, setSendTarget] = useState('all_families');
   const [targetClass, setTargetClass] = useState('');
   const [targetFamilyId, setTargetFamilyId] = useState('');
   const [targetTeacherId, setTargetTeacherId] = useState('');
@@ -421,6 +421,7 @@ export default function SettingsPage() {
             return;
         }
         try {
+            // Pass the current state of settings directly to the test function
             const result = await sendWhatsAppMessage(testPhoneNumber, `This is a test message from ${settings.schoolName}.`, settings);
             if (result.success) {
                 toast({ title: 'Test Successful', description: 'Your WhatsApp API settings appear to be correct.' });
@@ -587,10 +588,6 @@ export default function SettingsPage() {
         }
         setOpenFactoryResetDialog(open);
     }
-    
-    const handleActivateProvider = (provider: 'ultramsg' | 'official') => {
-      setSettings(prev => ({...prev, whatsappProvider: prev.whatsappProvider === provider ? 'none' : provider, whatsappConnectionStatus: 'untested'}));
-    };
 
     const automatedMessages = useMemo(() => ({
         admission: settings.automatedMessages?.admission || { enabled: false, templateId: '' },
@@ -963,39 +960,51 @@ export default function SettingsPage() {
                     </div>
                     <CardDescription>Enter your API details to enable messaging features.</CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <Tabs defaultValue={settings.whatsappProvider || 'none'}>
-                        <TabsList>
-                            <TabsTrigger value="ultramsg">UltraMSG API</TabsTrigger>
-                            <TabsTrigger value="official">Official API</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="ultramsg" className="mt-4 space-y-4">
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <CardContent className="space-y-4">
+                    <RadioGroup 
+                        value={settings.whatsappProvider} 
+                        onValueChange={(value) => setSettings(prev => ({...prev, whatsappProvider: value as any, whatsappConnectionStatus: 'untested'}))} 
+                        className="grid grid-cols-1 md:grid-cols-3 gap-4"
+                    >
+                        <Label htmlFor="provider-none" className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer">
+                            <RadioGroupItem value="none" id="provider-none" className="sr-only" />
+                            <WifiOff className="mb-3 h-6 w-6" />
+                            None (Disabled)
+                        </Label>
+                         <Label htmlFor="provider-ultramsg" className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer">
+                            <RadioGroupItem value="ultramsg" id="provider-ultramsg" className="sr-only" />
+                            <img src="https://ultramsg.com/assets/img/logo-dark.svg" alt="UltraMSG" className="w-24 h-6 mb-3"/>
+                            UltraMSG API
+                        </Label>
+                         <Label htmlFor="provider-official" className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer">
+                            <RadioGroupItem value="official" id="provider-official" className="sr-only" />
+                            <div className="flex items-center gap-2 mb-3 h-6">
+                               <img src="https://static.whatsapp.net/rsrc.php/v3/yI/r/r3d2Qj1f4vA.png" alt="WhatsApp" className="h-6 w-6"/>
+                               <span className="font-bold">WhatsApp</span>
+                            </div>
+                            Official API
+                        </Label>
+                    </RadioGroup>
+
+                    {settings.whatsappProvider === 'ultramsg' && (
+                        <div className="p-4 border rounded-lg mt-4 space-y-4">
+                            <h3 className="font-semibold">UltraMSG Credentials</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <Label htmlFor="whatsappApiUrl">API URL</Label>
-                                    <Input id="whatsappApiUrl" value={settings.whatsappApiUrl} onChange={handleInputChange} placeholder="e.g. https://api.ultramsg.com" />
+                                    <Input id="whatsappApiUrl" value={settings.whatsappApiUrl} onChange={handleInputChange} placeholder="e.g. https://api.ultramsg.com/instance12345" />
                                 </div>
                                  <div className="space-y-2">
-                                    <Label htmlFor="whatsappInstanceId">Instance ID</Label>
-                                    <Input id="whatsappInstanceId" value={settings.whatsappInstanceId} onChange={handleInputChange} placeholder="e.g. instance12345" />
-                                </div>
-                                <div className="space-y-2">
                                     <Label htmlFor="whatsappApiKey">Token (API Key)</Label>
                                     <Input id="whatsappApiKey" value={settings.whatsappApiKey} onChange={handleInputChange} placeholder="Enter UltraMSG Token" />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="whatsappPriority">Priority</Label>
-                                    <Input id="whatsappPriority" value={settings.whatsappPriority} onChange={handleInputChange} placeholder="e.g. 10" />
-                                </div>
                             </div>
-                            <div className="flex justify-end pt-4">
-                               <Button onClick={() => handleActivateProvider('ultramsg')}>
-                                  {settings.whatsappProvider === 'ultramsg' ? 'Deactivate UltraMSG' : 'Activate UltraMSG'}
-                                </Button>
-                            </div>
-                        </TabsContent>
-                         <TabsContent value="official" className="mt-4 space-y-4">
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        </div>
+                    )}
+                     {settings.whatsappProvider === 'official' && (
+                        <div className="p-4 border rounded-lg mt-4 space-y-4">
+                           <h3 className="font-semibold">Official API Credentials</h3>
+                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <Label htmlFor="whatsappPhoneNumberId">Phone Number ID</Label>
                                     <Input id="whatsappPhoneNumberId" value={settings.whatsappPhoneNumberId || ''} onChange={handleInputChange} placeholder="e.g., 10..." />
@@ -1005,19 +1014,9 @@ export default function SettingsPage() {
                                     <Input id="whatsappAccessToken" value={settings.whatsappAccessToken || ''} onChange={handleInputChange} placeholder="e.g., EAA..." />
                                 </div>
                             </div>
-                             <div className="flex justify-end pt-4">
-                                <Button onClick={() => handleActivateProvider('official')}>
-                                  {settings.whatsappProvider === 'official' ? 'Deactivate Official API' : 'Activate Official API'}
-                                </Button>
-                            </div>
-                         </TabsContent>
-                    </Tabs>
-                    <div className="flex items-center gap-4 pt-4 border-t mt-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="messageDelay">Message Delay (seconds)</Label>
-                            <Input id="messageDelay" type="number" value={settings.messageDelay} onChange={handleInputChange} />
                         </div>
-                    </div>
+                    )}
+
                     <div className="border-t pt-4 mt-4 space-y-4">
                          <div className="flex flex-col md:flex-row md:items-end gap-4">
                             <div className="space-y-2 flex-grow">
@@ -1025,8 +1024,8 @@ export default function SettingsPage() {
                                 <Input id="testPhoneNumber" value={testPhoneNumber} onChange={(e) => setTestPhoneNumber(e.target.value)} placeholder="Enter a number with country code (e.g. 92300...)" />
                             </div>
                              <div className="flex gap-2">
-                                <Button onClick={handleSave}><KeyRound className="mr-2"/>Save WhatsApp Settings</Button>
-                                <Button variant="outline" onClick={handleTestConnection} disabled={isTesting}>
+                                <Button onClick={() => handleSave()}><KeyRound className="mr-2"/>Save WhatsApp Settings</Button>
+                                <Button variant="outline" onClick={handleTestConnection} disabled={isTesting || settings.whatsappProvider === 'none'}>
                                     {isTesting ? <Loader2 className="mr-2 animate-spin"/> : <TestTubeDiagonal className="mr-2"/>}
                                     {isTesting ? 'Testing...' : 'Test Connection'}
                                 </Button>

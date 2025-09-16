@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { db } from '@/lib/firebase';
@@ -27,7 +28,6 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
     const formattedTo = normalizePhone(to);
     
     // The API URL from settings should already contain the instance ID.
-    // e.g., https://api.ultramsg.com/instance12345/
     const baseUrl = whatsappApiUrl.endsWith('/') ? whatsappApiUrl : `${whatsappApiUrl}/`;
     const fullUrl = `${baseUrl}messages/chat`;
     
@@ -50,13 +50,11 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
     try {
       responseJson = JSON.parse(responseText);
     } catch {
-       // If parsing fails, it might be a plain text error (like "Not Found")
        if (!response.ok) {
            const errorMsg = `API responded with non-JSON text: ${responseText}`;
            console.error(`❌ ${errorMsg}`);
            return { success: false, error: errorMsg };
        }
-       // If response is OK but not JSON, it could be a simple success message
        console.log('✅ UltraMSG API Success (non-JSON):', responseText);
        return { success: true };
     }
@@ -78,8 +76,52 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
 
 
 async function sendWithOfficialAPI(to: string, message: string, settings: SchoolSettings): Promise<{ success: boolean; error?: string }> {
-  console.log("sendWithOfficialAPI called, but it's not implemented.");
-  return Promise.resolve({ success: false, error: "Official API not implemented." });
+  const { whatsappPhoneNumberId, whatsappAccessToken } = settings;
+
+  if (!whatsappPhoneNumberId || !whatsappAccessToken) {
+    const errorMsg = 'Official API Phone Number ID or Access Token missing.';
+    console.error(`❌ ${errorMsg}`);
+    return { success: false, error: errorMsg };
+  }
+  
+  try {
+    const formattedTo = normalizePhone(to);
+    const url = `https://graph.facebook.com/v19.0/${whatsappPhoneNumberId}/messages`;
+
+    const body = {
+      messaging_product: 'whatsapp',
+      to: formattedTo,
+      type: 'text',
+      text: {
+        preview_url: false,
+        body: message,
+      },
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${whatsappAccessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    const responseJson = await response.json();
+
+    if (!response.ok || responseJson.error) {
+       const errorMsg = `API Error: ${responseJson.error?.message || 'Unknown API error'}`;
+       console.error('❌ Official API Error:', responseJson.error);
+       return { success: false, error: errorMsg };
+    }
+    
+    console.log('✅ Official API Success:', responseJson);
+    return { success: true };
+    
+  } catch (error: any) {
+    console.error('❌ Error in sendWithOfficialAPI:', error);
+    return { success: false, error: error.message };
+  }
 }
 
 
@@ -87,18 +129,13 @@ export async function sendWhatsAppMessage(to: string, message: string, liveSetti
   let effectiveSettings: SchoolSettings;
 
   if (liveSettings) {
-    // If settings are passed directly (e.g., from the test button), use them.
-    // This ensures the test button always uses the live data from the settings page.
     effectiveSettings = { ...defaultSettings, ...liveSettings };
   } else {
-    // For all other cases (automated, custom messages), fetch the latest from DB.
-    // This ensures consistency and uses the saved configuration.
     try {
       const settingsDoc = await getDoc(doc(db, 'Settings', 'School Settings'));
       if (settingsDoc.exists()) {
         effectiveSettings = { ...defaultSettings, ...(settingsDoc.data() as Partial<SchoolSettings>) };
       } else {
-        // This case should ideally not happen if settings are saved upon setup.
         console.error('Settings document not found in Firestore. Falling back to default settings.');
         effectiveSettings = defaultSettings;
       }
