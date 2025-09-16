@@ -85,11 +85,13 @@ async function sendWithOfficialAPI(to: string, message: string, settings: School
 export async function sendWhatsAppMessage(to: string, message: string, clientSettings?: SchoolSettings): Promise<{ success: boolean; error?: string }> {
   let settings: SchoolSettings;
 
-  // If settings are passed from the client (like from the Settings test page), use them.
-  // Otherwise, fetch the latest from the database.
+  // If settings are passed from a client component (like the Settings page), use them.
+  // This is crucial for the "Test Connection" button to work with unsaved changes.
   if (clientSettings) {
     settings = clientSettings;
   } else {
+    // For all other cases (automated messages, custom messages from other pages),
+    // fetch the latest saved settings from the database to ensure consistency.
     try {
       const settingsDoc = await getDoc(doc(db, 'Settings', 'School Settings'));
       if (settingsDoc.exists()) {
