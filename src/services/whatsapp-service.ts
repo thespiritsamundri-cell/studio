@@ -15,7 +15,7 @@ function normalizePhone(to: string): string {
 }
 
 async function sendWithUltraMSG(to: string, message: string, settings: SchoolSettings): Promise<{ success: boolean; error?: string }> {
-  const { whatsappApiUrl, whatsappApiKey, whatsappPriority } = settings;
+  const { whatsappApiUrl, whatsappApiKey } = settings;
 
   if (!whatsappApiUrl || !whatsappApiKey) {
     const errorMsg = 'UltraMSG API URL or Token missing.';
@@ -30,14 +30,11 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
     const baseUrl = whatsappApiUrl.endsWith('/') ? whatsappApiUrl : `${whatsappApiUrl}/`;
     const fullUrl = `${baseUrl}messages/chat`;
 
-    // Use URLSearchParams for robust body encoding
     const params = new URLSearchParams();
     params.append('token', whatsappApiKey);
     params.append('to', formattedTo);
     params.append('body', message);
-    params.append('priority', whatsappPriority || '10');
-
-    console.log("📤 UltraMSG REQUEST", { fullUrl, body: params.toString() });
+    params.append('priority', settings.whatsappPriority || '10');
 
     const response = await fetch(fullUrl, {
       method: 'POST',
@@ -48,14 +45,11 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
     });
 
     const responseText = await response.text();
-    console.log("📥 UltraMSG RAW RESPONSE:", responseText);
-
     let responseJson: any = {};
     try {
       responseJson = JSON.parse(responseText);
     } catch {
-      // If the response is not JSON, it might be a simple error string from a proxy or firewall
-      const errorMsg = `Response not JSON: ${responseText}`;
+      const errorMsg = `API responded with non-JSON text: ${responseText}`;
       console.error(`❌ ${errorMsg}`);
       return { success: false, error: errorMsg };
     }
@@ -85,26 +79,24 @@ async function sendWithOfficialAPI(to: string, message: string, settings: School
 export async function sendWhatsAppMessage(to: string, message: string, clientSettings?: SchoolSettings): Promise<{ success: boolean; error?: string }> {
   let settings: SchoolSettings;
 
-  // If settings are passed from a client component (like the Settings page), use them.
-  // This is crucial for the "Test Connection" button to work with unsaved changes.
   if (clientSettings) {
-    settings = clientSettings;
+    settings = { ...defaultSettings, ...clientSettings };
   } else {
-    // For all other cases (automated messages, custom messages from other pages),
-    // fetch the latest saved settings from the database to ensure consistency.
     try {
       const settingsDoc = await getDoc(doc(db, 'Settings', 'School Settings'));
       if (settingsDoc.exists()) {
-        // Merge fetched settings with defaults to ensure all keys are present
         settings = { ...defaultSettings, ...settingsDoc.data() };
       } else {
-        // If no settings in DB, use the defaults (and this will likely fail if not configured)
         settings = defaultSettings;
       }
     } catch (error) {
       console.error('Could not fetch settings from Firestore. Falling back to default settings.', error);
       settings = defaultSettings;
     }
+  }
+  
+  if (!settings.whatsappProvider || settings.whatsappProvider === 'none') {
+    return { success: false, error: "No Active WhatsApp Provider is Configured." };
   }
   
   let result: { success: boolean; error?: string };
