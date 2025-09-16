@@ -107,7 +107,7 @@ export async function sendWhatsAppMessage(to: string, message: string, clientSet
   } else if (settings.whatsappProvider === 'official') {
     result = await sendWithOfficialAPI(to, message, settings);
   } else {
-    result = { success: false, error: "No active WhatsApp provider is configured." };
+    result = { success: false, error: "No Active WhatsApp Provider is Configured." };
   }
 
   if (!result.success) {
