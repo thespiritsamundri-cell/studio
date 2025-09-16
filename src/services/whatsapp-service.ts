@@ -27,7 +27,8 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
     const formattedTo = normalizePhone(to);
     
     // Correct URL construction for UltraMSG
-    const fullUrl = `${whatsappApiUrl}/${whatsappInstanceId}/messages/chat`;
+    const baseUrl = whatsappApiUrl.endsWith('/') ? whatsappApiUrl.slice(0, -1) : whatsappApiUrl;
+    const fullUrl = `${baseUrl}/${whatsappInstanceId}/messages/chat`;
 
     // Use URLSearchParams for robust body encoding
     const params = new URLSearchParams();
@@ -60,7 +61,7 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
     }
 
     if (!response.ok || (responseJson.sent !== 'true' && !responseJson.id)) {
-      const errorMsg = `API Error: ${responseJson.error || 'Unknown error'}`;
+      const errorMsg = `API Error: ${responseJson.error?.message || responseJson.error || 'Unknown error'}`;
       console.error('❌ UltraMSG API Error:', responseJson);
       return { success: false, error: errorMsg };
     }
