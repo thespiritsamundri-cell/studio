@@ -82,15 +82,18 @@ export async function sendWhatsAppMessage(to: string, message: string, settings?
 
   if (settings) {
     // If settings are passed directly (e.g., from the test button), use them.
+    // This ensures the test button always uses the live data from the settings page.
     effectiveSettings = { ...defaultSettings, ...settings };
   } else {
-    // For all other cases (automated messages, custom messages), fetch the latest from DB.
+    // For all other cases (automated, custom messages), fetch the latest from DB.
     // This ensures consistency and uses the saved configuration.
     try {
       const settingsDoc = await getDoc(doc(db, 'Settings', 'School Settings'));
       if (settingsDoc.exists()) {
         effectiveSettings = { ...defaultSettings, ...settingsDoc.data() };
       } else {
+        // This case should ideally not happen if settings are saved upon setup.
+        console.error('Settings document not found in Firestore. Falling back to default settings.');
         effectiveSettings = defaultSettings;
       }
     } catch (error) {
