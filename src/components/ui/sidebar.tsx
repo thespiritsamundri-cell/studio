@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -107,14 +108,9 @@ const SidebarProvider = React.forwardRef<
       setIsPinned((pinned) => !pinned)
     }, [setIsPinned])
     
-    const [isClient, setIsClient] = React.useState(false);
-    React.useEffect(() => {
-        setIsClient(true);
-    }, []);
-
     const contextValue = React.useMemo<SidebarContext>(
       () => ({
-        isMobile: isClient ? isMobile : false, // Default to non-mobile on server
+        isMobile: isMobile ?? false, // Default to non-mobile on server/initial render
         openMobile,
         setOpenMobile,
         toggleMobile,
@@ -122,8 +118,13 @@ const SidebarProvider = React.forwardRef<
         setIsPinned,
         togglePinned
       }),
-      [isClient, isMobile, openMobile, setOpenMobile, toggleMobile, isPinned, setIsPinned, togglePinned]
+      [isMobile, openMobile, setOpenMobile, toggleMobile, isPinned, setIsPinned, togglePinned]
     )
+
+    if (isMobile === undefined) {
+      return null; // Don't render anything until we know the screen size
+    }
+
 
     return (
       <SidebarContext.Provider value={contextValue}>
@@ -451,5 +452,3 @@ export {
   CollapsibleSidebarMenuItem,
   useSidebar,
 }
-
-    
