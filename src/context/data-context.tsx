@@ -526,11 +526,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
           collection(db, 'attendances'),
           where('studentId', '==', studentId),
           where('date', '>=', format(start, 'yyyy-MM-dd')),
-          where('date', '<=', format(end, 'yyyy-MM-dd')),
-          where('status', '==', 'Absent')
+          where('date', '<=', format(end, 'yyyy-MM-dd'))
         );
         const querySnapshot = await getDocs(q);
-        const absenceCount = querySnapshot.size;
+        const monthlyRecords = querySnapshot.docs.map(doc => doc.data());
+        const absenceCount = monthlyRecords.filter(r => r.status === 'Absent').length;
   
         if (absenceCount >= 3) {
           await updateStudent(studentId, { status: 'Inactive' });
