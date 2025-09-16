@@ -84,20 +84,19 @@ async function sendWithOfficialAPI(to: string, message: string, settings: School
 export async function sendWhatsAppMessage(to: string, message: string, clientSettings?: SchoolSettings): Promise<{ success: boolean; error?: string }> {
   let settings: SchoolSettings;
   
-  if (clientSettings) {
-    settings = { ...defaultSettings, ...clientSettings };
-  } else {
-    try {
-      const settingsDoc = await getDoc(doc(db, 'Settings', 'School Settings'));
-      if (settingsDoc.exists()) {
-        settings = { ...defaultSettings, ...settingsDoc.data() };
-      } else {
-        settings = defaultSettings;
-      }
-    } catch (error) {
-      console.error('Could not fetch settings. Using default settings.', error);
+  // Always fetch the latest settings from the database to ensure consistency
+  try {
+    const settingsDoc = await getDoc(doc(db, 'Settings', 'School Settings'));
+    if (settingsDoc.exists()) {
+      // Merge fetched settings with defaults to ensure all keys are present
+      settings = { ...defaultSettings, ...settingsDoc.data() };
+    } else {
+      // If no settings in DB, use the defaults (and this will likely fail if not configured)
       settings = defaultSettings;
     }
+  } catch (error) {
+    console.error('Could not fetch settings from Firestore. Falling back to default settings.', error);
+    settings = defaultSettings;
   }
   
   let result: { success: boolean; error?: string };
