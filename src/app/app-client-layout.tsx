@@ -124,7 +124,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
               </div>
           )}
           {children}
-          <Toaster />
+          {isMounted && <Toaster />}
       </>
   );
 }
