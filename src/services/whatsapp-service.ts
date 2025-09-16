@@ -15,10 +15,10 @@ function normalizePhone(to: string): string {
 }
 
 async function sendWithUltraMSG(to: string, message: string, settings: SchoolSettings): Promise<{ success: boolean; error?: string }> {
-  const { whatsappApiUrl, whatsappInstanceId, whatsappApiKey, whatsappPriority } = settings;
+  const { whatsappApiUrl, whatsappApiKey, whatsappPriority } = settings;
 
-  if (!whatsappApiUrl || !whatsappInstanceId || !whatsappApiKey) {
-    const errorMsg = 'UltraMSG API URL, Instance ID, or Token missing.';
+  if (!whatsappApiUrl || !whatsappApiKey) {
+    const errorMsg = 'UltraMSG API URL or Token missing.';
     console.error(`❌ ${errorMsg}`);
     return { success: false, error: errorMsg };
   }
@@ -27,8 +27,8 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
     const formattedTo = normalizePhone(to);
     
     // Correct URL construction for UltraMSG
-    const baseUrl = whatsappApiUrl.endsWith('/') ? whatsappApiUrl.slice(0, -1) : whatsappApiUrl;
-    const fullUrl = `${baseUrl}/${whatsappInstanceId}/messages/chat`;
+    const baseUrl = whatsappApiUrl.endsWith('/') ? whatsappApiUrl : `${whatsappApiUrl}/`;
+    const fullUrl = `${baseUrl}messages/chat`;
 
     // Use URLSearchParams for robust body encoding
     const params = new URLSearchParams();
