@@ -15,10 +15,10 @@ function normalizePhone(to: string): string {
 }
 
 async function sendWithUltraMSG(to: string, message: string, settings: SchoolSettings): Promise<{ success: boolean; error?: string }> {
-  const { whatsappApiUrl, whatsappApiKey } = settings;
+  const { whatsappApiUrl, whatsappInstanceId, whatsappApiKey } = settings;
 
-  if (!whatsappApiUrl || !whatsappApiKey) {
-    const errorMsg = 'UltraMSG API URL or Token missing.';
+  if (!whatsappApiUrl || !whatsappInstanceId || !whatsappApiKey) {
+    const errorMsg = 'UltraMSG API URL, Instance ID, or Token missing.';
     console.error(`❌ ${errorMsg}`);
     return { success: false, error: errorMsg };
   }
@@ -26,10 +26,11 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
   try {
     const formattedTo = normalizePhone(to);
     
-    // Correct URL construction for UltraMSG
+    // The API URL from settings should already contain the instance ID.
+    // e.g., https://api.ultramsg.com/instance12345
     const baseUrl = whatsappApiUrl.endsWith('/') ? whatsappApiUrl : `${whatsappApiUrl}/`;
     const fullUrl = `${baseUrl}messages/chat`;
-
+    
     const params = new URLSearchParams();
     params.append('token', whatsappApiKey);
     params.append('to', formattedTo);
@@ -49,13 +50,13 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
     try {
       responseJson = JSON.parse(responseText);
     } catch {
-      const errorMsg = `API responded with non-JSON text: ${responseText}`;
-      console.error(`❌ ${errorMsg}`);
-      return { success: false, error: errorMsg };
+       const errorMsg = `API responded with non-JSON text: ${responseText}`;
+       console.error(`❌ ${errorMsg}`);
+       return { success: false, error: errorMsg };
     }
 
     if (!response.ok || (responseJson.sent !== 'true' && !responseJson.id)) {
-      const errorMsg = `API Error: ${responseJson.error?.message || responseJson.error || 'Unknown error'}`;
+      const errorMsg = `API Error: ${responseJson.error?.message || responseJson.error || 'Path not found in Method: POST'}`;
       console.error('❌ UltraMSG API Error:', responseJson);
       return { success: false, error: errorMsg };
     }
@@ -76,35 +77,38 @@ async function sendWithOfficialAPI(to: string, message: string, settings: School
 }
 
 
-export async function sendWhatsAppMessage(to: string, message: string, clientSettings?: SchoolSettings): Promise<{ success: boolean; error?: string }> {
-  let settings: SchoolSettings;
+export async function sendWhatsAppMessage(to: string, message: string, settings?: SchoolSettings): Promise<{ success: boolean; error?: string }> {
+  let effectiveSettings: SchoolSettings;
 
-  if (clientSettings) {
-    settings = { ...defaultSettings, ...clientSettings };
+  if (settings) {
+    // If settings are passed directly (e.g., from the test button), use them.
+    effectiveSettings = { ...defaultSettings, ...settings };
   } else {
+    // For all other cases (automated messages, custom messages), fetch the latest from DB.
+    // This ensures consistency and uses the saved configuration.
     try {
       const settingsDoc = await getDoc(doc(db, 'Settings', 'School Settings'));
       if (settingsDoc.exists()) {
-        settings = { ...defaultSettings, ...settingsDoc.data() };
+        effectiveSettings = { ...defaultSettings, ...settingsDoc.data() };
       } else {
-        settings = defaultSettings;
+        effectiveSettings = defaultSettings;
       }
     } catch (error) {
       console.error('Could not fetch settings from Firestore. Falling back to default settings.', error);
-      settings = defaultSettings;
+      effectiveSettings = defaultSettings;
     }
   }
   
-  if (!settings.whatsappProvider || settings.whatsappProvider === 'none') {
+  if (!effectiveSettings.whatsappProvider || effectiveSettings.whatsappProvider === 'none') {
     return { success: false, error: "No Active WhatsApp Provider is Configured." };
   }
   
   let result: { success: boolean; error?: string };
 
-  if (settings.whatsappProvider === 'ultramsg') {
-    result = await sendWithUltraMSG(to, message, settings);
-  } else if (settings.whatsappProvider === 'official') {
-    result = await sendWithOfficialAPI(to, message, settings);
+  if (effectiveSettings.whatsappProvider === 'ultramsg') {
+    result = await sendWithUltraMSG(to, message, effectiveSettings);
+  } else if (effectiveSettings.whatsappProvider === 'official') {
+    result = await sendWithOfficialAPI(to, message, effectiveSettings);
   } else {
     result = { success: false, error: "No Active WhatsApp Provider is Configured." };
   }
