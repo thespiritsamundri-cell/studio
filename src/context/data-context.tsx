@@ -536,7 +536,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                         message = message.replace(/{student_name}/g, student.name);
                         message = message.replace(/{father_name}/g, student.fatherName);
                         try {
-                            const result = await sendWhatsAppMessage(family.phone, message);
+                            const result = await sendWhatsAppMessage(family.phone, message, settings);
                             if (result.success) {
                                 addActivityLog({ user: 'System', action: 'Send Deactivation Notice', description: `Sent deactivation notice to parents of ${student.name}.` });
                             } else {
@@ -609,7 +609,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                         let message = template.content;
                         message = message.replace(/{teacher_name}/g, teacher.name);
                         try {
-                            const result = await sendWhatsAppMessage(teacher.phone, message);
+                            const result = await sendWhatsAppMessage(teacher.phone, message, settings);
                             if (result.success) {
                                 addActivityLog({ user: 'System', action: 'Send Deactivation Notice', description: `Sent deactivation notice to ${teacher.name}.` });
                             } else {

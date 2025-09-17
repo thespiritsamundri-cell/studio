@@ -395,7 +395,7 @@ export default function SettingsPage() {
         }
         
         try {
-             const result = await sendWhatsAppMessage(recipient.phone, personalizedMessage);
+             const result = await sendWhatsAppMessage(recipient.phone, personalizedMessage, settings);
              if (result.success) {
                 successCount++;
              } else {

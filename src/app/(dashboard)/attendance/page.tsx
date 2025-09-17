@@ -145,8 +145,8 @@ export default function AttendancePage() {
             message = message.replace(/{class}/g, student.class);
             message = message.replace(/{school_name}/g, settings.schoolName);
             
-            const success = await sendWhatsAppMessage(family.phone, message);
-            if(success) successCount++;
+            const result = await sendWhatsAppMessage(family.phone, message, settings);
+            if(result.success) successCount++;
             
         } catch (error) {
             console.error(`Failed to send message for ${student.name}`, error);

@@ -132,7 +132,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                 message = message.replace(/{remaining_dues}/g, newDues.toLocaleString());
                 message = message.replace(/{school_name}/g, settings.schoolName);
                 try {
-                    const result = await sendWhatsAppMessage(family.phone, message);
+                    const result = await sendWhatsAppMessage(family.phone, message, settings);
                     if (result.success) {
                         addActivityLog({ user: 'System', action: 'Send WhatsApp Message', description: 'Sent fee payment receipt to 1 recipient.', recipientCount: 1 });
                     } else {

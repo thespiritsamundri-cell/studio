@@ -1,8 +1,6 @@
 
 'use server';
 
-import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
 import type { SchoolSettings } from '@/context/settings-context';
 import { defaultSettings } from '@/context/settings-context';
 
@@ -124,29 +122,9 @@ async function sendWithOfficialAPI(to: string, message: string, settings: School
 }
 
 
-export async function sendWhatsAppMessage(to: string, message: string, liveSettings?: SchoolSettings): Promise<{ success: boolean; error?: string }> {
-  let effectiveSettings: SchoolSettings;
-
-  if (liveSettings) {
-    // Use the settings passed directly (e.g., from the Test button on the settings page)
-    effectiveSettings = { ...defaultSettings, ...liveSettings };
-  } else {
-    // For all other cases (automated messages, custom messages), fetch the latest saved settings from Firestore.
-    try {
-      const settingsDoc = await getDoc(doc(db, 'Settings', 'School Settings'));
-      if (settingsDoc.exists()) {
-        effectiveSettings = { ...defaultSettings, ...(settingsDoc.data() as Partial<SchoolSettings>) };
-      } else {
-        const errorMessage = 'Settings document not found in Firestore.';
-        console.error(`❌ ${errorMessage}`);
-        return { success: false, error: errorMessage };
-      }
-    } catch (error) {
-       const errorMessage = 'Could not fetch settings from Firestore.';
-       console.error(`❌ ${errorMessage}`, error);
-       return { success: false, error: errorMessage };
-    }
-  }
+export async function sendWhatsAppMessage(to: string, message: string, settings: SchoolSettings): Promise<{ success: boolean; error?: string }> {
+  
+  const effectiveSettings = { ...defaultSettings, ...settings };
   
   if (!effectiveSettings.whatsappProvider || effectiveSettings.whatsappProvider === 'none') {
     return { success: false, error: "No Active WhatsApp Provider is Configured." };
