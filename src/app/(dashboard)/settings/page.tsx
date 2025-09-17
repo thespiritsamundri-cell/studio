@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -13,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Bell, BellOff, Lock, AlertTriangle, PlayCircle, Image as ImageIcon, CheckCircle, LogIn } from 'lucide-react';
+
 import { useData } from '@/context/data-context';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -31,6 +31,7 @@ import { Switch } from '@/components/ui/switch';
 import { Preloader } from '@/components/ui/preloader';
 import { cn } from '@/lib/utils';
 import { uploadFile } from '@/services/storage-service';
+
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { LoginHistory } from './login-history';
 
@@ -160,7 +161,7 @@ export default function SettingsPage() {
         }
         return;
     }
-  }
+  };
 
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -181,15 +182,39 @@ export default function SettingsPage() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: 'schoolLogo' | 'principalSignature' | 'favicon') => {
     const file = e.target.files?.[0];
     if (file) {
-        try {
-            toast({ title: 'Uploading...', description: `Uploading ${field}...` });
-            const downloadURL = await uploadFile(file, `settings/${field}/${file.name}`);
-            setSettings(prev => ({...prev, [field]: downloadURL}));
-            toast({ title: 'Upload Successful', description: `${field} has been uploaded and saved.` });
-        } catch (error) {
-            console.error(`Error uploading ${field}:`, error);
-            toast({ title: 'Upload Failed', variant: 'destructive' });
+      // Step 1: Instant Local Preview
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result as string;
+        if (dataUrl) {
+          setSettings(prev => ({ ...prev, [field]: dataUrl }));
         }
+      };
+      reader.readAsDataURL(file);
+
+      // Step 2: Background Upload
+      try {
+        toast({ title: 'Uploading...', description: `Uploading ${field} in the background.` });
+        const downloadURL = await uploadFile(file, `branding/${field}/${file.name}`);
+        
+        // Step 3: Save permanent URL to the dedicated branding document in Firestore
+        const brandingRef = doc(db, "branding", "school-assets");
+        await setDoc(brandingRef, { [field]: downloadURL }, { merge: true });
+        
+        // Step 4: Update state with permanent URL (this will also trigger save to localStorage via context)
+        setSettings(prev => ({ ...prev, [field]: downloadURL }));
+
+        toast({ title: 'Upload Successful', description: `${field} has been permanently saved.` });
+      } catch (error: any) {
+        console.error("Upload error in settings page:", error);
+        toast({ 
+            title: 'Upload Failed', 
+            description: error.message || 'An unknown error occurred. Please check console for details.',
+            variant: 'destructive' 
+        });
+        // Optional: Revert to previous image if upload fails
+        // To do this, we'd need to store the previous state before the optimistic update.
+      }
     }
   };
 
@@ -395,7 +420,9 @@ export default function SettingsPage() {
         }
         
         try {
+
              const result = await sendWhatsAppMessage(recipient.phone, personalizedMessage, settings);
+
              if (result.success) {
                 successCount++;
              } else {
@@ -421,9 +448,12 @@ export default function SettingsPage() {
             return;
         }
         try {
+
             // Pass the current state of settings directly to the test function
+
             const result = await sendWhatsAppMessage(testPhoneNumber, `This is a test message from ${settings.schoolName}.`, settings);
             if (result.success) {
+
                 toast({ title: 'Test Successful', description: 'Your WhatsApp API settings appear to be correct.' });
                 setSettings(prev => ({...prev, whatsappConnectionStatus: 'connected'}));
             } else {
@@ -958,8 +988,9 @@ export default function SettingsPage() {
                          {settings.whatsappConnectionStatus === 'failed' && <Badge variant="destructive"><WifiOff className="mr-2 h-4 w-4"/>Failed</Badge>}
                          {settings.whatsappConnectionStatus === 'untested' && <Badge variant="secondary">Untested</Badge>}
                     </div>
-                    <CardDescription>Enter your API details to enable messaging features.</CardDescription>
+                    <CardDescription>Select your provider and enter your API details to enable messaging features.</CardDescription>
                 </CardHeader>
+
                 <CardContent className="space-y-4">
                     <RadioGroup 
                         value={settings.whatsappProvider} 
@@ -990,6 +1021,7 @@ export default function SettingsPage() {
                         <div className="p-4 border rounded-lg mt-4 space-y-4">
                             <h3 className="font-semibold">UltraMSG Credentials</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
                                 <div className="space-y-2">
                                     <Label htmlFor="whatsappApiUrl">API URL</Label>
                                     <Input id="whatsappApiUrl" value={settings.whatsappApiUrl} onChange={handleInputChange} placeholder="e.g. https://api.ultramsg.com/instance12345" />
@@ -1007,6 +1039,7 @@ export default function SettingsPage() {
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <Label htmlFor="whatsappPhoneNumberId">Phone Number ID</Label>
+
                                     <Input id="whatsappPhoneNumberId" value={settings.whatsappPhoneNumberId || ''} onChange={handleInputChange} placeholder="e.g., 10..." />
                                 </div>
                                 <div className="space-y-2">
@@ -1014,6 +1047,8 @@ export default function SettingsPage() {
                                     <Input id="whatsappAccessToken" value={settings.whatsappAccessToken || ''} onChange={handleInputChange} placeholder="e.g., EAA..." />
                                 </div>
                             </div>
+
+
                         </div>
                     )}
 

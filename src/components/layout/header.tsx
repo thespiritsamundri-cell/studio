@@ -23,6 +23,15 @@ import { useData } from '@/context/data-context';
 import type { Student, Family } from '@/lib/types';
 import { SupportDialog } from './support-dialog';
 import { ThemeToggle } from './theme-toggle';
+import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
 
 function getTitleFromPathname(pathname: string): string {
   if (pathname === '/dashboard') return 'Dashboard';
@@ -57,6 +66,8 @@ export function Header() {
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [openSupportDialog, setOpenSupportDialog] = useState(false);
+  const [openSearchDialog, setOpenSearchDialog] = useState(false);
+
 
   useEffect(() => {
     setDateTime(new Date());
@@ -123,11 +134,13 @@ export function Header() {
     setSearchQuery('');
     setSearchResults([]);
     setIsSearchDropdownOpen(false);
+    setOpenSearchDialog(false);
   }
 
 
   return (
     <>
+
       <header className="sticky top-0 z-30 flex h-20 items-center gap-4 border-b bg-background px-4 md:px-6">
         <div className="flex items-center gap-2">
           <SidebarTrigger />
@@ -152,6 +165,7 @@ export function Header() {
             <Lock className="h-4 w-4" />
           </Button>
           <ThemeToggle />
+
         </div>
 
         {/* Desktop Header Layout */}
@@ -186,6 +200,7 @@ export function Header() {
           <Button variant="ghost" size="icon" onClick={handleLockClick} className="hidden lg:inline-flex">
             <Lock className="h-4 w-4" />
             <span className="sr-only">Lock screen</span>
+
           </Button>
         </div>
 
@@ -247,6 +262,7 @@ export function Header() {
         </div>
       </header>
       <SupportDialog open={openSupportDialog} onOpenChange={setOpenSupportDialog} />
+
     </>
   );
 }

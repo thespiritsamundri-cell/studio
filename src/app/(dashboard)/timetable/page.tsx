@@ -187,6 +187,7 @@ export default function TimetablePage() {
         printWindow.focus();
      }
   };
+
   
     const renderCell = (classId: string, periodIndex: number) => {
         const cellData = masterTimetableData[classId]?.[periodIndex];
@@ -215,6 +216,7 @@ export default function TimetablePage() {
             </td>
         );
     };
+
 
     const sortedClasses = useMemo(() => {
         return [...classes].sort((a,b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
@@ -246,6 +248,7 @@ export default function TimetablePage() {
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
+
                     <div className="border rounded-lg overflow-x-auto">
                         <table className="w-full border-collapse min-w-[1600px] table-fixed">
                              <colgroup>
@@ -298,6 +301,7 @@ export default function TimetablePage() {
                                         ))}
                                     </tr>
                                 ))}
+
                             </tbody>
                         </table>
                     </div>
@@ -403,3 +407,5 @@ export default function TimetablePage() {
     </div>
   );
 }
+
+    

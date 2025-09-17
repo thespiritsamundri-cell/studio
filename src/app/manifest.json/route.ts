@@ -19,9 +19,11 @@ export async function GET(request: Request) {
   }
 
   const manifest = {
+
     name: settings.schoolName || "The Spirit School Samundri", // <-- updated name
     short_name: settings.schoolName || "TSS",       // <-- updated short name
     description: "Schoolup - A Unique Platform for Smart Schools",
+
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
