@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -6,12 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useSettings } from '@/context/settings-context';
+import { useSettings, defaultSettings } from '@/context/settings-context';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Bell, BellOff, Lock, AlertTriangle, PlayCircle, Image as ImageIcon, CheckCircle, LogIn } from 'lucide-react';
+import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Bell, BellOff, Lock, AlertTriangle, PlayCircle, Image as ImageIcon, CheckCircle, LogIn, RefreshCcw } from 'lucide-react';
 
 import { useData } from '@/context/data-context';
 import { useState, useMemo, useEffect, useRef } from 'react';
@@ -420,9 +419,7 @@ export default function SettingsPage() {
         }
         
         try {
-
              const result = await sendWhatsAppMessage(recipient.phone, personalizedMessage, settings);
-
              if (result.success) {
                 successCount++;
              } else {
@@ -448,12 +445,8 @@ export default function SettingsPage() {
             return;
         }
         try {
-
-            // Pass the current state of settings directly to the test function
-
             const result = await sendWhatsAppMessage(testPhoneNumber, `This is a test message from ${settings.schoolName}.`, settings);
             if (result.success) {
-
                 toast({ title: 'Test Successful', description: 'Your WhatsApp API settings appear to be correct.' });
                 setSettings(prev => ({...prev, whatsappConnectionStatus: 'connected'}));
             } else {
@@ -469,15 +462,27 @@ export default function SettingsPage() {
     };
     
     const handleThemeColorChange = (variableName: string, value: string) => {
-        document.documentElement.style.setProperty(variableName, value);
-        // Also save it to settings so it persists
+        const fullVarName = `--${variableName}`;
+        document.documentElement.style.setProperty(fullVarName, value);
         setSettings(prev => ({
             ...prev,
             themeColors: {
-                ...prev.themeColors,
-                [variableName.replace('--', '')]: value
+                ...(prev.themeColors || {}),
+                [variableName]: value
             }
         }));
+    };
+    
+    const handleResetTheme = () => {
+        const defaultColors = defaultSettings.themeColors || {};
+        setSettings(prev => ({
+            ...prev,
+            themeColors: defaultColors
+        }));
+        for (const [key, value] of Object.entries(defaultColors)) {
+             document.documentElement.style.setProperty(`--${key}`, value);
+        }
+        toast({ title: 'Theme Reset', description: 'Theme has been reset to default colors.' });
     };
     
     const handleGradeChange = (index: number, field: keyof Grade, value: string | number) => {
@@ -761,16 +766,33 @@ export default function SettingsPage() {
                         <h3 className="font-medium text-lg">Main Theme</h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                              <div className="space-y-2">
-                                <Label htmlFor="primary-color">Primary Color</Label>
-                                <Input id="primary-color" type="color" value={settings.themeColors?.primary || '#6a3fdc'} onChange={e => handleThemeColorChange('--primary', e.target.value)} />
+                                <Label htmlFor="primary">Primary Color</Label>
+                                <Input id="primary" type="color" value={settings.themeColors?.primary || '#6a3fdc'} onChange={e => handleThemeColorChange('primary', e.target.value)} />
                              </div>
                              <div className="space-y-2">
-                                <Label htmlFor="background-color">Background Color</Label>
-                                <Input id="background-color" type="color" value={settings.themeColors?.background || '#f0f2f5'} onChange={e => handleThemeColorChange('--background', e.target.value)} />
+                                <Label htmlFor="background">Background Color</Label>
+                                <Input id="background" type="color" value={settings.themeColors?.background || '#f0f2f5'} onChange={e => handleThemeColorChange('background', e.target.value)} />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="accent-color">Accent Color</Label>
-                                <Input id="accent-color" type="color" value={settings.themeColors?.accent || '#e9e1ff'} onChange={e => handleThemeColorChange('--accent', e.target.value)} />
+                                <Label htmlFor="accent">Accent Color</Label>
+                                <Input id="accent" type="color" value={settings.themeColors?.accent || '#e9e1ff'} onChange={e => handleThemeColorChange('accent', e.target.value)} />
+                            </div>
+                        </div>
+                    </div>
+                     <div className="p-4 border rounded-lg space-y-4">
+                        <h3 className="font-medium text-lg">Button Colors</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="button-primary-background">Primary Button BG</Label>
+                                <Input id="button-primary-background" type="color" value={settings.themeColors?.['button-primary-background'] || '#6a3fdc'} onChange={e => handleThemeColorChange('button-primary-background', e.target.value)} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="button-primary-foreground">Primary Button Text</Label>
+                                <Input id="button-primary-foreground" type="color" value={settings.themeColors?.['button-primary-foreground'] || '#ffffff'} onChange={e => handleThemeColorChange('button-primary-foreground', e.target.value)} />
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="button-destructive-background">Destructive Button BG</Label>
+                                <Input id="button-destructive-background" type="color" value={settings.themeColors?.['button-destructive-background'] || '#e53e3e'} onChange={e => handleThemeColorChange('button-destructive-background', e.target.value)} />
                             </div>
                         </div>
                     </div>
@@ -778,24 +800,25 @@ export default function SettingsPage() {
                         <h3 className="font-medium text-lg">Sidebar Theme</h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                              <div className="space-y-2">
-                                <Label htmlFor="sidebar-background-color">Background</Label>
-                                <Input id="sidebar-background-color" type="color" value={settings.themeColors?.['sidebar-background'] || '#2c2a4a'} onChange={e => handleThemeColorChange('--sidebar-background', e.target.value)} />
+                                <Label htmlFor="sidebar-background">Background</Label>
+                                <Input id="sidebar-background" type="color" value={settings.themeColors?.['sidebar-background'] || '#2c2a4a'} onChange={e => handleThemeColorChange('sidebar-background', e.target.value)} />
                              </div>
                              <div className="space-y-2">
-                                <Label htmlFor="sidebar-foreground-color">Text</Label>
-                                <Input id="sidebar-foreground-color" type="color" value={settings.themeColors?.['sidebar-foreground'] || '#f8f9fa'} onChange={e => handleThemeColorChange('--sidebar-foreground', e.target.value)} />
+                                <Label htmlFor="sidebar-foreground">Text</Label>
+                                <Input id="sidebar-foreground" type="color" value={settings.themeColors?.['sidebar-foreground'] || '#f8f9fa'} onChange={e => handleThemeColorChange('sidebar-foreground', e.target.value)} />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="sidebar-accent-color">Accent</Label>
-                                <Input id="sidebar-accent-color" type="color" value={settings.themeColors?.['sidebar-accent'] || '#403d6d'} onChange={e => handleThemeColorChange('--sidebar-accent', e.target.value)} />
+                                <Label htmlFor="sidebar-accent">Accent</Label>
+                                <Input id="sidebar-accent" type="color" value={settings.themeColors?.['sidebar-accent'] || '#403d6d'} onChange={e => handleThemeColorChange('sidebar-accent', e.target.value)} />
                             </div>
                              <div className="space-y-2">
-                                <Label htmlFor="sidebar-accent-foreground-color">Accent Text</Label>
-                                <Input id="sidebar-accent-foreground-color" type="color" value={settings.themeColors?.['sidebar-accent-foreground'] || '#ffffff'} onChange={e => handleThemeColorChange('--sidebar-accent-foreground', e.target.value)} />
+                                <Label htmlFor="sidebar-accent-foreground">Accent Text</Label>
+                                <Input id="sidebar-accent-foreground" type="color" value={settings.themeColors?.['sidebar-accent-foreground'] || '#ffffff'} onChange={e => handleThemeColorChange('sidebar-accent-foreground', e.target.value)} />
                             </div>
                         </div>
                     </div>
-                     <div className="flex justify-end">
+                     <div className="flex justify-between items-center">
+                        <Button variant="ghost" onClick={handleResetTheme}><RefreshCcw className="mr-2 h-4 w-4"/> Reset to Defaults</Button>
                         <Button onClick={() => {
                             addActivityLog({ user: 'Admin', action: 'Update Theme', description: 'Customized the application theme colors and fonts.' });
                             toast({ title: "Theme Saved", description: "Your new colors have been applied."});
@@ -1464,5 +1487,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    

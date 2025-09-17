@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
@@ -7,8 +6,6 @@ import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import type { Grade, MessageTemplate } from '@/lib/types';
 
 import { onAuthStateChanged } from 'firebase/auth';
-
-
 
 export interface SchoolSettings {
   schoolName: string;
@@ -61,22 +58,16 @@ export const defaultSettings: SchoolSettings = {
   schoolAddress: '123 Education Lane, Knowledge City, Pakistan',
   schoolPhone: '+92 309 9969535',
   schoolEmail: 'info@thespiritschool.edu.pk',
-
   schoolLogo: 'https://i.postimg.cc/Xv35Y5XZ/The-Spirit.jpg',
   favicon: 'https://i.postimg.cc/Xv35Y5XZ/The-Spirit.jpg',
+  principalSignature: 'https://i.postimg.cc/XXXXXXX/signature.png',
 
-  principalSignature: 'https://i.postimg.cc/XXXXXXX/signature.png"',
   whatsappApiUrl: 'https://api.ultramsg.com/instance141491/',
   whatsappApiKey: '4e8f26fx3a2yi942',
   whatsappInstanceId: 'instance141491',
-
   whatsappPriority: '10',
-
-  // WhatsApp Provider
   whatsappProvider: 'ultramsg',
   whatsappConnectionStatus: 'untested',
-
-  // Official API Defaults
   whatsappPhoneNumberId: '',
   whatsappAccessToken: '',
 
@@ -84,7 +75,18 @@ export const defaultSettings: SchoolSettings = {
   historyClearPin: '1234',
   autoLockEnabled: true,
   autoLockDuration: 300,
-  themeColors: {},
+  themeColors: {
+    primary: '#6a3fdc',
+    background: '#f0f2f5',
+    accent: '#e9e1ff',
+    'sidebar-background': '#2c2a4a',
+    'sidebar-foreground': '#f8f9fa',
+    'sidebar-accent': '#403d6d',
+    'sidebar-accent-foreground': '#ffffff',
+    'button-primary-background': '#6a3fdc',
+    'button-primary-foreground': '#ffffff',
+    'button-destructive-background': '#e53e3e',
+  },
   font: 'inter',
 
   gradingSystem: [
@@ -165,59 +167,50 @@ export const SettingsContext = createContext<{
 
 export const SettingsProvider = ({ children }: { children: React.ReactNode }) => {
   const [settings, setSettingsState] = useState<SchoolSettings>(defaultSettings);
-
   const [isSettingsInitialized, setIsSettingsInitialized] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    // Listen for auth state changes
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       setIsLoggedIn(!!user);
     });
     return () => unsubscribeAuth();
-
   }, []);
 
   useEffect(() => {
     let unsubscribeDb: (() => void) | undefined;
 
     if (isLoggedIn) {
-      // If user is logged in, fetch settings from Firestore
       const settingsDocRef = doc(db, 'Settings', 'School Settings');
       unsubscribeDb = onSnapshot(settingsDocRef, (doc) => {
         if (doc.exists()) {
           const dbSettings = doc.data() as Partial<SchoolSettings>;
           setSettingsState(prev => ({ ...defaultSettings, ...prev, ...dbSettings }));
         } else {
-          // If settings do not exist in DB, create it with default values
           setDoc(settingsDocRef, defaultSettings);
         }
         setIsSettingsInitialized(true);
       }, (error) => {
         console.error("Error fetching settings from Firestore:", error);
-        setIsSettingsInitialized(true); // Still mark as initialized to unblock UI
+        setIsSettingsInitialized(true);
       });
     } else {
-      // If user is not logged in, use default settings and mark as initialized
       setSettingsState(defaultSettings);
       setIsSettingsInitialized(true);
     }
     
-    // Cleanup Firestore listener on re-render or unmount
     return () => {
       if (unsubscribeDb) {
         unsubscribeDb();
       }
     };
-  }, [isLoggedIn]); // Re-run effect when login status changes
+  }, [isLoggedIn]);
 
   const handleSetSettings = (newSettings: React.SetStateAction<SchoolSettings>) => {
-
     const updatedSettings = typeof newSettings === 'function' ? newSettings(settings) : newSettings;
     
     setSettingsState(updatedSettings);
     
-    // Only save to DB if logged in
     if(isLoggedIn) {
         const settingsDocRef = doc(db, 'Settings', 'School Settings');
         setDoc(settingsDocRef, updatedSettings, { merge: true }).catch(error => {
@@ -231,7 +224,6 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
       {children}
     </SettingsContext.Provider>
   );
-
 };
 
 export const useSettings = () => {
