@@ -6,7 +6,7 @@ import type { ReactNode } from 'react';
 import { SidebarProvider, Sidebar } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/layout/sidebar-nav';
 import { Header } from '@/components/layout/header';
-import { DataProvider } from '@/context/data-context';
+import { DataProvider, useData } from '@/context/data-context';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '@/lib/firebase';
 import { useRouter, usePathname } from 'next/navigation';
@@ -117,16 +117,16 @@ function AuthWrapper({ children }: { children: ReactNode }) {
   useEffect(() => {
     setIsClient(true);
   }, []);
-
+  
   useEffect(() => {
+    if (!isClient) return;
+
     if (!loading && !user) {
-      if (isClient) {
-        sessionStorage.removeItem('welcomeShown');
-      }
+      sessionStorage.removeItem('welcomeShown');
       router.replace('/');
     }
-    if (!loading && user && isClient) {
-      if (sessionStorage.getItem('isUnlocked') === 'true') {
+    if (!loading && user) {
+       if (sessionStorage.getItem('isUnlocked') === 'true') {
         setWelcomeMessage('Welcome Back');
         setShowWelcome(true);
         sessionStorage.removeItem('isUnlocked');
@@ -200,6 +200,36 @@ function AuthWrapper({ children }: { children: ReactNode }) {
   return null;
 }
 
+function DashboardContent({ children }: { children: ReactNode }) {
+    const { isDataInitialized } = useData();
+    const { settings } = useSettings();
+
+    if (!isDataInitialized) {
+        return (
+            <div className="flex h-screen w-full items-center justify-center">
+                {settings.preloaderEnabled ? <Preloader style={settings.preloaderStyle} /> : <Loader2 className="h-8 w-8 animate-spin" />}
+            </div>
+        );
+    }
+    
+    return (
+        <SidebarProvider>
+            <InactivityDetector />
+            <div className="flex min-h-screen w-full bg-muted/40">
+                <Sidebar>
+                    <SidebarNav />
+                </Sidebar>
+                <div className="flex flex-1 flex-col">
+                    <Header />
+                    <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6 lg:p-8">
+                        {children}
+                    </main>
+                </div>
+            </div>
+        </SidebarProvider>
+    );
+}
+
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [isClient, setIsClient] = useState(false);
@@ -234,21 +264,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     <AuthWrapper>
 
         <DataProvider>
-            {isClient && <InactivityDetector />}
-            <SidebarProvider>
-            <div className="flex min-h-screen w-full bg-muted/40">
-                <Sidebar>
-                <SidebarNav />
-                </Sidebar>
-                <div className="flex flex-1 flex-col">
-                <Header />
-                <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6 lg:p-8">
-                    {children}
-                </main>
-                </div>
 
-            </div>
-            </SidebarProvider>
+            <DashboardContent>
+                {children}
+            </DashboardContent>
+
         </DataProvider>
     </AuthWrapper>
   );
