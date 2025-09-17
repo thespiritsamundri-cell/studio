@@ -650,7 +650,7 @@ export default function SettingsPage() {
                         <Input id="schoolPhone" value={settings.schoolPhone} onChange={handleInputChange} />
                     </div>
                      <div className="space-y-2">
-                        <Label htmlFor="schoolEmail">School Email (for OTP)</Label>
+                        <Label htmlFor="schoolEmail">School Email</Label>
                         <Input id="schoolEmail" type="email" value={settings.schoolEmail} onChange={handleInputChange} placeholder="Enter a valid email address" />
                     </div>
                     <div className="space-y-2">
