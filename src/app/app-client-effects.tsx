@@ -5,7 +5,6 @@
 import { useSettings } from "@/context/settings-context";
 import React, { useEffect, ReactNode, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
-import { Preloader } from "@/components/ui/preloader";
 import { usePathname } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
@@ -31,7 +30,7 @@ export default function AppClientEffects({ children }: { children: ReactNode }) 
   const [loading, setLoading] = useState(false);
   const [previousPath, setPreviousPath] = useState(pathname);
 
-  // Page Title, Favicon, Font, and Theme Effects
+  // Page Title, Favicon, and Theme Effects
   useEffect(() => {
     if (isSettingsInitialized) {
       // Title
@@ -57,8 +56,6 @@ export default function AppClientEffects({ children }: { children: ReactNode }) 
       }
       manifestLink.href = `/manifest.json?v=${key}`;
 
-      // Font - This assumes the font variable is set on the body in layout.tsx
-      document.body.className = `font-sans`;
     }
   }, [isSettingsInitialized, settings, pathname]);
 
@@ -82,19 +79,10 @@ export default function AppClientEffects({ children }: { children: ReactNode }) 
     );
   }
   
-  const preloaderStyle = settings.preloaderStyle || 'style1';
-
   return (
     <>
-      {loading && settings.preloaderEnabled && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <Preloader style={preloaderStyle} />
-        </div>
-      )}
       {children}
       <Toaster />
     </>
   );
 }
-
-    

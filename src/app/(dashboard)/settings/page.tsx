@@ -721,7 +721,7 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-8">
                <div className="space-y-4 p-4 border rounded-lg">
-                  <h3 className="font-medium flex items-center gap-2 font-headline"><Type /> Fonts</h3>
+                  <h3 className="font-medium flex items-center gap-2 font-headline"><Type /> Font</h3>
                    <div className="space-y-2 max-w-sm">
                       <p className="text-sm text-muted-foreground">The application font is set to Segoe UI.</p>
                    </div>

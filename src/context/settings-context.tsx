@@ -18,9 +18,6 @@ export interface SchoolSettings {
   favicon: string;
   principalSignature: string;
 
-  preloaderStyle: string;
-  preloaderEnabled: boolean;
-
   // 🔹 UltraMSG
   whatsappApiUrl: string;
   whatsappInstanceId: string;
@@ -62,9 +59,6 @@ export const defaultSettings: SchoolSettings = {
   schoolLogo: 'https://i.postimg.cc/Xv35Y5XZ/The-Spirit.jpg',
   favicon: 'https://i.postimg.cc/Xv35Y5XZ/The-Spirit.jpg',
   principalSignature: 'https://i.postimg.cc/XXXXXXX/signature.png',
-  
-  preloaderStyle: 'style2',
-  preloaderEnabled: true,
   
   whatsappApiUrl: 'https://api.ultramsg.com/instance141491/',
   whatsappApiKey: '4e8f26fx3a2yi942',
