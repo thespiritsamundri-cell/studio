@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { db } from '@/lib/firebase';
@@ -129,8 +128,10 @@ export async function sendWhatsAppMessage(to: string, message: string, liveSetti
   let effectiveSettings: SchoolSettings;
 
   if (liveSettings) {
+    // Use the settings passed directly (e.g., from the Test button on the settings page)
     effectiveSettings = { ...defaultSettings, ...liveSettings };
   } else {
+    // For all other cases (automated messages, custom messages), fetch the latest saved settings from Firestore.
     try {
       const settingsDoc = await getDoc(doc(db, 'Settings', 'School Settings'));
       if (settingsDoc.exists()) {
