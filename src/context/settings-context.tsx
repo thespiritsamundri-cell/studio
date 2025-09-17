@@ -17,7 +17,6 @@ export interface SchoolSettings {
   favicon: string;
   principalSignature: string;
 
-  font: string;
   preloaderStyle: string;
   preloaderEnabled: boolean;
 
@@ -63,7 +62,6 @@ export const defaultSettings: SchoolSettings = {
   favicon: 'https://i.postimg.cc/Xv35Y5XZ/The-Spirit.jpg',
   principalSignature: 'https://i.postimg.cc/XXXXXXX/signature.png',
   
-  font: 'calibri',
   preloaderStyle: 'style2',
   preloaderEnabled: true,
   
@@ -223,5 +221,3 @@ export const useSettings = () => {
   }
   return context;
 };
-
-    

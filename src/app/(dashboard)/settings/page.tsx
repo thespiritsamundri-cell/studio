@@ -723,22 +723,7 @@ export default function SettingsPage() {
                  <h3 className="font-medium flex items-center gap-2"><Type /> Fonts</h3>
                   <div className="space-y-2 max-w-sm">
                     <Label htmlFor="font">Application Font</Label>
-                     <Select value={settings.font} onValueChange={handleSelectChange('font')}>
-                        <SelectTrigger id="font"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="calibri">Calibri (Default)</SelectItem>
-                            <SelectItem value="inter">Inter</SelectItem>
-                            <SelectItem value="roboto">Roboto</SelectItem>
-                            <SelectItem value="lato">Lato</SelectItem>
-                            <SelectItem value="montserrat">Montserrat</SelectItem>
-                            <SelectItem value="open_sans">Open Sans</SelectItem>
-                            <SelectItem value="oswald">Oswald</SelectItem>
-                            <SelectItem value="playfair_display">Playfair Display</SelectItem>
-                            <SelectItem value="source_sans_3">Source Sans 3</SelectItem>
-                            <SelectItem value="merriweather">Merriweather</SelectItem>
-                            <SelectItem value="noto_nastaliq_urdu">Noto Nastaliq Urdu</SelectItem>
-                        </SelectContent>
-                    </Select>
+                     <p className="text-sm text-muted-foreground">The application currently uses the "Inter" font by default.</p>
                   </div>
               </div>
               <div className="flex justify-end">
@@ -1362,4 +1347,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-

@@ -57,7 +57,7 @@ export default function AppClientEffects({ children }: { children: ReactNode }) 
       manifestLink.href = `/manifest.json?v=${key}`;
 
       // Font
-      document.body.className = `font-${settings.font || 'calibri'}`;
+      document.body.className = `font-sans`;
     }
   }, [isSettingsInitialized, settings, pathname]);
 
