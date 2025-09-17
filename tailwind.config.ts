@@ -12,13 +12,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['var(--font-inter)'], // Default body font
+        sans: ['var(--font-inter)'],
         inter: ['var(--font-inter)'],
-        roboto: ['var(--font-roboto)'],
-        'open-sans': ['var(--font-open-sans)'],
-        lato: ['var(--font-lato)'],
-        montserrat: ['var(--font-montserrat)'],
-        poppins: ['var(--font-poppins)'],
+        body: ['var(--font-inter)'], // Default body font
         headline: ['var(--font-inter)'], // Default headline font, can be customized too
         code: ['monospace'],
       },

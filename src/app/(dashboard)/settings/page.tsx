@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -461,30 +462,6 @@ export default function SettingsPage() {
         }
     };
     
-    const handleThemeColorChange = (variableName: string, value: string) => {
-        const fullVarName = `--${variableName}`;
-        document.documentElement.style.setProperty(fullVarName, value);
-        setSettings(prev => ({
-            ...prev,
-            themeColors: {
-                ...(prev.themeColors || {}),
-                [variableName]: value
-            }
-        }));
-    };
-    
-    const handleResetTheme = () => {
-        const defaultColors = defaultSettings.themeColors || {};
-        setSettings(prev => ({
-            ...prev,
-            themeColors: defaultColors
-        }));
-        for (const [key, value] of Object.entries(defaultColors)) {
-             document.documentElement.style.setProperty(`--${key}`, value);
-        }
-        toast({ title: 'Theme Reset', description: 'Theme has been reset to default colors.' });
-    };
-    
     const handleGradeChange = (index: number, field: keyof Grade, value: string | number) => {
         const newGrades = [...(settings.gradingSystem || [])];
         newGrades[index] = { ...newGrades[index], [field]: value };
@@ -638,10 +615,8 @@ export default function SettingsPage() {
       <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><SettingsIcon className="w-8 h-8" />Settings</h1>
       
       <Tabs defaultValue="school" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 h-auto">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 h-auto">
           <TabsTrigger value="school">School</TabsTrigger>
-          <TabsTrigger value="theme">Theme</TabsTrigger>
-          <TabsTrigger value="preloader">Preloader</TabsTrigger>
           <TabsTrigger value="grading">Grading</TabsTrigger>
           <TabsTrigger value="security">Account &amp; Security</TabsTrigger>
           <TabsTrigger value="logins">Logins</TabsTrigger>
@@ -736,126 +711,7 @@ export default function SettingsPage() {
                 </CardContent>
             </Card>
         </TabsContent>
-        <TabsContent value="theme" className="mt-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Palette />Theme Customization</CardTitle>
-                    <CardDescription>Customize the look and feel of the application to match your school's branding.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="p-4 border rounded-lg space-y-4">
-                        <h3 className="font-medium text-lg">Fonts</h3>
-                         <div className="space-y-2">
-                            <Label htmlFor="font">Application Font</Label>
-                            <Select value={settings.font} onValueChange={handleSelectChange('font')}>
-                                <SelectTrigger id="font">
-                                <SelectValue placeholder="Select a font" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="inter">Inter (Default)</SelectItem>
-                                    <SelectItem value="roboto">Roboto</SelectItem>
-                                    <SelectItem value="open-sans">Open Sans</SelectItem>
-                                    <SelectItem value="lato">Lato</SelectItem>
-                                    <SelectItem value="montserrat">Montserrat</SelectItem>
-                                    <SelectItem value="poppins">Poppins</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                    <div className="p-4 border rounded-lg space-y-4">
-                        <h3 className="font-medium text-lg">Main Colors</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                             <div className="space-y-2">
-                                <Label htmlFor="primary">Primary Color</Label>
-                                <Input id="primary" type="color" value={settings.themeColors?.primary || '#6a3fdc'} onChange={e => handleThemeColorChange('primary', e.target.value)} />
-                             </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="background">Background Color</Label>
-                                <Input id="background" type="color" value={settings.themeColors?.background || '#f0f2f5'} onChange={e => handleThemeColorChange('background', e.target.value)} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="accent">Accent Color</Label>
-                                <Input id="accent" type="color" value={settings.themeColors?.accent || '#e9e1ff'} onChange={e => handleThemeColorChange('accent', e.target.value)} />
-                            </div>
-                        </div>
-                    </div>
-                     <div className="p-4 border rounded-lg space-y-4">
-                        <h3 className="font-medium text-lg">Sidebar Colors</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                             <div className="space-y-2">
-                                <Label htmlFor="sidebar-background">Background</Label>
-                                <Input id="sidebar-background" type="color" value={settings.themeColors?.['sidebar-background'] || '#2c2a4a'} onChange={e => handleThemeColorChange('sidebar-background', e.target.value)} />
-                             </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="sidebar-foreground">Text</Label>
-                                <Input id="sidebar-foreground" type="color" value={settings.themeColors?.['sidebar-foreground'] || '#f8f9fa'} onChange={e => handleThemeColorChange('sidebar-foreground', e.target.value)} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="sidebar-accent">Accent</Label>
-                                <Input id="sidebar-accent" type="color" value={settings.themeColors?.['sidebar-accent'] || '#403d6d'} onChange={e => handleThemeColorChange('sidebar-accent', e.target.value)} />
-                            </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="sidebar-accent-foreground">Accent Text</Label>
-                                <Input id="sidebar-accent-foreground" type="color" value={settings.themeColors?.['sidebar-accent-foreground'] || '#ffffff'} onChange={e => handleThemeColorChange('sidebar-accent-foreground', e.target.value)} />
-                            </div>
-                        </div>
-                    </div>
-                     <div className="flex justify-between items-center">
-                        <Button variant="ghost" onClick={handleResetTheme}><RefreshCcw className="mr-2 h-4 w-4"/> Reset to Defaults</Button>
-                        <Button onClick={() => {
-                            addActivityLog({ user: 'Admin', action: 'Update Theme', description: 'Customized the application theme colors and fonts.' });
-                            toast({ title: "Theme Saved", description: "Your new colors have been applied."});
-                        }}>Save Theme</Button>
-                    </div>
-                </CardContent>
-            </Card>
-        </TabsContent>
-        <TabsContent value="preloader" className="mt-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Preloader Settings</CardTitle>
-                    <CardDescription>Customize the loading animation shown when the application is busy.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="flex items-center space-x-2">
-                        <Switch id="preloaderEnabled" checked={settings.preloaderEnabled} onCheckedChange={(checked) => setSettings(prev => ({...prev, preloaderEnabled: checked}))}/>
-                        <Label htmlFor="preloaderEnabled">Show Preloader</Label>
-                    </div>
-                    
-                    <div>
-                        <Label>Preloader Style</Label>
-                        <RadioGroup 
-                            value={settings.preloaderStyle}
-                            onValueChange={(value) => setSettings(prev => ({...prev, preloaderStyle: value}))}
-                            className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mt-2"
-                        >
-                            {Array.from({length: 8}, (_, i) => `style${i+1}`).map(styleName => (
-                                <div key={styleName} className="relative">
-                                    <RadioGroupItem value={styleName} id={styleName} className="sr-only peer" />
-                                    <Label 
-                                        htmlFor={styleName}
-                                        className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                                    >
-                                       <div className="flex items-center justify-center h-16 w-16">
-                                          <Preloader style={styleName} />
-                                       </div>
-                                    </Label>
-                                    <div className="absolute top-2 right-2 hidden peer-data-[state=checked]:block">
-                                        <CheckCircle className="h-5 w-5 text-primary" />
-                                    </div>
-                                </div>
-                            ))}
-                        </RadioGroup>
-                    </div>
-                    <div className="flex justify-end pt-4 border-t">
-                        <Button onClick={() => toast({ title: "Preloader settings saved!"})}>
-                            Save Preloader Settings
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-        </TabsContent>
-         <TabsContent value="grading" className="mt-6">
+        <TabsContent value="grading" className="mt-6">
             <Card>
                 <CardHeader>
                     <CardTitle>Grading System</CardTitle>
