@@ -615,8 +615,10 @@ export default function SettingsPage() {
       <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><SettingsIcon className="w-8 h-8" />Settings</h1>
       
       <Tabs defaultValue="school" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 h-auto">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 h-auto">
           <TabsTrigger value="school">School</TabsTrigger>
+          <TabsTrigger value="theme">Theme</TabsTrigger>
+          <TabsTrigger value="preloader">Preloader</TabsTrigger>
           <TabsTrigger value="grading">Grading</TabsTrigger>
           <TabsTrigger value="security">Account &amp; Security</TabsTrigger>
           <TabsTrigger value="logins">Logins</TabsTrigger>
@@ -708,6 +710,75 @@ export default function SettingsPage() {
                 <div className="flex justify-end">
                     <Button onClick={handleSave}>Save Changes</Button>
                 </div>
+                </CardContent>
+            </Card>
+        </TabsContent>
+         <TabsContent value="theme" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Palette/> Theme Customization</CardTitle>
+              <CardDescription>Customize the look and feel of the application to match your school's branding.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-8">
+               <div className="space-y-4 p-4 border rounded-lg">
+                 <h3 className="font-medium flex items-center gap-2"><Type /> Fonts</h3>
+                  <div className="space-y-2 max-w-sm">
+                    <Label htmlFor="font">Application Font</Label>
+                     <Select value={settings.font} onValueChange={handleSelectChange('font')}>
+                        <SelectTrigger id="font"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="inter">Inter (Default)</SelectItem>
+                            <SelectItem value="roboto_mono">Roboto Mono</SelectItem>
+                            <SelectItem value="noto_nastaliq_urdu">Noto Nastaliq Urdu</SelectItem>
+                             <SelectItem value="calibri">Calibri</SelectItem>
+                        </SelectContent>
+                    </Select>
+                  </div>
+              </div>
+              <div className="space-y-4 p-4 border rounded-lg">
+                <h3 className="font-medium">Main Theme</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <p>Primary Color</p>
+                  <p>Background Color</p>
+                  <p>Accent Color</p>
+                </div>
+              </div>
+              <div className="space-y-4 p-4 border rounded-lg">
+                 <h3 className="font-medium">Sidebar Theme</h3>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <p>Background</p>
+                    <p>Text</p>
+                    <p>Accent</p>
+                    <p>Accent Text</p>
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button>Save Theme</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="preloader" className="mt-6">
+            <Card>
+                 <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><PlayCircle /> Preloader Settings</CardTitle>
+                    <CardDescription>Customize the loading animation that appears when navigating between pages.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                     <div className="flex items-center space-x-2">
+                        <Switch id="preloaderEnabled" checked={settings.preloaderEnabled} onCheckedChange={(checked) => setSettings(prev => ({...prev, preloaderEnabled: checked}))} />
+                        <Label htmlFor="preloaderEnabled">Enable Preloader</Label>
+                    </div>
+
+                    <RadioGroup value={settings.preloaderStyle} onValueChange={(value) => setSettings(prev => ({...prev, preloaderStyle: value}))} className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                       {Array.from({length: 8}, (_, i) => `style${i+1}`).map(style => (
+                            <Label key={style} htmlFor={style} className={cn("flex flex-col items-center justify-center rounded-md border-2 p-4 h-24", settings.preloaderStyle === style ? 'border-primary' : 'border-muted')}>
+                               <RadioGroupItem value={style} id={style} className="sr-only" />
+                               <Preloader style={style} />
+                               <span className="mt-2 text-sm font-medium">{`Style ${style.charAt(5)}`}</span>
+                            </Label>
+                       ))}
+                    </RadioGroup>
                 </CardContent>
             </Card>
         </TabsContent>

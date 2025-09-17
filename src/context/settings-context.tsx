@@ -94,7 +94,7 @@ export const defaultSettings: SchoolSettings = {
   favicon: 'https://i.postimg.cc/Xv35Y5XZ/The-Spirit.jpg',
   principalSignature: 'https://i.postimg.cc/XXXXXXX/signature.png',
   
-  font: 'calibri',
+  font: 'inter',
   preloaderStyle: 'style2',
   preloaderEnabled: true,
   themeColors: {

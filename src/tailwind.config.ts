@@ -1,7 +1,8 @@
 
 import type {Config} from 'tailwindcss';
+import plugin from 'tailwindcss/plugin';
 
-const config: Config = {
+export default {
   darkMode: 'class',
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
@@ -9,17 +10,13 @@ const config: Config = {
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
-    container: {
-      center: true,
-      padding: '2rem',
-      screens: {
-        '2xl': '1400px',
-      },
-    },
     extend: {
       fontFamily: {
-        sans: ['Calibri', 'Inter', 'sans-serif'],
-        urdu: ['"Jameel Noori Nastaleeq"', '"Noto Nastaliq Urdu"', 'sans-serif'],
+        sans: ['var(--font-inter)'],
+        inter: ['var(--font-inter)'],
+        'roboto-mono': ['var(--font-roboto-mono)'],
+        'noto-nastaliq-urdu': ['var(--font-noto-nastaliq-urdu)'],
+        calibri: ['Calibri', 'sans-serif'],
       },
       colors: {
         border: 'hsl(var(--border))',
@@ -89,15 +86,31 @@ const config: Config = {
             transform: 'translateY(calc(-50%))',
           },
         },
+         'gradient-move': {
+            '0%': { '--angle': '0deg' },
+            '100%': { '--angle': '360deg' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         scroll: 'scroll 40s linear infinite',
+        'gradient-move': 'gradient-move 4s linear infinite',
       },
     },
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [
+    require('tailwindcss-animate'),
+     plugin(function ({ addUtilities }) {
+        addUtilities({
+            '.animated-gradient-border': {
+                '@property --angle': {
+                    syntax: "'<angle>'",
+                    inherits: false,
+                    initialValue: '0deg',
+                },
+            },
+        });
+    }),
+  ],
 };
-
-export default config;
