@@ -1,12 +1,5 @@
-import type { NextConfig } from 'next';
-import withPWAInit from 'next-pwa';
 
-// PWA config
-const withPWA = withPWAInit({
-  dest: 'public',
-  register: true,
-  skipWaiting: true,
-});
+/** @type {import('next').NextConfig} */
 
 const withPWA = require('next-pwa')({
   dest: 'public',
@@ -16,7 +9,7 @@ const withPWA = require('next-pwa')({
 });
 
 
-const nextConfig: NextConfig = {
+const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -43,7 +36,7 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
-      {
+       {
         protocol: 'https',
         hostname: 'i.postimg.cc',
         port: '',
@@ -53,6 +46,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-
 module.exports = withPWA(nextConfig);
-
