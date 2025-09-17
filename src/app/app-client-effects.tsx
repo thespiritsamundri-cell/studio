@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useSettings } from "@/context/settings-context";
@@ -7,6 +6,8 @@ import React, { useEffect, ReactNode, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { usePathname } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { Preloader } from "@/components/ui/preloader";
+import { cn } from "@/lib/utils";
 
 
 function getTitleFromPathname(pathname: string): string {
@@ -81,6 +82,15 @@ export default function AppClientEffects({ children }: { children: ReactNode }) 
   
   return (
     <>
+      {loading && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          {settings.preloaderEnabled ? (
+            <Preloader style={settings.preloaderStyle} />
+          ) : (
+            <Loader2 className="h-8 w-8 animate-spin" />
+          )}
+        </div>
+      )}
       {children}
       <Toaster />
     </>
