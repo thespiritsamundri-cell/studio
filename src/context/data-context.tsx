@@ -1,17 +1,16 @@
 
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { db, auth } from '@/lib/firebase';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, writeBatch, query, where, getDocs, setDoc, getDoc, runTransaction } from 'firebase/firestore';
-import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData, Attendance, Alumni, Session } from '@/lib/types';
+import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData, Attendance, Alumni, Session, User } from '@/lib/types';
 import { students as initialStudents, families as initialFamilies, fees as initialFees, teachers as initialTeachers, teacherAttendances as initialTeacherAttendances, classes as initialClasses, exams as initialExams, expenses as initialExpenses, timetables as initialTimetables } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import { startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getMonth, format } from 'date-fns';
 import { useSettings } from './settings-context';
 import { sendWhatsAppMessage } from '@/services/whatsapp-service';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, createUserWithEmailAndPassword as createUser } from 'firebase/auth';
 
 
 interface DataContextType {
@@ -28,6 +27,8 @@ interface DataContextType {
   expenses: Expense[];
   timetables: Timetable[];
   sessions: Session[];
+  users: User[];
+  userRole: User['role'] | null;
   isDataInitialized: boolean;
   addStudent: (student: Student) => Promise<void>;
   updateStudent: (id: string, student: Partial<Student>) => Promise<void>;
@@ -57,6 +58,8 @@ interface DataContextType {
   deleteExpense: (id: string) => Promise<void>;
   updateTimetable: (classId: string, data: TimetableData, timeSlots?: string[], breakAfterPeriod?: number, breakDuration?: string) => Promise<void>;
   signOutSession: (sessionId: string) => Promise<void>;
+  updateUser: (id: string, data: Partial<User>) => Promise<void>;
+  createUser: (email: string, pass: string, name: string, role: User['role']) => Promise<void>;
   loadData: (data: any) => Promise<void>;
   seedDatabase: () => Promise<void>;
   deleteAllData: () => Promise<void>;
@@ -100,10 +103,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [timetables, setTimetables] = useState<Timetable[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [userRole, setUserRole] = useState<User['role'] | null>(null);
   const [isDataInitialized, setIsDataInitialized] = useState(false);
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, user => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
         if (user) {
             const collections: { name: string; setter: React.Dispatch<React.SetStateAction<any[]>> }[] = [
                 { name: 'students', setter: setStudents },
@@ -119,8 +124,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 { name: 'expenses', setter: setExpenses },
                 { name: 'timetables', setter: setTimetables },
                 { name: 'sessions', setter: setSessions },
+                { name: 'users', setter: setUsers },
             ];
             
+            const userDocRef = doc(db, 'users', user.uid);
+            const userDocSnap = await getDoc(userDocRef);
+
+            if (userDocSnap.exists()) {
+                const userData = userDocSnap.data() as User;
+                setUserRole(userData.role);
+            } else {
+                setUserRole(null); 
+            }
+
             const listeners = collections.map(({ name, setter }) => {
                 const collRef = collection(db, name);
                 return onSnapshot(collRef, snapshot => {
@@ -128,22 +144,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
                     if (name === 'activityLog') {
                         data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
                     }
-                    setter(data as any); // Type assertion is okay here as we trust our structure
+                    setter(data as any); 
                 }, error => {
                     console.error(`Error fetching ${name}:`, error);
                     toast({ title: `Error Fetching ${name}`, description: "Could not connect to the database.", variant: "destructive" });
                 });
             });
 
-            // After all listeners are set up, we can consider data initialized
             setIsDataInitialized(true);
 
             return () => listeners.forEach(unsub => unsub());
 
         } else {
             setIsDataInitialized(false);
-            // Clear all local state
-            [setStudents, setFamilies, setFees, setTeachers, setAttendances, setTeacherAttendances, setAlumni, setClasses, setExams, setActivityLog, setExpenses, setTimetables, setSessions].forEach(setter => setter([]));
+            setUserRole(null);
+            [setStudents, setFamilies, setFees, setTeachers, setAttendances, setTeacherAttendances, setAlumni, setClasses, setExams, setActivityLog, setExpenses, setTimetables, setSessions, setUsers].forEach(setter => setter([]));
         }
     });
 
@@ -191,6 +206,35 @@ export function DataProvider({ children }: { children: ReactNode }) {
         toast({ title: `Error updating ${collectionName}`, variant: "destructive" });
     }
   }
+  
+  const createUser = async (email: string, pass: string, name: string, role: User['role']) => {
+      // This is a simplified creation function. In a real app, you'd use a Cloud Function
+      // to create the user record after the auth user is created to ensure security.
+      // This is okay for this internal tool as only super_admin can call it.
+      try {
+        const userCredential = await createUser(auth, email, pass);
+        const user = userCredential.user;
+        if(user) {
+           await setDoc(doc(db, 'users', user.uid), {
+               id: user.uid,
+               name,
+               email,
+               role
+           });
+           await addActivityLog({ user: 'Super Admin', action: 'Create User', description: `Created new user: ${name} with role ${role}.`});
+        }
+      } catch (error: any) {
+         console.error("Error creating user:", error);
+         if (error.code === 'auth/email-already-in-use') {
+             throw new Error('This email address is already in use by another account.');
+         } else if (error.code === 'auth/weak-password') {
+             throw new Error('The password is too weak. It must be at least 6 characters long.');
+         }
+         throw new Error(error.message || 'An unknown error occurred during user creation.');
+      }
+  };
+  const updateUser = updateDocFactory<User>('users', 'Update User Role', d => `Updated role for ${d.email} to ${d.role}.`);
+
 
   // --- STUDENT ---
   const addStudent = async (student: Student) => {
@@ -723,6 +767,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       expenses,
       timetables,
       sessions,
+      users,
+      userRole,
       isDataInitialized,
       addStudent,
       updateStudent, 
@@ -752,6 +798,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       deleteExpense,
       updateTimetable,
       signOutSession,
+      updateUser,
+      createUser,
       loadData,
       seedDatabase,
       deleteAllData,
@@ -772,6 +820,3 @@ export function useData() {
   }
   return context;
 }
-
-
-    
