@@ -1,3 +1,4 @@
+
 import './globals.css'
 import './print-styles.css'
 import AppClientLayout from '@/app/app-client-layout'
@@ -11,6 +12,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#6a3fdc" />
+      </head>
       <body className={`${fontVariables} font-sans antialiased`} suppressHydrationWarning>
         <ThemeProvider
           attribute="class"

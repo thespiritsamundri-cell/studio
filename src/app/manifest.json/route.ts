@@ -25,7 +25,7 @@ export async function GET(request: Request) {
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
-    theme_color: "#6a3fdc",
+    theme_color: "#6a3fdc", // This should match the meta theme-color
     icons: [
       {
         src: settings.schoolLogo || "/logo192.png",
