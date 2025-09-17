@@ -1,34 +1,45 @@
 
 import { NextResponse } from 'next/server';
+import { db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { defaultSettings } from '@/context/settings-context';
+import type { SchoolSettings } from '@/context/settings-context';
 
 export async function GET(request: Request) {
-  // This route is called by the browser to get the manifest file.
-  // It should not access the database, as it's an unauthenticated request.
-  // The dynamic title and favicon are handled on the client-side in app-client-layout.tsx.
+  let settings: SchoolSettings = defaultSettings;
+
+  try {
+    const settingsDocRef = doc(db, 'Settings', 'School Settings');
+    const settingsDoc = await getDoc(settingsDocRef);
+    if (settingsDoc.exists()) {
+      settings = { ...defaultSettings, ...settingsDoc.data() as Partial<SchoolSettings> };
+    }
+  } catch (error) {
+    console.error("Could not fetch settings for manifest, using defaults.", error);
+  }
 
   const manifest = {
-    name: "The Spirit School Samundri",
-    short_name: "Spirit School Samundri",
-    description: "At Schoolup – A Unique Platform for Smart Schools",
+
+    name: settings.schoolName || "The Spirit School Samundri", // <-- updated name
+    short_name: settings.schoolName || "TSS",       // <-- updated short name
+    description: "Schoolup - A Unique Platform for Smart Schools",
+
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
-    theme_color: "#6a3fdc",
+    theme_color: "#6a3fdc", // same as meta theme-color
     icons: [
       {
-        src: "/favicon.ico",
-        sizes: "any",
-        type: "image/x-icon",
+        src: settings.schoolLogo || "https://i.postimg.cc/3wBs967C/android-launchericon-192-192.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "any maskable"
       },
       {
-        src: "/logo192.png",
+        src: settings.schoolLogo || "https://i.postimg.cc/Y9CJP3Cc/android-launchericon-512-512.png",
+        sizes: "512x512",
         type: "image/png",
-        sizes: "192x192"
-      },
-      {
-        src: "/logo512.png",
-        type: "image/png",
-        sizes: "512x512"
+        purpose: "any maskable"
       }
     ],
   };

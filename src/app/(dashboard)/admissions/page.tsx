@@ -234,21 +234,26 @@ export default function AdmissionsPage() {
         });
         
         // Send WhatsApp Message if enabled
-        if(settings.automatedMessages?.admission.enabled) {
-            const admissionTemplate = settings.messageTemplates?.find(t => t.id === settings.automatedMessages?.admission.templateId);
-            if (admissionTemplate) {
-                let message = admissionTemplate.content;
-                message = message.replace(/{student_name}/g, newStudent.name);
-                message = message.replace(/{father_name}/g, newStudent.fatherName);
-                message = message.replace(/{class}/g, newStudent.class);
-                message = message.replace(/{school_name}/g, settings.schoolName);
-                try {
-                    await sendWhatsAppMessage(newStudent.phone, message);
-                     addActivityLog({ user: 'System', action: 'Send WhatsApp Message', description: `Sent admission confirmation to 1 recipient.`, recipientCount: 1 });
-                } catch (error) {
-                     console.error("Failed to send admission WhatsApp message:", error);
-                }
+        if (settings.automatedMessages?.admission.enabled) {
+          const admissionTemplate = settings.messageTemplates?.find(t => t.id === settings.automatedMessages?.admission.templateId);
+          if (admissionTemplate) {
+            let message = admissionTemplate.content;
+            message = message.replace(/{student_name}/g, newStudent.name);
+            message = message.replace(/{father_name}/g, newStudent.fatherName);
+            message = message.replace(/{class}/g, newStudent.class);
+            message = message.replace(/{school_name}/g, settings.schoolName);
+            try {
+              const result = await sendWhatsAppMessage(newStudent.phone, message, settings);
+              if (result.success) {
+                addActivityLog({ user: 'System', action: 'Send WhatsApp Message', description: `Sent admission confirmation to 1 recipient.`, recipientCount: 1 });
+              } else {
+                throw new Error(result.error);
+              }
+            } catch (error: any) {
+              console.error("Failed to send admission WhatsApp message:", error);
+              toast({ title: 'WhatsApp Failed', description: `Could not send admission confirmation. Error: ${error.message}`, variant: 'destructive'});
             }
+          }
         }
 
 

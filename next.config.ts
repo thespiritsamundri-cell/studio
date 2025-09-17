@@ -8,6 +8,14 @@ const withPWA = withPWAInit({
   skipWaiting: true,
 });
 
+const withPWA = require('next-pwa')({
+  dest: 'public',
+  register: true,
+  skipWaiting: true,
+  disable: process.env.NODE_ENV === 'development',
+});
+
+
 const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
@@ -45,5 +53,8 @@ const nextConfig: NextConfig = {
   },
 };
 
+
+
 // Export with PWA wrapper
+
 export default withPWA(nextConfig);

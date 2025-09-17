@@ -116,7 +116,9 @@ const SidebarProvider = React.forwardRef<
     
     const contextValue = React.useMemo<SidebarContext>(
       () => ({
-        isMobile: isClient ? isMobileDevice : false, // Defer mobile check to client
+
+        isMobile: isMobile ?? false, // Default to non-mobile on server/initial render
+
         openMobile,
         setOpenMobile,
         toggleMobile,
@@ -124,8 +126,15 @@ const SidebarProvider = React.forwardRef<
         setIsPinned,
         togglePinned
       }),
-      [isClient, isMobileDevice, openMobile, setOpenMobile, toggleMobile, isPinned, setIsPinned, togglePinned]
+
+      [isMobile, openMobile, setOpenMobile, toggleMobile, isPinned, setIsPinned, togglePinned]
+
     )
+
+    if (isMobile === undefined) {
+      return null; // Don't render anything until we know the screen size
+    }
+
 
     return (
       <SidebarContext.Provider value={contextValue}>
