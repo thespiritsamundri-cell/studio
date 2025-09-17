@@ -57,15 +57,7 @@ export default function AppClientEffects({ children }: { children: ReactNode }) 
       manifestLink.href = `/manifest.json?v=${key}`;
 
       // Font
-      document.body.style.fontFamily = `var(--font-${settings.font || 'inter'})`;
-
-      // Theme Colors
-      const root = document.documentElement;
-      Object.entries(settings.themeColors).forEach(([key, value]) => {
-          if (key.startsWith('--')) {
-              root.style.setProperty(key, value);
-          }
-      });
+      document.body.className = `font-${settings.font || 'calibri'}`;
     }
   }, [isSettingsInitialized, settings, pathname]);
 
@@ -103,3 +95,5 @@ export default function AppClientEffects({ children }: { children: ReactNode }) 
     </>
   );
 }
+
+    

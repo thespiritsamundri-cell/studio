@@ -727,33 +727,23 @@ export default function SettingsPage() {
                      <Select value={settings.font} onValueChange={handleSelectChange('font')}>
                         <SelectTrigger id="font"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="inter">Inter (Default)</SelectItem>
-                            <SelectItem value="roboto_mono">Roboto Mono</SelectItem>
+                            <SelectItem value="calibri">Calibri (Default)</SelectItem>
+                            <SelectItem value="inter">Inter</SelectItem>
+                            <SelectItem value="roboto">Roboto</SelectItem>
+                            <SelectItem value="lato">Lato</SelectItem>
+                            <SelectItem value="montserrat">Montserrat</SelectItem>
+                            <SelectItem value="open_sans">Open Sans</SelectItem>
+                            <SelectItem value="oswald">Oswald</SelectItem>
+                            <SelectItem value="playfair_display">Playfair Display</SelectItem>
+                            <SelectItem value="source_sans_pro">Source Sans Pro</SelectItem>
+                            <SelectItem value="merriweather">Merriweather</SelectItem>
                             <SelectItem value="noto_nastaliq_urdu">Noto Nastaliq Urdu</SelectItem>
-                             <SelectItem value="calibri">Calibri</SelectItem>
                         </SelectContent>
                     </Select>
                   </div>
               </div>
-              <div className="space-y-4 p-4 border rounded-lg">
-                <h3 className="font-medium">Main Theme</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <p>Primary Color</p>
-                  <p>Background Color</p>
-                  <p>Accent Color</p>
-                </div>
-              </div>
-              <div className="space-y-4 p-4 border rounded-lg">
-                 <h3 className="font-medium">Sidebar Theme</h3>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <p>Background</p>
-                    <p>Text</p>
-                    <p>Accent</p>
-                    <p>Accent Text</p>
-                </div>
-              </div>
               <div className="flex justify-end">
-                <Button>Save Theme</Button>
+                <Button onClick={handleSave}>Save Theme</Button>
               </div>
             </CardContent>
           </Card>
@@ -1397,3 +1387,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    

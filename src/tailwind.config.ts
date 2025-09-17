@@ -9,14 +9,33 @@ export default {
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  safelist: [
+    'font-calibri',
+    'font-inter',
+    'font-roboto',
+    'font-lato',
+    'font-montserrat',
+    'font-open_sans',
+    'font-oswald',
+    'font-playfair_display',
+    'font-source_sans_pro',
+    'font-merriweather',
+    'font-noto_nastaliq_urdu',
+  ],
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-inter)'],
-        inter: ['var(--font-inter)'],
-        'roboto-mono': ['var(--font-roboto-mono)'],
-        'noto-nastaliq-urdu': ['var(--font-noto-nastaliq-urdu)'],
         calibri: ['Calibri', 'sans-serif'],
+        inter: ['Inter', 'sans-serif'],
+        roboto: ['Roboto', 'sans-serif'],
+        lato: ['Lato', 'sans-serif'],
+        montserrat: ['Montserrat', 'sans-serif'],
+        'open_sans': ['"Open Sans"', 'sans-serif'],
+        oswald: ['Oswald', 'sans-serif'],
+        'playfair_display': ['"Playfair Display"', 'serif'],
+        'source_sans_pro': ['"Source Sans Pro"', 'sans-serif'],
+        merriweather: ['Merriweather', 'serif'],
+        'noto_nastaliq_urdu': ['"Noto Nastaliq Urdu"', 'serif'],
       },
       colors: {
         border: 'hsl(var(--border))',
@@ -114,3 +133,5 @@ export default {
     }),
   ],
 };
+
+    
