@@ -81,6 +81,7 @@ export default function LockPage() {
     }
   }, [settings.schoolName]);
 
+
   const attemptUnlock = useCallback(async () => {
     // This function will now fetch the PIN from Firestore to ensure it's the latest.
     const settingsDocRef = doc(db, 'Settings', 'School Settings');
@@ -118,6 +119,7 @@ export default function LockPage() {
             description: 'Could not verify PIN. Check your network and try again.',
             variant: 'destructive',
         });
+
     }
   }, [pin, router, toast]);
 
@@ -146,6 +148,12 @@ export default function LockPage() {
     e.preventDefault();
     attemptUnlock();
   };
+  
+   useEffect(() => {
+    if (pin.length === 4) {
+      handleUnlock(pin);
+    }
+  }, [pin]);
 
   if (!isClient) {
     return null; // Render nothing on the server to avoid hydration mismatch
@@ -176,6 +184,7 @@ export default function LockPage() {
                 <CardTitle className="text-3xl font-bold font-headline h-10">{animatedSchoolName}</CardTitle>
             </CardHeader>
             <CardContent>
+
                 <div className="space-y-2">
                   <Label htmlFor="pin" className="text-center block">Enter Security PIN to Unlock</Label>
                   <div className="relative">
@@ -188,11 +197,14 @@ export default function LockPage() {
                         onChange={(e) => setPin(e.target.value)}
                         maxLength={4}
                         className="text-center text-lg tracking-[1rem] pl-10"
+
                         autoComplete="off"
+
                         autoFocus
                     />
                   </div>
                 </div>
+
               <Button type="button" variant="link" size="sm" className="w-full mt-4 text-muted-foreground" onClick={handleLogoutAndRelogin}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Logout and login with email & password

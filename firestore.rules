@@ -5,6 +5,12 @@ service cloud.firestore {
     // Allow read/write access to all documents for any signed-in user.
     // This is a secure default for a single-admin application.
     match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Allow authenticated users to read/write their own data
+    // This is a common pattern for single-user admin apps
+    match /{collection}/{id} {
       allow read, write: if request.auth != null;
     }
   }

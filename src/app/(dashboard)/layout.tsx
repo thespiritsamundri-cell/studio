@@ -15,7 +15,9 @@ import { Loader2, School } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import LockPage from '../lock/page';
 import { Preloader } from '@/components/ui/preloader';
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+
 import { format } from 'date-fns';
 import Image from 'next/image';
 import { doc, getDoc } from 'firebase/firestore';
@@ -58,6 +60,7 @@ function SessionValidator() {
 
   return null;
 }
+
 
 
 function InactivityDetector() {
@@ -231,9 +234,24 @@ function DashboardContent({ children }: { children: ReactNode }) {
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [isClient, setIsClient] = useState(false);
   const pathname = usePathname();
+  const [welcomeVariant, setWelcomeVariant] = useState<'welcome' | 'welcome-back' | null>(null);
+  const [showWelcome, setShowWelcome] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
+    const hasBeenWelcomed = sessionStorage.getItem('hasBeenWelcomed');
+    const unlocked = sessionStorage.getItem('unlocked');
+    
+    if (unlocked === 'true') {
+        setWelcomeVariant('welcome-back');
+        setShowWelcome(true);
+        sessionStorage.removeItem('unlocked');
+    } else if (!hasBeenWelcomed) {
+        setWelcomeVariant('welcome');
+        setShowWelcome(true);
+        sessionStorage.setItem('hasBeenWelcomed', 'true');
+    }
+
   }, []);
 
   if (isClient && pathname === '/lock') {
@@ -244,10 +262,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <AuthWrapper>
+
         <DataProvider>
+
             <DashboardContent>
                 {children}
             </DashboardContent>
+
         </DataProvider>
     </AuthWrapper>
   );

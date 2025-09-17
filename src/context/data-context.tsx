@@ -479,6 +479,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (!date || !className) return;
 
     try {
+
         const batch = writeBatch(db);
         newAttendances.forEach(att => {
             const docId = `${att.studentId}_${att.date}`;
@@ -530,6 +531,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                         }
                     }
                 }
+
             }
         }
     } catch (e) {
@@ -591,13 +593,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
                         let message = template.content;
                         message = message.replace(/{teacher_name}/g, teacher.name);
                         try {
+
                             const result = await sendWhatsAppMessage(teacher.phone, message, settings);
+
                             if (result.success) {
                                 addActivityLog({ user: 'System', action: 'Send Deactivation Notice', description: `Sent deactivation notice to ${teacher.name}.` });
                             } else {
                                 throw new Error(result.error);
                             }
                         } catch(e: any) {
+
                              console.error(`Failed to send deactivation message to ${teacher.name}:`, e);
                              toast({ title: "WhatsApp Failed", description: `Could not send deactivation notice to ${teacher.name}. Error: ${e.message}`, variant: "destructive"});
                         }
