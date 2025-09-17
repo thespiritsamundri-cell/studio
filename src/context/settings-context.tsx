@@ -76,13 +76,13 @@ export const defaultSettings: SchoolSettings = {
   autoLockEnabled: true,
   autoLockDuration: 300,
   themeColors: {
-    primary: '250 60% 55%',
-    background: '220 20% 96%',
-    accent: '250 60% 95%',
+    primary: '262.1 83.3% 57.8%',
+    background: '0 0% 100%',
+    accent: '210 40% 96.1%',
     'sidebar-background': '235 50% 25%',
     'sidebar-foreground': '210 40% 98%',
-    'sidebar-accent': '250 60% 55%',
-    'sidebar-accent-foreground': '0 0% 100%',
+    'sidebar-accent': '262.1 83.3% 57.8%',
+    'sidebar-accent-foreground': '210 40% 98%',
   },
   font: 'inter',
 

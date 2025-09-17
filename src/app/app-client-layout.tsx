@@ -15,7 +15,7 @@ export default function AppClientLayout({
     <SettingsProvider>
       <ThemeProvider
         attribute="class"
-        defaultTheme="system"
+        defaultTheme="dark"
         enableSystem
         disableTransitionOnChange
       >
