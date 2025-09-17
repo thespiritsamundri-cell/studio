@@ -81,11 +81,11 @@ export default function AppClientEffects({ children }: { children: ReactNode }) 
     );
   }
   
-  const preloaderStyle = 'style2'; // Hardcode preloader style
+  const preloaderStyle = settings.preloaderStyle || 'style1';
 
   return (
     <>
-      {loading && (
+      {loading && settings.preloaderEnabled && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <Preloader style={preloaderStyle} />
         </div>

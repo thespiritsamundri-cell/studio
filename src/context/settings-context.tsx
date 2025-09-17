@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { db, auth } from '@/lib/firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import type { Grade, MessageTemplate } from '@/lib/types';
-
+import { Noto_Nastaliq_Urdu, Inter, Roboto_Mono } from 'next/font/google';
 import { onAuthStateChanged } from 'firebase/auth';
 
 export interface SchoolSettings {
@@ -17,6 +17,40 @@ export interface SchoolSettings {
   schoolLogo: string;
   favicon: string;
   principalSignature: string;
+
+  font: string;
+  preloaderStyle: string;
+  preloaderEnabled: boolean;
+  themeColors: {
+    '--background': string;
+    '--foreground': string;
+    '--primary': string;
+    '--primary-foreground': string;
+    '--secondary': string;
+    '--secondary-foreground': string;
+    '--accent': string;
+    '--accent-foreground': string;
+    '--destructive': string;
+    '--destructive-foreground': string;
+    '--card': string;
+    '--card-foreground': string;
+    '--popover': string;
+    '--popover-foreground': string;
+    '--border': string;
+    '--input': string;
+    '--ring': string;
+    '--radius': string;
+    '--chart-1': string;
+    '--chart-2': string;
+    '--chart-3': string;
+    '--chart-4': string;
+    '--chart-5': string;
+    '--sidebar-background': string;
+    '--sidebar-foreground': string;
+    '--sidebar-accent': string;
+    '--sidebar-accent-foreground': string;
+    '--sidebar-border': string;
+  };
 
   // 🔹 UltraMSG
   whatsappApiUrl: string;
@@ -59,6 +93,40 @@ export const defaultSettings: SchoolSettings = {
   schoolLogo: 'https://i.postimg.cc/Xv35Y5XZ/The-Spirit.jpg',
   favicon: 'https://i.postimg.cc/Xv35Y5XZ/The-Spirit.jpg',
   principalSignature: 'https://i.postimg.cc/XXXXXXX/signature.png',
+  
+  font: 'inter',
+  preloaderStyle: 'style2',
+  preloaderEnabled: true,
+  themeColors: {
+    '--background': '240 10% 3.9%',
+    '--foreground': '0 0% 98%',
+    '--primary': '262.1 83.3% 57.8%',
+    '--primary-foreground': '0 0% 98%',
+    '--secondary': '240 3.7% 15.9%',
+    '--secondary-foreground': '0 0% 98%',
+    '--accent': '240 3.7% 15.9%',
+    '--accent-foreground': '0 0% 98%',
+    '--destructive': '0 62.8% 30.6%',
+    '--destructive-foreground': '0 0% 98%',
+    '--card': '240 10% 3.9%',
+    '--card-foreground': '0 0% 98%',
+    '--popover': '240 10% 3.9%',
+    '--popover-foreground': '0 0% 98%',
+    '--border': '240 3.7% 15.9%',
+    '--input': '240 3.7% 15.9%',
+    '--ring': '262.1 83.3% 57.8%',
+    '--radius': '0.5rem',
+    '--chart-1': '220 70% 65%',
+    '--chart-2': '160 70% 45%',
+    '--chart-3': '30 90% 60%',
+    '--chart-4': '280 65% 60%',
+    '--chart-5': '340 80% 65%',
+    '--sidebar-background': '240 10% 3.9%',
+    '--sidebar-foreground': '0 0% 98%',
+    '--sidebar-accent': '240 3.7% 15.9%',
+    '--sidebar-accent-foreground': '0 0% 98%',
+    '--sidebar-border': '240 3.7% 15.9%',
+  },
 
   whatsappApiUrl: 'https://api.ultramsg.com/instance141491/',
   whatsappApiKey: '4e8f26fx3a2yi942',
