@@ -1,93 +1,68 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-  
+
+    // Helper function to get the role of the requesting user
+    function getRole() {
+      // Allow access if the user document exists and has a role.
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    
+    // Helper function to check if the user is authenticated
     function isSignedIn() {
       return request.auth != null;
     }
-    
-    function getRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+
+    // Publicly readable settings document for app initialization
+    match /Settings/{docId} {
+      allow read: if true;
+      allow write: if isSignedIn() && getRole() == "super_admin";
     }
 
+    // Users can read their own data, super_admin can manage all users.
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || getRole() == "super_admin");
+      allow create, update, delete: if isSignedIn() && getRole() == "super_admin";
+    }
+    
+    // Login session management
+    match /sessions/{sessionId} {
+      // User can create their own session and read it. Super admin can read all.
+      allow read: if isSignedIn() && (get(/databases/$(database)/documents/sessions/$(sessionId)).data.userId == request.auth.uid || getRole() == "super_admin");
+      // Users can create their own session. Super admin can delete any session (remote sign-out).
+      allow create: if isSignedIn();
+      allow delete: if isSignedIn() && (get(/databases/$(database)/documents/sessions/$(sessionId)).data.userId == request.auth.uid || getRole() == "super_admin");
+      // Users can update their own session's lastAccess time.
+      allow update: if isSignedIn() && get(/databases/$(database)/documents/sessions/$(sessionId)).data.userId == request.auth.uid;
+    }
+
+    // Coordinator and Super Admin access
+    match /students/{docId} { allow read, write: if isSignedIn() && getRole() in ["super_admin", "coordinator"]; }
+    match /alumni/{docId} { allow read, write: if isSignedIn() && getRole() in ["super_admin", "coordinator"]; }
+    match /teachers/{docId} { allow read, write: if isSignedIn() && getRole() in ["super_admin", "coordinator"]; }
+    match /classes/{docId} { allow read, write: if isSignedIn() && getRole() in ["super_admin", "coordinator"]; }
+    match /attendances/{docId} { allow read, write: if isSignedIn() && getRole() in ["super_admin", "coordinator"]; }
+    match /teacherAttendances/{docId} { allow read, write: if isSignedIn() && getRole() in ["super_admin", "coordinator"]; }
+    match /exams/{docId} { allow read, write: if isSignedIn() && getRole() in ["super_admin", "coordinator"]; }
+    match /timetables/{docId} { allow read, write: if isSignedIn() && getRole() in ["super_admin", "coordinator"]; }
+    
+    // Accountant and Super Admin access
+    match /families/{docId} { allow read, write: if isSignedIn() && getRole() in ["super_admin", "accountant", "coordinator"]; }
+    match /fees/{docId} { allow read, write: if isSignedIn() && getRole() in ["super_admin", "accountant"]; }
+    match /expenses/{docId} { allow read, write: if isSignedIn() && getRole() in ["super_admin", "accountant"]; }
+
+    // Super Admin only access
+    match /activityLog/{docId} { allow read, write: if isSignedIn() && getRole() == "super_admin"; }
+
+    // All authenticated users can read for context, only super_admin can write.
+    match /branding/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && getRole() == "super_admin";
+    }
+    
+    // Default deny
     match /{document=**} {
       allow read, write: if false;
     }
-    
-    match /users/{userId} {
-      allow read: if isSignedIn();
-      allow write: if getRole() == 'super_admin';
-      allow create: if getRole() == 'super_admin';
-    }
-
-    match /students/{docId} {
-      allow read, write, create, delete: if getRole() in ['super_admin', 'coordinator'];
-    }
-    
-    match /alumni/{docId} {
-        allow read, write, create, delete: if getRole() in ['super_admin', 'coordinator'];
-    }
-
-    match /teachers/{docId} {
-      allow read, write, create, delete: if getRole() in ['super_admin', 'coordinator'];
-    }
-    
-    match /teacherAttendances/{docId} {
-       allow read, write, create, delete: if getRole() in ['super_admin', 'coordinator'];
-    }
-
-    match /classes/{docId} {
-      allow read, write, create, delete: if getRole() in ['super_admin', 'coordinator'];
-    }
-    
-    match /families/{docId} {
-      allow read, write, create, delete: if getRole() in ['super_admin', 'coordinator', 'accountant'];
-    }
-    
-    match /fees/{docId} {
-        allow read, write, create, delete: if getRole() in ['super_admin', 'accountant'];
-    }
-    
-    match /expenses/{docId} {
-        allow read, write, create, delete: if getRole() in ['super_admin', 'accountant'];
-    }
-    
-    match /reports/{docId} {
-      allow read: if getRole() == 'super_admin' || 
-                   (getRole() == 'accountant' && resource.data.type == 'finance') ||
-                   (getRole() == 'coordinator' && resource.data.type == 'academic');
-      allow write: if getRole() == 'super_admin';
-    }
-
-    match /attendances/{docId} {
-      allow read, write, create, delete: if getRole() in ['super_admin', 'coordinator'];
-    }
-
-    match /exams/{docId} {
-      allow read, write, create, delete: if getRole() in ['super_admin', 'coordinator'];
-    }
-    
-    match /timetables/{docId} {
-       allow read, write, create, delete: if getRole() in ['super_admin', 'coordinator'];
-    }
-
-    match /settings/{docId} {
-      allow read: if isSignedIn();
-      allow write: if getRole() == 'super_admin';
-    }
-    
-    match /branding/{docId} {
-        allow read: if true;
-        allow write: if getRole() == 'super_admin';
-    }
-
-    match /activityLog/{docId} {
-      allow read, write, create, delete: if getRole() == 'super_admin';
-    }
-    
-     match /sessions/{docId} {
-      allow read, write, create, delete: if isSignedIn();
-    }
-
   }
 }
