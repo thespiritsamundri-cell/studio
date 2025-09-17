@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -716,14 +717,14 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Palette/> Theme Customization</CardTitle>
-              <CardDescription>Customize the look and feel of the application to match your school's branding.</CardDescription>
+              <CardDescription>Customize the look and feel of the application.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
                <div className="space-y-4 p-4 border rounded-lg">
                  <h3 className="font-medium flex items-center gap-2"><Type /> Fonts</h3>
                   <div className="space-y-2 max-w-sm">
                     <Label htmlFor="font">Application Font</Label>
-                     <p className="text-sm text-muted-foreground">The application currently uses the "Inter" font by default.</p>
+                     <p className="text-sm text-muted-foreground">The application font is set to "Inter" by default.</p>
                   </div>
               </div>
               <div className="flex justify-end">

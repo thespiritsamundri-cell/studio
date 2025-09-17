@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useSettings } from "@/context/settings-context";
@@ -56,7 +57,7 @@ export default function AppClientEffects({ children }: { children: ReactNode }) 
       }
       manifestLink.href = `/manifest.json?v=${key}`;
 
-      // Font
+      // Font - This assumes the font variable is set on the body in layout.tsx
       document.body.className = `font-sans`;
     }
   }, [isSettingsInitialized, settings, pathname]);
