@@ -95,7 +95,7 @@ const SidebarProvider = React.forwardRef<
     },
     ref
   ) => {
-    const isMobileDevice = useIsMobile()
+    const isMobile = useIsMobile()
     const [openMobile, setOpenMobile] = React.useState(false)
     const [isPinned, setIsPinned] = useLocalStorage("sidebar-pinned", false);
 
@@ -462,4 +462,5 @@ export {
   CollapsibleSidebarMenuItem,
   useSidebar,
 }
+
 
