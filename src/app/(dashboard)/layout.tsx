@@ -262,15 +262,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <AuthWrapper>
-
-        <DataProvider>
-
-            <DashboardContent>
-                {children}
-            </DashboardContent>
-
-        </DataProvider>
+      <DataProvider>
+        <DashboardContent>
+          {children}
+        </DashboardContent>
+      </DataProvider>
     </AuthWrapper>
   );
 }
-

@@ -618,7 +618,7 @@ export default function SettingsPage() {
       <Tabs defaultValue="school" className="w-full">
         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 h-auto">
           <TabsTrigger value="school">School</TabsTrigger>
-          <TabsTrigger value="theme">Theme</TabsTrigger>
+          <TabsTrigger value="theme">Appearance</TabsTrigger>
           <TabsTrigger value="grading">Grading</TabsTrigger>
           <TabsTrigger value="security">Account &amp; Security</TabsTrigger>
           <TabsTrigger value="logins">Logins</TabsTrigger>
@@ -716,16 +716,47 @@ export default function SettingsPage() {
         <TabsContent value="theme" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 font-headline"><Palette/> Theme Customization</CardTitle>
+              <CardTitle className="flex items-center gap-2 font-headline"><Palette/> Theme & Appearance</CardTitle>
               <CardDescription>Customize the look and feel of the application.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
                <div className="space-y-4 p-4 border rounded-lg">
                   <h3 className="font-medium flex items-center gap-2 font-headline"><Type /> Font</h3>
-                   <div className="space-y-2 max-w-sm">
-                      <p className="text-sm text-muted-foreground">The application font is set to Inter. This can only be changed via code.</p>
-                   </div>
-              </div>
+                  <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">The application font is set to "Inter" for a clean and modern look across all devices.</p>
+                  </div>
+               </div>
+               <div className="space-y-4 p-4 border rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-medium flex items-center gap-2 font-headline"><PlayCircle /> Preloader Animation</h3>
+                    <Switch
+                        checked={settings.preloaderEnabled}
+                        onCheckedChange={(checked) => setSettings(prev => ({...prev, preloaderEnabled: checked}))}
+                    />
+                  </div>
+                  <p className="text-sm text-muted-foreground">Choose the loading animation that displays while data is being fetched. This adds a professional touch to your application.</p>
+                  <RadioGroup 
+                    value={settings.preloaderStyle}
+                    onValueChange={(value) => setSettings(prev => ({...prev, preloaderStyle: value}))}
+                    className="grid grid-cols-2 md:grid-cols-4 gap-4"
+                    disabled={!settings.preloaderEnabled}
+                  >
+                    {Array.from({length: 8}, (_, i) => `style${i+1}`).map(style => (
+                        <div key={style}>
+                            <RadioGroupItem value={style} id={style} className="sr-only" />
+                            <Label htmlFor={style} className={cn(
+                                "flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer",
+                                "peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary",
+                                !settings.preloaderEnabled && "opacity-50 cursor-not-allowed"
+                            )}>
+                                <div className="w-16 h-16 flex items-center justify-center">
+                                    <Preloader style={style} />
+                                </div>
+                            </Label>
+                        </div>
+                    ))}
+                  </RadioGroup>
+               </div>
             </CardContent>
           </Card>
         </TabsContent>
