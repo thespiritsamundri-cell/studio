@@ -30,20 +30,16 @@ export default function AppClientEffects({ children }: { children: ReactNode }) 
   const [loading, setLoading] = useState(false);
   const [previousPath, setPreviousPath] = useState(pathname);
 
-  // Page Title Effect
+  // Page Title, Favicon, Font, and Theme Effects
   useEffect(() => {
     if (isSettingsInitialized) {
+      // Title
       const pageTitle = getTitleFromPathname(pathname);
       const schoolName = settings.schoolName || 'EduCentral';
       document.title = `${pageTitle} | ${schoolName}`;
-    }
-  }, [pathname, settings.schoolName, isSettingsInitialized]);
 
-  // Favicon and Manifest Effect
-  useEffect(() => {
-    if (isSettingsInitialized) {
+      // Favicon & Manifest
       const key = new Date().getTime();
-      
       let faviconLink = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
       if (!faviconLink) {
         faviconLink = document.createElement('link');
@@ -59,18 +55,14 @@ export default function AppClientEffects({ children }: { children: ReactNode }) 
         document.head.appendChild(manifestLink);
       }
       manifestLink.href = `/manifest.json?v=${key}`;
-    }
-  }, [isSettingsInitialized, settings.favicon, settings.schoolName]);
-  
-  // Font and Theme Colors Effect
-  useEffect(() => {
-    if (isSettingsInitialized) {
-      const selectedFont = fontMap[settings.font as keyof typeof fontMap] || inter;
       
+      // Font
+      const selectedFont = fontMap[settings.font as keyof typeof fontMap] || inter;
       const allFontClasses = Object.values(fontMap).map(font => font.variable);
       document.body.classList.remove(...allFontClasses);
       document.body.classList.add(selectedFont.variable);
 
+      // Theme Colors
       if (settings.themeColors) {
           const root = document.documentElement;
           for (const [key, value] of Object.entries(settings.themeColors)) {
@@ -78,7 +70,7 @@ export default function AppClientEffects({ children }: { children: ReactNode }) 
           }
       }
     }
-  }, [isSettingsInitialized, settings.font, settings.themeColors]);
+  }, [isSettingsInitialized, settings, pathname]);
 
   // Page transition loader effect
   useEffect(() => {

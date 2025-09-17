@@ -28,6 +28,7 @@ interface DataContextType {
   expenses: Expense[];
   timetables: Timetable[];
   sessions: Session[];
+  isDataInitialized: boolean;
   addStudent: (student: Student) => Promise<void>;
   updateStudent: (id: string, student: Partial<Student>) => Promise<void>;
   updateAlumni: (id: string, alumni: Partial<Alumni>) => Promise<void>;
@@ -99,75 +100,54 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [timetables, setTimetables] = useState<Timetable[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isDataInitialized, setIsDataInitialized] = useState(false);
 
   useEffect(() => {
-    // Wait for Firebase auth state to be confirmed
     const unsubscribeAuth = onAuthStateChanged(auth, user => {
         if (user) {
-            // User is signed in, set up Firestore listeners
-            const collections: { [key: string]: React.Dispatch<React.SetStateAction<any[]>> } = {
-                students: setStudents,
-                families: setFamilies,
-                fees: setFees,
-                teachers: setTeachers,
-                attendances: setAttendances,
-                teacherAttendances: setTeacherAttendances,
-                alumni: setAlumni,
-                classes: setClasses,
-                exams: setExams,
-                activityLog: setActivityLog,
-                expenses: setExpenses,
-                timetables: setTimetables,
-            };
+            const collections: { name: string; setter: React.Dispatch<React.SetStateAction<any[]>> }[] = [
+                { name: 'students', setter: setStudents },
+                { name: 'families', setter: setFamilies },
+                { name: 'fees', setter: setFees },
+                { name: 'teachers', setter: setTeachers },
+                { name: 'attendances', setter: setAttendances },
+                { name: 'teacherAttendances', setter: setTeacherAttendances },
+                { name: 'alumni', setter: setAlumni },
+                { name: 'classes', setter: setClasses },
+                { name: 'exams', setter: setExams },
+                { name: 'activityLog', setter: setActivityLog },
+                { name: 'expenses', setter: setExpenses },
+                { name: 'timetables', setter: setTimetables },
+                { name: 'sessions', setter: setSessions },
+            ];
             
-            const unsubscribers = Object.entries(collections).map(([name, setter]) => {
-              const collRef = collection(db, name);
-              return onSnapshot(collRef, (snapshot) => {
-                const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
-                if (name === 'activityLog') {
-                  // Sort activity log by timestamp descending
-                  data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-                }
-                setter(data);
-              }, (error) => {
-                console.error(`Error fetching ${name}:`, error);
-                toast({ title: `Error Fetching ${name}`, description: "Could not connect to the database.", variant: "destructive" });
-              });
+            const listeners = collections.map(({ name, setter }) => {
+                const collRef = collection(db, name);
+                return onSnapshot(collRef, snapshot => {
+                    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    if (name === 'activityLog') {
+                        data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+                    }
+                    setter(data as any); // Type assertion is okay here as we trust our structure
+                }, error => {
+                    console.error(`Error fetching ${name}:`, error);
+                    toast({ title: `Error Fetching ${name}`, description: "Could not connect to the database.", variant: "destructive" });
+                });
             });
 
-            const sessionUnsub = onSnapshot(collection(db, 'sessions'), (snapshot) => {
-                const sessionData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Session[];
-                setSessions(sessionData);
-            }, (error) => {
-                console.error("Error fetching sessions:", error);
-            });
-            unsubscribers.push(sessionUnsub);
-            setLoading(false);
+            // After all listeners are set up, we can consider data initialized
+            setIsDataInitialized(true);
 
-            // Return a cleanup function that unsubscribes from all listeners
-            return () => unsubscribers.forEach(unsub => unsub());
+            return () => listeners.forEach(unsub => unsub());
 
         } else {
-            // User is signed out, clear all data and stop loading
-            setStudents([]);
-            setFamilies([]);
-            setFees([]);
-            setTeachers([]);
-            setAttendances([]);
-            setTeacherAttendances([]);
-            setClasses([]);
-            setAlumni([]);
-            setExams([]);
-            setActivityLog([]);
-            setExpenses([]);
-            setTimetables([]);
-            setSessions([]);
-            setLoading(false);
+            setIsDataInitialized(false);
+            // Clear all local state
+            [setStudents, setFamilies, setFees, setTeachers, setAttendances, setTeacherAttendances, setAlumni, setClasses, setExams, setActivityLog, setExpenses, setTimetables, setSessions].forEach(setter => setter([]));
         }
     });
 
-    return () => unsubscribeAuth(); // Cleanup auth listener on component unmount
+    return () => unsubscribeAuth();
   }, [toast]);
   
 
@@ -514,9 +494,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
             const student = students.find(s => s.id === studentId);
             if (!student || student.status !== 'Active') continue;
 
+            const studentAttendances = (await getDocs(query(collection(db, 'attendances'), where('studentId', '==', studentId)))).docs.map(d => d.data() as Attendance);
+
             const start = startOfMonth(new Date(date));
             const end = endOfMonth(new Date(date));
-            const monthlyRecords = attendances.filter(a => a.studentId === studentId && new Date(a.date) >= start && new Date(a.date) <= end);
+            const monthlyRecords = studentAttendances.filter(a => new Date(a.date) >= start && new Date(a.date) <= end);
             const absenceCount = monthlyRecords.filter(r => r.status === 'Absent').length;
 
             if (absenceCount >= 3) {
@@ -736,6 +718,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       expenses,
       timetables,
       sessions,
+      isDataInitialized,
       addStudent,
       updateStudent, 
       updateAlumni,
