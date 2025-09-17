@@ -1,17 +1,93 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read/write access to all documents for any signed-in user.
-    // This is a secure default for a single-admin application.
+  
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function getRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
-
-    // Allow authenticated users to read/write their own data
-    // This is a common pattern for single-user admin apps
-    match /{collection}/{id} {
-      allow read, write: if request.auth != null;
+    
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow write: if getRole() == 'super_admin';
+      allow create: if getRole() == 'super_admin';
     }
+
+    match /students/{docId} {
+      allow read, write, create, delete: if getRole() in ['super_admin', 'coordinator'];
+    }
+    
+    match /alumni/{docId} {
+        allow read, write, create, delete: if getRole() in ['super_admin', 'coordinator'];
+    }
+
+    match /teachers/{docId} {
+      allow read, write, create, delete: if getRole() in ['super_admin', 'coordinator'];
+    }
+    
+    match /teacherAttendances/{docId} {
+       allow read, write, create, delete: if getRole() in ['super_admin', 'coordinator'];
+    }
+
+    match /classes/{docId} {
+      allow read, write, create, delete: if getRole() in ['super_admin', 'coordinator'];
+    }
+    
+    match /families/{docId} {
+      allow read, write, create, delete: if getRole() in ['super_admin', 'coordinator', 'accountant'];
+    }
+    
+    match /fees/{docId} {
+        allow read, write, create, delete: if getRole() in ['super_admin', 'accountant'];
+    }
+    
+    match /expenses/{docId} {
+        allow read, write, create, delete: if getRole() in ['super_admin', 'accountant'];
+    }
+    
+    match /reports/{docId} {
+      allow read: if getRole() == 'super_admin' || 
+                   (getRole() == 'accountant' && resource.data.type == 'finance') ||
+                   (getRole() == 'coordinator' && resource.data.type == 'academic');
+      allow write: if getRole() == 'super_admin';
+    }
+
+    match /attendances/{docId} {
+      allow read, write, create, delete: if getRole() in ['super_admin', 'coordinator'];
+    }
+
+    match /exams/{docId} {
+      allow read, write, create, delete: if getRole() in ['super_admin', 'coordinator'];
+    }
+    
+    match /timetables/{docId} {
+       allow read, write, create, delete: if getRole() in ['super_admin', 'coordinator'];
+    }
+
+    match /settings/{docId} {
+      allow read: if isSignedIn();
+      allow write: if getRole() == 'super_admin';
+    }
+    
+    match /branding/{docId} {
+        allow read: if true;
+        allow write: if getRole() == 'super_admin';
+    }
+
+    match /activityLog/{docId} {
+      allow read, write, create, delete: if getRole() == 'super_admin';
+    }
+    
+     match /sessions/{docId} {
+      allow read, write, create, delete: if isSignedIn();
+    }
+
   }
 }

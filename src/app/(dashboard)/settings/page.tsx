@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Bell, BellOff, Lock, AlertTriangle, PlayCircle, Image as ImageIcon, CheckCircle, LogIn, RefreshCcw } from 'lucide-react';
+import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Bell, BellOff, Lock, AlertTriangle, PlayCircle, Image as ImageIcon, CheckCircle, LogIn, RefreshCcw, Users } from 'lucide-react';
 
 import { useData } from '@/context/data-context';
 import { useState, useMemo, useEffect, useRef } from 'react';
@@ -35,11 +35,12 @@ import { uploadFile } from '@/services/storage-service';
 
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { LoginHistory } from './login-history';
+import { UserManagement } from './user-management';
 
 
 export default function SettingsPage() {
   const { settings, setSettings } = useSettings();
-  const { students, families, fees, loadData, addActivityLog, activityLog, seedDatabase, clearActivityLog, classes: dataClasses, teachers, deleteAllData } = useData();
+  const { students, families, fees, loadData, addActivityLog, activityLog, seedDatabase, clearActivityLog, classes: dataClasses, teachers, deleteAllData, userRole } = useData();
   const { toast } = useToast();
   
   // Custom Messaging State
@@ -629,21 +630,30 @@ export default function SettingsPage() {
     }), [settings.automatedMessages]);
 
 
+  const tabs = [
+    { value: 'school', label: 'School', icon: SettingsIcon },
+    { value: 'users', label: 'Users', icon: Users, role: 'super_admin' },
+    { value: 'appearance', label: 'Appearance', icon: Palette },
+    { value: 'grading', label: 'Grading', icon: Type },
+    { value: 'security', label: 'Account & Security', icon: ShieldAlert },
+    { value: 'logins', label: 'Logins', icon: LogIn, role: 'super_admin' },
+    { value: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
+    { value: 'history', label: 'History', icon: History, role: 'super_admin' },
+    { value: 'backup', label: 'Backup', icon: Database, role: 'super_admin' },
+  ].filter(tab => !tab.role || tab.role === userRole);
+
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><SettingsIcon className="w-8 h-8" />Settings</h1>
       
       <Tabs defaultValue="school" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 h-auto">
-          <TabsTrigger value="school">School</TabsTrigger>
-          <TabsTrigger value="theme">Appearance</TabsTrigger>
-          <TabsTrigger value="grading">Grading</TabsTrigger>
-          <TabsTrigger value="security">Account &amp; Security</TabsTrigger>
-          <TabsTrigger value="logins">Logins</TabsTrigger>
-          <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
-          <TabsTrigger value="history">History</TabsTrigger>
-          <TabsTrigger value="backup">Backup</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 h-auto">
+            {tabs.map(tab => (
+                <TabsTrigger key={tab.value} value={tab.value}>{tab.label}</TabsTrigger>
+            ))}
         </TabsList>
+
         <TabsContent value="school" className="mt-6">
             <Card>
                 <CardHeader>
@@ -731,7 +741,12 @@ export default function SettingsPage() {
                 </CardContent>
             </Card>
         </TabsContent>
-        <TabsContent value="theme" className="mt-6">
+        {userRole === 'super_admin' && (
+          <TabsContent value="users" className="mt-6">
+            <UserManagement />
+          </TabsContent>
+        )}
+        <TabsContent value="appearance" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 font-headline"><Palette/> Appearance</CardTitle>
@@ -907,9 +922,11 @@ export default function SettingsPage() {
                 </CardContent>
             </Card>
         </TabsContent>
-        <TabsContent value="logins" className="mt-6">
-            <LoginHistory />
-        </TabsContent>
+        {userRole === 'super_admin' && (
+          <TabsContent value="logins" className="mt-6">
+              <LoginHistory />
+          </TabsContent>
+        )}
         <TabsContent value="whatsapp" className="mt-6 space-y-6">
             <Card>
                 <CardHeader>
@@ -1199,69 +1216,72 @@ export default function SettingsPage() {
             </Card>
 
         </TabsContent>
-        <TabsContent value="history" className="mt-6">
-          <Card>
-            <CardHeader className="flex flex-row justify-between items-start">
-              <div>
-                <CardTitle>Activity History</CardTitle>
-                <CardDescription>A log of all important activities performed in the system.</CardDescription>
-              </div>
-               <AlertDialog open={openClearHistoryDialog} onOpenChange={setOpenClearHistoryDialog}>
-                <AlertDialogTrigger asChild>
-                    <Button variant="destructive"><Trash2 className="mr-2 h-4 w-4" /> Clear All History</Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Enter PIN to Clear History</AlertDialogTitle>
-                        <AlertDialogDescription>
-                           This action is irreversible and will permanently delete all activity logs. Please enter your 4-digit security PIN to confirm.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <div className="flex justify-center py-4">
-                        <Input 
-                            type="password"
-                            maxLength={4}
-                            className="w-48 text-center text-2xl tracking-[1rem]"
-                            value={clearHistoryPin}
-                            onChange={(e) => setClearHistoryPin(e.target.value)}
-                        />
-                    </div>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleConfirmClearHistory}>Confirm &amp; Delete</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-               </AlertDialog>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>User</TableHead>
-                    <TableHead>Action</TableHead>
-                    <TableHead>Description</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {activityLog.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell className="text-xs text-muted-foreground">{format(new Date(log.timestamp), 'PPP p')}</TableCell>
-                      <TableCell>{log.user}</TableCell>
-                      <TableCell><Badge variant="secondary">{log.action}</Badge></TableCell>
-                      <TableCell>{log.description}</TableCell>
-                    </TableRow>
-                  ))}
-                  {activityLog.length === 0 && (
+        {userRole === 'super_admin' && (
+          <TabsContent value="history" className="mt-6">
+            <Card>
+              <CardHeader className="flex flex-row justify-between items-start">
+                <div>
+                  <CardTitle>Activity History</CardTitle>
+                  <CardDescription>A log of all important activities performed in the system.</CardDescription>
+                </div>
+                <AlertDialog open={openClearHistoryDialog} onOpenChange={setOpenClearHistoryDialog}>
+                  <AlertDialogTrigger asChild>
+                      <Button variant="destructive"><Trash2 className="mr-2 h-4 w-4" /> Clear All History</Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                      <AlertDialogHeader>
+                          <AlertDialogTitle>Enter PIN to Clear History</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action is irreversible and will permanently delete all activity logs. Please enter your 4-digit security PIN to confirm.
+                          </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <div className="flex justify-center py-4">
+                          <Input 
+                              type="password"
+                              maxLength={4}
+                              className="w-48 text-center text-2xl tracking-[1rem]"
+                              value={clearHistoryPin}
+                              onChange={(e) => setClearHistoryPin(e.target.value)}
+                          />
+                      </div>
+                      <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleConfirmClearHistory}>Confirm &amp; Delete</AlertDialogAction>
+                      </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">No activity recorded yet.</TableCell>
+                      <TableHead>Date</TableHead>
+                      <TableHead>User</TableHead>
+                      <TableHead>Action</TableHead>
+                      <TableHead>Description</TableHead>
                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                  </TableHeader>
+                  <TableBody>
+                    {activityLog.map((log) => (
+                      <TableRow key={log.id}>
+                        <TableCell className="text-xs text-muted-foreground">{format(new Date(log.timestamp), 'PPP p')}</TableCell>
+                        <TableCell>{log.user}</TableCell>
+                        <TableCell><Badge variant="secondary">{log.action}</Badge></TableCell>
+                        <TableCell>{log.description}</TableCell>
+                      </TableRow>
+                    ))}
+                    {activityLog.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">No activity recorded yet.</TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+        {userRole === 'super_admin' && (
         <TabsContent value="backup" className="mt-6">
           <Card>
             <CardHeader>
@@ -1360,6 +1380,7 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </TabsContent>
+        )}
       </Tabs>
       
        <Dialog open={openTemplateDialog} onOpenChange={setOpenTemplateDialog}>

@@ -1,5 +1,12 @@
 
 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'super_admin' | 'accountant' | 'coordinator';
+}
+
 export interface Student {
   id: string;
   name: string;
