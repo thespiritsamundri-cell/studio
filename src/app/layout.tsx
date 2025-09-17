@@ -3,7 +3,11 @@ import './globals.css'
 import './print-styles.css'
 import AppClientLayout from '@/app/app-client-layout'
 import { fontVariables } from '@/app/font-config'
-import { ThemeProvider } from '@/components/layout/theme-provider'
+
+export const metadata = {
+  title: 'School Management System',
+  description: 'A comprehensive school management system.',
+}
 
 export default function RootLayout({
   children,
@@ -17,16 +21,9 @@ export default function RootLayout({
         <meta name="theme-color" content="#6a3fdc" />
       </head>
       <body className={`${fontVariables} font-sans antialiased`} suppressHydrationWarning>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
           <AppClientLayout>
             {children}
           </AppClientLayout>
-        </ThemeProvider>
       </body>
     </html>
   )
