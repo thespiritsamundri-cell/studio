@@ -162,7 +162,6 @@ export default function LockPage() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-cover bg-center" style={{ backgroundImage: `url(${backgroundImageUrl})` }}>
         <div className="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
-        <div className="stat-card">
         <Card className="w-full max-w-md mx-auto shadow-2xl z-10 bg-card/95 border-primary/20">
             <CardHeader className="text-center">
                  <div className="text-muted-foreground font-mono mb-4">
@@ -235,7 +234,6 @@ export default function LockPage() {
                 </div>
             </CardFooter>
         </Card>
-        </div>
     </div>
   );
 }
