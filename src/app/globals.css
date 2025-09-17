@@ -25,11 +25,12 @@
     --ring: 240 10% 3.9%;
     --radius: 0.5rem;
 
-    --sidebar-background: var(--muted);
-    --sidebar-foreground: var(--muted-foreground);
-    --sidebar-accent: var(--accent);
-    --sidebar-accent-foreground: var(--accent-foreground);
-    --sidebar-border: var(--border);
+    /* Light Mode Sidebar */
+    --sidebar-background: 262.1 83.3% 57.8%; /* Same as primary */
+    --sidebar-foreground: 0 0% 98%; /* Same as primary-foreground */
+    --sidebar-accent: 262.1 83.3% 47.8%; /* Darker purple for hover/active */
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 262.1 83.3% 52.8%;
 
     --chart-1: 220 70% 65%;
     --chart-2: 160 70% 45%;
@@ -59,6 +60,7 @@
     --input: 240 3.7% 15.9%;
     --ring: 262.1 83.3% 57.8%;
     
+    /* Dark Mode Sidebar */
     --sidebar-background: var(--background);
     --sidebar-foreground: var(--foreground);
     --sidebar-accent: var(--accent);
