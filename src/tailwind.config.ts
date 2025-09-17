@@ -18,7 +18,7 @@ export default {
     'font-open_sans',
     'font-oswald',
     'font-playfair_display',
-    'font-source_sans_pro',
+    'font-source_sans_3',
     'font-merriweather',
     'font-noto_nastaliq_urdu',
   ],
@@ -33,7 +33,7 @@ export default {
         'open_sans': ['"Open Sans"', 'sans-serif'],
         oswald: ['Oswald', 'sans-serif'],
         'playfair_display': ['"Playfair Display"', 'serif'],
-        'source_sans_pro': ['"Source Sans Pro"', 'sans-serif'],
+        'source_sans_3': ['"Source Sans 3"', 'sans-serif'],
         merriweather: ['Merriweather', 'serif'],
         'noto_nastaliq_urdu': ['"Noto Nastaliq Urdu"', 'serif'],
       },
@@ -133,5 +133,3 @@ export default {
     }),
   ],
 };
-
-    

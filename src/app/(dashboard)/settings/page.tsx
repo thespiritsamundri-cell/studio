@@ -618,7 +618,6 @@ export default function SettingsPage() {
         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 h-auto">
           <TabsTrigger value="school">School</TabsTrigger>
           <TabsTrigger value="theme">Theme</TabsTrigger>
-          <TabsTrigger value="preloader">Preloader</TabsTrigger>
           <TabsTrigger value="grading">Grading</TabsTrigger>
           <TabsTrigger value="security">Account &amp; Security</TabsTrigger>
           <TabsTrigger value="logins">Logins</TabsTrigger>
@@ -735,7 +734,7 @@ export default function SettingsPage() {
                             <SelectItem value="open_sans">Open Sans</SelectItem>
                             <SelectItem value="oswald">Oswald</SelectItem>
                             <SelectItem value="playfair_display">Playfair Display</SelectItem>
-                            <SelectItem value="source_sans_pro">Source Sans Pro</SelectItem>
+                            <SelectItem value="source_sans_3">Source Sans 3</SelectItem>
                             <SelectItem value="merriweather">Merriweather</SelectItem>
                             <SelectItem value="noto_nastaliq_urdu">Noto Nastaliq Urdu</SelectItem>
                         </SelectContent>
@@ -747,30 +746,6 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-        <TabsContent value="preloader" className="mt-6">
-            <Card>
-                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><PlayCircle /> Preloader Settings</CardTitle>
-                    <CardDescription>Customize the loading animation that appears when navigating between pages.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                     <div className="flex items-center space-x-2">
-                        <Switch id="preloaderEnabled" checked={settings.preloaderEnabled} onCheckedChange={(checked) => setSettings(prev => ({...prev, preloaderEnabled: checked}))} />
-                        <Label htmlFor="preloaderEnabled">Enable Preloader</Label>
-                    </div>
-
-                    <RadioGroup value={settings.preloaderStyle} onValueChange={(value) => setSettings(prev => ({...prev, preloaderStyle: value}))} className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                       {Array.from({length: 8}, (_, i) => `style${i+1}`).map(style => (
-                            <Label key={style} htmlFor={style} className={cn("flex flex-col items-center justify-center rounded-md border-2 p-4 h-24", settings.preloaderStyle === style ? 'border-primary' : 'border-muted')}>
-                               <RadioGroupItem value={style} id={style} className="sr-only" />
-                               <Preloader style={style} />
-                               <span className="mt-2 text-sm font-medium">{`Style ${style.charAt(5)}`}</span>
-                            </Label>
-                       ))}
-                    </RadioGroup>
-                </CardContent>
-            </Card>
         </TabsContent>
         <TabsContent value="grading" className="mt-6">
             <Card>
@@ -1388,4 +1363,3 @@ export default function SettingsPage() {
   );
 }
 
-    
