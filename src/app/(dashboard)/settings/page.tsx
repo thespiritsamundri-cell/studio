@@ -763,8 +763,8 @@ export default function SettingsPage() {
                         </div>
                     </div>
                     <div className="p-4 border rounded-lg space-y-4">
-                        <h3 className="font-medium text-lg">Main Theme</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <h3 className="font-medium text-lg">Main Colors</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                              <div className="space-y-2">
                                 <Label htmlFor="primary">Primary Color</Label>
                                 <Input id="primary" type="color" value={settings.themeColors?.primary || '#6a3fdc'} onChange={e => handleThemeColorChange('primary', e.target.value)} />
@@ -780,24 +780,7 @@ export default function SettingsPage() {
                         </div>
                     </div>
                      <div className="p-4 border rounded-lg space-y-4">
-                        <h3 className="font-medium text-lg">Button Colors</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                            <div className="space-y-2">
-                                <Label htmlFor="button-primary-background">Primary Button BG</Label>
-                                <Input id="button-primary-background" type="color" value={settings.themeColors?.['button-primary-background'] || '#6a3fdc'} onChange={e => handleThemeColorChange('button-primary-background', e.target.value)} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="button-primary-foreground">Primary Button Text</Label>
-                                <Input id="button-primary-foreground" type="color" value={settings.themeColors?.['button-primary-foreground'] || '#ffffff'} onChange={e => handleThemeColorChange('button-primary-foreground', e.target.value)} />
-                            </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="button-destructive-background">Destructive Button BG</Label>
-                                <Input id="button-destructive-background" type="color" value={settings.themeColors?.['button-destructive-background'] || '#e53e3e'} onChange={e => handleThemeColorChange('button-destructive-background', e.target.value)} />
-                            </div>
-                        </div>
-                    </div>
-                     <div className="p-4 border rounded-lg space-y-4">
-                        <h3 className="font-medium text-lg">Sidebar Theme</h3>
+                        <h3 className="font-medium text-lg">Sidebar Colors</h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                              <div className="space-y-2">
                                 <Label htmlFor="sidebar-background">Background</Label>

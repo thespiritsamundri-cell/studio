@@ -83,9 +83,6 @@ export const defaultSettings: SchoolSettings = {
     'sidebar-foreground': '#f8f9fa',
     'sidebar-accent': '#403d6d',
     'sidebar-accent-foreground': '#ffffff',
-    'button-primary-background': '#6a3fdc',
-    'button-primary-foreground': '#ffffff',
-    'button-destructive-background': '#e53e3e',
   },
   font: 'inter',
 

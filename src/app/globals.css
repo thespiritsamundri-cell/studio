@@ -44,10 +44,6 @@ body {
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 235 50% 30%;
     --sidebar-ring: 250 60% 55%;
-
-    --button-primary-background: hsl(var(--primary));
-    --button-primary-foreground: hsl(var(--primary-foreground));
-    --button-destructive-background: hsl(var(--destructive));
   }
   .dark {
     --background: 224 10% 10%;
@@ -78,10 +74,6 @@ body {
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 217 10% 20%;
     --sidebar-ring: 250 70% 65%;
-
-    --button-primary-background: hsl(var(--primary));
-    --button-primary-foreground: hsl(var(--primary-foreground));
-    --button-destructive-background: hsl(var(--destructive));
   }
 }
 
@@ -91,13 +83,6 @@ body {
   }
   body {
     @apply bg-background text-foreground;
-  }
-  .btn-primary {
-    background-color: var(--button-primary-background) !important;
-    color: var(--button-primary-foreground) !important;
-  }
-  .btn-destructive {
-    background-color: var(--button-destructive-background) !important;
   }
 }
 
