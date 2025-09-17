@@ -38,8 +38,6 @@ body {
 
     --sidebar-background: 235 50% 25%;
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 250 60% 55%;
-    --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 250 60% 55%;
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 235 50% 30%;
@@ -68,8 +66,6 @@ body {
     
     --sidebar-background: 224 10% 10%;
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 250 70% 65%;
-    --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 217 10% 20%;
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 217 10% 20%;

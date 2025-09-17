@@ -140,8 +140,7 @@ export function Header() {
 
   return (
     <>
-
-      <header className="sticky top-0 z-30 flex h-20 items-center gap-4 border-b bg-background px-4 md:px-6">
+      <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
         <div className="flex items-center gap-2">
           <SidebarTrigger />
           <h1 className="text-xl font-semibold hidden md:block">{pageTitle}</h1>
