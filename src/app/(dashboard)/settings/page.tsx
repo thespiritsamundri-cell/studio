@@ -716,15 +716,14 @@ export default function SettingsPage() {
          <TabsContent value="theme" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Palette/> Theme Customization</CardTitle>
+              <CardTitle className="flex items-center gap-2 font-headline"><Palette/> Theme Customization</CardTitle>
               <CardDescription>Customize the look and feel of the application.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
                <div className="space-y-4 p-4 border rounded-lg">
-                 <h3 className="font-medium flex items-center gap-2"><Type /> Fonts</h3>
+                 <h3 className="font-medium flex items-center gap-2 font-headline"><Type /> Fonts</h3>
                   <div className="space-y-2 max-w-sm">
-                    <Label htmlFor="font">Application Font</Label>
-                     <p className="text-sm text-muted-foreground">The application font is set to "Inter" by default.</p>
+                    <p className="text-sm text-muted-foreground">The application body font is set to "Inter" and headline font is set to "Playfair Display" by default.</p>
                   </div>
               </div>
               <div className="flex justify-end">

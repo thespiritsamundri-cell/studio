@@ -12,7 +12,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+        sans: ['var(--font-inter)'],
+        headline: ['var(--font-playfair-display)'],
       },
       colors: {
         background: 'hsl(var(--background))',
