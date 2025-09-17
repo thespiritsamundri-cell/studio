@@ -723,11 +723,8 @@ export default function SettingsPage() {
                <div className="space-y-4 p-4 border rounded-lg">
                   <h3 className="font-medium flex items-center gap-2 font-headline"><Type /> Font</h3>
                    <div className="space-y-2 max-w-sm">
-                      <p className="text-sm text-muted-foreground">The application font is set to Segoe UI.</p>
+                      <p className="text-sm text-muted-foreground">The application font is set to Inter. This can only be changed via code.</p>
                    </div>
-              </div>
-              <div className="flex justify-end">
-                <Button onClick={handleSave}>Save Theme</Button>
               </div>
             </CardContent>
           </Card>
