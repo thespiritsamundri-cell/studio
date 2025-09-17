@@ -2,16 +2,11 @@
 import './globals.css'
 import './print-styles.css'
 import AppClientLayout from '@/app/app-client-layout'
-import { Inter, Playfair_Display } from 'next/font/google'
+import { Inter } from 'next/font/google'
 
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
-});
-
-const playfair_display = Playfair_Display({
-  subsets: ['latin'],
-  variable: '--font-playfair-display',
 });
 
 export const metadata = {
@@ -30,7 +25,7 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#4f46e5" />
       </head>
-      <body className={`${inter.variable} ${playfair_display.variable}`} suppressHydrationWarning>
+      <body className={`${inter.variable}`} suppressHydrationWarning>
           <AppClientLayout>
             {children}
           </AppClientLayout>

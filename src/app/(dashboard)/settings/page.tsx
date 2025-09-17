@@ -616,7 +616,7 @@ export default function SettingsPage() {
       <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><SettingsIcon className="w-8 h-8" />Settings</h1>
       
       <Tabs defaultValue="school" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 h-auto">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 h-auto">
           <TabsTrigger value="school">School</TabsTrigger>
           <TabsTrigger value="theme">Theme</TabsTrigger>
           <TabsTrigger value="grading">Grading</TabsTrigger>
@@ -713,7 +713,7 @@ export default function SettingsPage() {
                 </CardContent>
             </Card>
         </TabsContent>
-         <TabsContent value="theme" className="mt-6">
+        <TabsContent value="theme" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 font-headline"><Palette/> Theme Customization</CardTitle>
@@ -721,10 +721,10 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-8">
                <div className="space-y-4 p-4 border rounded-lg">
-                 <h3 className="font-medium flex items-center gap-2 font-headline"><Type /> Fonts</h3>
-                  <div className="space-y-2 max-w-sm">
-                    <p className="text-sm text-muted-foreground">The application body font is set to "Inter" and headline font is set to "Playfair Display" by default.</p>
-                  </div>
+                  <h3 className="font-medium flex items-center gap-2 font-headline"><Type /> Fonts</h3>
+                   <div className="space-y-2 max-w-sm">
+                      <p className="text-sm text-muted-foreground">The application font is set to Segoe UI.</p>
+                   </div>
               </div>
               <div className="flex justify-end">
                 <Button onClick={handleSave}>Save Theme</Button>
