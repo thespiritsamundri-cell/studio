@@ -53,6 +53,24 @@ export default function SettingsPage() {
   const [isTesting, setIsTesting] = useState(false);
   const [testPhoneNumber, setTestPhoneNumber] = useState('');
 
+  // Local state for theme settings
+  const [localPreloaderStyle, setLocalPreloaderStyle] = useState(settings.preloaderStyle);
+  const [localPreloaderEnabled, setLocalPreloaderEnabled] = useState(settings.preloaderEnabled);
+
+  useEffect(() => {
+    setLocalPreloaderStyle(settings.preloaderStyle);
+    setLocalPreloaderEnabled(settings.preloaderEnabled);
+  }, [settings.preloaderStyle, settings.preloaderEnabled]);
+
+  const handleAppearanceSave = () => {
+    setSettings(prev => ({
+      ...prev,
+      preloaderStyle: localPreloaderStyle,
+      preloaderEnabled: localPreloaderEnabled,
+    }));
+    toast({ title: "Appearance settings saved!" });
+  };
+
 
   // Account settings state
   const [email, setEmail] = useState('');
@@ -716,47 +734,49 @@ export default function SettingsPage() {
         <TabsContent value="theme" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 font-headline"><Palette/> Theme & Appearance</CardTitle>
+              <CardTitle className="flex items-center gap-2 font-headline"><Palette/> Appearance</CardTitle>
               <CardDescription>Customize the look and feel of the application.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
                <div className="space-y-4 p-4 border rounded-lg">
-                  <h3 className="font-medium flex items-center gap-2 font-headline"><Type /> Font</h3>
-                  <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">The application font is set to "Inter" for a clean and modern look across all devices.</p>
-                  </div>
-               </div>
-               <div className="space-y-4 p-4 border rounded-lg">
                   <div className="flex justify-between items-center">
                     <h3 className="font-medium flex items-center gap-2 font-headline"><PlayCircle /> Preloader Animation</h3>
                     <Switch
-                        checked={settings.preloaderEnabled}
-                        onCheckedChange={(checked) => setSettings(prev => ({...prev, preloaderEnabled: checked}))}
+                        checked={localPreloaderEnabled}
+                        onCheckedChange={setLocalPreloaderEnabled}
                     />
                   </div>
                   <p className="text-sm text-muted-foreground">Choose the loading animation that displays while data is being fetched. This adds a professional touch to your application.</p>
                   <RadioGroup 
-                    value={settings.preloaderStyle}
-                    onValueChange={(value) => setSettings(prev => ({...prev, preloaderStyle: value}))}
+                    value={localPreloaderStyle}
+                    onValueChange={setLocalPreloaderStyle}
                     className="grid grid-cols-2 md:grid-cols-4 gap-4"
-                    disabled={!settings.preloaderEnabled}
+                    disabled={!localPreloaderEnabled}
                   >
                     {Array.from({length: 8}, (_, i) => `style${i+1}`).map(style => (
                         <div key={style}>
-                            <RadioGroupItem value={style} id={style} className="sr-only" />
+                            <RadioGroupItem value={style} id={style} className="sr-only peer" />
                             <Label htmlFor={style} className={cn(
-                                "flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer",
+                                "flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer relative",
                                 "peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary",
-                                !settings.preloaderEnabled && "opacity-50 cursor-not-allowed"
+                                !localPreloaderEnabled && "opacity-50 cursor-not-allowed"
                             )}>
                                 <div className="w-16 h-16 flex items-center justify-center">
                                     <Preloader style={style} />
                                 </div>
+                                {localPreloaderStyle === style && (
+                                  <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-0.5">
+                                    <CheckCircle className="w-4 h-4" />
+                                  </div>
+                                )}
                             </Label>
                         </div>
                     ))}
                   </RadioGroup>
                </div>
+                <div className="flex justify-end border-t pt-6">
+                    <Button onClick={handleAppearanceSave}>Save Appearance</Button>
+                </div>
             </CardContent>
           </Card>
         </TabsContent>
