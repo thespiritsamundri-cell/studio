@@ -1,14 +1,26 @@
 
 import { NextResponse } from 'next/server';
+import { db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { defaultSettings } from '@/context/settings-context';
+import type { SchoolSettings } from '@/context/settings-context';
 
 export async function GET(request: Request) {
-  // This route is called by the browser to get the manifest file.
-  // It should not access the database, as it's an unauthenticated request.
-  // The dynamic title and favicon are handled on the client-side in app-client-layout.tsx.
+  let settings: SchoolSettings = defaultSettings;
+
+  try {
+    const settingsDocRef = doc(db, 'Settings', 'School Settings');
+    const settingsDoc = await getDoc(settingsDocRef);
+    if (settingsDoc.exists()) {
+      settings = { ...defaultSettings, ...settingsDoc.data() as Partial<SchoolSettings> };
+    }
+  } catch (error) {
+    console.error("Could not fetch settings for manifest, using defaults.", error);
+  }
 
   const manifest = {
-    name: "EduCentral School Management",
-    short_name: "EduCentral",
+    name: settings.schoolName || "EduCentral",
+    short_name: settings.schoolName || "EduCentral",
     description: "Management Portal for your School",
     start_url: "/",
     display: "standalone",
@@ -16,19 +28,16 @@ export async function GET(request: Request) {
     theme_color: "#6a3fdc",
     icons: [
       {
-        src: "/favicon.ico",
-        sizes: "any",
-        type: "image/x-icon",
+        src: settings.schoolLogo || "/logo192.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "any maskable"
       },
       {
-        src: "/logo192.png",
+        src: settings.schoolLogo || "/logo512.png",
         type: "image/png",
-        sizes: "192x192"
-      },
-      {
-        src: "/logo512.png",
-        type: "image/png",
-        sizes: "512x512"
+        sizes: "512x512",
+        purpose: "any maskable"
       }
     ],
   };
