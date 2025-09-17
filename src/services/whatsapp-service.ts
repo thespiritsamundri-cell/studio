@@ -69,6 +69,7 @@ async function sendWithUltraMSG(to: string, message: string, settings: SchoolSet
     console.error('❌ Error in sendWithUltraMSG:', error);
     return { success: false, error: error.message };
   }
+
 }
 
 

@@ -19,8 +19,10 @@ export default function RootLayout({
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#6a3fdc" />
+
       </head>
       <body className={`${fontVariables} font-sans antialiased`} suppressHydrationWarning>
+
           <AppClientLayout>
             {children}
           </AppClientLayout>
