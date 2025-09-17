@@ -18,7 +18,7 @@ const config: Config = {
     },
     extend: {
       fontFamily: {
-        sans: ['var(--font-sans)', 'sans-serif'],
+        sans: ['Calibri', 'Inter', 'sans-serif'],
         urdu: ['"Jameel Noori Nastaleeq"', '"Noto Nastaliq Urdu"', 'sans-serif'],
       },
       colors: {

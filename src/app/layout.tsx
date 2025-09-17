@@ -2,10 +2,6 @@
 import './globals.css'
 import './print-styles.css'
 import AppClientLayout from '@/app/app-client-layout'
-import { Inter } from 'next/font/google'
-
-const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
-
 
 export const metadata = {
   title: 'School Management System',
@@ -23,7 +19,7 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#4f46e5" />
       </head>
-      <body className={`${inter.variable} font-sans antialiased`} suppressHydrationWarning>
+      <body className="font-sans antialiased" suppressHydrationWarning>
           <AppClientLayout>
             {children}
           </AppClientLayout>

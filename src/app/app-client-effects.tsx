@@ -7,7 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Preloader } from "@/components/ui/preloader";
 import { usePathname } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { inter } from "./font-config";
+
 
 function getTitleFromPathname(pathname: string): string {
   if (pathname === '/lock') return 'Locked';
@@ -55,9 +55,6 @@ export default function AppClientEffects({ children }: { children: ReactNode }) 
         document.head.appendChild(manifestLink);
       }
       manifestLink.href = `/manifest.json?v=${key}`;
-      
-      // Font - Hardcoded to Inter
-      document.body.classList.add(inter.variable);
     }
   }, [isSettingsInitialized, settings, pathname]);
 
