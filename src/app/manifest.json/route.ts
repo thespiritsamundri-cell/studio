@@ -19,24 +19,24 @@ export async function GET(request: Request) {
   }
 
   const manifest = {
-    name: settings.schoolName || "EduCentral",
-    short_name: settings.schoolName || "EduCentral",
-    description: "Management Portal for your School",
+    name: settings.schoolName || "The Spirit School Samundri", // <-- updated name
+    short_name: settings.schoolName || "TSS",       // <-- updated short name
+    description: "Schoolup - A Unique Platform for Smart Schools",
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
-    theme_color: "#6a3fdc", // This should match the meta theme-color
+    theme_color: "#6a3fdc", // same as meta theme-color
     icons: [
       {
-        src: settings.schoolLogo || "/logo192.png",
+        src: settings.schoolLogo || "https://i.postimg.cc/3wBs967C/android-launchericon-192-192.png",
         sizes: "192x192",
         type: "image/png",
         purpose: "any maskable"
       },
       {
-        src: settings.schoolLogo || "/logo512.png",
-        type: "image/png",
+        src: settings.schoolLogo || "https://i.postimg.cc/Y9CJP3Cc/android-launchericon-512-512.png",
         sizes: "512x512",
+        type: "image/png",
         purpose: "any maskable"
       }
     ],
