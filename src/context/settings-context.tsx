@@ -35,8 +35,7 @@ export interface SchoolSettings {
   historyClearPin?: string;
   autoLockEnabled?: boolean;
   autoLockDuration?: number;
-  themeColors?: { [key: string]: string };
-  font: 'inter' | 'roboto' | 'open-sans' | 'lato' | 'montserrat' | 'poppins';
+
   gradingSystem: Grade[];
   expenseCategories: string[];
   messageTemplates?: MessageTemplate[];
@@ -48,8 +47,6 @@ export interface SchoolSettings {
     teacherDeactivation: { enabled: boolean; templateId: string };
   };
   autofillLogin?: boolean;
-  preloaderEnabled?: boolean;
-  preloaderStyle?: string;
 }
 
 export const defaultSettings: SchoolSettings = {
@@ -75,17 +72,7 @@ export const defaultSettings: SchoolSettings = {
   historyClearPin: '1234',
   autoLockEnabled: true,
   autoLockDuration: 300,
-  themeColors: {
-    primary: '262.1 83.3% 57.8%',
-    background: '0 0% 100%',
-    accent: '210 40% 96.1%',
-    'sidebar-background': '235 50% 25%',
-    'sidebar-foreground': '210 40% 98%',
-    'sidebar-accent': '262.1 83.3% 57.8%',
-    'sidebar-accent-foreground': '210 40% 98%',
-  },
-  font: 'inter',
-
+  
   gradingSystem: [
     { name: 'A+', minPercentage: 90 },
     { name: 'A', minPercentage: 80 },
@@ -148,8 +135,6 @@ export const defaultSettings: SchoolSettings = {
   },
 
   autofillLogin: true,
-  preloaderEnabled: true,
-  preloaderStyle: 'style2',
 };
 
 export const SettingsContext = createContext<{
