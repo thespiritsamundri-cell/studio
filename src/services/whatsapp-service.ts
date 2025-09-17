@@ -137,12 +137,14 @@ export async function sendWhatsAppMessage(to: string, message: string, liveSetti
       if (settingsDoc.exists()) {
         effectiveSettings = { ...defaultSettings, ...(settingsDoc.data() as Partial<SchoolSettings>) };
       } else {
-        console.error('Settings document not found in Firestore. Falling back to default settings.');
-        effectiveSettings = defaultSettings;
+        const errorMessage = 'Settings document not found in Firestore.';
+        console.error(`❌ ${errorMessage}`);
+        return { success: false, error: errorMessage };
       }
     } catch (error) {
-      console.error('Could not fetch settings from Firestore. Falling back to default settings.', error);
-      effectiveSettings = defaultSettings;
+       const errorMessage = 'Could not fetch settings from Firestore.';
+       console.error(`❌ ${errorMessage}`, error);
+       return { success: false, error: errorMessage };
     }
   }
   
@@ -157,7 +159,7 @@ export async function sendWhatsAppMessage(to: string, message: string, liveSetti
   } else if (effectiveSettings.whatsappProvider === 'official') {
     result = await sendWithOfficialAPI(to, message, effectiveSettings);
   } else {
-    result = { success: false, error: "No Active WhatsApp Provider is Configured." };
+    result = { success: false, error: `Unsupported provider: ${effectiveSettings.whatsappProvider}` };
   }
 
   if (!result.success) {
