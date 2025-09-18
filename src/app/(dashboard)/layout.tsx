@@ -204,14 +204,7 @@ function DashboardContent({ children }: { children: ReactNode }) {
     const { isDataInitialized } = useData();
     const { settings } = useSettings();
 
-    if (!isDataInitialized) {
-        return (
-            <div className="flex h-screen w-full items-center justify-center">
-                {settings.preloaderEnabled ? <Preloader style={settings.preloaderStyle} /> : <Loader2 className="h-8 w-8 animate-spin" />}
-            </div>
-        );
-    }
-    
+    // Render the layout immediately, and show a loader inside the main content area if data is still loading.
     return (
         <SidebarProvider>
             <InactivityDetector />
@@ -222,7 +215,13 @@ function DashboardContent({ children }: { children: ReactNode }) {
                 <div className="flex flex-1 flex-col">
                     <Header />
                     <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6 lg:p-8">
-                        {children}
+                        {!isDataInitialized ? (
+                            <div className="flex flex-1 items-center justify-center">
+                                {settings.preloaderEnabled ? <Preloader style={settings.preloaderStyle} /> : <Loader2 className="h-8 w-8 animate-spin" />}
+                            </div>
+                        ) : (
+                            children
+                        )}
                     </main>
                 </div>
             </div>
