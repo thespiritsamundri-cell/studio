@@ -26,7 +26,7 @@ const chartConfig = {
 };
 
 export default function DashboardPage() {
-    const { students, fees, activityLog, expenses, teachers, teacherAttendances: allTeacherAttendances, classes } = useData();
+    const { students, fees, activityLog, expenses, teachers, teacherAttendances: allTeacherAttendances, classes, userRole } = useData();
     const [today, setToday] = useState<Date | null>(null);
 
     useEffect(() => {
@@ -220,35 +220,37 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-       <div className="grid gap-6 md:grid-cols-3">
-            <Card className="bg-green-500/5 border-green-500/20">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-green-800">Income (This Month)</CardTitle>
-                    <TrendingUp className="w-4 h-4 text-green-600" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold text-green-700">PKR {monthlyIncome.toLocaleString()}</div>
-                </CardContent>
-            </Card>
-                <Card className="bg-red-500/5 border-red-500/20">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-red-800">Expenses (This Month)</CardTitle>
-                    <TrendingDown className="w-4 h-4 text-red-600" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold text-red-700">PKR {monthlyExpenses.toLocaleString()}</div>
-                </CardContent>
-            </Card>
-                <Card className={netProfitThisMonth >= 0 ? "bg-primary/5 border-primary/20" : "bg-destructive/5 border-destructive/20"}>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className={cn("text-sm font-medium", netProfitThisMonth >=0 ? "text-primary" : "text-destructive")}>Net Profit / Loss</CardTitle>
-                    <Scale className={cn("w-4 h-4", netProfitThisMonth >=0 ? "text-primary" : "text-destructive")} />
-                </CardHeader>
-                <CardContent>
-                    <div className={cn("text-2xl font-bold", netProfitThisMonth >=0 ? "text-primary" : "text-destructive")}>PKR {netProfitThisMonth.toLocaleString()}</div>
-                </CardContent>
-            </Card>
-       </div>
+       {(userRole === 'super_admin' || userRole === 'accountant') && (
+        <div className="grid gap-6 md:grid-cols-3">
+              <Card className="bg-green-500/5 border-green-500/20">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                      <CardTitle className="text-sm font-medium text-green-800">Income (This Month)</CardTitle>
+                      <TrendingUp className="w-4 h-4 text-green-600" />
+                  </CardHeader>
+                  <CardContent>
+                      <div className="text-2xl font-bold text-green-700">PKR {monthlyIncome.toLocaleString()}</div>
+                  </CardContent>
+              </Card>
+                  <Card className="bg-red-500/5 border-red-500/20">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                      <CardTitle className="text-sm font-medium text-red-800">Expenses (This Month)</CardTitle>
+                      <TrendingDown className="w-4 h-4 text-red-600" />
+                  </CardHeader>
+                  <CardContent>
+                      <div className="text-2xl font-bold text-red-700">PKR {monthlyExpenses.toLocaleString()}</div>
+                  </CardContent>
+              </Card>
+                  <Card className={netProfitThisMonth >= 0 ? "bg-primary/5 border-primary/20" : "bg-destructive/5 border-destructive/20"}>
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                      <CardTitle className={cn("text-sm font-medium", netProfitThisMonth >=0 ? "text-primary" : "text-destructive")}>Net Profit / Loss</CardTitle>
+                      <Scale className={cn("w-4 h-4", netProfitThisMonth >=0 ? "text-primary" : "text-destructive")} />
+                  </CardHeader>
+                  <CardContent>
+                      <div className={cn("text-2xl font-bold", netProfitThisMonth >=0 ? "text-primary" : "text-destructive")}>PKR {netProfitThisMonth.toLocaleString()}</div>
+                  </CardContent>
+              </Card>
+        </div>
+       )}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2">
             <CardHeader>
