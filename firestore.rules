@@ -1,112 +1,128 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper Functions
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
 
+    // Helper functions to get user data
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
     function getUserRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+      return getUserData().role;
     }
-    
+
     function getPermissions() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions;
+      return getUserData().permissions;
     }
 
+    // Check if the user is one of the primary roles
     function isPrimaryRole() {
-      let role = getUserRole();
-      return role == 'super_admin' || role == 'accountant' || role == 'coordinator';
+      return getUserRole() in ['super_admin', 'accountant', 'coordinator'];
     }
-
-    // Collection Rules
+    
+    // DEFAULT: Deny all reads and writes by default
     match /{document=**} {
-      allow read: if request.auth != null;
+      allow read, write: if false;
     }
-    
+
+    // USERS: Allow users to read/update their own info. Super admin can write to any.
     match /users/{userId} {
-      allow read: if request.auth != null;
-      allow update: if getUserRole() == 'super_admin' || isOwner(userId);
-      allow create: if getUserRole() == 'super_admin';
+      allow read, update: if request.auth.uid == userId;
+      allow write: if getUserRole() == 'super_admin';
     }
-    
+
+    // SESSIONS: Users can create their own sessions, super_admin can delete any.
     match /sessions/{sessionId} {
-      allow read: if isPrimaryRole();
-      allow create, update: if request.auth != null;
-      allow delete: if getUserRole() == 'super_admin' || isOwner(resource.data.userId);
+        allow read: if isPrimaryRole();
+        allow create: if request.auth.uid == request.resource.data.userId;
+        allow delete: if getUserRole() == 'super_admin';
+        allow update: if request.auth.uid == resource.data.userId;
     }
-    
-    match /activityLog/{logId} {
-      allow read: if getPermissions().settings == true;
-      allow create: if isPrimaryRole();
-      allow delete: if getPermissions().settings == true;
-    }
-    
+
+    // NOTIFICATIONS: Primary roles can create, only super_admin can read/update.
     match /notifications/{notificationId} {
-        allow read, update: if getUserRole() == 'super_admin';
         allow create: if isPrimaryRole();
+        allow read, update, delete: if getUserRole() == 'super_admin';
     }
     
-    match /Settings/{settingId} {
-        allow read: if request.auth != null;
-        allow write: if getPermissions().settings == true;
-    }
-
-    match /students/{studentId} {
-      allow read: if request.auth != null;
-      allow write: if getPermissions().students == true;
+    // ACTIVITY LOG: Primary roles can create, only super_admin can delete.
+    match /activityLog/{logId} {
+      allow read: if isPrimaryRole();
+      allow create: if isPrimaryRole();
+      allow delete: if getUserRole() == 'super_admin';
     }
     
-    match /alumni/{alumniId} {
-      allow read: if request.auth != null;
-      allow write: if getPermissions().alumni == true;
+    // SETTINGS: Super admin can do anything, primary roles can only read.
+    match /Settings/{docId} {
+        allow read: if isPrimaryRole();
+        allow write: if getUserRole() == 'super_admin';
     }
 
+    match /branding/{docId} {
+      allow read: if true;
+      allow write: if getUserRole() == 'super_admin';
+    }
+
+    // --- DATA COLLECTIONS ---
+    
+    // FAMILIES & STUDENTS:
     match /families/{familyId} {
-      allow read: if request.auth != null;
-      allow write: if getPermissions().families == true;
+      allow read: if isPrimaryRole();
+      allow create, update: if getPermissions().families == true;
+      allow delete: if getUserRole() == 'super_admin';
+    }
+    match /students/{studentId} {
+      allow read: if isPrimaryRole();
+      allow create, update: if getPermissions().students == true;
+      allow delete: if getUserRole() == 'super_admin'; // Only super_admin can permanently delete
+    }
+     match /alumni/{alumniId} {
+      allow read: if isPrimaryRole();
+      allow create, update: if getPermissions().students == true || getPermissions().alumni == true;
+      allow delete: if getUserRole() == 'super_admin';
     }
 
-    match /classes/{classId} {
-      allow read: if request.auth != null;
-      allow write: if getPermissions().classes == true;
-    }
-
-    match /teachers/{teacherId} {
-      allow read: if request.auth != null;
-      allow write: if getPermissions().teachers == true;
-    }
-    
-    match /timetables/{timetableId} {
-        allow read: if request.auth != null;
-        allow write: if getPermissions().timetable == true;
-    }
-
+    // FEES & INCOME:
     match /fees/{feeId} {
-      allow read: if request.auth != null;
-      allow create: if getPermissions().feeCollection == true || getPermissions().income == true;
-      allow update, delete: if getPermissions().feeCollection == true || getPermissions().income == true;
+        allow read: if isPrimaryRole();
+        allow create: if getPermissions().feeCollection == true || getPermissions().income == true;
+        allow update, delete: if getPermissions().feeCollection == true || getPermissions().income == true;
     }
     
+    // EXPENSES:
     match /expenses/{expenseId} {
-      allow read: if request.auth != null;
-      allow create, update, delete: if getPermissions().expenses == true;
+        allow read: if isPrimaryRole();
+        // Allow create, update, and delete if the user is a super_admin or accountant
+        allow create, update, delete: if isSignedIn() && (getUserRole() == 'super_admin' || getUserRole() == 'accountant');
     }
 
+    // ACADEMICS:
+    match /teachers/{teacherId} {
+      allow read: if isPrimaryRole();
+      allow create, update, delete: if getPermissions().teachers == true;
+    }
+    match /classes/{classId} {
+      allow read: if isPrimaryRole();
+      allow create, update, delete: if getPermissions().classes == true;
+    }
     match /exams/{examId} {
-      allow read: if request.auth != null;
-      allow write: if getPermissions().examSystem == true;
+      allow read: if isPrimaryRole();
+      allow create, update, delete: if getPermissions().examSystem == true;
     }
-
-    match /attendances/{attendanceId} {
-      allow read: if request.auth != null;
+    match /timetables/{timetableId} {
+      allow read: if isPrimaryRole();
+      allow write: if getPermissions().timetable == true;
+    }
+    
+    // ATTENDANCE:
+     match /attendances/{attendanceId} {
+      allow read: if isPrimaryRole();
       allow write: if getPermissions().attendance == true;
     }
-
-    match /teacherAttendances/{attendanceId} {
-      allow read: if request.auth != null;
+     match /teacherAttendances/{attendanceId} {
+      allow read: if isPrimaryRole();
       allow write: if getPermissions().attendance == true;
     }
   }
