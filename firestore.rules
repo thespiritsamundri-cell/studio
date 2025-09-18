@@ -1,125 +1,95 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isSuperAdmin() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
-    }
-
-    function isAccountant() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'accountant';
-    }
     
-    function isCoordinator() {
-        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'coordinator';
+    // Helper function to get the requesting user's role from their user document.
+    function getRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
     }
 
-    function isPrimaryRole() {
-        let role = get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
-        return role in ['super_admin', 'accountant', 'coordinator'];
-    }
-
+    // Helper function to get the requesting user's specific permissions map.
     function getPermissions() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions;
     }
+    
+    // Helper to check if the user is one of the primary roles that needs broad read access.
+    function isPrimaryRole() {
+      return getRole() in ['super_admin', 'accountant', 'coordinator'];
+    }
 
-    // Rules for each collection
+    // -- COLLECTIONS --
+
+    // Users can read their own document, super_admin can manage all users.
     match /users/{userId} {
-      // Allow users to read their own data.
-      // Allow super_admin to read/write any user document.
-      allow read: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
-      allow write: if isSuperAdmin();
-    }
-    
-    match /Settings/{docId} {
-        allow read: if isSignedIn();
-        allow write: if isSuperAdmin();
-    }
-    
-    match /branding/{docId} {
-        allow read: if true; // Publicly readable for logos, etc.
-        allow write: if isSuperAdmin();
+      allow read: if request.auth.uid == userId || getRole() == 'super_admin';
+      allow write: if getRole() == 'super_admin';
     }
 
+    // Broad read access for all primary roles, but writes are permission-based.
+    match /{collection}/{docId} {
+      allow read: if request.auth.uid != null && isPrimaryRole();
+    }
+
+    // Specific write rules per collection.
     match /students/{studentId} {
-      allow read: if isSignedIn() && (getPermissions().students == true || isAccountant() || isCoordinator());
-      allow write: if isSignedIn() && getPermissions().students == true;
+      allow write: if getPermissions().students == true;
     }
-    
     match /families/{familyId} {
-        allow read: if isSignedIn() && (getPermissions().families == true || isAccountant() || isCoordinator());
-        allow write: if isSignedIn() && getPermissions().families == true;
+      allow write: if getPermissions().families == true;
     }
-
-    match /fees/{feeId} {
-        allow read: if isSignedIn() && getPermissions().feeCollection == true;
-        allow write: if isSignedIn() && getPermissions().feeCollection == true;
-    }
-    
-    match /expenses/{expenseId} {
-        allow read: if isSignedIn() && getPermissions().expenses == true;
-        allow write: if isSignedIn() && getPermissions().expenses == true;
-    }
-    
-    match /classes/{classId} {
-        allow read: if isSignedIn() && (getPermissions().classes == true || isAccountant() || isCoordinator());
-        allow write: if isSignedIn() && getPermissions().classes == true;
-    }
-
     match /teachers/{teacherId} {
-        allow read: if isSignedIn() && (getPermissions().teachers == true || isAccountant() || isCoordinator());
-        allow write: if isSignedIn() && getPermissions().teachers == true;
+      allow write: if getPermissions().teachers == true;
     }
-    
-    match /timetables/{timetableId} {
-        allow read: if isSignedIn() && (getPermissions().timetable == true || isAccountant() || isCoordinator());
-        allow write: if isSignedIn() && getPermissions().timetable == true;
+    match /classes/{classId} {
+      allow write: if getPermissions().classes == true;
     }
-
+    match /fees/{feeId} {
+       allow write: if getPermissions().feeCollection == true;
+    }
+    match /expenses/{expenseId} {
+       allow write: if getPermissions().expenses == true;
+    }
     match /exams/{examId} {
-      allow read: if isSignedIn() && (getPermissions().examSystem == true || isAccountant() || isCoordinator());
-      allow write: if isSignedIn() && getPermissions().examSystem == true;
+      allow write: if getPermissions().examSystem == true;
     }
-    
     match /alumni/{alumniId} {
-        allow read: if isSignedIn() && (getPermissions().alumni == true || isAccountant() || isCoordinator());
-        allow write: if isSignedIn() && getPermissions().alumni == true;
+      allow write: if getPermissions().alumni == true;
     }
-    
     match /attendances/{attendanceId} {
-        allow read: if isSignedIn() && getPermissions().attendance == true;
-        allow write: if isSignedIn() && getPermissions().attendance == true;
+      allow write: if getPermissions().attendance == true;
+    }
+    match /teacherAttendances/{attendanceId} {
+      allow write: if getPermissions().attendance == true;
+    }
+    match /timetables/{timetableId} {
+        allow write: if getPermissions().timetable == true;
     }
 
-    match /teacherAttendances/{attendanceId} {
-        allow read: if isSignedIn() && (getPermissions().attendance == true || isAccountant() || isCoordinator());
-        allow write: if isSignedIn() && getPermissions().attendance == true;
+    // Settings can only be changed by super_admin.
+    match /Settings/{settingId} {
+      allow read: if isPrimaryRole();
+      allow write: if getRole() == 'super_admin';
     }
-    
+
+    // Activity logs can be read by primary roles, and written to by them.
     match /activityLog/{logId} {
-        allow read: if isPrimaryRole();
-        allow write: if isPrimaryRole();
+      allow read: if isPrimaryRole();
+      allow write: if isPrimaryRole();
     }
     
+    // Sessions can be read by primary roles. Deleting (signing out) is handled by the data context logic.
     match /sessions/{sessionId} {
-      // Users can only read their own session to validate it
-      // Super admin can list all to manage them
-      allow get: if isSignedIn() && request.auth.uid == resource.data.userId;
-      allow list, read: if isSuperAdmin() || isAccountant() || isCoordinator();
-      allow create: if isSignedIn();
-      allow delete: if isSuperAdmin() || request.auth.uid == resource.data.userId;
+      allow read: if isPrimaryRole();
+      allow create: if request.auth.uid != null;
+      allow delete: if request.auth.uid != null; // Allow users to sign out sessions
     }
-    
+
+    // Notifications can be created by primary roles, but only read/updated by super_admin.
     match /notifications/{notificationId} {
-        allow create: if isPrimaryRole();
-        allow read, update: if isSuperAdmin();
-        allow list, delete: if isSuperAdmin();
+      allow create: if isPrimaryRole();
+      allow read, update: if getRole() == 'super_admin';
     }
   }
 }
