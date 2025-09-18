@@ -26,7 +26,7 @@ const chartConfig = {
 };
 
 export default function DashboardPage() {
-    const { students, fees, activityLog, expenses, teachers, teacherAttendances: allTeacherAttendances, classes, userRole } = useData();
+    const { students, fees, activityLog, expenses, teachers, teacherAttendances: allTeacherAttendances, classes, hasPermission } = useData();
     const [today, setToday] = useState<Date | null>(null);
 
     useEffect(() => {
@@ -220,7 +220,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-       {(userRole === 'super_admin' || userRole === 'accountant') && (
+       {hasPermission('accounts') && (
         <div className="grid gap-6 md:grid-cols-3">
               <Card className="bg-green-500/5 border-green-500/20">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">

@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import Link from 'next/link';
@@ -47,59 +46,65 @@ import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useMemo } from 'react';
 import { useData } from '@/context/data-context';
+import type { PermissionSet } from '@/lib/types';
 
 
-const navItems = [
-  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['super_admin', 'accountant', 'coordinator'] },
-  { href: '/families', icon: Home, label: 'Families', roles: ['super_admin', 'coordinator'] },
-  { href: '/admissions', icon: UserPlus, label: 'Admissions', roles: ['super_admin', 'coordinator'] },
-  { href: '/students', icon: Users, label: 'Students', roles: ['super_admin', 'coordinator'] },
-  { href: '/classes', icon: BookCopy, label: 'Classes', roles: ['super_admin', 'coordinator'] },
-  { href: '/teachers', icon: Briefcase, label: 'Teachers', roles: ['super_admin', 'coordinator'] },
-  { href: '/timetable', icon: CalendarClock, label: 'Timetable', roles: ['super_admin', 'coordinator'] },
-  { href: '/fees', icon: Wallet, label: 'Fee Collection', roles: ['super_admin', 'accountant'] },
-  { href: '/vouchers', icon: Receipt, label: 'Fee Vouchers', roles: ['super_admin', 'accountant'] },
-  { href: '/income', icon: TrendingUp, label: 'Income', roles: ['super_admin', 'accountant'] },
-  { href: '/expenses', icon: Landmark, label: 'Expenses', roles: ['super_admin', 'accountant'] },
-  { href: '/accounts', icon: BookCheck, label: 'Accounts', roles: ['super_admin', 'accountant'] },
-  { href: '/reports', icon: FileText, label: 'Reports', roles: ['super_admin', 'accountant', 'coordinator'] },
-  { href: '/yearbook', icon: Archive, label: 'Yearbook', roles: ['super_admin'] },
+type NavItem = {
+  href: string;
+  icon: React.ElementType;
+  label: string;
+  permission: keyof PermissionSet;
+};
+
+const navItems: NavItem[] = [
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', permission: 'dashboard' },
+  { href: '/families', icon: Home, label: 'Families', permission: 'families' },
+  { href: '/admissions', icon: UserPlus, label: 'Admissions', permission: 'admissions' },
+  { href: '/students', icon: Users, label: 'Students', permission: 'students' },
+  { href: '/classes', icon: BookCopy, label: 'Classes', permission: 'classes' },
+  { href: '/teachers', icon: Briefcase, label: 'Teachers', permission: 'teachers' },
+  { href: '/timetable', icon: CalendarClock, label: 'Timetable', permission: 'timetable' },
+  { href: '/fees', icon: Wallet, label: 'Fee Collection', permission: 'feeCollection' },
+  { href: '/vouchers', icon: Receipt, label: 'Fee Vouchers', permission: 'feeVouchers' },
+  { href: '/income', icon: TrendingUp, label: 'Income', permission: 'income' },
+  { href: '/expenses', icon: Landmark, label: 'Expenses', permission: 'expenses' },
+  { href: '/accounts', icon: BookCheck, label: 'Accounts', permission: 'accounts' },
+  { href: '/reports', icon: FileText, label: 'Reports', permission: 'reports' },
+  { href: '/yearbook', icon: Archive, label: 'Yearbook', permission: 'yearbook' },
 ];
 
-const examSystemItems = [
-    { href: "/exams", icon: FileSignature, label: "Marksheets", roles: ['super_admin', 'coordinator'] },
-    { href: "/result-cards", icon: FileBadge, label: "Result Cards", roles: ['super_admin', 'coordinator'] },
-    { href: "/roll-number-slips", icon: Ticket, label: "Roll No. Slips", roles: ['super_admin', 'coordinator'] },
-    { href: "/seating-plan", icon: Grid3x3, label: "Seating Plan", roles: ['super_admin', 'coordinator'] },
+const examSystemItems: NavItem[] = [
+    { href: "/exams", icon: FileSignature, label: "Marksheets", permission: "examSystem" },
+    { href: "/result-cards", icon: FileBadge, label: "Result Cards", permission: "examSystem" },
+    { href: "/roll-number-slips", icon: Ticket, label: "Roll No. Slips", permission: "examSystem" },
+    { href: "/seating-plan", icon: Grid3x3, label: "Seating Plan", permission: "examSystem" },
 ];
 
-const attendanceItems = [
-    { href: "/attendance", icon: Users, label: "Student Attendance", roles: ['super_admin', 'coordinator'] },
-    { href: "/teacher-attendance", icon: UserCheck2, label: "Teacher Attendance", roles: ['super_admin', 'coordinator'] },
+const attendanceItems: NavItem[] = [
+    { href: "/attendance", icon: Users, label: "Student Attendance", permission: "attendance" },
+    { href: "/teacher-attendance", icon: UserCheck2, label: "Teacher Attendance", permission: "attendance" },
 ];
 
-const footerItems = [
-   { href: '/alumni', icon: Medal, label: 'Alumni', roles: ['super_admin', 'coordinator'] },
-   { href: '/settings', icon: Settings, label: 'Settings', roles: ['super_admin'] },
-   { href: '/archived', icon: Archive, label: 'Archived', roles: ['super_admin'] },
-   { href: '/', icon: LogOut, label: 'Logout', roles: ['super_admin', 'accountant', 'coordinator'] },
+const footerItems: NavItem[] = [
+   { href: '/alumni', icon: Medal, label: 'Alumni', permission: 'alumni' },
+   { href: '/settings', icon: Settings, label: 'Settings', permission: 'settings' },
+   { href: '/archived', icon: Archive, label: 'Archived', permission: 'archived' },
+   { href: '/', icon: LogOut, label: 'Logout', permission: 'dashboard' }, // Anyone with dashboard access can logout
 ];
 
 
 export function SidebarNav() {
   const pathname = usePathname();
   const { settings } = useSettings();
-  const { userRole } = useData();
-  const [isExamSystemOpen, setIsExamSystemOpen] = useState(pathname.startsWith('/exams') || pathname.startsWith('/result-cards') || pathname.startsWith('/roll-number-slips') || pathname.startsWith('/seating-plan'));
+  const { hasPermission } = useData();
+  const [isExamSystemOpen, setIsExamSystemOpen] = useState(pathname.startsWith('/exam') || pathname.startsWith('/result-cards') || pathname.startsWith('/roll-number-slips') || pathname.startsWith('/seating-plan'));
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(pathname.startsWith('/attendance') || pathname.startsWith('/teacher-attendance'));
   const { isPinned, isMobile } = useSidebar();
   
-  const hasAccess = (roles: string[]) => roles.includes(userRole);
-
-  const filteredNavItems = useMemo(() => navItems.filter(item => hasAccess(item.roles)), [userRole]);
-  const filteredExamSystemItems = useMemo(() => examSystemItems.filter(item => hasAccess(item.roles)), [userRole]);
-  const filteredAttendanceItems = useMemo(() => attendanceItems.filter(item => hasAccess(item.roles)), [userRole]);
-  const filteredFooterItems = useMemo(() => footerItems.filter(item => hasAccess(item.roles)), [userRole]);
+  const filteredNavItems = useMemo(() => navItems.filter(item => hasPermission(item.permission)), [hasPermission]);
+  const showExamSystem = useMemo(() => hasPermission('examSystem'), [hasPermission]);
+  const showAttendance = useMemo(() => hasPermission('attendance'), [hasPermission]);
+  const filteredFooterItems = useMemo(() => footerItems.filter(item => hasPermission(item.permission)), [hasPermission]);
 
 
   return (
@@ -132,8 +137,7 @@ export function SidebarNav() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
-          {hasAccess(['super_admin', 'coordinator']) && (
-            <>
+          {showAttendance && (
             <Collapsible asChild open={isAttendanceOpen} onOpenChange={setIsAttendanceOpen}>
               <CollapsibleSidebarMenuItem>
                  <CollapsibleTrigger asChild>
@@ -147,14 +151,9 @@ export function SidebarNav() {
                  </CollapsibleTrigger>
                 <CollapsibleContent asChild>
                     <ul className={cn("space-y-1 ml-4 pl-5 py-1 border-l border-sidebar-border/50 transition-all", (isPinned || isMobile) ? "block" : "hidden group-hover/sidebar:block")}>
-                        {filteredAttendanceItems.map(item => (
+                        {attendanceItems.map(item => (
                              <li key={item.label}>
-                                <SidebarMenuButton
-                                    asChild
-                                    size="sm"
-                                    isActive={pathname.startsWith(item.href)}
-                                    tooltip={item.label}
-                                >
+                                <SidebarMenuButton asChild size="sm" isActive={pathname.startsWith(item.href)} tooltip={item.label}>
                                     <Link href={item.href}>
                                     <item.icon />
                                     <span className="truncate min-w-0">{item.label}</span>
@@ -166,6 +165,8 @@ export function SidebarNav() {
                 </CollapsibleContent>
               </CollapsibleSidebarMenuItem>
             </Collapsible>
+          )}
+          {showExamSystem && (
             <Collapsible asChild open={isExamSystemOpen} onOpenChange={setIsExamSystemOpen}>
               <CollapsibleSidebarMenuItem>
                  <CollapsibleTrigger asChild>
@@ -179,14 +180,9 @@ export function SidebarNav() {
                  </CollapsibleTrigger>
                 <CollapsibleContent asChild>
                     <ul className={cn("space-y-1 ml-4 pl-5 py-1 border-l border-sidebar-border/50 transition-all", (isPinned || isMobile) ? "block" : "hidden group-hover/sidebar:block")}>
-                        {filteredExamSystemItems.map(item => (
+                        {examSystemItems.map(item => (
                              <li key={item.label}>
-                                <SidebarMenuButton
-                                    asChild
-                                    size="sm"
-                                    isActive={pathname.startsWith(item.href)}
-                                    tooltip={item.label}
-                                >
+                                <SidebarMenuButton asChild size="sm" isActive={pathname.startsWith(item.href)} tooltip={item.label}>
                                     <Link href={item.href}>
                                     <item.icon />
                                     <span className="truncate min-w-0">{item.label}</span>
@@ -198,7 +194,6 @@ export function SidebarNav() {
                 </CollapsibleContent>
               </CollapsibleSidebarMenuItem>
             </Collapsible>
-            </>
           )}
         </SidebarMenu>
       </SidebarContent>
