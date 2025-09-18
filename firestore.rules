@@ -5,85 +5,68 @@ service cloud.firestore {
     function getRole(userId) {
       return get(/databases/$(database)/documents/users/$(userId)).data.role;
     }
-    
-    function isSuperAdmin() {
-      return getRole(request.auth.uid) == 'super_admin';
-    }
-    
-    function isAccountant() {
-      return getRole(request.auth.uid) == 'accountant';
-    }
-    
-    function isCoordinator() {
-      return getRole(request.auth.uid) == 'coordinator';
-    }
 
+    // Authenticated users can read their own user document to get their role.
+    // Only super_admin can create, update, or delete users.
     match /users/{userId} {
-      allow read: if request.auth.uid == userId || isSuperAdmin();
-      allow write: if isSuperAdmin();
+      allow read: if request.auth.uid == userId;
+      allow list, write: if getRole(request.auth.uid) == "super_admin";
     }
-    
-    match /Settings/{docId} {
-      allow read: if request.auth != null;
-      allow write: if isSuperAdmin();
-    }
-    
-    match /branding/{docId} {
-      allow read: if request.auth != null;
-      allow write: if isSuperAdmin();
-    }
-    
+
+    // Students, Families, Classes, Teachers
     match /students/{docId} {
-      allow read, write: if isSuperAdmin() || isCoordinator();
+      allow list, read, write: if getRole(request.auth.uid) in ["super_admin", "coordinator"];
     }
-    
-    match /alumni/{docId} {
-       allow read, write: if isSuperAdmin() || isCoordinator();
-    }
-
     match /families/{docId} {
-      allow read, write: if isSuperAdmin() || isCoordinator();
+      allow list, read, write: if getRole(request.auth.uid) in ["super_admin", "coordinator"];
     }
-
-    match /teachers/{docId} {
-      allow read, write: if isSuperAdmin() || isCoordinator();
-    }
-
     match /classes/{docId} {
-      allow read, write: if isSuperAdmin() || isCoordinator();
+      allow list, read, write: if getRole(request.auth.uid) in ["super_admin", "coordinator"];
     }
-    
-    match /timetables/{docId} {
-      allow read, write: if isSuperAdmin() || isCoordinator();
+    match /teachers/{docId} {
+      allow list, read, write: if getRole(request.auth.uid) in ["super_admin", "coordinator"];
     }
-    
-    match /attendances/{docId} {
-       allow read, write: if isSuperAdmin() || isCoordinator();
-    }
-    
-    match /teacherAttendances/{docId} {
-       allow read, write: if isSuperAdmin() || isCoordinator();
-    }
-    
-    match /exams/{docId} {
-      allow read, write: if isSuperAdmin() || isCoordinator();
-    }
-    
-    match /fees/{docId} {
-      allow read, write: if isSuperAdmin() || isAccountant();
+     match /alumni/{docId} {
+      allow list, read, write: if getRole(request.auth.uid) in ["super_admin", "coordinator"];
     }
 
+    // Attendance
+    match /attendances/{docId} {
+      allow list, read, write: if getRole(request.auth.uid) in ["super_admin", "coordinator"];
+    }
+    match /teacherAttendances/{docId} {
+      allow list, read, write: if getRole(request.auth.uid) in ["super_admin", "coordinator"];
+    }
+
+    // Exams & Timetables
+    match /exams/{docId} {
+      allow list, read, write: if getRole(request.auth.uid) in ["super_admin", "coordinator"];
+    }
+     match /timetables/{docId} {
+      allow list, read, write: if getRole(request.auth.uid) in ["super_admin", "coordinator"];
+    }
+
+    // Financial
+    match /fees/{docId} {
+      allow list, read, write: if getRole(request.auth.uid) in ["super_admin", "accountant"];
+    }
     match /expenses/{docId} {
-       allow read, write: if isSuperAdmin() || isAccountant();
+      allow list, read, write: if getRole(request.auth.uid) in ["super_admin", "accountant"];
     }
-    
-    match /activityLog/{docId} {
-      allow read: if isSuperAdmin();
-      allow write: if request.auth != null; // Allow any authenticated user to add logs
+
+    // Settings & Logs (Super Admin only)
+    match /Settings/{docId} {
+      allow list, read, write: if getRole(request.auth.uid) == "super_admin";
     }
-    
-    match /sessions/{docId} {
-      allow read, write: if request.auth != null; // Allow users to manage their own sessions
+     match /activityLog/{docId} {
+      allow list, read, write: if getRole(request.auth.uid) == "super_admin";
     }
+     match /sessions/{docId} {
+      allow list, read, write: if getRole(request.auth.uid) == "super_admin";
+    }
+     match /branding/{docId} {
+       allow read: if true; // Publicly readable for logos/favicons
+       allow write: if getRole(request.auth.uid) == "super_admin";
+     }
   }
 }
