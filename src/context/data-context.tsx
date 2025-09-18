@@ -5,7 +5,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { db, auth } from '@/lib/firebase';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, writeBatch, query, where, getDocs, setDoc, getDoc, runTransaction } from 'firebase/firestore';
-import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData, Attendance, Alumni, Session, User, PermissionSet } from '@/lib/types';
+import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData, Attendance, Alumni, Session, User, PermissionSet, AppNotification } from '@/lib/types';
 import { students as initialStudents, families as initialFamilies, fees as initialFees, teachers as initialTeachers, teacherAttendances as initialTeacherAttendances, classes as initialClasses, exams as initialExams, expenses as initialExpenses, timetables as initialTimetables } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import { startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getMonth, format } from 'date-fns';
@@ -37,6 +37,7 @@ interface DataContextType {
   timetables: Timetable[];
   sessions: Session[];
   users: User[];
+  notifications: AppNotification[];
   userRole: User['role'] | null;
   userPermissions: PermissionSet;
   isDataInitialized: boolean;
@@ -71,6 +72,8 @@ interface DataContextType {
   signOutSession: (sessionId: string) => Promise<void>;
   updateUser: (id: string, data: Partial<User>) => Promise<void>;
   createUser: (email: string, pass: string, name: string, permissions: PermissionSet) => Promise<void>;
+  addNotification: (notification: Omit<AppNotification, 'id' | 'timestamp' | 'isRead'>) => Promise<void>;
+  markNotificationAsRead: (id: string) => Promise<void>;
   loadData: (data: any) => Promise<void>;
   seedDatabase: () => Promise<void>;
   deleteAllData: () => Promise<void>;
@@ -108,6 +111,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [timetables, setTimetables] = useState<Timetable[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [userRole, setUserRole] = useState<User['role'] | null>(null);
   const [userPermissions, setUserPermissions] = useState<PermissionSet>(defaultPermissions);
   const [isDataInitialized, setIsDataInitialized] = useState(false);
@@ -148,6 +152,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 timetables: { name: 'timetables', setter: setTimetables },
                 sessions: { name: 'sessions', setter: setSessions },
                 users: { name: 'users', setter: setUsers },
+                notifications: { name: 'notifications', setter: setNotifications },
             };
 
             const permissionToCollectionMap: { [key in keyof PermissionSet]?: string[] } = {
@@ -166,7 +171,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             };
             
             const collectionsToFetch = new Set<string>();
-            ['activityLog', 'sessions', 'users'].forEach(c => collectionsToFetch.add(c));
+            ['activityLog', 'sessions', 'users', 'notifications'].forEach(c => collectionsToFetch.add(c));
             
             if (currentUserRole === 'super_admin') {
                 Object.keys(collectionsMap).forEach(key => collectionsToFetch.add(key));
@@ -189,7 +194,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 const collRef = collection(db, name);
                 return onSnapshot(collRef, snapshot => {
                     const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    if (name === 'activityLog') {
+                    if (name === 'activityLog' || name === 'notifications') {
                         data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
                     }
                     setter(data as any);
@@ -206,7 +211,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             setUserRole(null);
             setUserPermissions(defaultPermissions);
             setCurrentUserName('System');
-            [setStudents, setFamilies, setFees, setTeachers, setAttendances, setTeacherAttendances, setAlumni, setClasses, setExams, setActivityLog, setExpenses, setTimetables, setSessions, setUsers].forEach(setter => setter([]));
+            [setStudents, setFamilies, setFees, setTeachers, setAttendances, setTeacherAttendances, setAlumni, setClasses, setExams, setActivityLog, setExpenses, setTimetables, setSessions, setUsers, setNotifications].forEach(setter => setter([]));
         }
     });
 
@@ -589,6 +594,29 @@ export function DataProvider({ children }: { children: ReactNode }) {
         toast({ title: 'Error Signing Out', variant: 'destructive'});
     }
   };
+  
+  // --- NOTIFICATIONS ---
+  const addNotification = async (notification: Omit<AppNotification, 'id' | 'timestamp' | 'isRead'>) => {
+      const superAdmin = users.find(u => u.role === 'super_admin');
+      if (!superAdmin) return;
+      try {
+          const newNotif: Omit<AppNotification, 'id'> = {
+              ...notification,
+              timestamp: new Date().toISOString(),
+              isRead: false,
+          };
+          await addDoc(collection(db, 'notifications'), newNotif);
+      } catch (e) {
+          console.error("Error adding notification:", e);
+      }
+  };
+  const markNotificationAsRead = async (id: string) => {
+    try {
+      await updateDoc(doc(db, 'notifications', id), { isRead: true });
+    } catch (e) {
+      console.error("Error marking notification as read:", e);
+    }
+  };
 
   const seedDatabase = async () => { console.log('seedDatabase called'); };
   const deleteAllData = async () => { console.log('deleteAllData called'); };
@@ -596,14 +624,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const contextValue = {
       students, families, fees, teachers, attendances, teacherAttendances, alumni,
-      classes, exams, activityLog, expenses, timetables, sessions, users,
+      classes, exams, activityLog, expenses, timetables, sessions, users, notifications,
       userRole, userPermissions, isDataInitialized, hasPermission,
       addStudent, updateStudent, updateAlumni, deleteStudent, addFamily, updateFamily, 
       deleteFamily, addFee, updateFee, deleteFee, addTeacher, updateTeacher,
       deleteTeacher, saveStudentAttendance, saveTeacherAttendance, addClass,
       updateClass, deleteClass, addExam, updateExam, deleteExam, addActivityLog,
       clearActivityLog, addExpense, updateExpense, deleteExpense, updateTimetable,
-      signOutSession, updateUser, createUser, loadData, seedDatabase, deleteAllData,
+      signOutSession, updateUser, createUser, addNotification, markNotificationAsRead,
+      loadData, seedDatabase, deleteAllData,
   };
 
   return <DataContext.Provider value={contextValue}>{children}</DataContext.Provider>;

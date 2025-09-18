@@ -1,4 +1,5 @@
 
+
 export interface PermissionSet {
   dashboard: boolean;
   families: boolean;
@@ -182,6 +183,15 @@ export interface Session {
   ipAddress: string;
   userAgent: string;
   location?: string;
+}
+
+export interface AppNotification {
+    id: string;
+    title: string;
+    description: string;
+    timestamp: string;
+    isRead: boolean;
+    link?: string;
 }
 
 

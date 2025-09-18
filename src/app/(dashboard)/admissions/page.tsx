@@ -31,7 +31,7 @@ interface CustomFee {
 
 export default function AdmissionsPage() {
     const { toast } = useToast();
-    const { families, students, fees, addStudent, addFee, classes, addActivityLog } = useData();
+    const { families, students, fees, addStudent, addFee, classes, addActivityLog, addNotification } = useData();
     const { settings } = useSettings();
     const [familyId, setFamilyId] = useState('');
     const [familyExists, setFamilyExists] = useState(false);
@@ -228,6 +228,13 @@ export default function AdmissionsPage() {
             await addFee(fee);
         }
         
+        // Add notification for super admin
+        addNotification({
+            title: 'New Admission',
+            description: `New student ${newStudent.name} admitted to class ${newStudent.class}.`,
+            link: `/students/details/${newStudent.id}`
+        });
+        
         toast({
             title: 'Student Admitted!',
             description: `${studentName} has been successfully admitted. Printing admission form...`,
@@ -245,7 +252,7 @@ export default function AdmissionsPage() {
             try {
               const result = await sendWhatsAppMessage(newStudent.phone, message, settings);
               if (result.success) {
-                addActivityLog({ user: 'System', action: 'Send WhatsApp Message', description: `Sent admission confirmation to 1 recipient.`, recipientCount: 1 });
+                addActivityLog({ action: 'Send WhatsApp Message', description: `Sent admission confirmation to 1 recipient.`, recipientCount: 1 });
               } else {
                 throw new Error(result.error);
               }

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -12,15 +13,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Lock, Search, User, Home, School } from 'lucide-react';
+import { Lock, Search, User, Home, School, Bell } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState, useEffect, useCallback } from 'react';
-import { format } from 'date-fns';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { format, formatDistanceToNow } from 'date-fns';
 import { useSettings } from '@/context/settings-context';
 import { useData } from '@/context/data-context';
-import type { Student, Family } from '@/lib/types';
+import type { Student, Family, AppNotification } from '@/lib/types';
 import { SupportDialog } from './support-dialog';
 import { ThemeToggle } from './theme-toggle';
 import { cn } from '@/lib/utils';
@@ -31,6 +32,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { ScrollArea } from '../ui/scroll-area';
+import { Badge } from '../ui/badge';
 
 
 function getTitleFromPathname(pathname: string): string {
@@ -58,7 +61,7 @@ export function Header() {
   const router = useRouter();
   const pageTitle = getTitleFromPathname(pathname);
   const { settings } = useSettings();
-  const { students, families } = useData();
+  const { students, families, userRole, notifications, markNotificationAsRead } = useData();
   
   const [dateTime, setDateTime] = useState<Date | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -67,7 +70,8 @@ export function Header() {
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [openSupportDialog, setOpenSupportDialog] = useState(false);
   const [openSearchDialog, setOpenSearchDialog] = useState(false);
-
+  
+  const unreadNotifications = useMemo(() => notifications.filter(n => !n.isRead), [notifications]);
 
   useEffect(() => {
     setDateTime(new Date());
@@ -135,6 +139,15 @@ export function Header() {
     setSearchResults([]);
     setIsSearchDropdownOpen(false);
     setOpenSearchDialog(false);
+  };
+
+  const handleNotificationClick = (notification: AppNotification) => {
+      if (!notification.isRead) {
+          markNotificationAsRead(notification.id);
+      }
+      if (notification.link) {
+          router.push(notification.link);
+      }
   }
 
 
@@ -236,6 +249,39 @@ export function Header() {
                   </ul>
               </div>
           )}
+          
+           {userRole === 'super_admin' && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="relative">
+                    <Bell className="h-5 w-5" />
+                    {unreadNotifications.length > 0 && (
+                        <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 w-4 justify-center rounded-full p-0 text-[10px]">
+                            {unreadNotifications.length}
+                        </Badge>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80">
+                  <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <ScrollArea className="h-96">
+                    {notifications.length > 0 ? (
+                        notifications.map(n => (
+                            <DropdownMenuItem key={n.id} className={cn("flex flex-col items-start gap-1 whitespace-normal", !n.isRead && "bg-accent")} onSelect={() => handleNotificationClick(n)}>
+                                <p className="font-semibold">{n.title}</p>
+                                <p className="text-xs text-muted-foreground">{n.description}</p>
+                                <p className="text-xs text-muted-foreground self-end">{formatDistanceToNow(new Date(n.timestamp), { addSuffix: true })}</p>
+                            </DropdownMenuItem>
+                        ))
+                    ) : (
+                        <DropdownMenuItem disabled>No notifications</DropdownMenuItem>
+                    )}
+                  </ScrollArea>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
           <DropdownMenu open={isUserDropdownOpen} onOpenChange={setIsUserDropdownOpen}>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-9 w-9 rounded-full" onMouseEnter={() => setIsUserDropdownOpen(true)}>

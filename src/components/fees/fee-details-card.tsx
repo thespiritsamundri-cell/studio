@@ -35,7 +35,7 @@ type PrintType = 'normal' | 'thermal';
 
 export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, onDeleteFee, settings }: FeeDetailsCardProps) {
     const { toast } = useToast();
-    const { addActivityLog } = useData();
+    const { addActivityLog, addNotification } = useData();
 
     const [paidAmount, setPaidAmount] = useState<number>(0);
     const [paymentMethod, setPaymentMethod] = useState('By Hand');
@@ -115,6 +115,13 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         const newDues = totalDues - collectedAmount;
         
         addActivityLog({ action: 'Collect Fee', description: `Collected PKR ${collectedAmount.toLocaleString()} from family ${family.id} (${family.fatherName})`});
+        
+        // Add notification for super admin
+        addNotification({
+            title: 'Fee Collected',
+            description: `PKR ${collectedAmount.toLocaleString()} collected from ${family.fatherName} (Family ID: ${family.id})`,
+            link: `/income?familyId=${family.id}`
+        });
 
         toast({
             title: 'Fee Collected',
