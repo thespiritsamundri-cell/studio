@@ -417,8 +417,8 @@ export default function SettingsPage() {
       </div>
       
       <Tabs defaultValue={canEdit ? "school" : "security"} className="w-full">
-        <TabsList className={cn("grid w-full h-auto", canEdit ? 'grid-cols-2 sm:grid-cols-4 lg:grid-cols-9' : 'grid-cols-2')}>
-            {tabs.filter(tab => canEdit || ['security', 'logins'].includes(tab.value)).map(tab => <TabsTrigger key={tab.value} value={tab.value}>{tab.label}</TabsTrigger>)}
+        <TabsList className={cn("grid w-full h-auto", canEdit ? 'grid-cols-2 sm:grid-cols-4 lg:grid-cols-9' : 'grid-cols-1')}>
+            {tabs.filter(tab => canEdit || ['security'].includes(tab.value)).map(tab => <TabsTrigger key={tab.value} value={tab.value}>{tab.label}</TabsTrigger>)}
         </TabsList>
 
         <TabsContent value="school" className="mt-6">
@@ -517,22 +517,24 @@ export default function SettingsPage() {
                             <div className="space-y-2"> <Label htmlFor="newPassword">New Password</Label> <div className="relative"> <Input id="newPassword" type={showNewPassword ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} /> <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowNewPassword(p => !p)}> {showNewPassword ? <EyeOff/> : <Eye/>} </Button> </div> </div>
                         </div>
                     </div>
-                    <div className="p-4 border rounded-lg space-y-4">
-                        <h3 className="font-medium text-lg">Security Features</h3>
-                         <div className="space-y-2">
-                            <h4 className="font-semibold">Security PIN</h4>
-                            <p className="text-sm text-muted-foreground">Set a 4-digit PIN for history deletion and app unlock.</p>
-                             <div className="grid grid-cols-2 gap-4 max-w-sm">
-                                <div className="space-y-2"> <Label htmlFor="newPin">New PIN</Label> <Input id="newPin" type="password" maxLength={4} value={newPin} onChange={(e) => setNewPin(e.target.value)} /> </div>
-                                <div className="space-y-2"> <Label htmlFor="confirmPin">Confirm PIN</Label> <Input id="confirmPin" type="password" maxLength={4} value={confirmPin} onChange={(e) => setConfirmPin(e.target.value)} /> </div>
-                             </div>
+                    {canEdit && (
+                        <div className="p-4 border rounded-lg space-y-4">
+                            <h3 className="font-medium text-lg">Security Features</h3>
+                            <div className="space-y-2">
+                                <h4 className="font-semibold">Security PIN</h4>
+                                <p className="text-sm text-muted-foreground">Set a 4-digit PIN for history deletion and app unlock.</p>
+                                <div className="grid grid-cols-2 gap-4 max-w-sm">
+                                    <div className="space-y-2"> <Label htmlFor="newPin">New PIN</Label> <Input id="newPin" type="password" maxLength={4} value={newPin} onChange={(e) => setNewPin(e.target.value)} /> </div>
+                                    <div className="space-y-2"> <Label htmlFor="confirmPin">Confirm PIN</Label> <Input id="confirmPin" type="password" maxLength={4} value={confirmPin} onChange={(e) => setConfirmPin(e.target.value)} /> </div>
+                                </div>
+                            </div>
+                            <div className="border-t pt-4 space-y-2">
+                            <div className="flex justify-between items-center"> <h4 className="font-semibold">Auto-Lock</h4> <Switch id="autoLockEnabled" checked={settings.autoLockEnabled} onCheckedChange={(c) => setSettings(p => ({...p, autoLockEnabled: c }))} /> </div>
+                                <p className="text-sm text-muted-foreground">Automatically lock after inactivity.</p>
+                                <div className="space-y-2"> <Label htmlFor="autoLockDuration">Inactivity Duration (sec)</Label> <Input id="autoLockDuration" type="number" value={settings.autoLockDuration} onChange={(e) => setSettings(p => ({...p, autoLockDuration: Number(e.target.value)}))} disabled={!settings.autoLockEnabled} className="max-w-xs"/> </div>
+                            </div>
                         </div>
-                        <div className="border-t pt-4 space-y-2">
-                           <div className="flex justify-between items-center"> <h4 className="font-semibold">Auto-Lock</h4> <Switch id="autoLockEnabled" checked={settings.autoLockEnabled} onCheckedChange={(c) => setSettings(p => ({...p, autoLockEnabled: c }))} /> </div>
-                            <p className="text-sm text-muted-foreground">Automatically lock after inactivity.</p>
-                            <div className="space-y-2"> <Label htmlFor="autoLockDuration">Inactivity Duration (sec)</Label> <Input id="autoLockDuration" type="number" value={settings.autoLockDuration} onChange={(e) => setSettings(p => ({...p, autoLockDuration: Number(e.target.value)}))} disabled={!settings.autoLockEnabled} className="max-w-xs"/> </div>
-                        </div>
-                    </div>
+                    )}
                     <div className="border-t pt-6 space-y-4">
                          <div className="space-y-2 max-w-sm">
                             <Label htmlFor="currentPasswordForSecurity">Current Password</Label>
