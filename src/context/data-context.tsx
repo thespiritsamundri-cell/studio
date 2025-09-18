@@ -49,7 +49,7 @@ interface DataContextType {
   deleteFamily: (id: string) => Promise<void>;
   addFee: (feeData: Omit<Fee, 'id'>) => Promise<string | undefined>;
   updateFee: (id: string, fee: Partial<Fee>) => Promise<void>;
-  deleteFee: (id: string) => Promise<void>;
+  deleteFee: (id: string) => void;
   addTeacher: (teacher: Omit<Teacher, 'id'>) => Promise<void>;
   updateTeacher: (id: string, teacher: Partial<Teacher>) => Promise<void>;
   deleteTeacher: (id: string) => Promise<void>;
@@ -114,51 +114,97 @@ export function DataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
         if (user) {
-            const collections: { name: string; setter: React.Dispatch<React.SetStateAction<any[]>> }[] = [
-                { name: 'students', setter: setStudents },
-                { name: 'families', setter: setFamilies },
-                { name: 'fees', setter: setFees },
-                { name: 'teachers', setter: setTeachers },
-                { name: 'attendances', setter: setAttendances },
-                { name: 'teacherAttendances', setter: setTeacherAttendances },
-                { name: 'alumni', setter: setAlumni },
-                { name: 'classes', setter: setClasses },
-                { name: 'exams', setter: setExams },
-                { name: 'activityLog', setter: setActivityLog },
-                { name: 'expenses', setter: setExpenses },
-                { name: 'timetables', setter: setTimetables },
-                { name: 'sessions', setter: setSessions },
-                { name: 'users', setter: setUsers },
-            ];
-            
             const userDocRef = doc(db, 'users', user.uid);
+            // First, fetch the user's permissions
             const userDocSnap = await getDoc(userDocRef);
 
-            if (userDocSnap.exists()) {
-                const userData = userDocSnap.data() as User;
-                setUserRole(userData.role);
-                setUserPermissions(userData.permissions || defaultPermissions);
-            } else {
-                setUserRole(null); 
-                setUserPermissions(defaultPermissions);
+            if (!userDocSnap.exists()) {
+                console.error("User document not found in Firestore!");
+                setIsDataInitialized(true); // Stop loading, but data will be empty
+                return;
             }
 
-            const listeners = collections.map(({ name, setter }) => {
+            const userData = userDocSnap.data() as User;
+            const currentUserRole = userData.role;
+            const currentUserPermissions = userData.permissions || defaultPermissions;
+            
+            setUserRole(currentUserRole);
+            setUserPermissions(currentUserPermissions);
+
+            // Define all possible collections and their setters
+            const collectionsMap: { [key: string]: { name: string; setter: React.Dispatch<React.SetStateAction<any[]>> } } = {
+                students: { name: 'students', setter: setStudents },
+                families: { name: 'families', setter: setFamilies },
+                fees: { name: 'fees', setter: setFees },
+                teachers: { name: 'teachers', setter: setTeachers },
+                attendances: { name: 'attendances', setter: setAttendances },
+                teacherAttendances: { name: 'teacherAttendances', setter: setTeacherAttendances },
+                alumni: { name: 'alumni', setter: setAlumni },
+                classes: { name: 'classes', setter: setClasses },
+                exams: { name: 'exams', setter: setExams },
+                activityLog: { name: 'activityLog', setter: setActivityLog },
+                expenses: { name: 'expenses', setter: setExpenses },
+                timetables: { name: 'timetables', setter: setTimetables },
+                sessions: { name: 'sessions', setter: setSessions },
+                users: { name: 'users', setter: setUsers },
+            };
+
+            const permissionToCollectionMap: { [key in keyof PermissionSet]?: string[] } = {
+                students: ['students'],
+                families: ['families'],
+                feeCollection: ['fees'],
+                teachers: ['teachers'],
+                attendance: ['attendances', 'teacherAttendances'],
+                classes: ['classes'],
+                alumni: ['alumni'],
+                examSystem: ['exams'],
+                expenses: ['expenses'],
+                income: ['fees'], // Income page uses fees data
+                accounts: ['fees', 'expenses'], // Accounts uses both
+                timetable: ['timetables'],
+            };
+            
+            const collectionsToFetch = new Set<string>();
+
+            // Always fetch these
+            ['activityLog', 'sessions'].forEach(c => collectionsToFetch.add(c));
+            
+            if (currentUserRole === 'super_admin') {
+                Object.keys(collectionsMap).forEach(key => collectionsToFetch.add(key));
+            } else {
+                 // Fetch collections based on permissions
+                Object.entries(currentUserPermissions).forEach(([permission, hasAccess]) => {
+                    if (hasAccess) {
+                        const collections = permissionToCollectionMap[permission as keyof PermissionSet];
+                        if (collections) {
+                            collections.forEach(c => collectionsToFetch.add(c));
+                        }
+                    }
+                });
+
+                // Grant read access for core academic data to accountants/coordinators for app functionality
+                if (currentUserRole === 'accountant' || currentUserRole === 'coordinator') {
+                    ['classes', 'teachers', 'exams', 'timetables', 'alumni'].forEach(c => collectionsToFetch.add(c));
+                }
+            }
+
+
+            const listeners = Array.from(collectionsToFetch).map(collectionKey => {
+                const { name, setter } = collectionsMap[collectionKey];
                 const collRef = collection(db, name);
                 return onSnapshot(collRef, snapshot => {
                     const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     if (name === 'activityLog') {
                         data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
                     }
-                    setter(data as any); 
+                    setter(data as any);
                 }, error => {
                     console.error(`Error fetching ${name}:`, error);
                     toast({ title: `Error Fetching ${name}`, description: "Could not connect to the database.", variant: "destructive" });
                 });
             });
-
+            
             setIsDataInitialized(true);
-
             return () => listeners.forEach(unsub => unsub());
 
         } else {
@@ -572,3 +618,5 @@ export function useData() {
   if (context === undefined) throw new Error('useData must be used within a DataProvider');
   return context;
 }
+
+    
