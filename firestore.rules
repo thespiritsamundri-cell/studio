@@ -1,117 +1,110 @@
-
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper function to get the role of the requesting user.
-    function getRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    
+    // Helper function to get the current user's permissions object
+    function getUserPermissions() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions;
     }
     
-    // Helper function to get the permissions of the requesting user.
-    function getPermissions() {
-        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions;
+    // Helper function to check if the user is a super_admin
+    function isSuperAdmin() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
     }
 
-    // -------------------------
-    // Users Collection
-    // -------------------------
+    // ------------------------------------------------------------------
+    //  USERS COLLECTION
+    //  - Allow users to read their own document to get their permissions.
+    //  - Only super_admin can list, create, or update users.
+    // ------------------------------------------------------------------
     match /users/{userId} {
-      // ANY authenticated user can READ THEIR OWN document. This is key.
       allow read: if request.auth.uid == userId;
-      // ONLY a super_admin can read ALL user documents.
-      allow list, write: if getRole() == 'super_admin';
+      allow list, write: if isSuperAdmin();
     }
 
-    // -------------------------
-    // Students Collection
-    // -------------------------
+    // ------------------------------------------------------------------
+    //  GENERAL & ACADEMIC COLLECTIONS
+    //  - Accessible by super_admin and users with specific permission flags.
+    // ------------------------------------------------------------------
     match /students/{docId} {
-      allow list, read: if getRole() == 'super_admin' || getPermissions().students == true;
-      allow write: if getRole() == 'super_admin' || getPermissions().admissions == true;
+      allow list, read, write: if isSuperAdmin() || getUserPermissions().students == true;
     }
-    
-    // -------------------------
-    // Alumni Collection
-    // -------------------------
-    match /alumni/{docId} {
-      allow list, read, write: if getRole() == 'super_admin' || getPermissions().alumni == true;
-    }
-
-    // -------------------------
-    // Families Collection
-    // -------------------------
     match /families/{docId} {
-      allow list, read, write: if getRole() == 'super_admin' || getPermissions().families == true;
+      allow list, read, write: if isSuperAdmin() || getUserPermissions().families == true;
     }
-    
-    // -------------------------
-    // Teachers Collection
-    // -------------------------
-    match /teachers/{docId} {
-        allow list, read, write: if getRole() == 'super_admin' || getPermissions().teachers == true;
+    match /admissions/{docId} {
+       allow list, read, write: if isSuperAdmin() || getUserPermissions().admissions == true;
     }
-
-    // -------------------------
-    // Classes Collection
-    // -------------------------
     match /classes/{docId} {
-       allow list, read, write: if getRole() == 'super_admin' || getPermissions().classes == true;
+      allow list, read, write: if isSuperAdmin() || getUserPermissions().classes == true;
     }
-
-    // -------------------------
-    // Attendance Collections
-    // -------------------------
+    match /teachers/{docId} {
+      allow list, read, write: if isSuperAdmin() || getUserPermissions().teachers == true;
+    }
+    match /timetable/{docId} {
+        allow list, read, write: if isSuperAdmin() || getUserPermissions().timetable == true;
+    }
     match /attendances/{docId} {
-      allow list, read, write: if getRole() == 'super_admin' || getPermissions().attendance == true;
+      allow list, read, write: if isSuperAdmin() || getUserPermissions().attendance == true;
     }
     match /teacherAttendances/{docId} {
-      allow list, read, write: if getRole() == 'super_admin' || getPermissions().attendance == true;
+      allow list, read, write: if isSuperAdmin() || getUserPermissions().attendance == true;
+    }
+    match /exams/{docId} {
+      allow list, read, write: if isSuperAdmin() || getUserPermissions().examSystem == true;
+    }
+    match /alumni/{docId} {
+        allow list, read, write: if isSuperAdmin() || getUserPermissions().alumni == true;
+    }
+     match /yearbook/{docId} {
+        allow list, read, write: if isSuperAdmin() || getUserPermissions().yearbook == true;
     }
     
-    // -------------------------
-    // Exam System Collections
-    // -------------------------
-     match /exams/{docId} {
-      allow list, read, write: if getRole() == 'super_admin' || getPermissions().examSystem == true;
-    }
-    
-     match /timetables/{docId} {
-      allow list, read, write: if getRole() == 'super_admin' || getPermissions().timetable == true;
-    }
-
-    // -------------------------
-    // Financial Collections
-    // -------------------------
+    // ------------------------------------------------------------------
+    //  FINANCIAL COLLECTIONS
+    //  - Accessible by super_admin and users with finance permissions.
+    // ------------------------------------------------------------------
     match /fees/{docId} {
-      allow list, read, write: if getRole() == 'super_admin' || getPermissions().feeCollection == true || getPermissions().income == true;
+      allow list, read, write: if isSuperAdmin() || getUserPermissions().feeCollection == true;
     }
-    
+     match /vouchers/{docId} {
+      allow list, read, write: if isSuperAdmin() || getUserPermissions().feeVouchers == true;
+    }
+    match /income/{docId} {
+      allow list, read, write: if isSuperAdmin() || getUserPermissions().income == true;
+    }
     match /expenses/{docId} {
-        allow list, read, write: if getRole() == 'super_admin' || getPermissions().expenses == true;
+      allow list, read, write: if isSuperAdmin() || getUserPermissions().expenses == true;
     }
-
-    // -------------------------
-    // Admin & System Collections
-    // -------------------------
-    match /Settings/{docId} {
-      allow list, read: if request.auth != null; // All authenticated users can read settings
-      allow write: if getRole() == 'super_admin';
+    match /accounts/{docId} {
+        allow list, read, write: if isSuperAdmin() || getUserPermissions().accounts == true;
     }
     
-     match /branding/{docId} {
-      allow list, read: if request.auth != null; // All authenticated users can read branding assets
-      allow write: if getRole() == 'super_admin';
+    // ------------------------------------------------------------------
+    //  ADMIN & LOGGING COLLECTIONS
+    // ------------------------------------------------------------------
+    match /reports/{docId} {
+      allow list, read, write: if isSuperAdmin() || getUserPermissions().reports == true;
     }
-
+    match /archived/{docId} {
+      allow list, read, write: if isSuperAdmin() || getUserPermissions().archived == true;
+    }
+    match /settings/{docId} {
+      allow list, read, write: if isSuperAdmin() || getUserPermissions().settings == true;
+    }
+    match /branding/{docId} {
+        allow read: if request.auth != null;
+        allow write: if isSuperAdmin();
+    }
     match /activityLog/{docId} {
-      allow list, read, write: if getRole() == 'super_admin';
+      // Allow any authenticated user to write their own logs, but only super_admin can read/list all.
+      allow create: if request.auth != null;
+      allow list, read, delete: if isSuperAdmin();
     }
-    
     match /sessions/{docId} {
-        allow read: if request.auth.uid == get(/databases/$(database)/documents/sessions/$(docId)).data.userId;
-        allow list, write, delete: if getRole() == 'super_admin';
+      allow read, delete: if isSuperAdmin();
+      allow create: if request.auth != null;
+      allow update: if request.auth.uid == resource.data.userId;
     }
   }
 }
