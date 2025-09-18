@@ -46,14 +46,14 @@ import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useMemo } from 'react';
 import { useData } from '@/context/data-context';
-import type { PermissionSet } from '@/lib/types';
+import type { PermissionSet, User } from '@/lib/types';
 
 
 type NavItem = {
   href: string;
   icon: React.ElementType;
   label: string;
-  permission: keyof PermissionSet;
+  permission: keyof PermissionSet | 'any_primary_role';
 };
 
 const navItems: NavItem[] = [
@@ -87,7 +87,7 @@ const attendanceItems: NavItem[] = [
 
 const footerItems: NavItem[] = [
    { href: '/alumni', icon: Medal, label: 'Alumni', permission: 'alumni' },
-   { href: '/settings', icon: Settings, label: 'Settings', permission: 'settings' },
+   { href: '/settings', icon: Settings, label: 'Settings', permission: 'any_primary_role' },
    { href: '/archived', icon: Archive, label: 'Archived', permission: 'archived' },
    { href: '/', icon: LogOut, label: 'Logout', permission: 'dashboard' }, // Anyone with dashboard access can logout
 ];
@@ -96,15 +96,22 @@ const footerItems: NavItem[] = [
 export function SidebarNav() {
   const pathname = usePathname();
   const { settings } = useSettings();
-  const { hasPermission } = useData();
+  const { hasPermission, userRole } = useData();
   const [isExamSystemOpen, setIsExamSystemOpen] = useState(pathname.startsWith('/exam') || pathname.startsWith('/result-cards') || pathname.startsWith('/roll-number-slips') || pathname.startsWith('/seating-plan'));
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(pathname.startsWith('/attendance') || pathname.startsWith('/teacher-attendance'));
   const { isPinned, isMobile } = useSidebar();
   
-  const filteredNavItems = useMemo(() => navItems.filter(item => hasPermission(item.permission)), [hasPermission]);
+  const checkGeneralPermission = (permission: keyof PermissionSet | 'any_primary_role') => {
+      if (permission === 'any_primary_role') {
+          return userRole === 'super_admin' || userRole === 'accountant' || userRole === 'coordinator';
+      }
+      return hasPermission(permission);
+  }
+
+  const filteredNavItems = useMemo(() => navItems.filter(item => checkGeneralPermission(item.permission)), [hasPermission, userRole]);
   const showExamSystem = useMemo(() => hasPermission('examSystem'), [hasPermission]);
   const showAttendance = useMemo(() => hasPermission('attendance'), [hasPermission]);
-  const filteredFooterItems = useMemo(() => footerItems.filter(item => hasPermission(item.permission)), [hasPermission]);
+  const filteredFooterItems = useMemo(() => footerItems.filter(item => checkGeneralPermission(item.permission)), [hasPermission, userRole]);
 
 
   return (

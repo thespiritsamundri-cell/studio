@@ -54,6 +54,8 @@ export default function SettingsPage() {
   const [localPreloaderStyle, setLocalPreloaderStyle] = useState(settings.preloaderStyle);
   const [localPreloaderEnabled, setLocalPreloaderEnabled] = useState(settings.preloaderEnabled);
 
+  const canEdit = hasPermission('settings');
+
   useEffect(() => {
     setLocalPreloaderStyle(settings.preloaderStyle);
     setLocalPreloaderEnabled(settings.preloaderEnabled);
@@ -387,25 +389,36 @@ export default function SettingsPage() {
     }), [settings.automatedMessages]);
 
   const tabs = [
-    { value: 'school', label: 'School', icon: SettingsIcon, permission: 'settings' },
-    { value: 'users', label: 'Users', icon: Users, permission: 'settings' },
-    { value: 'appearance', label: 'Appearance', icon: Palette, permission: 'settings' },
-    { value: 'grading', label: 'Grading', icon: Type, permission: 'settings' },
-    { value: 'security', label: 'Account & Security', icon: ShieldAlert, permission: 'settings' },
-    { value: 'logins', label: 'Logins', icon: LogIn, permission: 'settings' },
-    { value: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, permission: 'settings' },
-    { value: 'history', label: 'History', icon: History, permission: 'settings' },
-    { value: 'backup', label: 'Backup', icon: Database, permission: 'settings' },
-  ].filter(tab => hasPermission(tab.permission as keyof import('@/lib/types').PermissionSet));
+    { value: 'school', label: 'School', icon: SettingsIcon },
+    { value: 'users', label: 'Users', icon: Users },
+    { value: 'appearance', label: 'Appearance', icon: Palette },
+    { value: 'grading', label: 'Grading', icon: Type },
+    { value: 'security', label: 'My Profile', icon: ShieldAlert },
+    { value: 'logins', label: 'Logins', icon: LogIn },
+    { value: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
+    { value: 'history', label: 'History', icon: History },
+    { value: 'backup', label: 'Backup', icon: Database },
+  ];
 
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><SettingsIcon className="w-8 h-8" />Settings</h1>
+      <div className="flex items-center gap-4">
+        <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><SettingsIcon className="w-8 h-8" />Settings</h1>
+        {!canEdit && (
+            <Alert variant="default" className="border-primary/30 bg-primary/5 text-primary-foreground">
+                <Info className="h-4 w-4 text-primary" />
+                <AlertTitle className="text-primary">Read-Only Mode</AlertTitle>
+                <AlertDescription>
+                   You are viewing this page in read-only mode. You can view your profile, but cannot change school-wide settings.
+                </AlertDescription>
+            </Alert>
+        )}
+      </div>
       
-      <Tabs defaultValue="school" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 h-auto">
-            {tabs.map(tab => <TabsTrigger key={tab.value} value={tab.value}>{tab.label}</TabsTrigger>)}
+      <Tabs defaultValue={canEdit ? "school" : "security"} className="w-full">
+        <TabsList className={cn("grid w-full h-auto", canEdit ? 'grid-cols-2 sm:grid-cols-4 lg:grid-cols-9' : 'grid-cols-2')}>
+            {tabs.filter(tab => canEdit || ['security', 'logins'].includes(tab.value)).map(tab => <TabsTrigger key={tab.value} value={tab.value}>{tab.label}</TabsTrigger>)}
         </TabsList>
 
         <TabsContent value="school" className="mt-6">
@@ -416,23 +429,23 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2"> <Label htmlFor="schoolName">School Name</Label> <Input id="schoolName" value={settings.schoolName} onChange={handleInputChange} /> </div>
-                    <div className="space-y-2"> <Label htmlFor="academicYear">Academic Year</Label> <Select value={settings.academicYear} onValueChange={handleSelectChange('academicYear')}> <SelectTrigger id="academicYear"> <SelectValue placeholder="Select Year" /> </SelectTrigger> <SelectContent> {generateAcademicYears().map(year => ( <SelectItem key={year} value={year}>{year}</SelectItem> ))} </SelectContent> </Select> </div>
+                    <div className="space-y-2"> <Label htmlFor="schoolName">School Name</Label> <Input id="schoolName" value={settings.schoolName} onChange={handleInputChange} disabled={!canEdit}/> </div>
+                    <div className="space-y-2"> <Label htmlFor="academicYear">Academic Year</Label> <Select value={settings.academicYear} onValueChange={handleSelectChange('academicYear')} disabled={!canEdit}> <SelectTrigger id="academicYear"> <SelectValue placeholder="Select Year" /> </SelectTrigger> <SelectContent> {generateAcademicYears().map(year => ( <SelectItem key={year} value={year}>{year}</SelectItem> ))} </SelectContent> </Select> </div>
                 </div>
-                <div className="space-y-2"> <Label htmlFor="schoolAddress">School Address</Label> <Textarea id="schoolAddress" value={settings.schoolAddress} onChange={handleInputChange} /> </div>
+                <div className="space-y-2"> <Label htmlFor="schoolAddress">School Address</Label> <Textarea id="schoolAddress" value={settings.schoolAddress} onChange={handleInputChange} disabled={!canEdit}/> </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2"> <Label htmlFor="schoolPhone">Phone Number</Label> <Input id="schoolPhone" value={settings.schoolPhone} onChange={handleInputChange} /> </div>
-                    <div className="space-y-2"> <Label htmlFor="schoolEmail">School Email</Label> <Input id="schoolEmail" type="email" value={settings.schoolEmail} onChange={handleInputChange} /> </div>
-                    <div className="space-y-2"> <Label htmlFor="schoolLogo">School Logo</Label> <Input id="schoolLogoInput" name="schoolLogo" type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'schoolLogo')} /> </div>
-                    <div className="space-y-2"> <Label htmlFor="principalSignature">Principal's Signature</Label> <Input id="principalSignatureInput" name="principalSignature" type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'principalSignature')} /> </div>
-                    <div className="space-y-2"> <Label htmlFor="favicon">Favicon</Label> <Input id="faviconInput" name="favicon" type="file" accept="image/x-icon,image/png,image/svg+xml" onChange={(e) => handleFileChange(e, 'favicon')} /> </div>
+                    <div className="space-y-2"> <Label htmlFor="schoolPhone">Phone Number</Label> <Input id="schoolPhone" value={settings.schoolPhone} onChange={handleInputChange} disabled={!canEdit}/> </div>
+                    <div className="space-y-2"> <Label htmlFor="schoolEmail">School Email</Label> <Input id="schoolEmail" type="email" value={settings.schoolEmail} onChange={handleInputChange} disabled={!canEdit}/> </div>
+                    <div className="space-y-2"> <Label htmlFor="schoolLogo">School Logo</Label> <Input id="schoolLogoInput" name="schoolLogo" type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'schoolLogo')} disabled={!canEdit}/> </div>
+                    <div className="space-y-2"> <Label htmlFor="principalSignature">Principal's Signature</Label> <Input id="principalSignatureInput" name="principalSignature" type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'principalSignature')} disabled={!canEdit}/> </div>
+                    <div className="space-y-2"> <Label htmlFor="favicon">Favicon</Label> <Input id="faviconInput" name="favicon" type="file" accept="image/x-icon,image/png,image/svg+xml" onChange={(e) => handleFileChange(e, 'favicon')} disabled={!canEdit}/> </div>
                 </div>
                 <div className="flex gap-6">
-                    {settings.schoolLogo && <div className="space-y-2"> <Label>Logo Preview</Label> <div className="flex items-center gap-4 p-4 border rounded-md"> <Image src={settings.schoolLogo} alt="School Logo Preview" width={60} height={60} /> <Button variant="ghost" size="sm" onClick={() => setSettings(prev => ({...prev, schoolLogo: ''}))}>Remove</Button> </div> </div>}
-                    {settings.principalSignature && <div className="space-y-2"> <Label>Signature Preview</Label> <div className="flex items-center gap-4 p-4 border rounded-md bg-white"> <Image src={settings.principalSignature} alt="Principal Signature Preview" width={100} height={60} /> <Button variant="ghost" size="sm" onClick={() => setSettings(prev => ({...prev, principalSignature: ''}))}>Remove</Button> </div> </div>}
-                    {settings.favicon && <div className="space-y-2"> <Label>Favicon Preview</Label> <div className="flex items-center gap-4 p-4 border rounded-md"> <Image src={settings.favicon} alt="Favicon Preview" width={32} height={32} /> <Button variant="ghost" size="sm" onClick={() => setSettings(prev => ({...prev, favicon: ''}))}>Remove</Button> </div> </div>}
+                    {settings.schoolLogo && <div className="space-y-2"> <Label>Logo Preview</Label> <div className="flex items-center gap-4 p-4 border rounded-md"> <Image src={settings.schoolLogo} alt="School Logo Preview" width={60} height={60} /> <Button variant="ghost" size="sm" onClick={() => setSettings(prev => ({...prev, schoolLogo: ''}))} disabled={!canEdit}>Remove</Button> </div> </div>}
+                    {settings.principalSignature && <div className="space-y-2"> <Label>Signature Preview</Label> <div className="flex items-center gap-4 p-4 border rounded-md bg-white"> <Image src={settings.principalSignature} alt="Principal Signature Preview" width={100} height={60} /> <Button variant="ghost" size="sm" onClick={() => setSettings(prev => ({...prev, principalSignature: ''}))} disabled={!canEdit}>Remove</Button> </div> </div>}
+                    {settings.favicon && <div className="space-y-2"> <Label>Favicon Preview</Label> <div className="flex items-center gap-4 p-4 border rounded-md"> <Image src={settings.favicon} alt="Favicon Preview" width={32} height={32} /> <Button variant="ghost" size="sm" onClick={() => setSettings(prev => ({...prev, favicon: ''}))} disabled={!canEdit}>Remove</Button> </div> </div>}
                 </div>
-                <div className="flex justify-end"> <Button onClick={handleSave}>Save Changes</Button> </div>
+                {canEdit && <div className="flex justify-end"> <Button onClick={handleSave}>Save Changes</Button> </div>}
                 </CardContent>
             </Card>
         </TabsContent>
@@ -449,14 +462,14 @@ export default function SettingsPage() {
                <div className="space-y-4 p-4 border rounded-lg">
                   <div className="flex justify-between items-center">
                     <h3 className="font-medium flex items-center gap-2 font-headline"><PlayCircle /> Preloader Animation</h3>
-                    <Switch checked={localPreloaderEnabled} onCheckedChange={setLocalPreloaderEnabled} />
+                    <Switch checked={localPreloaderEnabled} onCheckedChange={setLocalPreloaderEnabled} disabled={!canEdit}/>
                   </div>
                   <p className="text-sm text-muted-foreground">Choose the loading animation that displays while data is being fetched.</p>
-                  <RadioGroup value={localPreloaderStyle} onValueChange={setLocalPreloaderStyle} className="grid grid-cols-2 md:grid-cols-4 gap-4" disabled={!localPreloaderEnabled}>
+                  <RadioGroup value={localPreloaderStyle} onValueChange={setLocalPreloaderStyle} className="grid grid-cols-2 md:grid-cols-4 gap-4" disabled={!localPreloaderEnabled || !canEdit}>
                     {Array.from({length: 8}, (_, i) => `style${i+1}`).map(style => (
                         <div key={style}>
                             <RadioGroupItem value={style} id={style} className="sr-only peer" />
-                            <Label htmlFor={style} className={cn("flex flex-col items-center justify-center rounded-md border-2 p-4", !localPreloaderEnabled && "opacity-50")}>
+                            <Label htmlFor={style} className={cn("flex flex-col items-center justify-center rounded-md border-2 p-4", !localPreloaderEnabled && "opacity-50", !canEdit && "cursor-not-allowed")}>
                                 <div className="w-16 h-16 flex items-center justify-center"> <Preloader style={style} /> </div>
                                 {localPreloaderStyle === style && <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-0.5"> <CheckCircle className="w-4 h-4" /> </div>}
                             </Label>
@@ -464,7 +477,7 @@ export default function SettingsPage() {
                     ))}
                   </RadioGroup>
                </div>
-                <div className="flex justify-end border-t pt-6"> <Button onClick={handleAppearanceSave}>Save Appearance</Button> </div>
+                {canEdit && <div className="flex justify-end border-t pt-6"> <Button onClick={handleAppearanceSave}>Save Appearance</Button> </div>}
             </CardContent>
           </Card>
         </TabsContent>
@@ -478,24 +491,24 @@ export default function SettingsPage() {
                             <TableBody>
                                 {(settings.gradingSystem || []).map((grade, index) => (
                                     <TableRow key={index}>
-                                        <TableCell> <Input value={grade.name} onChange={(e) => handleGradeChange(index, 'name', e.target.value)} /> </TableCell>
-                                        <TableCell> <Input type="number" value={grade.minPercentage} onChange={(e) => handleGradeChange(index, 'minPercentage', Number(e.target.value))} /> </TableCell>
-                                        <TableCell className="text-right"> <Button variant="ghost" size="icon" onClick={() => removeGradeRow(index)}> <Trash2 className="h-4 w-4 text-destructive" /> </Button> </TableCell>
+                                        <TableCell> <Input value={grade.name} onChange={(e) => handleGradeChange(index, 'name', e.target.value)} disabled={!canEdit}/> </TableCell>
+                                        <TableCell> <Input type="number" value={grade.minPercentage} onChange={(e) => handleGradeChange(index, 'minPercentage', Number(e.target.value))} disabled={!canEdit}/> </TableCell>
+                                        <TableCell className="text-right"> <Button variant="ghost" size="icon" onClick={() => removeGradeRow(index)} disabled={!canEdit}> <Trash2 className="h-4 w-4 text-destructive" /> </Button> </TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
                         </Table>
                     </div>
-                    <div className="flex justify-between items-center mt-4">
+                    {canEdit && <div className="flex justify-between items-center mt-4">
                         <Button variant="outline" onClick={addGradeRow}><PlusCircle className="mr-2 h-4 w-4" /> Add Grade</Button>
                         <Button onClick={() => { addActivityLog({ user: 'Admin', action: 'Update Grading System', description: 'Modified the grading system.' }); handleSave(); }}>Save Grading</Button>
-                    </div>
+                    </div>}
                 </CardContent>
             </Card>
         </TabsContent>
          <TabsContent value="security" className="mt-6">
             <Card>
-                <CardHeader><CardTitle className="flex items-center gap-2"><ShieldAlert />Account &amp; Security</CardTitle><CardDescription>Manage credentials and security.</CardDescription></CardHeader>
+                <CardHeader><CardTitle className="flex items-center gap-2"><ShieldAlert />My Profile &amp; Security</CardTitle><CardDescription>Manage your credentials and security settings.</CardDescription></CardHeader>
                 <CardContent className="space-y-6 max-w-2xl">
                      <div className="p-4 border rounded-lg space-y-4">
                         <h3 className="font-medium text-lg">Login Credentials</h3>
@@ -546,24 +559,24 @@ export default function SettingsPage() {
                     <CardDescription>Select provider and enter API details.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <RadioGroup value={settings.whatsappProvider} onValueChange={(v) => setSettings(p => ({...p, whatsappProvider: v as any, whatsappConnectionStatus: 'untested'}))} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Label htmlFor="provider-none" className="flex flex-col items-center justify-center rounded-md border-2 p-4 cursor-pointer"> <RadioGroupItem value="none" id="provider-none" className="sr-only" /> <WifiOff className="mb-3 h-6 w-6" /> None (Disabled) </Label>
-                        <Label htmlFor="provider-ultramsg" className="flex flex-col items-center justify-center rounded-md border-2 p-4 cursor-pointer"> <RadioGroupItem value="ultramsg" id="provider-ultramsg" className="sr-only" /> <img src="https://ultramsg.com/assets/img/logo-dark.svg" alt="UltraMSG" className="w-24 h-6 mb-3"/> UltraMSG API </Label>
-                        <Label htmlFor="provider-official" className="flex flex-col items-center justify-center rounded-md border-2 p-4 cursor-pointer"> <RadioGroupItem value="official" id="provider-official" className="sr-only" /> <div className="flex items-center gap-2 mb-3 h-6"> <img src="https://static.whatsapp.net/rsrc.php/v3/yI/r/r3d2Qj1f4vA.png" alt="WhatsApp" className="h-6 w-6"/> <span className="font-bold">WhatsApp</span> </div> Official API </Label>
+                    <RadioGroup value={settings.whatsappProvider} onValueChange={(v) => setSettings(p => ({...p, whatsappProvider: v as any, whatsappConnectionStatus: 'untested'}))} className="grid grid-cols-1 md:grid-cols-3 gap-4" disabled={!canEdit}>
+                        <Label htmlFor="provider-none" className={cn("flex flex-col items-center justify-center rounded-md border-2 p-4", canEdit && "cursor-pointer")}> <RadioGroupItem value="none" id="provider-none" className="sr-only" /> <WifiOff className="mb-3 h-6 w-6" /> None (Disabled) </Label>
+                        <Label htmlFor="provider-ultramsg" className={cn("flex flex-col items-center justify-center rounded-md border-2 p-4", canEdit && "cursor-pointer")}> <RadioGroupItem value="ultramsg" id="provider-ultramsg" className="sr-only" /> <img src="https://ultramsg.com/assets/img/logo-dark.svg" alt="UltraMSG" className="w-24 h-6 mb-3"/> UltraMSG API </Label>
+                        <Label htmlFor="provider-official" className={cn("flex flex-col items-center justify-center rounded-md border-2 p-4", canEdit && "cursor-pointer")}> <RadioGroupItem value="official" id="provider-official" className="sr-only" /> <div className="flex items-center gap-2 mb-3 h-6"> <img src="https://static.whatsapp.net/rsrc.php/v3/yI/r/r3d2Qj1f4vA.png" alt="WhatsApp" className="h-6 w-6"/> <span className="font-bold">WhatsApp</span> </div> Official API </Label>
                     </RadioGroup>
-                    {settings.whatsappProvider === 'ultramsg' && <div className="p-4 border rounded-lg mt-4 space-y-4"> <h3 className="font-semibold">UltraMSG Credentials</h3> <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> <div className="space-y-2"> <Label htmlFor="whatsappApiUrl">API URL</Label> <Input id="whatsappApiUrl" value={settings.whatsappApiUrl} onChange={handleInputChange} /> </div> <div className="space-y-2"> <Label htmlFor="whatsappApiKey">Token</Label> <Input id="whatsappApiKey" value={settings.whatsappApiKey} onChange={handleInputChange} /> </div> </div> </div>}
-                    {settings.whatsappProvider === 'official' && <div className="p-4 border rounded-lg mt-4 space-y-4"> <h3 className="font-semibold">Official API Credentials</h3> <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> <div className="space-y-2"> <Label htmlFor="whatsappPhoneNumberId">Phone Number ID</Label> <Input id="whatsappPhoneNumberId" value={settings.whatsappPhoneNumberId || ''} onChange={handleInputChange} /> </div> <div className="space-y-2"> <Label htmlFor="whatsappAccessToken">Access Token</Label> <Input id="whatsappAccessToken" value={settings.whatsappAccessToken || ''} onChange={handleInputChange} /> </div> </div> </div>}
-                    <div className="border-t pt-4 mt-4 space-y-4"> <div className="flex flex-col md:flex-row md:items-end gap-4"> <div className="space-y-2 flex-grow"> <Label htmlFor="testPhoneNumber">Test Phone Number</Label> <Input id="testPhoneNumber" value={testPhoneNumber} onChange={(e) => setTestPhoneNumber(e.target.value)} /> </div> <div className="flex gap-2"> <Button onClick={handleSave}><KeyRound className="mr-2"/>Save</Button> <Button variant="outline" onClick={handleTestConnection} disabled={isTesting || settings.whatsappProvider === 'none'}> {isTesting ? <Loader2 className="mr-2 animate-spin"/> : <TestTubeDiagonal className="mr-2"/>} {isTesting ? 'Testing...' : 'Test'} </Button> </div> </div> </div>
+                    {settings.whatsappProvider === 'ultramsg' && <div className="p-4 border rounded-lg mt-4 space-y-4"> <h3 className="font-semibold">UltraMSG Credentials</h3> <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> <div className="space-y-2"> <Label htmlFor="whatsappApiUrl">API URL</Label> <Input id="whatsappApiUrl" value={settings.whatsappApiUrl} onChange={handleInputChange} disabled={!canEdit}/> </div> <div className="space-y-2"> <Label htmlFor="whatsappApiKey">Token</Label> <Input id="whatsappApiKey" value={settings.whatsappApiKey} onChange={handleInputChange} disabled={!canEdit}/> </div> </div> </div>}
+                    {settings.whatsappProvider === 'official' && <div className="p-4 border rounded-lg mt-4 space-y-4"> <h3 className="font-semibold">Official API Credentials</h3> <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> <div className="space-y-2"> <Label htmlFor="whatsappPhoneNumberId">Phone Number ID</Label> <Input id="whatsappPhoneNumberId" value={settings.whatsappPhoneNumberId || ''} onChange={handleInputChange} disabled={!canEdit}/> </div> <div className="space-y-2"> <Label htmlFor="whatsappAccessToken">Access Token</Label> <Input id="whatsappAccessToken" value={settings.whatsappAccessToken || ''} onChange={handleInputChange} disabled={!canEdit}/> </div> </div> </div>}
+                    {canEdit && <div className="border-t pt-4 mt-4 space-y-4"> <div className="flex flex-col md:flex-row md:items-end gap-4"> <div className="space-y-2 flex-grow"> <Label htmlFor="testPhoneNumber">Test Phone Number</Label> <Input id="testPhoneNumber" value={testPhoneNumber} onChange={(e) => setTestPhoneNumber(e.target.value)} /> </div> <div className="flex gap-2"> <Button onClick={handleSave}><KeyRound className="mr-2"/>Save</Button> <Button variant="outline" onClick={handleTestConnection} disabled={isTesting || settings.whatsappProvider === 'none'}> {isTesting ? <Loader2 className="mr-2 animate-spin"/> : <TestTubeDiagonal className="mr-2"/>} {isTesting ? 'Testing...' : 'Test'} </Button> </div> </div> </div>}
                 </CardContent>
             </Card>
             <Card>
                 <CardHeader><CardTitle>Automated Notifications</CardTitle><CardDescription>Enable/disable automated messages for specific events.</CardDescription></CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="p-4 border rounded-lg space-y-4"> <div className="flex items-center justify-between"> <div><Label htmlFor="admission-toggle" className="font-semibold">Admission Confirmation</Label><p className="text-xs text-muted-foreground">Sent on new admission.</p></div> <Switch id="admission-toggle" checked={automatedMessages.admission.enabled} onCheckedChange={(c) => handleAutomatedMessageToggle('admission', c)} /> </div> <Select value={automatedMessages.admission.templateId} onValueChange={(id) => handleAutomatedMessageTemplateChange('admission', id)} disabled={!automatedMessages.admission.enabled}> <SelectTrigger><SelectValue placeholder="Select template..." /></SelectTrigger> <SelectContent>{(settings.messageTemplates || []).map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent> </Select> </div>
-                    <div className="p-4 border rounded-lg space-y-4"> <div className="flex items-center justify-between"> <div><Label htmlFor="absentee-toggle" className="font-semibold">Absentee Notice</Label><p className="text-xs text-muted-foreground">Sent on notifying absentees.</p></div> <Switch id="absentee-toggle" checked={automatedMessages.absentee.enabled} onCheckedChange={(c) => handleAutomatedMessageToggle('absentee', c)} /> </div> <Select value={automatedMessages.absentee.templateId} onValueChange={(id) => handleAutomatedMessageTemplateChange('absentee', id)} disabled={!automatedMessages.absentee.enabled}> <SelectTrigger><SelectValue placeholder="Select template..." /></SelectTrigger> <SelectContent>{(settings.messageTemplates || []).map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent> </Select> </div>
-                    <div className="p-4 border rounded-lg space-y-4"> <div className="flex items-center justify-between"> <div><Label htmlFor="payment-toggle" className="font-semibold">Fee Payment Receipt</Label><p className="text-xs text-muted-foreground">Sent on fee collection.</p></div> <Switch id="payment-toggle" checked={automatedMessages.payment.enabled} onCheckedChange={(c) => handleAutomatedMessageToggle('payment', c)} /> </div> <Select value={automatedMessages.payment.templateId} onValueChange={(id) => handleAutomatedMessageTemplateChange('payment', id)} disabled={!automatedMessages.payment.enabled}> <SelectTrigger><SelectValue placeholder="Select template..." /></SelectTrigger> <SelectContent>{(settings.messageTemplates || []).map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent> </Select> </div>
-                    <div className="p-4 border rounded-lg space-y-4"> <div className="flex items-center justify-between"> <div><Label htmlFor="student-deactivation-toggle" className="font-semibold">Student Deactivation</Label><p className="text-xs text-muted-foreground">Sent on auto-deactivation.</p></div> <Switch id="student-deactivation-toggle" checked={automatedMessages.studentDeactivation.enabled} onCheckedChange={(c) => handleAutomatedMessageToggle('studentDeactivation', c)} /> </div> <Select value={automatedMessages.studentDeactivation.templateId} onValueChange={(id) => handleAutomatedMessageTemplateChange('studentDeactivation', id)} disabled={!automatedMessages.studentDeactivation.enabled}> <SelectTrigger><SelectValue placeholder="Select template..." /></SelectTrigger> <SelectContent>{(settings.messageTemplates || []).map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent> </Select> </div>
-                    <div className="p-4 border rounded-lg space-y-4"> <div className="flex items-center justify-between"> <div><Label htmlFor="teacher-deactivation-toggle" className="font-semibold">Teacher Deactivation</Label><p className="text-xs text-muted-foreground">Sent on auto-deactivation.</p></div> <Switch id="teacher-deactivation-toggle" checked={automatedMessages.teacherDeactivation.enabled} onCheckedChange={(c) => handleAutomatedMessageToggle('teacherDeactivation', c)} /> </div> <Select value={automatedMessages.teacherDeactivation.templateId} onValueChange={(id) => handleAutomatedMessageTemplateChange('teacherDeactivation', id)} disabled={!automatedMessages.teacherDeactivation.enabled}> <SelectTrigger><SelectValue placeholder="Select template..." /></SelectTrigger> <SelectContent>{(settings.messageTemplates || []).map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent> </Select> </div>
+                    <div className="p-4 border rounded-lg space-y-4"> <div className="flex items-center justify-between"> <div><Label htmlFor="admission-toggle" className="font-semibold">Admission Confirmation</Label><p className="text-xs text-muted-foreground">Sent on new admission.</p></div> <Switch id="admission-toggle" checked={automatedMessages.admission.enabled} onCheckedChange={(c) => handleAutomatedMessageToggle('admission', c)} disabled={!canEdit}/> </div> <Select value={automatedMessages.admission.templateId} onValueChange={(id) => handleAutomatedMessageTemplateChange('admission', id)} disabled={!automatedMessages.admission.enabled || !canEdit}> <SelectTrigger><SelectValue placeholder="Select template..." /></SelectTrigger> <SelectContent>{(settings.messageTemplates || []).map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent> </Select> </div>
+                    <div className="p-4 border rounded-lg space-y-4"> <div className="flex items-center justify-between"> <div><Label htmlFor="absentee-toggle" className="font-semibold">Absentee Notice</Label><p className="text-xs text-muted-foreground">Sent on notifying absentees.</p></div> <Switch id="absentee-toggle" checked={automatedMessages.absentee.enabled} onCheckedChange={(c) => handleAutomatedMessageToggle('absentee', c)} disabled={!canEdit}/> </div> <Select value={automatedMessages.absentee.templateId} onValueChange={(id) => handleAutomatedMessageTemplateChange('absentee', id)} disabled={!automatedMessages.absentee.enabled || !canEdit}> <SelectTrigger><SelectValue placeholder="Select template..." /></SelectTrigger> <SelectContent>{(settings.messageTemplates || []).map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent> </Select> </div>
+                    <div className="p-4 border rounded-lg space-y-4"> <div className="flex items-center justify-between"> <div><Label htmlFor="payment-toggle" className="font-semibold">Fee Payment Receipt</Label><p className="text-xs text-muted-foreground">Sent on fee collection.</p></div> <Switch id="payment-toggle" checked={automatedMessages.payment.enabled} onCheckedChange={(c) => handleAutomatedMessageToggle('payment', c)} disabled={!canEdit}/> </div> <Select value={automatedMessages.payment.templateId} onValueChange={(id) => handleAutomatedMessageTemplateChange('payment', id)} disabled={!automatedMessages.payment.enabled || !canEdit}> <SelectTrigger><SelectValue placeholder="Select template..." /></SelectTrigger> <SelectContent>{(settings.messageTemplates || []).map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent> </Select> </div>
+                    <div className="p-4 border rounded-lg space-y-4"> <div className="flex items-center justify-between"> <div><Label htmlFor="student-deactivation-toggle" className="font-semibold">Student Deactivation</Label><p className="text-xs text-muted-foreground">Sent on auto-deactivation.</p></div> <Switch id="student-deactivation-toggle" checked={automatedMessages.studentDeactivation.enabled} onCheckedChange={(c) => handleAutomatedMessageToggle('studentDeactivation', c)} disabled={!canEdit}/> </div> <Select value={automatedMessages.studentDeactivation.templateId} onValueChange={(id) => handleAutomatedMessageTemplateChange('studentDeactivation', id)} disabled={!automatedMessages.studentDeactivation.enabled || !canEdit}> <SelectTrigger><SelectValue placeholder="Select template..." /></SelectTrigger> <SelectContent>{(settings.messageTemplates || []).map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent> </Select> </div>
+                    <div className="p-4 border rounded-lg space-y-4"> <div className="flex items-center justify-between"> <div><Label htmlFor="teacher-deactivation-toggle" className="font-semibold">Teacher Deactivation</Label><p className="text-xs text-muted-foreground">Sent on auto-deactivation.</p></div> <Switch id="teacher-deactivation-toggle" checked={automatedMessages.teacherDeactivation.enabled} onCheckedChange={(c) => handleAutomatedMessageToggle('teacherDeactivation', c)} disabled={!canEdit}/> </div> <Select value={automatedMessages.teacherDeactivation.templateId} onValueChange={(id) => handleAutomatedMessageTemplateChange('teacherDeactivation', id)} disabled={!automatedMessages.teacherDeactivation.enabled || !canEdit}> <SelectTrigger><SelectValue placeholder="Select template..." /></SelectTrigger> <SelectContent>{(settings.messageTemplates || []).map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent> </Select> </div>
                 </CardContent>
             </Card>
             <Card className="bg-green-500/5">
@@ -571,20 +584,20 @@ export default function SettingsPage() {
                 <CardContent className="space-y-6">
                     <div>
                         <div className="p-4 bg-background/70 rounded-lg space-y-4">
-                            <div className="space-y-2"> <Label>Send To:</Label> <RadioGroup value={sendTarget} onValueChange={setSendTarget} className="flex flex-wrap gap-4"> <div className="flex items-center space-x-2"><RadioGroupItem value="all_families" id="r1" /><Label htmlFor="r1">All Families</Label></div> <div className="flex items-center space-x-2"><RadioGroupItem value="class" id="r2" /><Label htmlFor="r2">Specific Class</Label></div> <div className="flex items-center space-x-2"><RadioGroupItem value="family" id="r3" /><Label htmlFor="r3">Specific Family</Label></div> <div className="flex items-center space-x-2"><RadioGroupItem value="all_teachers" id="r5" /><Label htmlFor="r5">All Teachers</Label></div> <div className="flex items-center space-x-2"><RadioGroupItem value="teacher" id="r6" /><Label htmlFor="r6">Specific Teacher</Label></div> <div className="flex items-center space-x-2"><RadioGroupItem value="custom" id="r4" /><Label htmlFor="r4">Custom Numbers</Label></div> </RadioGroup> </div>
-                            {sendTarget === 'class' && <div className="space-y-2"> <Label htmlFor="target-class">Select Class</Label> <Select value={targetClass} onValueChange={setTargetClass}> <SelectTrigger id="target-class"><SelectValue placeholder="Select a class" /></SelectTrigger> <SelectContent> {classes.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)} </SelectContent> </Select> </div>}
-                            {sendTarget === 'family' && <div className="space-y-2"> <Label htmlFor="target-family">Family ID</Label> <Input id="target-family" value={targetFamilyId} onChange={e => setTargetFamilyId(e.target.value)} /> </div>}
-                            {sendTarget === 'teacher' && <div className="space-y-2"> <Label htmlFor="target-teacher">Select Teacher</Label> <Select value={targetTeacherId} onValueChange={setTargetTeacherId}> <SelectTrigger id="target-teacher"><SelectValue placeholder="Select a teacher" /></SelectTrigger> <SelectContent> {teachers.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)} </SelectContent> </Select> </div>}
-                            {sendTarget === 'custom' && <div className="space-y-2"> <Label htmlFor="custom-numbers">Custom Numbers</Label> <Textarea id="custom-numbers" value={customNumbers} onChange={e => setCustomNumbers(e.target.value)} /> </div>}
-                            <div className="space-y-2"> <Label htmlFor="message">Message:</Label> <Textarea id="message" value={message} onChange={(e) => setMessage(e.target.value)} rows={5} /> <p className="text-xs text-muted-foreground">Variables: {'{student_name}, {father_name}, {teacher_name}, {class}, {school_name}'}</p> </div>
-                            <div className="space-y-2"> <Label>Quick Templates</Label> <div className="flex flex-wrap gap-2"> {(settings.messageTemplates || []).map(template => ( <Button key={template.id} size="sm" variant="outline" onClick={() => handleTemplateClick(template.content)}> {template.name} </Button> ))} </div> </div>
-                            <div className="flex justify-end items-center gap-2 pt-4"> <Button variant="secondary" className="bg-green-600 text-white hover:bg-green-700" onClick={handleSendMessage} disabled={isSending}> {isSending ? <Loader2 className="mr-2 animate-spin"/> : <Send className="mr-2"/>} {isSending ? 'Sending...' : 'Send'} </Button> </div>
+                            <div className="space-y-2"> <Label>Send To:</Label> <RadioGroup value={sendTarget} onValueChange={setSendTarget} className="flex flex-wrap gap-4" disabled={!canEdit}> <div className="flex items-center space-x-2"><RadioGroupItem value="all_families" id="r1" /><Label htmlFor="r1">All Families</Label></div> <div className="flex items-center space-x-2"><RadioGroupItem value="class" id="r2" /><Label htmlFor="r2">Specific Class</Label></div> <div className="flex items-center space-x-2"><RadioGroupItem value="family" id="r3" /><Label htmlFor="r3">Specific Family</Label></div> <div className="flex items-center space-x-2"><RadioGroupItem value="all_teachers" id="r5" /><Label htmlFor="r5">All Teachers</Label></div> <div className="flex items-center space-x-2"><RadioGroupItem value="teacher" id="r6" /><Label htmlFor="r6">Specific Teacher</Label></div> <div className="flex items-center space-x-2"><RadioGroupItem value="custom" id="r4" /><Label htmlFor="r4">Custom Numbers</Label></div> </RadioGroup> </div>
+                            {sendTarget === 'class' && <div className="space-y-2"> <Label htmlFor="target-class">Select Class</Label> <Select value={targetClass} onValueChange={setTargetClass} disabled={!canEdit}> <SelectTrigger id="target-class"><SelectValue placeholder="Select a class" /></SelectTrigger> <SelectContent> {classes.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)} </SelectContent> </Select> </div>}
+                            {sendTarget === 'family' && <div className="space-y-2"> <Label htmlFor="target-family">Family ID</Label> <Input id="target-family" value={targetFamilyId} onChange={e => setTargetFamilyId(e.target.value)} disabled={!canEdit}/> </div>}
+                            {sendTarget === 'teacher' && <div className="space-y-2"> <Label htmlFor="target-teacher">Select Teacher</Label> <Select value={targetTeacherId} onValueChange={setTargetTeacherId} disabled={!canEdit}> <SelectTrigger id="target-teacher"><SelectValue placeholder="Select a teacher" /></SelectTrigger> <SelectContent> {teachers.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)} </SelectContent> </Select> </div>}
+                            {sendTarget === 'custom' && <div className="space-y-2"> <Label htmlFor="custom-numbers">Custom Numbers</Label> <Textarea id="custom-numbers" value={customNumbers} onChange={e => setCustomNumbers(e.target.value)} disabled={!canEdit}/> </div>}
+                            <div className="space-y-2"> <Label htmlFor="message">Message:</Label> <Textarea id="message" value={message} onChange={(e) => setMessage(e.target.value)} rows={5} disabled={!canEdit}/> <p className="text-xs text-muted-foreground">Variables: {'{student_name}, {father_name}, {teacher_name}, {class}, {school_name}'}</p> </div>
+                            <div className="space-y-2"> <Label>Quick Templates</Label> <div className="flex flex-wrap gap-2"> {(settings.messageTemplates || []).map(template => ( <Button key={template.id} size="sm" variant="outline" onClick={() => handleTemplateClick(template.content)} disabled={!canEdit}> {template.name} </Button> ))} </div> </div>
+                            {canEdit && <div className="flex justify-end items-center gap-2 pt-4"> <Button variant="secondary" className="bg-green-600 text-white hover:bg-green-700" onClick={handleSendMessage} disabled={isSending}> {isSending ? <Loader2 className="mr-2 animate-spin"/> : <Send className="mr-2"/>} {isSending ? 'Sending...' : 'Send'} </Button> </div>}
                         </div>
                     </div>
                 </CardContent>
             </Card>
             <Card>
-                <CardHeader> <div className="flex justify-between items-center"> <CardTitle>Message Templates</CardTitle> <Button onClick={() => handleOpenTemplateDialog(null)}><PlusCircle className="mr-2 h-4 w-4"/> New Template</Button> </div> <CardDescription>Create/edit message templates.</CardDescription> </CardHeader>
+                <CardHeader> <div className="flex justify-between items-center"> <CardTitle>Message Templates</CardTitle> {canEdit && <Button onClick={() => handleOpenTemplateDialog(null)}><PlusCircle className="mr-2 h-4 w-4"/> New Template</Button>} </div> <CardDescription>Create/edit message templates.</CardDescription> </CardHeader>
                 <CardContent>
                     <div className="border rounded-md">
                         <Table>
@@ -594,7 +607,7 @@ export default function SettingsPage() {
                                     <TableRow key={template.id}>
                                         <TableCell className="font-medium">{template.name}</TableCell>
                                         <TableCell className="text-muted-foreground truncate max-w-sm">{template.content}</TableCell>
-                                        <TableCell className="text-right"> <Button variant="ghost" size="icon" onClick={() => handleOpenTemplateDialog(template)}> <PenSquare className="h-4 w-4" /> </Button> </TableCell>
+                                        <TableCell className="text-right"> {canEdit && <Button variant="ghost" size="icon" onClick={() => handleOpenTemplateDialog(template)}> <PenSquare className="h-4 w-4" /> </Button>} </TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
@@ -607,14 +620,14 @@ export default function SettingsPage() {
             <Card>
               <CardHeader className="flex flex-row justify-between items-start">
                 <div> <CardTitle>Activity History</CardTitle> <CardDescription>Log of important system activities.</CardDescription> </div>
-                <AlertDialog open={openClearHistoryDialog} onOpenChange={setOpenClearHistoryDialog}>
+                {canEdit && <AlertDialog open={openClearHistoryDialog} onOpenChange={setOpenClearHistoryDialog}>
                   <AlertDialogTrigger asChild> <Button variant="destructive"><Trash2 className="mr-2 h-4 w-4" /> Clear History</Button> </AlertDialogTrigger>
                   <AlertDialogContent>
                       <AlertDialogHeader> <AlertDialogTitle>Enter PIN</AlertDialogTitle> <AlertDialogDescription> This action is irreversible. Enter your 4-digit PIN to confirm. </AlertDialogDescription> </AlertDialogHeader>
                       <div className="flex justify-center py-4"> <Input type="password" maxLength={4} className="w-48 text-center text-2xl tracking-[1rem]" value={clearHistoryPin} onChange={(e) => setClearHistoryPin(e.target.value)} /> </div>
                       <AlertDialogFooter> <AlertDialogCancel>Cancel</AlertDialogCancel> <AlertDialogAction onClick={handleConfirmClearHistory}>Confirm &amp; Delete</AlertDialogAction> </AlertDialogFooter>
                   </AlertDialogContent>
-                </AlertDialog>
+                </AlertDialog>}
               </CardHeader>
               <CardContent>
                 <Table>
@@ -639,15 +652,15 @@ export default function SettingsPage() {
             <CardHeader><CardTitle>Backup &amp; Restore</CardTitle><CardDescription>Manage application data backups.</CardDescription></CardHeader>
             <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                    <div className="space-y-2"> <h3 className="font-medium">Create Backup</h3> <p className="text-sm text-muted-foreground">Download a complete backup as a JSON file.</p> <Button variant="outline" onClick={handleCreateBackup}><Download className="mr-2"/>Download</Button> </div>
-                    <div className="space-y-2"> <h3 className="font-medium">Restore from Backup</h3> <p className="text-sm text-muted-foreground">Upload a JSON backup file to restore data.</p> <div className="flex items-center gap-2"> <Label htmlFor="backup-file" className="sr-only">Restore</Label> <Input id="backup-file" type="file" accept=".json" className="hidden" onChange={handleRestoreBackup} /> <Button onClick={() => document.getElementById('backup-file')?.click()}><Upload className="mr-2"/>Restore</Button> </div> </div>
+                    <div className="space-y-2"> <h3 className="font-medium">Create Backup</h3> <p className="text-sm text-muted-foreground">Download a complete backup as a JSON file.</p> <Button variant="outline" onClick={handleCreateBackup} disabled={!canEdit}><Download className="mr-2"/>Download</Button> </div>
+                    <div className="space-y-2"> <h3 className="font-medium">Restore from Backup</h3> <p className="text-sm text-muted-foreground">Upload a JSON backup file to restore data.</p> <div className="flex items-center gap-2"> <Label htmlFor="backup-file" className="sr-only">Restore</Label> <Input id="backup-file" type="file" accept=".json" className="hidden" onChange={handleRestoreBackup} /> <Button onClick={() => document.getElementById('backup-file')?.click()} disabled={!canEdit}><Upload className="mr-2"/>Restore</Button> </div> </div>
                 </div>
-                 <div className="border-t pt-6 space-y-2"> <h3 className="font-medium">Seed Database</h3> <p className="text-sm text-muted-foreground">Populate with sample data. Overwrites existing data.</p> <Button variant="destructive" onClick={seedDatabase}><Database className="mr-2"/>Seed Sample Data</Button> </div>
+                 <div className="border-t pt-6 space-y-2"> <h3 className="font-medium">Seed Database</h3> <p className="text-sm text-muted-foreground">Populate with sample data. Overwrites existing data.</p> <Button variant="destructive" onClick={seedDatabase} disabled={!canEdit}><Database className="mr-2"/>Seed Sample Data</Button> </div>
                 <div className="border-t border-destructive pt-6 space-y-2">
                     <h3 className="font-medium text-destructive flex items-center gap-2"><AlertTriangle /> Danger Zone</h3>
                     <p className="text-sm text-muted-foreground">Permanently delete all data.</p>
                     <AlertDialog open={openFactoryResetDialog} onOpenChange={handleResetDialogClose}>
-                      <AlertDialogTrigger asChild> <Button variant="destructive">Factory Reset</Button> </AlertDialogTrigger>
+                      <AlertDialogTrigger asChild> <Button variant="destructive" disabled={!canEdit}>Factory Reset</Button> </AlertDialogTrigger>
                       <AlertDialogContent>
                           {resetStep === 1 && <> <AlertDialogHeader> <AlertDialogTitle>Factory Reset: Step 1 of 2</AlertDialogTitle> <AlertDialogDescription> Enter your security PIN. </AlertDialogDescription> </AlertDialogHeader> <div className="py-4 space-y-2"> <Label htmlFor="reset-pin">Security PIN</Label> <Input id="reset-pin" type="password" maxLength={4} value={resetPin} onChange={(e) => setResetPin(e.target.value)} /> </div> <AlertDialogFooter> <AlertDialogCancel>Cancel</AlertDialogCancel> <AlertDialogAction onClick={handleFactoryResetStep1} disabled={isResetting}> Verify PIN </AlertDialogAction> </AlertDialogFooter> </>}
                           {resetStep === 2 && <> <AlertDialogHeader> <AlertDialogTitle className="text-destructive">Final Confirmation</AlertDialogTitle> <AlertDialogDescription> This will <strong className="text-destructive">PERMANENTLY DELETE ALL DATA</strong>. </AlertDialogDescription> </AlertDialogHeader> <AlertDialogFooter> <Button variant="ghost" onClick={() => setResetStep(1)}>Back</Button> <AlertDialogAction onClick={handleConfirmFinalDeletion} disabled={isResetting} className="bg-destructive hover:bg-destructive/90"> {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Yes, Delete </AlertDialogAction> </AlertDialogFooter> </>}
