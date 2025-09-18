@@ -114,7 +114,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         const collectedAmount = paidAmount - amountToSettle;
         const newDues = totalDues - collectedAmount;
         
-        addActivityLog({ user: 'Admin', action: 'Collect Fee', description: `Collected PKR ${collectedAmount.toLocaleString()} from family ${family.id} (${family.fatherName})`});
+        addActivityLog({ action: 'Collect Fee', description: `Collected PKR ${collectedAmount.toLocaleString()} from family ${family.id} (${family.fatherName})`});
 
         toast({
             title: 'Fee Collected',
@@ -136,7 +136,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                     const result = await sendWhatsAppMessage(family.phone, message, settings);
                     if (result.success) {
 
-                        addActivityLog({ user: 'System', action: 'Send WhatsApp Message', description: 'Sent fee payment receipt to 1 recipient.', recipientCount: 1 });
+                        addActivityLog({ action: 'Send WhatsApp Message', description: 'Sent fee payment receipt to 1 recipient.', recipientCount: 1 });
                     } else {
                         throw new Error(result.error);
                     }

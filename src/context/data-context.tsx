@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -61,7 +62,7 @@ interface DataContextType {
   addExam: (exam: Exam) => Promise<void>;
   updateExam: (id: string, exam: Partial<Exam>) => Promise<void>;
   deleteExam: (id: string) => Promise<void>;
-  addActivityLog: (activity: Omit<ActivityLog, 'id' | 'timestamp'>) => Promise<void>;
+  addActivityLog: (activity: Omit<ActivityLog, 'id' | 'timestamp' | 'user'>) => Promise<void>;
   clearActivityLog: () => Promise<void>;
   addExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
   updateExpense: (id: string, expense: Partial<Expense>) => Promise<void>;
@@ -110,17 +111,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [userRole, setUserRole] = useState<User['role'] | null>(null);
   const [userPermissions, setUserPermissions] = useState<PermissionSet>(defaultPermissions);
   const [isDataInitialized, setIsDataInitialized] = useState(false);
+  const [currentUserName, setCurrentUserName] = useState('System');
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
         if (user) {
             const userDocRef = doc(db, 'users', user.uid);
-            // First, fetch the user's permissions
             const userDocSnap = await getDoc(userDocRef);
 
             if (!userDocSnap.exists()) {
                 console.error("User document not found in Firestore!");
-                setIsDataInitialized(true); // Stop loading, but data will be empty
+                setIsDataInitialized(true);
                 return;
             }
 
@@ -130,8 +131,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
             
             setUserRole(currentUserRole);
             setUserPermissions(currentUserPermissions);
+            setCurrentUserName(userData.name || 'Unknown User');
 
-            // Define all possible collections and their setters
             const collectionsMap: { [key: string]: { name: string; setter: React.Dispatch<React.SetStateAction<any[]>> } } = {
                 students: { name: 'students', setter: setStudents },
                 families: { name: 'families', setter: setFamilies },
@@ -159,20 +160,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 alumni: ['alumni'],
                 examSystem: ['exams'],
                 expenses: ['expenses'],
-                income: ['fees'], // Income page uses fees data
-                accounts: ['fees', 'expenses'], // Accounts uses both
+                income: ['fees'],
+                accounts: ['fees', 'expenses'],
                 timetable: ['timetables'],
             };
             
             const collectionsToFetch = new Set<string>();
-
-            // Always fetch these
-            ['activityLog', 'sessions'].forEach(c => collectionsToFetch.add(c));
+            ['activityLog', 'sessions', 'users'].forEach(c => collectionsToFetch.add(c));
             
             if (currentUserRole === 'super_admin') {
                 Object.keys(collectionsMap).forEach(key => collectionsToFetch.add(key));
             } else {
-                 // Fetch collections based on permissions
                 Object.entries(currentUserPermissions).forEach(([permission, hasAccess]) => {
                     if (hasAccess) {
                         const collections = permissionToCollectionMap[permission as keyof PermissionSet];
@@ -181,13 +179,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
                         }
                     }
                 });
-
-                // Grant read access for core academic data to accountants/coordinators for app functionality
                 if (currentUserRole === 'accountant' || currentUserRole === 'coordinator') {
                     ['classes', 'teachers', 'exams', 'timetables', 'alumni'].forEach(c => collectionsToFetch.add(c));
                 }
             }
-
 
             const listeners = Array.from(collectionsToFetch).map(collectionKey => {
                 const { name, setter } = collectionsMap[collectionKey];
@@ -206,11 +201,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
             
             setIsDataInitialized(true);
             return () => listeners.forEach(unsub => unsub());
-
         } else {
             setIsDataInitialized(false);
             setUserRole(null);
             setUserPermissions(defaultPermissions);
+            setCurrentUserName('System');
             [setStudents, setFamilies, setFees, setTeachers, setAttendances, setTeacherAttendances, setAlumni, setClasses, setExams, setActivityLog, setExpenses, setTimetables, setSessions, setUsers].forEach(setter => setter([]));
         }
     });
@@ -224,12 +219,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [userRole, userPermissions]);
   
 
-  const addActivityLog = async (activity: Omit<ActivityLog, 'id' | 'timestamp'>) => {
+  const addActivityLog = async (activity: Omit<ActivityLog, 'id' | 'timestamp' | 'user'>) => {
     try {
         const newLogId = getDateTimeId();
-        const newLogEntry = {
+        const newLogEntry: ActivityLog = {
             ...activity,
             id: newLogId,
+            user: currentUserName,
             timestamp: new Date().toISOString(),
         };
         await setDoc(doc(db, 'activityLog', newLogId), newLogEntry);
@@ -247,7 +243,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         batch.delete(doc.ref);
       });
       await batch.commit();
-      await addActivityLog({ user: 'Admin', action: 'Clear History', description: 'Cleared the entire activity log history.' });
+      await addActivityLog({ action: 'Clear History', description: 'Cleared the entire activity log history.' });
       toast({ title: 'Activity Log Cleared', description: 'All history has been permanently deleted.' });
     } catch (e) {
       console.error('Error clearing activity log: ', e);
@@ -258,7 +254,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const updateDocFactory = <T extends {}>(collectionName: string, actionName: string, descriptionFn: (doc: T & {id: string}) => string) => async (id: string, docData: Partial<T>) => {
      try {
         await setDoc(doc(db, collectionName, id), docData, { merge: true });
-        await addActivityLog({ user: 'Admin', action: actionName, description: descriptionFn({ ...docData, id } as T & {id: string}) });
+        await addActivityLog({ action: actionName, description: descriptionFn({ ...docData, id } as T & {id: string}) });
     } catch (e) {
         console.error(`Error updating ${collectionName}:`, e);
         toast({ title: `Error updating ${collectionName}`, variant: "destructive" });
@@ -277,7 +273,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                role: 'custom',
                permissions
            });
-           await addActivityLog({ user: 'Super Admin', action: 'Create User', description: `Created new user: ${name}.`});
+           await addActivityLog({ action: 'Create User', description: `Created new user: ${name}.`});
         }
       } catch (error: any) {
          console.error("Error creating user:", error);
@@ -296,7 +292,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addStudent = async (student: Student) => {
     try {
       await setDoc(doc(db, "students", student.id), student);
-      await addActivityLog({ user: 'Admin', action: 'Add Student', description: `Admitted new student: ${student.name} (ID: ${student.id}) in Class ${student.class}.` });
+      await addActivityLog({ action: 'Add Student', description: `Admitted new student: ${student.name} (ID: ${student.id}) in Class ${student.class}.` });
     } catch (e) {
       console.error('Error adding student:', e);
       toast({ title: 'Error Adding Student', description: 'Could not save the new student to the database.', variant: 'destructive' });
@@ -323,7 +319,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           transaction.set(alumniRef, alumniData);
           transaction.delete(studentRef);
         });
-        await addActivityLog({ user: 'Admin', action: 'Graduate Student', description: `Graduated student: ${studentData.name || ''} (ID: ${id}).` });
+        await addActivityLog({ action: 'Graduate Student', description: `Graduated student: ${studentData.name || ''} (ID: ${id}).` });
         toast({ title: "Student Graduated", description: `${studentData.name || ''} has been moved to alumni.` });
       } catch (e) {
         console.error("Error graduating student:", e);
@@ -332,7 +328,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     } else {
       try {
         await setDoc(studentRef, studentData, { merge: true });
-        await addActivityLog({ user: 'Admin', action: 'Update Student', description: `Updated details for student: ${studentData.name || ''} (ID: ${id}).` });
+        await addActivityLog({ action: 'Update Student', description: `Updated details for student: ${studentData.name || ''} (ID: ${id}).` });
       } catch (e) {
         console.error("Error updating student:", e);
         toast({ title: "Error updating student", variant: "destructive" });
@@ -345,7 +341,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (!studentToArchive) return;
     try {
         await updateDoc(doc(db, 'students', studentId), { status: 'Archived' });
-        await addActivityLog({ user: 'Admin', action: 'Archive Student', description: `Archived student: ${studentToArchive.name} (ID: ${studentId}).`});
+        await addActivityLog({ action: 'Archive Student', description: `Archived student: ${studentToArchive.name} (ID: ${studentId}).`});
     } catch (e) {
         console.error("Error archiving student:", e);
         toast({ title: "Archive Failed", description: "Could not archive student.", variant: "destructive" });
@@ -376,7 +372,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           transaction.delete(alumniRef);
         });
 
-        await addActivityLog({ user: 'Admin', action: 'Reactivate Student', description: `Re-activated student: ${alumniData.name || ''} (ID: ${id}) from alumni.` });
+        await addActivityLog({ action: 'Reactivate Student', description: `Re-activated student: ${alumniData.name || ''} (ID: ${id}) from alumni.` });
         toast({ title: "Student Re-activated", description: `${alumniData.name || ''} has been moved back to the active students list.` });
       
       } catch (e) {
@@ -387,7 +383,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       try {
         const { status, ...restOfAlumniData } = alumniData;
         await setDoc(alumniRef, restOfAlumniData, { merge: true });
-        await addActivityLog({ user: 'Admin', action: 'Update Alumni', description: `Updated details for alumnus: ${alumniData.name || ''} (ID: ${id}).` });
+        await addActivityLog({ action: 'Update Alumni', description: `Updated details for alumnus: ${alumniData.name || ''} (ID: ${id}).` });
       } catch (e) {
         console.error("Error updating alumnus:", e);
         toast({ title: "Error updating alumnus", variant: "destructive" });
@@ -399,7 +395,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addFamily = async (family: Family) => {
     try {
       await setDoc(doc(db, "families", family.id), family);
-      await addActivityLog({ user: 'Admin', action: 'Add Family', description: `Added new family: ${family.fatherName} (ID: ${family.id}).` });
+      await addActivityLog({ action: 'Add Family', description: `Added new family: ${family.fatherName} (ID: ${family.id}).` });
     } catch (e) {
       console.error('Error adding family:', e);
       toast({ title: 'Error Adding Family', variant: 'destructive' });
@@ -418,7 +414,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const feesSnapshot = await getDocs(feesQuery);
       feesSnapshot.forEach((doc) => batch.delete(doc.ref));
       await batch.commit();
-      await addActivityLog({ user: 'Admin', action: 'Delete Family', description: `Deleted family ID: ${id} and associated records.`});
+      await addActivityLog({ action: 'Delete Family', description: `Deleted family ID: ${id} and associated records.`});
       toast({ title: 'Family Deleted', description: 'The family and all associated records have been permanently deleted.' });
     } catch (e) {
       console.error('Error deleting family and associated data:', e);
@@ -450,7 +446,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     try {
       const newId = `T${Date.now()}`;
       await setDoc(doc(db, "teachers", newId), { ...teacher, id: newId });
-      await addActivityLog({ user: 'Admin', action: 'Add Teacher', description: `Added new teacher: ${teacher.name}.` });
+      await addActivityLog({ action: 'Add Teacher', description: `Added new teacher: ${teacher.name}.` });
     } catch (e) {
       console.error('Error adding teacher:', e);
       toast({ title: 'Error Adding Teacher', variant: 'destructive' });
@@ -462,7 +458,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (!teacherToDelete) return;
     try {
       await deleteDoc(doc(db, 'teachers', id));
-      await addActivityLog({ user: 'Admin', action: 'Delete Teacher', description: `Deleted teacher: ${teacherToDelete.name}.` });
+      await addActivityLog({ action: 'Delete Teacher', description: `Deleted teacher: ${teacherToDelete.name}.` });
     } catch (e) {
       console.error('Error deleting teacher:', e);
       toast({ title: 'Error Deleting Teacher', variant: 'destructive' });
@@ -473,7 +469,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addClass = async (classData: Class) => {
     try {
       await setDoc(doc(db, "classes", classData.id), classData);
-      await addActivityLog({ user: 'Admin', action: 'Add Class', description: `Created new class: ${classData.name}.` });
+      await addActivityLog({ action: 'Add Class', description: `Created new class: ${classData.name}.` });
     } catch(e) {
       console.error('Error adding class:', e);
       toast({ title: 'Error Adding Class', variant: 'destructive' });
@@ -485,7 +481,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (!classToDelete) return;
     try {
       await deleteDoc(doc(db, 'classes', id));
-      await addActivityLog({ user: 'Admin', action: 'Delete Class', description: `Deleted class: ${classToDelete.name}.` });
+      await addActivityLog({ action: 'Delete Class', description: `Deleted class: ${classToDelete.name}.` });
     } catch (e) {
       console.error('Error deleting class:', e);
       toast({ title: 'Error Deleting Class', variant: 'destructive' });
@@ -496,7 +492,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addExam = async (exam: Exam) => {
     try {
       await setDoc(doc(db, 'exams', exam.id), exam);
-      await addActivityLog({ user: 'Admin', action: 'Create Exam', description: `Created exam "${exam.name}" for class ${exam.class}.` });
+      await addActivityLog({ action: 'Create Exam', description: `Created exam "${exam.name}" for class ${exam.class}.` });
     } catch (e) {
       console.error('Error adding exam:', e);
       toast({ title: 'Error Creating Exam', variant: 'destructive' });
@@ -508,7 +504,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (!examToDelete) return;
     try {
       await deleteDoc(doc(db, 'exams', id));
-      await addActivityLog({ user: 'Admin', action: 'Delete Exam', description: `Deleted exam: ${examToDelete.name}.` });
+      await addActivityLog({ action: 'Delete Exam', description: `Deleted exam: ${examToDelete.name}.` });
     } catch (e) {
       console.error('Error deleting exam:', e);
       toast({ title: 'Error Deleting Exam', variant: 'destructive' });
@@ -519,7 +515,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addExpense = async (expense: Omit<Expense, 'id'>) => {
     try {
       await addDoc(collection(db, 'expenses'), expense);
-      await addActivityLog({ user: 'Admin', action: 'Add Expense', description: `Added expense of PKR ${expense.amount} for ${expense.category}.` });
+      await addActivityLog({ action: 'Add Expense', description: `Added expense of PKR ${expense.amount} for ${expense.category}.` });
     } catch (e) {
       console.error('Error adding expense:', e);
       toast({ title: 'Error Adding Expense', variant: 'destructive' });
@@ -528,7 +524,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const updateExpense = async (id: string, expense: Partial<Expense>) => {
     try {
         await updateDoc(doc(db, 'expenses', id), expense);
-        await addActivityLog({ user: 'Admin', action: 'Update Expense', description: `Updated expense for ${expense.category || ''}.` });
+        await addActivityLog({ action: 'Update Expense', description: `Updated expense for ${expense.category || ''}.` });
     } catch (e) {
         console.error(`Error updating expense:`, e);
         toast({ title: `Error updating expense`, variant: "destructive" });
@@ -539,7 +535,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (!expenseToDelete) return;
     try {
       await deleteDoc(doc(db, 'expenses', id));
-      await addActivityLog({ user: 'Admin', action: 'Delete Expense', description: `Deleted expense: ${expenseToDelete.description}.` });
+      await addActivityLog({ action: 'Delete Expense', description: `Deleted expense: ${expenseToDelete.description}.` });
     } catch (e) {
       console.error('Error deleting expense:', e);
       toast({ title: 'Error Deleting Expense', variant: 'destructive' });
@@ -555,7 +551,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             batch.set(doc(db, 'attendances', `${att.studentId}_${att.date}`), att);
         });
         await batch.commit();
-        await addActivityLog({ user: 'Admin', action: 'Save Student Attendance', description: `Saved attendance for class ${className} on date: ${date}.` });
+        await addActivityLog({ action: 'Save Student Attendance', description: `Saved attendance for class ${className} on date: ${date}.` });
     } catch (e) { console.error('Error saving student attendance: ', e); }
 };
 
@@ -568,7 +564,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             batch.set(doc(db, 'teacherAttendances', `${att.teacherId}_${att.date}`), att);
         });
         await batch.commit();
-        await addActivityLog({ user: 'Admin', action: 'Save Teacher Attendance', description: `Saved teacher attendance for date: ${date}.` });
+        await addActivityLog({ action: 'Save Teacher Attendance', description: `Saved teacher attendance for date: ${date}.` });
     } catch (e) { console.error('Error saving teacher attendance: ', e); }
   };
   
@@ -577,7 +573,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const timetableRef = doc(db, 'timetables', classId);
         await setDoc(timetableRef, { classId, data, timeSlots, breakAfterPeriod, breakDuration }, { merge: true });
         const className = classes.find(c => c.id === classId)?.name || classId;
-        await addActivityLog({ user: 'Admin', action: 'Update Timetable', description: `Updated timetable for class ${className}.` });
+        await addActivityLog({ action: 'Update Timetable', description: `Updated timetable for class ${className}.` });
     } catch (e) {
         console.error('Error updating timetable', e);
         toast({ title: 'Error saving timetable', variant: 'destructive'});
@@ -587,7 +583,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const signOutSession = async (sessionId: string) => {
     try {
         await deleteDoc(doc(db, 'sessions', sessionId));
-        await addActivityLog({user: 'Admin', action: 'Sign Out Session', description: `Remotely signed out session ID: ${sessionId}`});
+        await addActivityLog({action: 'Sign Out Session', description: `Remotely signed out session ID: ${sessionId}`});
     } catch (e) {
         console.error("Error signing out session:", e);
         toast({ title: 'Error Signing Out', variant: 'destructive'});
@@ -618,5 +614,3 @@ export function useData() {
   if (context === undefined) throw new Error('useData must be used within a DataProvider');
   return context;
 }
-
-    

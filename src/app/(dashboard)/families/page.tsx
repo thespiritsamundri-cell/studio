@@ -190,7 +190,7 @@ export default function FamiliesPage() {
         await updateStudent(student.id, { status: 'Archived' });
     }
     
-    addActivityLog({ user: 'Admin', action: 'Archive Family', description: `Archived family ${selectedFamily.fatherName} (ID: ${selectedFamily.id}) and ${studentsToArchive.length} students.` });
+    addActivityLog({ action: 'Archive Family', description: `Archived family ${selectedFamily.fatherName} (ID: ${selectedFamily.id}) and ${studentsToArchive.length} students.` });
 
     toast({
         title: "Family Archived",
@@ -273,7 +273,7 @@ export default function FamiliesPage() {
                 title: 'Import Successful',
                 description: `${importedCount} new families have been imported.`,
             });
-            addActivityLog({ user: 'Admin', action: 'Import Families', description: `Imported ${importedCount} families from CSV file.`});
+            addActivityLog({ action: 'Import Families', description: `Imported ${importedCount} families from CSV file.`});
         } else {
             toast({ title: 'Import Failed', description: 'No valid families were found in the file to import.', variant: 'destructive' });
         }

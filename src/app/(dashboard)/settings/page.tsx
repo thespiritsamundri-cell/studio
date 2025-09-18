@@ -99,7 +99,7 @@ export default function SettingsPage() {
   const classes = useMemo(() => (dataClasses || []).map(c => c.name), [dataClasses]);
   
   const handleSave = () => {
-    addActivityLog({ user: 'Admin', action: 'Update Settings', description: 'Updated school information settings.' });
+    addActivityLog({ action: 'Update Settings', description: 'Updated school information settings.' });
     toast({ title: 'Settings Saved', description: 'Your school information has been updated.' });
   };
   
@@ -111,14 +111,14 @@ export default function SettingsPage() {
     if (canEdit) {
         if (newPin && !newPassword) {
           setSettings(prev => ({...prev, historyClearPin: newPin}));
-          await addActivityLog({ user: 'Admin', action: 'Update PIN', description: 'Updated security PIN.' });
+          await addActivityLog({ action: 'Update PIN', description: 'Updated security PIN.' });
           toast({ title: "Security PIN Updated" });
           setNewPin(''); setConfirmPin('');
           return;
         }
         if (!newPin && !newPassword) {
             setSettings(prev => ({...prev, autoLockEnabled: settings.autoLockEnabled, autoLockDuration: settings.autoLockDuration }));
-            await addActivityLog({ user: 'Admin', action: 'Update Security', description: 'Updated auto-lock settings.' });
+            await addActivityLog({ action: 'Update Security', description: 'Updated auto-lock settings.' });
             toast({ title: "Security Settings Saved" });
             return;
         }
@@ -131,7 +131,7 @@ export default function SettingsPage() {
             await reauthenticateWithCredential(user, credential);
             await updatePassword(user, newPassword);
             if (canEdit && newPin) setSettings(prev => ({ ...prev, historyClearPin: newPin }));
-            await addActivityLog({ user: 'Admin', action: 'Update Credentials', description: 'Updated admin login credentials.' });
+            await addActivityLog({ action: 'Update Credentials', description: 'Updated admin login credentials.' });
             toast({ title: "Account Settings Saved" });
             setCurrentPassword(''); setNewPassword(''); setNewPin(''); setConfirmPin('');
         } catch (error: any) {
@@ -196,7 +196,7 @@ export default function SettingsPage() {
     document.body.removeChild(link);
     URL.revokeObjectURL(link.href);
      toast({ title: 'Backup Created' });
-     addActivityLog({ user: 'Admin', action: 'Create Backup', description: 'Downloaded a backup of all application data.' });
+     addActivityLog({ action: 'Create Backup', description: 'Downloaded a backup of all application data.' });
   };
 
   const handleRestoreBackup = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -277,7 +277,7 @@ export default function SettingsPage() {
 
     if (recipients.length === 0) { toast({ title: 'No Recipients', variant: 'destructive' }); setIsSending(false); return; }
     toast({ title: 'Sending Messages', description: `Sending to ${recipients.length} recipient(s).` });
-    addActivityLog({ user: 'Admin', action: 'Send WhatsApp Message', description: `Sent custom message to ${recipients.length} recipients: ${targetDescription}.`, recipientCount: recipients.length });
+    addActivityLog({ action: 'Send WhatsApp Message', description: `Sent custom message to ${recipients.length} recipients: ${targetDescription}.`, recipientCount: recipients.length });
     
     let successCount = 0;
     for (const recipient of recipients) {
@@ -509,7 +509,7 @@ export default function SettingsPage() {
                     </div>
                     {canEdit && <div className="flex justify-between items-center mt-4">
                         <Button variant="outline" onClick={addGradeRow}><PlusCircle className="mr-2 h-4 w-4" /> Add Grade</Button>
-                        <Button onClick={() => { addActivityLog({ user: 'Admin', action: 'Update Grading System', description: 'Modified the grading system.' }); handleSave(); }}>Save Grading</Button>
+                        <Button onClick={() => { addActivityLog({ action: 'Update Grading System', description: 'Modified the grading system.' }); handleSave(); }}>Save Grading</Button>
                     </div>}
                 </CardContent>
             </Card>
@@ -630,14 +630,18 @@ export default function SettingsPage() {
             <Card>
               <CardHeader className="flex flex-row justify-between items-start">
                 <div> <CardTitle>Activity History</CardTitle> <CardDescription>Log of important system activities.</CardDescription> </div>
-                {canEdit && <AlertDialog open={openClearHistoryDialog} onOpenChange={setOpenClearHistoryDialog}>
-                  <AlertDialogTrigger asChild><Button variant="destructive"><Trash2 className="mr-2 h-4 w-4" /> Clear History</Button></AlertDialogTrigger>
-                  <AlertDialogContent>
-                      <AlertDialogHeader> <AlertDialogTitle>Enter PIN</AlertDialogTitle> <AlertDialogDescription> This action is irreversible. Enter your 4-digit PIN to confirm. </AlertDialogDescription> </AlertDialogHeader>
-                      <div className="flex justify-center py-4"> <Input type="password" maxLength={4} className="w-48 text-center text-2xl tracking-[1rem]" value={clearHistoryPin} onChange={(e) => setClearHistoryPin(e.target.value)} /> </div>
-                      <AlertDialogFooter> <AlertDialogCancel>Cancel</AlertDialogCancel> <AlertDialogAction onClick={handleConfirmClearHistory}>Confirm &amp; Delete</AlertDialogAction> </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>}
+                {canEdit && (
+                    <AlertDialog open={openClearHistoryDialog} onOpenChange={setOpenClearHistoryDialog}>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive"><Trash2 className="mr-2 h-4 w-4" /> Clear History</Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader> <AlertDialogTitle>Enter PIN</AlertDialogTitle> <AlertDialogDescription> This action is irreversible. Enter your 4-digit PIN to confirm. </AlertDialogDescription> </AlertDialogHeader>
+                            <div className="flex justify-center py-4"> <Input type="password" maxLength={4} className="w-48 text-center text-2xl tracking-[1rem]" value={clearHistoryPin} onChange={(e) => setClearHistoryPin(e.target.value)} /> </div>
+                            <AlertDialogFooter> <AlertDialogCancel>Cancel</AlertDialogCancel> <AlertDialogAction onClick={handleConfirmClearHistory}>Confirm &amp; Delete</AlertDialogAction> </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                )}
               </CardHeader>
               <CardContent>
                 <Table>
@@ -670,7 +674,9 @@ export default function SettingsPage() {
                     <h3 className="font-medium text-destructive flex items-center gap-2"><AlertTriangle /> Danger Zone</h3>
                     <p className="text-sm text-muted-foreground">Permanently delete all data.</p>
                     <AlertDialog open={openFactoryResetDialog} onOpenChange={handleResetDialogClose}>
-                      <AlertDialogTrigger asChild><Button variant="destructive" disabled={!canEdit}>Factory Reset</Button></AlertDialogTrigger>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" disabled={!canEdit}>Factory Reset</Button>
+                      </AlertDialogTrigger>
                       <AlertDialogContent>
                           {resetStep === 1 && <> <AlertDialogHeader> <AlertDialogTitle>Factory Reset: Step 1 of 2</AlertDialogTitle> <AlertDialogDescription> Enter your security PIN. </AlertDialogDescription> </AlertDialogHeader> <div className="py-4 space-y-2"> <Label htmlFor="reset-pin">Security PIN</Label> <Input id="reset-pin" type="password" maxLength={4} value={resetPin} onChange={(e) => setResetPin(e.target.value)} /> </div> <AlertDialogFooter> <AlertDialogCancel>Cancel</AlertDialogCancel> <AlertDialogAction onClick={handleFactoryResetStep1} disabled={isResetting}> Verify PIN </AlertDialogAction> </AlertDialogFooter> </>}
                           {resetStep === 2 && <> <AlertDialogHeader> <AlertDialogTitle className="text-destructive">Final Confirmation</AlertDialogTitle> <AlertDialogDescription> This will <strong className="text-destructive">PERMANENTLY DELETE ALL DATA</strong>. </AlertDialogDescription> </AlertDialogHeader> <AlertDialogFooter> <Button variant="ghost" onClick={() => setResetStep(1)}>Back</Button> <AlertDialogAction onClick={handleConfirmFinalDeletion} disabled={isResetting} className="bg-destructive hover:bg-destructive/90"> {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Yes, Delete </AlertDialogAction> </AlertDialogFooter> </>}
