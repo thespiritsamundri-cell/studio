@@ -1,110 +1,73 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper function to get the current user's permissions object
-    function getUserPermissions() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions;
-    }
-    
-    // Helper function to check if the user is a super_admin
-    function isSuperAdmin() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
+    // Helper function to get the user's permissions map
+    function getPermissions() {
+      // Use exists() to handle cases where the user doc might not exist yet
+      if (exists(/databases/$(database)/documents/users/$(request.auth.uid))) {
+        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions;
+      }
+      return {}; // Return empty map if user doc doesn't exist
     }
 
-    // ------------------------------------------------------------------
-    //  USERS COLLECTION
-    //  - Allow users to read their own document to get their permissions.
-    //  - Only super_admin can list, create, or update users.
-    // ------------------------------------------------------------------
+    // Allow users to read their own user document to get their permissions
+    // This is the key to breaking the permission "catch-22"
     match /users/{userId} {
       allow read: if request.auth.uid == userId;
-      allow list, write: if isSuperAdmin();
+      // Only super_admin can list all users or write to any user document
+      allow list, write: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
     }
-
-    // ------------------------------------------------------------------
-    //  GENERAL & ACADEMIC COLLECTIONS
-    //  - Accessible by super_admin and users with specific permission flags.
-    // ------------------------------------------------------------------
+    
+    // Allow read access based on the 'dashboard' permission
     match /students/{docId} {
-      allow list, read, write: if isSuperAdmin() || getUserPermissions().students == true;
+      allow list, read, write: if getPermissions().students == true || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
     }
     match /families/{docId} {
-      allow list, read, write: if isSuperAdmin() || getUserPermissions().families == true;
+        allow list, read, write: if getPermissions().families == true || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
     }
-    match /admissions/{docId} {
-       allow list, read, write: if isSuperAdmin() || getUserPermissions().admissions == true;
+    match /fees/{docId} {
+        allow list, read, write: if getPermissions().feeCollection == true || getPermissions().income == true || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
     }
-    match /classes/{docId} {
-      allow list, read, write: if isSuperAdmin() || getUserPermissions().classes == true;
+     match /teachers/{docId} {
+      allow list, read, write: if getPermissions().teachers == true || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
     }
-    match /teachers/{docId} {
-      allow list, read, write: if isSuperAdmin() || getUserPermissions().teachers == true;
-    }
-    match /timetable/{docId} {
-        allow list, read, write: if isSuperAdmin() || getUserPermissions().timetable == true;
+     match /alumni/{docId} {
+      allow list, read, write: if getPermissions().alumni == true || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
     }
     match /attendances/{docId} {
-      allow list, read, write: if isSuperAdmin() || getUserPermissions().attendance == true;
+       allow list, read, write: if getPermissions().attendance == true || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
     }
     match /teacherAttendances/{docId} {
-      allow list, read, write: if isSuperAdmin() || getUserPermissions().attendance == true;
+       allow list, read, write: if getPermissions().attendance == true || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
+    }
+    match /classes/{docId} {
+      allow list, read, write: if getPermissions().classes == true || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
     }
     match /exams/{docId} {
-      allow list, read, write: if isSuperAdmin() || getUserPermissions().examSystem == true;
+      // FIX: Accountants and Coordinators need read access to populate reports/views. Write access remains restricted.
+      allow list, read: if getPermissions().examSystem == true || getPermissions().reports == true || getPermissions().accounts == true || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
+      allow write: if getPermissions().examSystem == true || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
     }
-    match /alumni/{docId} {
-        allow list, read, write: if isSuperAdmin() || getUserPermissions().alumni == true;
+     match /expenses/{docId} {
+        allow list, read, write: if getPermissions().expenses == true || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
     }
-     match /yearbook/{docId} {
-        allow list, read, write: if isSuperAdmin() || getUserPermissions().yearbook == true;
-    }
-    
-    // ------------------------------------------------------------------
-    //  FINANCIAL COLLECTIONS
-    //  - Accessible by super_admin and users with finance permissions.
-    // ------------------------------------------------------------------
-    match /fees/{docId} {
-      allow list, read, write: if isSuperAdmin() || getUserPermissions().feeCollection == true;
-    }
-     match /vouchers/{docId} {
-      allow list, read, write: if isSuperAdmin() || getUserPermissions().feeVouchers == true;
-    }
-    match /income/{docId} {
-      allow list, read, write: if isSuperAdmin() || getUserPermissions().income == true;
-    }
-    match /expenses/{docId} {
-      allow list, read, write: if isSuperAdmin() || getUserPermissions().expenses == true;
-    }
-    match /accounts/{docId} {
-        allow list, read, write: if isSuperAdmin() || getUserPermissions().accounts == true;
-    }
-    
-    // ------------------------------------------------------------------
-    //  ADMIN & LOGGING COLLECTIONS
-    // ------------------------------------------------------------------
-    match /reports/{docId} {
-      allow list, read, write: if isSuperAdmin() || getUserPermissions().reports == true;
-    }
-    match /archived/{docId} {
-      allow list, read, write: if isSuperAdmin() || getUserPermissions().archived == true;
-    }
-    match /settings/{docId} {
-      allow list, read, write: if isSuperAdmin() || getUserPermissions().settings == true;
-    }
-    match /branding/{docId} {
-        allow read: if request.auth != null;
-        allow write: if isSuperAdmin();
+    match /timetables/{docId} {
+        allow list, read, write: if getPermissions().timetable == true || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
     }
     match /activityLog/{docId} {
-      // Allow any authenticated user to write their own logs, but only super_admin can read/list all.
-      allow create: if request.auth != null;
-      allow list, read, delete: if isSuperAdmin();
+       allow list, read, write: if getPermissions().settings == true || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
     }
-    match /sessions/{docId} {
-      allow read, delete: if isSuperAdmin();
-      allow create: if request.auth != null;
-      allow update: if request.auth.uid == resource.data.userId;
+     match /sessions/{docId} {
+       allow list, read, delete: if getPermissions().settings == true || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
+       allow create: if request.auth != null;
+    }
+     match /Settings/{docId} {
+       allow list, read, write: if getPermissions().settings == true || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
+    }
+     match /branding/{docId} {
+       allow list, read, write: if getPermissions().settings == true || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
     }
   }
 }
