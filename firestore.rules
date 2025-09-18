@@ -3,93 +3,109 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    function getRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    //----------------------------------------------------------------
+    // Helper Functions
+    //----------------------------------------------------------------
+
+    function isSignedIn() {
+      return request.auth != null;
     }
 
+    function isRole(role) {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+    
     function getPermissions() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions;
+        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions;
     }
-    
+
+    //----------------------------------------------------------------
+    // Collection Rules
+    //----------------------------------------------------------------
+
+    // Settings: Allow any authenticated user to read school settings, but only admin can write.
     match /Settings/{docId} {
-      allow read: if request.auth != null; // Allow any authenticated user to read settings
-      allow write: if getRole() == 'super_admin';
+      allow get: if isSignedIn();
+      allow list, write: if isSignedIn() && isRole('super_admin');
     }
     
-    match /branding/{docId} {
-      allow read: if request.auth != null;
-      allow write: if getRole() == 'super_admin';
-    }
-
+    // Users: Only Super Admin can list all users. Any user can read their own document.
     match /users/{userId} {
-      allow read: if request.auth.uid == userId || getRole() == 'super_admin';
-      allow list, write: if getRole() == 'super_admin';
+      allow get: if isSignedIn() && (request.auth.uid == userId || isRole('super_admin'));
+      allow list, update, create, delete: if isSignedIn() && isRole('super_admin');
     }
-    
+
+    // Activity Log: Key roles can read, and now also write.
     match /activityLog/{logId} {
-        allow list, read: if getRole() in ['super_admin', 'accountant', 'coordinator'];
-        allow create, update, delete: if getRole() == 'super_admin';
+      allow read: if isSignedIn() && (isRole('super_admin') || isRole('accountant') || isRole('coordinator'));
+      allow write: if isSignedIn() && (isRole('super_admin') || isRole('accountant') || isRole('coordinator'));
     }
-    
+
+    // Sessions: Admin and key roles can read sessions for security monitoring.
     match /sessions/{sessionId} {
-      allow read: if getRole() in ['super_admin', 'accountant', 'coordinator'];
-      allow delete: if getRole() == 'super_admin' || request.auth.uid == resource.data.userId;
-      allow create: if request.auth.uid == request.resource.data.userId;
+       allow read: if isSignedIn() && (isRole('super_admin') || isRole('accountant') || isRole('coordinator'));
+       // Only the user themselves or a super admin can create/delete their session records
+       allow write: if isSignedIn() && (request.auth.uid == resource.data.userId || isRole('super_admin'));
     }
 
+    // Students: Granular permissions based on the 'permissions' map.
     match /students/{studentId} {
-      allow read: if getRole() in ['super_admin', 'accountant', 'coordinator'] || getPermissions().students == true;
-      allow write: if getRole() == 'super_admin' || getPermissions().students == true || getPermissions().admissions == true;
+      allow read: if isSignedIn() && getPermissions().students == true;
+      allow write: if isSignedIn() && getPermissions().students == true;
     }
 
+    // Families: Granular permissions based on the 'permissions' map.
     match /families/{familyId} {
-      allow read: if getRole() in ['super_admin', 'accountant', 'coordinator'] || getPermissions().families == true;
-      allow write: if getRole() == 'super_admin' || getPermissions().families == true;
+      allow read: if isSignedIn() && getPermissions().families == true;
+      allow write: if isSignedIn() && getPermissions().families == true;
     }
 
+    // Fees: Granular permissions based on the 'permissions' map.
     match /fees/{feeId} {
-      allow read: if getRole() in ['super_admin', 'accountant', 'coordinator'] || getPermissions().feeCollection == true || getPermissions().income == true;
-      allow write: if getRole() == 'super_admin' || getPermissions().feeCollection == true;
-    }
-
-    match /teachers/{teacherId} {
-      allow read: if getRole() in ['super_admin', 'accountant', 'coordinator'] || getPermissions().teachers == true;
-      allow write: if getRole() == 'super_admin' || getPermissions().teachers == true;
-    }
-
-    match /attendances/{attendanceId} {
-      allow read: if getRole() in ['super_admin', 'accountant', 'coordinator'] || getPermissions().attendance == true;
-      allow write: if getRole() == 'super_admin' || getPermissions().attendance == true;
+      allow read: if isSignedIn() && (getPermissions().feeCollection == true || getPermissions().income == true || getPermissions().accounts == true);
+      allow write: if isSignedIn() && getPermissions().feeCollection == true;
     }
     
-    match /teacherAttendances/{attendanceId} {
-      allow read: if getRole() in ['super_admin', 'accountant', 'coordinator'] || getPermissions().attendance == true;
-      allow write: if getRole() == 'super_admin' || getPermissions().attendance == true;
+    // Expenses: Granular permissions based on the 'permissions' map.
+    match /expenses/{expenseId} {
+      allow read: if isSignedIn() && (getPermissions().expenses == true || getPermissions().accounts == true);
+      allow write: if isSignedIn() && getPermissions().expenses == true;
     }
 
-    match /alumni/{alumniId} {
-      allow read: if getRole() in ['super_admin', 'accountant', 'coordinator'] || getPermissions().alumni == true;
-      allow write: if getRole() == 'super_admin' || getPermissions().alumni == true;
-    }
-
+    // Classes, Teachers, Exams, Timetables, Alumni: Allow key roles to read, but writes are permission-based.
     match /classes/{classId} {
-      allow read: if getRole() in ['super_admin', 'accountant', 'coordinator'] || getPermissions().classes == true;
-      allow write: if getRole() == 'super_admin' || getPermissions().classes == true;
+        allow read: if isSignedIn() && (isRole('super_admin') || isRole('accountant') || isRole('coordinator') || getPermissions().classes == true);
+        allow write: if isSignedIn() && getPermissions().classes == true;
+    }
+    
+    match /teachers/{teacherId} {
+        allow read: if isSignedIn() && (isRole('super_admin') || isRole('accountant') || isRole('coordinator') || getPermissions().teachers == true);
+        allow write: if isSignedIn() && getPermissions().teachers == true;
     }
 
     match /exams/{examId} {
-      allow read: if getRole() in ['super_admin', 'accountant', 'coordinator'] || getPermissions().examSystem == true;
-      allow write: if getRole() == 'super_admin' || getPermissions().examSystem == true;
-    }
-
-    match /expenses/{expenseId} {
-      allow read: if getRole() in ['super_admin', 'accountant', 'coordinator'] || getPermissions().expenses == true;
-      allow write: if getRole() == 'super_admin' || getPermissions().expenses == true;
+        allow read: if isSignedIn() && (isRole('super_admin') || isRole('accountant') || isRole('coordinator') || getPermissions().examSystem == true);
+        allow write: if isSignedIn() && getPermissions().examSystem == true;
     }
 
     match /timetables/{timetableId} {
-      allow read: if getRole() in ['super_admin', 'accountant', 'coordinator'] || getPermissions().timetable == true;
-      allow write: if getRole() == 'super_admin' || getPermissions().timetable == true;
+        allow read: if isSignedIn() && (isRole('super_admin') || isRole('accountant') || isRole('coordinator') || getPermissions().timetable == true);
+        allow write: if isSignedIn() && getPermissions().timetable == true;
+    }
+    
+    match /alumni/{alumniId} {
+        allow read: if isSignedIn() && (isRole('super_admin') || isRole('accountant') || isRole('coordinator') || getPermissions().alumni == true);
+        allow write: if isSignedIn() && getPermissions().alumni == true;
+    }
+
+    // Attendance collections: granular permissions
+    match /attendances/{attendanceId} {
+        allow read, write: if isSignedIn() && getPermissions().attendance == true;
+    }
+    
+    match /teacherAttendances/{attendanceId} {
+        allow read: if isSignedIn() && (isRole('super_admin') || isRole('accountant') || isRole('coordinator') || getPermissions().attendance == true);
+        allow write: if isSignedIn() && getPermissions().attendance == true;
     }
   }
 }
