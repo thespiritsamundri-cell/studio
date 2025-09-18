@@ -4,111 +4,110 @@ service cloud.firestore {
   match /databases/{database}/documents {
     
     // Helper Functions
-    function isSignedIn() {
-      return request.auth != null;
+    function isOwner(userId) {
+      return request.auth.uid == userId;
     }
 
-    function isSuperAdmin() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
     }
     
-    function getUserPermissions() {
-        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions;
+    function getPermissions() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions;
     }
 
-    // Rules for each collection
+    function isPrimaryRole() {
+      let role = getUserRole();
+      return role == 'super_admin' || role == 'accountant' || role == 'coordinator';
+    }
+
+    // Collection Rules
+    match /{document=**} {
+      allow read: if request.auth != null;
+    }
+    
     match /users/{userId} {
-      allow read: if isSignedIn();
-      allow list: if isSuperAdmin();
-      allow write: if isSuperAdmin();
-    }
-    
-    match /Settings/{docId} {
-        allow read: if isSignedIn();
-        allow write: if isSuperAdmin();
+      allow read: if request.auth != null;
+      allow update: if getUserRole() == 'super_admin' || isOwner(userId);
+      allow create: if getUserRole() == 'super_admin';
     }
     
     match /sessions/{sessionId} {
-      allow read: if isSignedIn();
-      allow list: if isSuperAdmin();
-      allow create, delete: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if isPrimaryRole();
+      allow create, update: if request.auth != null;
+      allow delete: if getUserRole() == 'super_admin' || isOwner(resource.data.userId);
     }
-
+    
     match /activityLog/{logId} {
-      allow read, list: if isSuperAdmin() || getUserPermissions().dashboard;
-      allow create: if isSignedIn();
+      allow read: if getPermissions().settings == true;
+      allow create: if isPrimaryRole();
+      allow delete: if getPermissions().settings == true;
     }
     
-    match /notifications/{notifId} {
-      allow read: if isSuperAdmin();
-      allow create: if isSignedIn();
-      allow update(isRead): if isSuperAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead']);
+    match /notifications/{notificationId} {
+        allow read, update: if getUserRole() == 'super_admin';
+        allow create: if isPrimaryRole();
     }
     
-    match /{document=**} {
-        // Default deny all other reads and writes
-        allow read, write: if false;
-    }
-
-    function canAccess(permission) {
-        return isSuperAdmin() || getUserPermissions()[permission] == true;
+    match /Settings/{settingId} {
+        allow read: if request.auth != null;
+        allow write: if getPermissions().settings == true;
     }
 
     match /students/{studentId} {
-      allow read: if isSignedIn();
-      allow create: if canAccess('admissions');
-      allow update, delete: if canAccess('students');
+      allow read: if request.auth != null;
+      allow write: if getPermissions().students == true;
     }
     
     match /alumni/{alumniId} {
-      allow read: if isSignedIn();
-      allow create, update, delete: if canAccess('students') || canAccess('alumni');
+      allow read: if request.auth != null;
+      allow write: if getPermissions().alumni == true;
     }
 
     match /families/{familyId} {
-      allow read: if isSignedIn();
-      allow create, update, delete: if canAccess('families');
-    }
-    
-    match /teachers/{teacherId} {
-        allow read: if isSignedIn();
-        allow create, update, delete: if canAccess('teachers');
+      allow read: if request.auth != null;
+      allow write: if getPermissions().families == true;
     }
 
     match /classes/{classId} {
-      allow read: if isSignedIn();
-      allow create, update, delete: if canAccess('classes');
+      allow read: if request.auth != null;
+      allow write: if getPermissions().classes == true;
     }
 
-    match /fees/{feeId} {
-      allow read: if isSignedIn();
-      allow create: if canAccess('feeCollection') || canAccess('income');
-      allow update, delete: if canAccess('feeCollection') || canAccess('income');
-    }
-    
-    match /expenses/{expenseId} {
-        allow read: if isSignedIn();
-        allow create, update, delete: if canAccess('expenses');
-    }
-    
-    match /exams/{examId} {
-        allow read: if isSignedIn();
-        allow create, update, delete: if canAccess('examSystem');
-    }
-    
-    match /attendances/{attendanceId} {
-        allow read: if isSignedIn();
-        allow create, update: if canAccess('attendance');
-    }
-    
-    match /teacherAttendances/{attendanceId} {
-        allow read: if isSignedIn();
-        allow create, update: if canAccess('attendance');
+    match /teachers/{teacherId} {
+      allow read: if request.auth != null;
+      allow write: if getPermissions().teachers == true;
     }
     
     match /timetables/{timetableId} {
-        allow read: if isSignedIn();
-        allow create, update: if canAccess('timetable');
+        allow read: if request.auth != null;
+        allow write: if getPermissions().timetable == true;
+    }
+
+    match /fees/{feeId} {
+      allow read: if request.auth != null;
+      allow create: if getPermissions().feeCollection == true || getPermissions().income == true;
+      allow update, delete: if getPermissions().feeCollection == true || getPermissions().income == true;
+    }
+    
+    match /expenses/{expenseId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if getPermissions().expenses == true;
+    }
+
+    match /exams/{examId} {
+      allow read: if request.auth != null;
+      allow write: if getPermissions().examSystem == true;
+    }
+
+    match /attendances/{attendanceId} {
+      allow read: if request.auth != null;
+      allow write: if getPermissions().attendance == true;
+    }
+
+    match /teacherAttendances/{attendanceId} {
+      allow read: if request.auth != null;
+      allow write: if getPermissions().attendance == true;
     }
   }
 }
