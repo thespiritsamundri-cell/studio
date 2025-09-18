@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -39,7 +40,7 @@ import { UserManagement } from './user-management';
 
 export default function SettingsPage() {
   const { settings, setSettings } = useSettings();
-  const { students, families, fees, loadData, addActivityLog, activityLog, seedDatabase, clearActivityLog, classes: dataClasses, teachers, deleteAllData, hasPermission } = useData();
+  const { students, families, fees, loadData, addActivityLog, activityLog, seedDatabase, clearActivityLog, classes: dataClasses, teachers, deleteAllData, hasPermission, userRole } = useData();
   const { toast } = useToast();
   
   const [message, setMessage] = useState('');
@@ -106,26 +107,30 @@ export default function SettingsPage() {
     if (newPin && newPin !== confirmPin) { toast({ title: 'PINs do not match.', variant: 'destructive'}); return; }
     const user = auth.currentUser;
     if (!user || !user.email) { toast({ title: 'You must be logged in.', variant: 'destructive' }); return; }
-    if (newPin && !newPassword) {
-      setSettings(prev => ({...prev, historyClearPin: newPin}));
-      await addActivityLog({ user: 'Admin', action: 'Update PIN', description: 'Updated security PIN.' });
-      toast({ title: "Security PIN Updated" });
-      setNewPin(''); setConfirmPin('');
-      return;
+    
+    if (canEdit) {
+        if (newPin && !newPassword) {
+          setSettings(prev => ({...prev, historyClearPin: newPin}));
+          await addActivityLog({ user: 'Admin', action: 'Update PIN', description: 'Updated security PIN.' });
+          toast({ title: "Security PIN Updated" });
+          setNewPin(''); setConfirmPin('');
+          return;
+        }
+        if (!newPin && !newPassword) {
+            setSettings(prev => ({...prev, autoLockEnabled: settings.autoLockEnabled, autoLockDuration: settings.autoLockDuration }));
+            await addActivityLog({ user: 'Admin', action: 'Update Security', description: 'Updated auto-lock settings.' });
+            toast({ title: "Security Settings Saved" });
+            return;
+        }
     }
-    if (!newPin && !newPassword) {
-        setSettings(prev => ({...prev, autoLockEnabled: settings.autoLockEnabled, autoLockDuration: settings.autoLockDuration }));
-        await addActivityLog({ user: 'Admin', action: 'Update Security', description: 'Updated auto-lock settings.' });
-        toast({ title: "Security Settings Saved" });
-        return;
-    }
+
     if (newPassword) {
         if (!currentPassword) { toast({ title: 'Current password is required.', variant: 'destructive'}); return; }
         const credential = EmailAuthProvider.credential(user.email, currentPassword);
         try {
             await reauthenticateWithCredential(user, credential);
             await updatePassword(user, newPassword);
-            if (newPin) setSettings(prev => ({ ...prev, historyClearPin: newPin }));
+            if (canEdit && newPin) setSettings(prev => ({ ...prev, historyClearPin: newPin }));
             await addActivityLog({ user: 'Admin', action: 'Update Credentials', description: 'Updated admin login credentials.' });
             toast({ title: "Account Settings Saved" });
             setCurrentPassword(''); setNewPassword(''); setNewPin(''); setConfirmPin('');
@@ -389,15 +394,15 @@ export default function SettingsPage() {
     }), [settings.automatedMessages]);
 
   const tabs = [
-    { value: 'school', label: 'School', icon: SettingsIcon },
-    { value: 'users', label: 'Users', icon: Users },
-    { value: 'appearance', label: 'Appearance', icon: Palette },
-    { value: 'grading', label: 'Grading', icon: Type },
-    { value: 'security', label: 'My Profile', icon: ShieldAlert },
-    { value: 'logins', label: 'Logins', icon: LogIn },
-    { value: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
-    { value: 'history', label: 'History', icon: History },
-    { value: 'backup', label: 'Backup', icon: Database },
+    { value: 'school', label: 'School', icon: SettingsIcon, permission: 'settings' },
+    { value: 'users', label: 'Users', icon: Users, permission: 'settings' },
+    { value: 'appearance', label: 'Appearance', icon: Palette, permission: 'settings' },
+    { value: 'grading', label: 'Grading', icon: Type, permission: 'settings' },
+    { value: 'security', label: 'My Profile', icon: ShieldAlert, permission: 'any_primary_role' },
+    { value: 'logins', label: 'Logins', icon: LogIn, permission: 'settings' },
+    { value: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, permission: 'settings' },
+    { value: 'history', label: 'History', icon: History, permission: 'settings' },
+    { value: 'backup', label: 'Backup', icon: Database, permission: 'settings' },
   ];
 
 
@@ -418,7 +423,10 @@ export default function SettingsPage() {
       
       <Tabs defaultValue={canEdit ? "school" : "security"} className="w-full">
         <TabsList className={cn("grid w-full h-auto", canEdit ? 'grid-cols-2 sm:grid-cols-4 lg:grid-cols-9' : 'grid-cols-1')}>
-            {tabs.filter(tab => canEdit || ['security'].includes(tab.value)).map(tab => <TabsTrigger key={tab.value} value={tab.value}>{tab.label}</TabsTrigger>)}
+            {tabs.filter(tab => {
+                if (tab.permission === 'any_primary_role') return true;
+                return hasPermission(tab.permission);
+            }).map(tab => <TabsTrigger key={tab.value} value={tab.value}>{tab.label}</TabsTrigger>)}
         </TabsList>
 
         <TabsContent value="school" className="mt-6">
@@ -547,7 +555,7 @@ export default function SettingsPage() {
             </Card>
         </TabsContent>
 
-        <TabsContent value="logins" className="mt-6"> <LoginHistory /> </TabsContent>
+        {canEdit && <TabsContent value="logins" className="mt-6"> <LoginHistory /> </TabsContent>}
         
         <TabsContent value="whatsapp" className="mt-6 space-y-6">
             <Card>
@@ -623,7 +631,7 @@ export default function SettingsPage() {
               <CardHeader className="flex flex-row justify-between items-start">
                 <div> <CardTitle>Activity History</CardTitle> <CardDescription>Log of important system activities.</CardDescription> </div>
                 {canEdit && <AlertDialog open={openClearHistoryDialog} onOpenChange={setOpenClearHistoryDialog}>
-                  <AlertDialogTrigger asChild> <Button variant="destructive"><Trash2 className="mr-2 h-4 w-4" /> Clear History</Button> </AlertDialogTrigger>
+                  <AlertDialogTrigger asChild><Button variant="destructive"><Trash2 className="mr-2 h-4 w-4" /> Clear History</Button></AlertDialogTrigger>
                   <AlertDialogContent>
                       <AlertDialogHeader> <AlertDialogTitle>Enter PIN</AlertDialogTitle> <AlertDialogDescription> This action is irreversible. Enter your 4-digit PIN to confirm. </AlertDialogDescription> </AlertDialogHeader>
                       <div className="flex justify-center py-4"> <Input type="password" maxLength={4} className="w-48 text-center text-2xl tracking-[1rem]" value={clearHistoryPin} onChange={(e) => setClearHistoryPin(e.target.value)} /> </div>
