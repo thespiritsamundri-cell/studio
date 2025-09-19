@@ -45,8 +45,10 @@ export async function GET(request: Request) {
   };
 
   return new NextResponse(JSON.stringify(manifest), {
+    status: 200,
     headers: {
       'Content-Type': 'application/manifest+json',
+      'Access-Control-Allow-Origin': '*',
     },
   });
 }

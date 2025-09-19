@@ -130,41 +130,51 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 setUserRole(userData.role);
                 setUserPermissions(userData.permissions || defaultPermissions);
                 setCurrentUserName(userData.name || 'Unknown User');
-            });
 
-            const collectionsToSubscribe = [
-                'students', 'families', 'fees', 'teachers', 'attendances', 
-                'teacherAttendances', 'alumni', 'classes', 'exams', 'activityLog', 
-                'expenses', 'timetables', 'sessions', 'users', 'notifications'
-            ];
+                const collectionsToSubscribe = [
+                    'students', 'families', 'fees', 'teachers', 'attendances', 
+                    'teacherAttendances', 'alumni', 'classes', 'exams', 'activityLog', 
+                    'expenses', 'timetables', 'users'
+                ];
+                
+                if (userData.role === 'super_admin') {
+                    collectionsToSubscribe.push('sessions', 'notifications');
+                } else {
+                    setSessions([]);
+                    setNotifications([]);
+                }
             
-            const listeners = collectionsToSubscribe.map(collectionName => {
-                const setterMap: { [key: string]: React.Dispatch<React.SetStateAction<any[]>> } = {
-                    students: setStudents, families: setFamilies, fees: setFees, teachers: setTeachers,
-                    attendances: setAttendances, teacherAttendances: setTeacherAttendances, alumni: setAlumni,
-                    classes: setClasses, exams: setExams, activityLog: setActivityLog, expenses: setExpenses,
-                    timetables: setTimetables, sessions: setSessions, users: setUsers, notifications: setNotifications
-                };
-                
-                const setter = setterMap[collectionName];
-                
-                return onSnapshot(collection(db, collectionName), (snapshot) => {
-                    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    if (collectionName === 'activityLog' || collectionName === 'notifications') {
-                        data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-                    }
-                    setter(data as any);
-                }, (error) => {
-                    console.error(`Error fetching ${collectionName}:`, error);
-                    toast({ title: `Error Fetching ${collectionName}`, description: "Could not connect to the database.", variant: "destructive" });
+                const listeners = collectionsToSubscribe.map(collectionName => {
+                    const setterMap: { [key: string]: React.Dispatch<React.SetStateAction<any[]>> } = {
+                        students: setStudents, families: setFamilies, fees: setFees, teachers: setTeachers,
+                        attendances: setAttendances, teacherAttendances: setTeacherAttendances, alumni: setAlumni,
+                        classes: setClasses, exams: setExams, activityLog: setActivityLog, expenses: setExpenses,
+                        timetables: setTimetables, sessions: setSessions, users: setUsers, notifications: setNotifications
+                    };
+                    
+                    const setter = setterMap[collectionName];
+                    
+                    return onSnapshot(collection(db, collectionName), (snapshot) => {
+                        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        if (collectionName === 'activityLog' || collectionName === 'notifications') {
+                            data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+                        }
+                        setter(data as any);
+                    }, (error) => {
+                        console.error(`Error fetching ${collectionName}:`, error);
+                        toast({ title: `Error Fetching ${collectionName}`, description: "Could not connect to the database.", variant: "destructive" });
+                    });
                 });
+    
+                setIsDataInitialized(true);
+                
+                return () => {
+                    listeners.forEach(unsub => unsub());
+                };
             });
-
-            setIsDataInitialized(true);
             
             return () => {
                 userUnsubscribe();
-                listeners.forEach(unsub => unsub());
             };
         } else {
             setIsDataInitialized(false);
