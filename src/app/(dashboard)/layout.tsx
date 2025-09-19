@@ -22,46 +22,6 @@ import { format } from 'date-fns';
 import Image from 'next/image';
 import { doc, getDoc } from 'firebase/firestore';
 
-function SessionValidator() {
-  const router = useRouter();
-
-  const validateSession = useCallback(async () => {
-    const sessionId = sessionStorage.getItem('sessionId');
-    if (!sessionId) {
-      // No session, force logout
-      router.push('/');
-      return;
-    }
-
-    const sessionRef = doc(db, 'sessions', sessionId);
-    const sessionDoc = await getDoc(sessionRef);
-
-    if (!sessionDoc.exists()) {
-      // Session has been remotely terminated
-      sessionStorage.removeItem('sessionId');
-      sessionStorage.removeItem('welcomeShown');
-      sessionStorage.removeItem('isUnlocked');
-      await auth.signOut();
-      router.push('/');
-    }
-  }, [router]);
-
-  useEffect(() => {
-    // Check every 30 seconds
-    const interval = setInterval(validateSession, 30000);
-    // Also check when the window gains focus
-    window.addEventListener('focus', validateSession);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('focus', validateSession);
-    };
-  }, [validateSession]);
-
-  return null;
-}
-
-
 
 function InactivityDetector() {
   const router = useRouter();
@@ -157,7 +117,6 @@ function AuthWrapper({ children }: { children: ReactNode }) {
   if (user) {
      return (
         <>
-            {isClient && <SessionValidator />}
             {children}
             <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
                 <DialogContent className="sm:max-w-md text-center">
