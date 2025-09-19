@@ -1,88 +1,115 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-    function getUserRole(userId) {
-      return get(/databases/$(database)/documents/users/$(userId)).data.role;
+
+    function getUserData(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data;
+    }
+
+    function isSuperAdmin(userId) {
+      return getUserData(userId).role == 'super_admin';
     }
     
-    function hasPermission(permission) {
-      let user = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-      return user.role == 'super_admin' || user.permissions[permission] == true;
+    function hasPermission(userId, permission) {
+        return isSuperAdmin(userId) || getUserData(userId).permissions[permission] == true;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
     }
 
     match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if getUserRole(request.auth.uid) == 'super_admin';
-    }
-
-    match /students/{studentId} {
-      allow read: if hasPermission('students');
-      allow create, update: if hasPermission('admissions') || hasPermission('students');
-      allow delete: if hasPermission('students');
+      allow get: if request.auth.uid == userId || isSuperAdmin(request.auth.uid);
+      allow list: if isSuperAdmin(request.auth.uid);
+      allow create, update, delete: if isSuperAdmin(request.auth.uid);
     }
     
-    match /alumni/{alumnusId} {
-      allow read: if hasPermission('alumni');
-      allow create, update, delete: if hasPermission('students'); 
+    match /students/{studentId} {
+      allow get: if request.auth != null;
+      allow list: if hasPermission(request.auth.uid, 'students');
+      allow create, update, delete: if hasPermission(request.auth.uid, 'students');
     }
 
     match /families/{familyId} {
-      allow read: if hasPermission('families');
-      allow create, update: if hasPermission('families');
-      allow delete: if hasPermission('families');
+        allow get: if request.auth != null;
+        allow list: if hasPermission(request.auth.uid, 'families');
+        allow create, update, delete: if hasPermission(request.auth.uid, 'families');
+    }
+    
+    match /fees/{feeId} {
+        allow get: if request.auth != null;
+        allow list: if hasPermission(request.auth.uid, 'feeCollection');
+        allow create, update, delete: if hasPermission(request.auth.uid, 'feeCollection');
     }
 
-    match /fees/{feeId} {
-      allow read, create, update, delete: if hasPermission('feeCollection');
+    match /expenses/{expenseId} {
+        allow get: if request.auth != null;
+        allow list: if hasPermission(request.auth.uid, 'expenses');
+        allow create, update, delete: if hasPermission(request.auth.uid, 'expenses');
     }
 
     match /teachers/{teacherId} {
-      allow read, write: if hasPermission('teachers');
-    }
-    
-    match /attendances/{attendanceId} {
-      allow read, write: if hasPermission('attendance');
-    }
-    
-    match /teacherAttendances/{attendanceId} {
-      allow read, write: if hasPermission('attendance');
+        allow get: if request.auth != null;
+        allow list: if hasPermission(request.auth.uid, 'teachers');
+        allow create, update, delete: if hasPermission(request.auth.uid, 'teachers');
     }
 
     match /classes/{classId} {
-      allow read, write: if hasPermission('classes');
-    }
-    
-    match /expenses/{expenseId} {
-      allow read, write: if hasPermission('expenses');
+        allow get: if request.auth != null;
+        allow list: if hasPermission(request.auth.uid, 'classes');
+        allow create, update, delete: if hasPermission(request.auth.uid, 'classes');
     }
     
     match /exams/{examId} {
-        allow read, write: if hasPermission('examSystem');
+        allow get: if request.auth != null;
+        allow list: if hasPermission(request.auth.uid, 'examSystem');
+        allow create, update, delete: if hasPermission(request.auth.uid, 'examSystem');
     }
     
     match /timetables/{timetableId} {
-        allow read, write: if hasPermission('timetable');
+        allow get: if request.auth != null;
+        allow list: if hasPermission(request.auth.uid, 'timetable');
+        allow create, update, delete: if hasPermission(request.auth.uid, 'timetable');
     }
     
+    match /alumni/{alumniId} {
+        allow get: if request.auth != null;
+        allow list: if hasPermission(request.auth.uid, 'alumni');
+        allow create, update, delete: if hasPermission(request.auth.uid, 'alumni');
+    }
+    
+    match /attendances/{attendanceId} {
+        allow get: if request.auth != null;
+        allow list: if hasPermission(request.auth.uid, 'attendance');
+        allow create, update, delete: if hasPermission(request.auth.uid, 'attendance');
+    }
+
+    match /teacherAttendances/{teacherAttendanceId} {
+        allow get: if request.auth != null;
+        allow list: if hasPermission(request.auth.uid, 'attendance');
+        allow create, update, delete: if hasPermission(request.auth.uid, 'attendance');
+    }
+
     match /activityLog/{logId} {
-      allow read, create: if hasPermission('settings');
-      allow delete: if getUserRole(request.auth.uid) == 'super_admin';
+      allow read: if hasPermission(request.auth.uid, 'settings');
+      allow create: if request.auth != null;
+      allow delete: if isSuperAdmin(request.auth.uid);
     }
     
     match /notifications/{notificationId} {
-      allow read, write: if getUserRole(request.auth.uid) == 'super_admin';
+      allow read, write: if isSuperAdmin(request.auth.uid);
     }
     
-    match /branding/school-assets {
-        allow read: if true;
-        allow write: if hasPermission('settings');
+    match /branding/{docId} {
+       allow read: if true;
+       allow write: if isSuperAdmin(request.auth.uid);
     }
 
-    match /Settings/School Settings {
+    match /Settings/{docId} {
       allow read: if true;
-      allow write: if hasPermission('settings');
+      allow write: if isSuperAdmin(request.auth.uid);
     }
   }
 }
