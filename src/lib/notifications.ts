@@ -1,4 +1,3 @@
-
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { User } from "@/lib/types";
