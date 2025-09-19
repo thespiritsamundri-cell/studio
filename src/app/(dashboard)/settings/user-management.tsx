@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -119,43 +120,45 @@ export function UserManagement() {
         <>
             <Card>
                 <CardHeader>
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div>
                             <CardTitle>User Management</CardTitle>
                             <CardDescription>Manage user permissions and access.</CardDescription>
                         </div>
-                        <Button onClick={() => setOpenCreateDialog(true)}>
+                        <Button onClick={() => setOpenCreateDialog(true)} className="w-full sm:w-auto">
                             <PlusCircle className="mr-2 h-4 w-4" /> Add New User
                         </Button>
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Email</TableHead>
-                                <TableHead>Role</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {users.map(user => (
-                                <TableRow key={user.id}>
-                                    <TableCell>{user.name}</TableCell>
-                                    <TableCell>{user.email}</TableCell>
-                                    <TableCell>
-                                        <Badge className={cn(roleColors[user.role])}>{user.role.replace('_', ' ').toUpperCase()}</Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(user)} disabled={user.role === 'super_admin'}>
-                                            <Key className="h-4 w-4" />
-                                        </Button>
-                                    </TableCell>
+                    <div className="w-full overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Email</TableHead>
+                                    <TableHead>Role</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {users.map(user => (
+                                    <TableRow key={user.id}>
+                                        <TableCell>{user.name}</TableCell>
+                                        <TableCell>{user.email}</TableCell>
+                                        <TableCell>
+                                            <Badge className={cn(roleColors[user.role])}>{user.role.replace('_', ' ').toUpperCase()}</Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(user)} disabled={user.role === 'super_admin'}>
+                                                <Key className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </CardContent>
             </Card>
 
@@ -167,7 +170,7 @@ export function UserManagement() {
                         <DialogDescription>Select the modules this user can access.</DialogDescription>
                     </DialogHeader>
                     <ScrollArea className="h-[60vh] p-1">
-                        <div className="py-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="py-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             {permissionGroups.map(group => (
                                 <div key={group} className="space-y-3">
                                     <h3 className="font-semibold border-b pb-1">{group}</h3>

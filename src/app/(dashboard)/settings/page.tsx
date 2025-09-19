@@ -424,7 +424,7 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><SettingsIcon className="w-8 h-8" />Settings</h1>
         {!canEdit && (
             <Alert variant="default" className="border-primary/30 bg-primary/5 text-primary-foreground">
@@ -438,11 +438,11 @@ export default function SettingsPage() {
       </div>
       
       <Tabs defaultValue={canEdit ? "school" : "security"} className="w-full">
-        <TabsList className={cn("grid w-full h-auto", canEdit ? 'grid-cols-2 sm:grid-cols-4 lg:grid-cols-8' : 'grid-cols-1')}>
+        <TabsList className={cn("grid w-full h-auto", canEdit ? 'grid-cols-2 md:grid-cols-4 lg:grid-cols-8' : 'grid-cols-1')}>
             {tabs.filter(tab => {
                 if (tab.permission === 'any_primary_role') return true;
                 return hasPermission(tab.permission);
-            }).map(tab => <TabsTrigger key={tab.value} value={tab.value}>{tab.label}</TabsTrigger>)}
+            }).map(tab => <TabsTrigger key={tab.value} value={tab.value} className="text-xs md:text-sm">{tab.label}</TabsTrigger>)}
         </TabsList>
 
         <TabsContent value="school" className="mt-6">
@@ -464,7 +464,7 @@ export default function SettingsPage() {
                     <div className="space-y-2"> <Label htmlFor="principalSignature">Principal's Signature</Label> <Input id="principalSignatureInput" name="principalSignature" type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'principalSignature')} disabled={!canEdit}/> </div>
                     <div className="space-y-2"> <Label htmlFor="favicon">Favicon</Label> <Input id="faviconInput" name="favicon" type="file" accept="image/x-icon,image/png,image/svg+xml" onChange={(e) => handleFileChange(e, 'favicon')} disabled={!canEdit}/> </div>
                 </div>
-                <div className="flex gap-6">
+                <div className="flex flex-col md:flex-row gap-6">
                     {settings.schoolLogo && <div className="space-y-2"> <Label>Logo Preview</Label> <div className="flex items-center gap-4 p-4 border rounded-md"> <Image src={settings.schoolLogo} alt="School Logo Preview" width={60} height={60} /> <Button variant="ghost" size="sm" onClick={() => setSettings(prev => ({...prev, schoolLogo: ''}))} disabled={!canEdit}>Remove</Button> </div> </div>}
                     {settings.principalSignature && <div className="space-y-2"> <Label>Signature Preview</Label> <div className="flex items-center gap-4 p-4 border rounded-md bg-white"> <Image src={settings.principalSignature} alt="Principal Signature Preview" width={100} height={60} /> <Button variant="ghost" size="sm" onClick={() => setSettings(prev => ({...prev, principalSignature: ''}))} disabled={!canEdit}>Remove</Button> </div> </div>}
                     {settings.favicon && <div className="space-y-2"> <Label>Favicon Preview</Label> <div className="flex items-center gap-4 p-4 border rounded-md"> <Image src={settings.favicon} alt="Favicon Preview" width={32} height={32} /> <Button variant="ghost" size="sm" onClick={() => setSettings(prev => ({...prev, favicon: ''}))} disabled={!canEdit}>Remove</Button> </div> </div>}
@@ -489,7 +489,7 @@ export default function SettingsPage() {
                     <Switch checked={localPreloaderEnabled} onCheckedChange={setLocalPreloaderEnabled} disabled={!canEdit}/>
                   </div>
                   <p className="text-sm text-muted-foreground">Choose the loading animation that displays while data is being fetched.</p>
-                  <RadioGroup value={localPreloaderStyle} onValueChange={setLocalPreloaderStyle} className="grid grid-cols-2 md:grid-cols-4 gap-4" disabled={!localPreloaderEnabled || !canEdit}>
+                  <RadioGroup value={localPreloaderStyle} onValueChange={setLocalPreloaderStyle} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4" disabled={!localPreloaderEnabled || !canEdit}>
                     {Array.from({length: 8}, (_, i) => `style${i+1}`).map(style => (
                         <div key={style}>
                             <RadioGroupItem value={style} id={style} className="sr-only peer" />
@@ -509,7 +509,7 @@ export default function SettingsPage() {
             <Card>
                 <CardHeader><CardTitle>Grading System</CardTitle><CardDescription>Define grades and their percentage ranges.</CardDescription></CardHeader>
                 <CardContent>
-                    <div className="border rounded-lg">
+                    <div className="border rounded-lg w-full overflow-x-auto">
                         <Table>
                             <TableHeader><TableRow><TableHead>Grade Name</TableHead><TableHead>Minimum Percentage (%)</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
                             <TableBody>
@@ -547,7 +547,7 @@ export default function SettingsPage() {
                             <div className="space-y-2">
                                 <h4 className="font-semibold">Security PIN</h4>
                                 <p className="text-sm text-muted-foreground">Set a 4-digit PIN for history deletion and app unlock.</p>
-                                <div className="grid grid-cols-2 gap-4 max-w-sm">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-sm">
                                     <div className="space-y-2"> <Label htmlFor="newPin">New PIN</Label> <Input id="newPin" type="password" maxLength={4} value={newPin} onChange={(e) => setNewPin(e.target.value)} /> </div>
                                     <div className="space-y-2"> <Label htmlFor="confirmPin">Confirm PIN</Label> <Input id="confirmPin" type="password" maxLength={4} value={confirmPin} onChange={(e) => setConfirmPin(e.target.value)} /> </div>
                                 </div>
@@ -608,7 +608,7 @@ export default function SettingsPage() {
                 <CardContent className="space-y-6">
                     <div>
                         <div className="p-4 bg-background/70 rounded-lg space-y-4">
-                            <div className="space-y-2"> <Label>Send To:</Label> <RadioGroup value={sendTarget} onValueChange={setSendTarget} className="flex flex-wrap gap-4" disabled={!canEdit}> <div className="flex items-center space-x-2"><RadioGroupItem value="all_families" id="r1" /><Label htmlFor="r1">All Families</Label></div> <div className="flex items-center space-x-2"><RadioGroupItem value="class" id="r2" /><Label htmlFor="r2">Specific Class</Label></div> <div className="flex items-center space-x-2"><RadioGroupItem value="family" id="r3" /><Label htmlFor="r3">Specific Family</Label></div> <div className="flex items-center space-x-2"><RadioGroupItem value="all_teachers" id="r5" /><Label htmlFor="r5">All Teachers</Label></div> <div className="flex items-center space-x-2"><RadioGroupItem value="teacher" id="r6" /><Label htmlFor="r6">Specific Teacher</Label></div> <div className="flex items-center space-x-2"><RadioGroupItem value="custom" id="r4" /><Label htmlFor="r4">Custom Numbers</Label></div> </RadioGroup> </div>
+                            <div className="space-y-2"> <Label>Send To:</Label> <RadioGroup value={sendTarget} onValueChange={setSendTarget} className="flex flex-wrap gap-x-4 gap-y-2" disabled={!canEdit}> <div className="flex items-center space-x-2"><RadioGroupItem value="all_families" id="r1" /><Label htmlFor="r1">All Families</Label></div> <div className="flex items-center space-x-2"><RadioGroupItem value="class" id="r2" /><Label htmlFor="r2">Specific Class</Label></div> <div className="flex items-center space-x-2"><RadioGroupItem value="family" id="r3" /><Label htmlFor="r3">Specific Family</Label></div> <div className="flex items-center space-x-2"><RadioGroupItem value="all_teachers" id="r5" /><Label htmlFor="r5">All Teachers</Label></div> <div className="flex items-center space-x-2"><RadioGroupItem value="teacher" id="r6" /><Label htmlFor="r6">Specific Teacher</Label></div> <div className="flex items-center space-x-2"><RadioGroupItem value="custom" id="r4" /><Label htmlFor="r4">Custom Numbers</Label></div> </RadioGroup> </div>
                             {sendTarget === 'class' && <div className="space-y-2"> <Label htmlFor="target-class">Select Class</Label> <Select value={targetClass} onValueChange={setTargetClass} disabled={!canEdit}> <SelectTrigger id="target-class"><SelectValue placeholder="Select a class" /></SelectTrigger> <SelectContent> {classes.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)} </SelectContent> </Select> </div>}
                             {sendTarget === 'family' && <div className="space-y-2"> <Label htmlFor="target-family">Family ID</Label> <Input id="target-family" value={targetFamilyId} onChange={e => setTargetFamilyId(e.target.value)} disabled={!canEdit}/> </div>}
                             {sendTarget === 'teacher' && <div className="space-y-2"> <Label htmlFor="target-teacher">Select Teacher</Label> <Select value={targetTeacherId} onValueChange={setTargetTeacherId} disabled={!canEdit}> <SelectTrigger id="target-teacher"><SelectValue placeholder="Select a teacher" /></SelectTrigger> <SelectContent> {teachers.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)} </SelectContent> </Select> </div>}
@@ -623,7 +623,7 @@ export default function SettingsPage() {
             <Card>
                 <CardHeader> <div className="flex justify-between items-center"> <CardTitle>Message Templates</CardTitle> {canEdit && <Button onClick={() => handleOpenTemplateDialog(null)}><PlusCircle className="mr-2 h-4 w-4"/> New Template</Button>} </div> <CardDescription>Create/edit message templates.</CardDescription> </CardHeader>
                 <CardContent>
-                    <div className="border rounded-md">
+                    <div className="border rounded-md overflow-x-auto">
                         <Table>
                             <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Content</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
                             <TableBody>
@@ -658,20 +658,22 @@ export default function SettingsPage() {
                 )}
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>User</TableHead><TableHead>Action</TableHead><TableHead>Description</TableHead></TableRow></TableHeader>
-                  <TableBody>
-                    {activityLog.map((log) => (
-                      <TableRow key={log.id}>
-                        <TableCell className="text-xs text-muted-foreground">{format(new Date(log.timestamp), 'PPP p')}</TableCell>
-                        <TableCell>{log.user}</TableCell>
-                        <TableCell><Badge variant="secondary">{log.action}</Badge></TableCell>
-                        <TableCell>{log.description}</TableCell>
-                      </TableRow>
-                    ))}
-                    {activityLog.length === 0 && <TableRow><TableCell colSpan={4} className="text-center h-24">No activity recorded.</TableCell></TableRow>}
-                  </TableBody>
-                </Table>
+                <div className="w-full overflow-x-auto">
+                    <Table>
+                    <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>User</TableHead><TableHead>Action</TableHead><TableHead>Description</TableHead></TableRow></TableHeader>
+                    <TableBody>
+                        {activityLog.map((log) => (
+                        <TableRow key={log.id}>
+                            <TableCell className="text-xs text-muted-foreground">{format(new Date(log.timestamp), 'PPP p')}</TableCell>
+                            <TableCell>{log.user}</TableCell>
+                            <TableCell><Badge variant="secondary">{log.action}</Badge></TableCell>
+                            <TableCell>{log.description}</TableCell>
+                        </TableRow>
+                        ))}
+                        {activityLog.length === 0 && <TableRow><TableCell colSpan={4} className="text-center h-24">No activity recorded.</TableCell></TableRow>}
+                    </TableBody>
+                    </Table>
+                </div>
               </CardContent>
             </Card>
         </TabsContent>
