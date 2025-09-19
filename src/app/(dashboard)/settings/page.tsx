@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Bell, BellOff, Lock, AlertTriangle, PlayCircle, Image as ImageIcon, CheckCircle, LogIn, RefreshCcw, Users } from 'lucide-react';
+import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Bell, BellOff, Lock, AlertTriangle, PlayCircle, Image as ImageIcon, CheckCircle, RefreshCcw, Users } from 'lucide-react';
 
 import { useData } from '@/context/data-context';
 import { useState, useMemo, useEffect, useRef } from 'react';
@@ -34,7 +34,6 @@ import { cn } from '@/lib/utils';
 import { uploadFile } from '@/services/storage-service';
 
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { LoginHistory } from './login-history';
 import { UserManagement } from './user-management';
 
 
@@ -417,7 +416,6 @@ export default function SettingsPage() {
     { value: 'appearance', label: 'Appearance', icon: Palette, permission: 'settings' },
     { value: 'grading', label: 'Grading', icon: Type, permission: 'settings' },
     { value: 'security', label: 'My Profile', icon: ShieldAlert, permission: 'any_primary_role' },
-    { value: 'logins', label: 'Logins', icon: LogIn, permission: 'settings' },
     { value: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, permission: 'settings' },
     { value: 'history', label: 'History', icon: History, permission: 'settings' },
     { value: 'backup', label: 'Backup', icon: Database, permission: 'settings' },
@@ -440,7 +438,7 @@ export default function SettingsPage() {
       </div>
       
       <Tabs defaultValue={canEdit ? "school" : "security"} className="w-full">
-        <TabsList className={cn("grid w-full h-auto", canEdit ? 'grid-cols-2 sm:grid-cols-4 lg:grid-cols-9' : 'grid-cols-1')}>
+        <TabsList className={cn("grid w-full h-auto", canEdit ? 'grid-cols-2 sm:grid-cols-4 lg:grid-cols-8' : 'grid-cols-1')}>
             {tabs.filter(tab => {
                 if (tab.permission === 'any_primary_role') return true;
                 return hasPermission(tab.permission);
@@ -572,8 +570,6 @@ export default function SettingsPage() {
                 </CardContent>
             </Card>
         </TabsContent>
-
-        {canEdit && <TabsContent value="logins" className="mt-6"> <LoginHistory /> </TabsContent>}
         
         <TabsContent value="whatsapp" className="mt-6 space-y-6">
             <Card>

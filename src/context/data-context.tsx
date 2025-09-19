@@ -32,7 +32,6 @@ interface DataContextType {
   activityLog: ActivityLog[];
   expenses: Expense[];
   timetables: Timetable[];
-  sessions: Session[];
   users: User[];
   notifications: AppNotification[];
   userRole: User['role'] | null;
@@ -66,7 +65,6 @@ interface DataContextType {
   updateExpense: (id: string, expense: Partial<Expense>) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
   updateTimetable: (classId: string, data: TimetableData, timeSlots?: string[], breakAfterPeriod?: number, breakDuration?: string) => Promise<void>;
-  signOutSession: (sessionId: string) => Promise<void>;
   updateUser: (id: string, data: Partial<User>) => Promise<void>;
   createUser: (email: string, pass: string, name: string, permissions: PermissionSet) => Promise<void>;
   addNotification: (notification: Omit<AppNotification, 'id' | 'timestamp' | 'isRead'>) => Promise<void>;
@@ -106,7 +104,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [activityLog, setActivityLog] = useState<ActivityLog[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [timetables, setTimetables] = useState<Timetable[]>([]);
-  const [sessions, setSessions] = useState<Session[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [userRole, setUserRole] = useState<User['role'] | null>(null);
@@ -139,7 +136,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                     students: setStudents, families: setFamilies, fees: setFees, teachers: setTeachers,
                     attendances: setAttendances, teacherAttendances: setTeacherAttendances, alumni: setAlumni,
                     classes: setClasses, exams: setExams, activityLog: setActivityLog, expenses: setExpenses,
-                    timetables: setTimetables, sessions: setSessions, users: setUsers, notifications: setNotifications
+                    timetables: setTimetables, users: setUsers, notifications: setNotifications
                 };
             
                 const listeners = generalCollections.map(collectionName => {
@@ -154,7 +151,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 });
     
                 if (userData.role === 'super_admin') {
-                    const adminCollections = ['sessions', 'notifications'];
+                    const adminCollections = ['notifications'];
                     adminCollections.forEach(collectionName => {
                         const setter = setterMap[collectionName];
                         const unsub = onSnapshot(collection(db, collectionName), (snapshot) => {
@@ -167,7 +164,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
                         listeners.push(unsub);
                     });
                 } else {
-                    setSessions([]);
                     setNotifications([]);
                 }
                 
@@ -183,7 +179,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             setUserPermissions(defaultPermissions);
             setCurrentUserName('System');
             // Clear all data on logout
-            [setStudents, setFamilies, setFees, setTeachers, setAttendances, setTeacherAttendances, setAlumni, setClasses, setExams, setActivityLog, setExpenses, setTimetables, setSessions, setUsers, setNotifications].forEach(setter => setter([]));
+            [setStudents, setFamilies, setFees, setTeachers, setAttendances, setTeacherAttendances, setAlumni, setClasses, setExams, setActivityLog, setExpenses, setTimetables, setUsers, setNotifications].forEach(setter => setter([]));
         }
     });
 
@@ -578,16 +574,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
         toast({ title: 'Error saving timetable', variant: 'destructive'});
     }
   };
-
-  const signOutSession = async (sessionId: string) => {
-    try {
-        await deleteDoc(doc(db, 'sessions', sessionId));
-        await addActivityLog({action: 'Sign Out Session', description: `Remotely signed out session ID: ${sessionId}`});
-    } catch (e) {
-        console.error("Error signing out session:", e);
-        toast({ title: 'Error Signing Out', variant: 'destructive'});
-    }
-  };
   
   // --- NOTIFICATIONS ---
   const addNotification = async (notification: Omit<AppNotification, 'id' | 'timestamp' | 'isRead'>) => {
@@ -618,14 +604,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const contextValue = {
       students, families, fees, teachers, attendances, teacherAttendances, alumni,
-      classes, exams, activityLog, expenses, timetables, sessions, users, notifications,
+      classes, exams, activityLog, expenses, timetables, users, notifications,
       userRole, userPermissions, isDataInitialized, hasPermission,
       addStudent, updateStudent, updateAlumni, deleteStudent, addFamily, updateFamily, 
       deleteFamily, addFee, updateFee, deleteFee, addTeacher, updateTeacher,
       deleteTeacher, saveStudentAttendance, saveTeacherAttendance, addClass,
       updateClass, deleteClass, addExam, updateExam, deleteExam, addActivityLog,
       clearActivityLog, addExpense, updateExpense, deleteExpense, updateTimetable,
-      signOutSession, updateUser, createUser, addNotification, markNotificationAsRead,
+      updateUser, createUser, addNotification, markNotificationAsRead,
       loadData, seedDatabase, deleteAllData,
   };
 
