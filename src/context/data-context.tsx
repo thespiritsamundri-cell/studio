@@ -118,11 +118,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
         if (user) {
             const userDocRef = doc(db, 'users', user.uid);
-            // This single snapshot listener will update roles and permissions in real-time
             const userUnsubscribe = onSnapshot(userDocRef, (userDocSnap) => {
                  if (!userDocSnap.exists()) {
                     console.error("User document not found in Firestore!");
-                    // Handle case where user exists in Auth but not Firestore
                     auth.signOut();
                     return;
                 }
@@ -131,51 +129,54 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 setUserPermissions(userData.permissions || defaultPermissions);
                 setCurrentUserName(userData.name || 'Unknown User');
 
-                const collectionsToSubscribe = [
+                const generalCollections = [
                     'students', 'families', 'fees', 'teachers', 'attendances', 
                     'teacherAttendances', 'alumni', 'classes', 'exams', 'activityLog', 
                     'expenses', 'timetables', 'users'
                 ];
                 
+                const setterMap: { [key: string]: React.Dispatch<React.SetStateAction<any[]>> } = {
+                    students: setStudents, families: setFamilies, fees: setFees, teachers: setTeachers,
+                    attendances: setAttendances, teacherAttendances: setTeacherAttendances, alumni: setAlumni,
+                    classes: setClasses, exams: setExams, activityLog: setActivityLog, expenses: setExpenses,
+                    timetables: setTimetables, sessions: setSessions, users: setUsers, notifications: setNotifications
+                };
+            
+                const listeners = generalCollections.map(collectionName => {
+                    const setter = setterMap[collectionName];
+                    return onSnapshot(collection(db, collectionName), (snapshot) => {
+                        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        if (collectionName === 'activityLog') {
+                            data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+                        }
+                        setter(data as any);
+                    }, (error) => console.error(`Error fetching ${collectionName}:`, error));
+                });
+    
                 if (userData.role === 'super_admin') {
-                    collectionsToSubscribe.push('sessions', 'notifications');
+                    const adminCollections = ['sessions', 'notifications'];
+                    adminCollections.forEach(collectionName => {
+                        const setter = setterMap[collectionName];
+                        const unsub = onSnapshot(collection(db, collectionName), (snapshot) => {
+                            const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                             if (collectionName === 'notifications') {
+                                data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+                            }
+                            setter(data as any);
+                        }, (error) => console.error(`Error fetching ${collectionName}:`, error));
+                        listeners.push(unsub);
+                    });
                 } else {
                     setSessions([]);
                     setNotifications([]);
                 }
-            
-                const listeners = collectionsToSubscribe.map(collectionName => {
-                    const setterMap: { [key: string]: React.Dispatch<React.SetStateAction<any[]>> } = {
-                        students: setStudents, families: setFamilies, fees: setFees, teachers: setTeachers,
-                        attendances: setAttendances, teacherAttendances: setTeacherAttendances, alumni: setAlumni,
-                        classes: setClasses, exams: setExams, activityLog: setActivityLog, expenses: setExpenses,
-                        timetables: setTimetables, sessions: setSessions, users: setUsers, notifications: setNotifications
-                    };
-                    
-                    const setter = setterMap[collectionName];
-                    
-                    return onSnapshot(collection(db, collectionName), (snapshot) => {
-                        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                        if (collectionName === 'activityLog' || collectionName === 'notifications') {
-                            data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-                        }
-                        setter(data as any);
-                    }, (error) => {
-                        console.error(`Error fetching ${collectionName}:`, error);
-                        toast({ title: `Error Fetching ${collectionName}`, description: "Could not connect to the database.", variant: "destructive" });
-                    });
-                });
-    
+                
                 setIsDataInitialized(true);
                 
-                return () => {
-                    listeners.forEach(unsub => unsub());
-                };
+                return () => listeners.forEach(unsub => unsub());
             });
             
-            return () => {
-                userUnsubscribe();
-            };
+            return () => userUnsubscribe();
         } else {
             setIsDataInitialized(false);
             setUserRole(null);
@@ -187,7 +188,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
 
     return () => unsubscribeAuth();
-  }, [toast]);
+  }, []);
   
   const hasPermission = useCallback((permission: keyof PermissionSet) => {
     if (userRole === 'super_admin') return true;
