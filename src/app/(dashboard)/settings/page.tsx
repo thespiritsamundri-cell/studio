@@ -243,46 +243,58 @@ export default function SettingsPage() {
 
     let recipients: { phone: string, context: Record<string, string> }[] = [];
     let targetDescription = '';
+    let recipientCount = 0;
 
     switch (sendTarget) {
         case 'all_families':
             recipients = families.map(f => ({ phone: f.phone, context: { '{father_name}': f.fatherName, '{school_name}': settings.schoolName } }));
-            targetDescription = `all ${recipients.length} families`; break;
+            targetDescription = `all ${recipients.length} families`; 
+            recipientCount = recipients.length;
+            break;
         case 'class':
             if (!targetClass) { toast({ title: 'No class selected', variant: 'destructive' }); setIsSending(false); return; }
             const studentsInClass = students.filter(s => s.class === targetClass);
             const familyIds = [...new Set(studentsInClass.map(s => s.familyId))];
             recipients = families.filter(f => familyIds.includes(f.id)).map(f => ({ phone: f.phone, context: { '{father_name}': f.fatherName, '{student_name}': students.find(s => s.familyId === f.id)?.name || '', '{class}': targetClass, '{school_name}': settings.schoolName } }));
-            targetDescription = `families of class ${targetClass}`; break;
+            targetDescription = `families of class ${targetClass}`;
+            recipientCount = recipients.length;
+            break;
         case 'family':
              if (!targetFamilyId) { toast({ title: 'No family ID entered', variant: 'destructive' }); setIsSending(false); return; }
             const family = families.find(f => f.id === targetFamilyId);
             if (!family) { toast({ title: 'Family not found', variant: 'destructive' }); setIsSending(false); return; }
             recipients = [{ phone: family.phone, context: { '{father_name}': family.fatherName, '{student_name}': students.find(s => s.familyId === family.id)?.name || '', '{class}': students.find(s => s.familyId === family.id)?.class || '', '{school_name}': settings.schoolName } }];
-            targetDescription = `family ${family.fatherName} (${family.id})`; break;
+            targetDescription = `family ${family.fatherName} (${family.id})`; 
+            recipientCount = 1;
+            break;
         case 'all_teachers':
             recipients = teachers.map(t => ({ phone: t.phone, context: { '{teacher_name}': t.name, '{school_name}': settings.schoolName } }));
-            targetDescription = `all ${recipients.length} teachers`; break;
+            targetDescription = `all ${recipients.length} teachers`; 
+            recipientCount = recipients.length;
+            break;
         case 'teacher':
              if (!targetTeacherId) { toast({ title: 'No teacher selected', variant: 'destructive' }); setIsSending(false); return; }
             const teacher = teachers.find(t => t.id === targetTeacherId);
             if (!teacher) { toast({ title: 'Teacher not found', variant: 'destructive' }); setIsSending(false); return; }
             recipients = [{ phone: teacher.phone, context: { '{teacher_name}': teacher.name, '{school_name}': settings.schoolName } }];
-            targetDescription = `teacher ${teacher.name}`; break;
+            targetDescription = `teacher ${teacher.name}`; 
+            recipientCount = 1;
+            break;
         case 'custom':
             if (!customNumbers) { toast({ title: 'No numbers entered', variant: 'destructive' }); setIsSending(false); return; }
             recipients = customNumbers.split(',').map(num => ({ phone: num.trim(), context: {'{school_name}': settings.schoolName} }));
-            targetDescription = 'custom numbers'; break;
+            targetDescription = 'custom numbers'; 
+            recipientCount = recipients.length;
+            break;
     }
 
     if (recipients.length === 0) { toast({ title: 'No Recipients', variant: 'destructive' }); setIsSending(false); return; }
     toast({ title: 'Sending Messages', description: `Sending to ${recipients.length} recipient(s).` });
     
-    // Pass recipientCount to the activity log
     addActivityLog({ 
         action: 'Send WhatsApp Message', 
         description: `Sent custom message to ${targetDescription}.`, 
-        recipientCount: recipients.length 
+        recipientCount: recipientCount 
     });
     
     let successCount = 0;
@@ -675,7 +687,7 @@ export default function SettingsPage() {
                     <div className="space-y-2"> <h3 className="font-medium">Create Backup</h3> <p className="text-sm text-muted-foreground">Download a complete backup as a JSON file.</p> <Button variant="outline" onClick={handleCreateBackup} disabled={!canEdit}><Download className="mr-2"/>Download</Button> </div>
                     <div className="space-y-2"> <h3 className="font-medium">Restore from Backup</h3> <p className="text-sm text-muted-foreground">Upload a JSON backup file to restore data.</p> <div className="flex items-center gap-2"> <Label htmlFor="backup-file" className="sr-only">Restore</Label> <Input id="backup-file" type="file" accept=".json" className="hidden" onChange={handleRestoreBackup} /> <Button onClick={() => document.getElementById('backup-file')?.click()} disabled={!canEdit}><Upload className="mr-2"/>Restore</Button> </div> </div>
                 </div>
-                 <div className="border-t pt-6 space-y-2"> <h3 className="font-medium">Seed Database</h3> <p className="text-sm text-muted-foreground">Populate with sample data. Overwrites existing data.</p> <Button variant="destructive" onClick={seedDatabase} disabled={!canEdit}><Database className="mr-2"/>Seed Sample Data</Button> d>
+                 <div className="border-t pt-6 space-y-2"> <h3 className="font-medium">Seed Database</h3> <p className="text-sm text-muted-foreground">Populate with sample data. Overwrites existing data.</p> <Button variant="destructive" onClick={seedDatabase} disabled={!canEdit}><Database className="mr-2"/>Seed Sample Data</Button> </div>
                 <div className="border-t border-destructive pt-6 space-y-2">
                     <h3 className="font-medium text-destructive flex items-center gap-2"><AlertTriangle /> Danger Zone</h3>
                     <p className="text-sm text-muted-foreground">Permanently delete all data.</p>
