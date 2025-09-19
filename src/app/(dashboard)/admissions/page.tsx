@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -31,7 +30,7 @@ interface CustomFee {
 
 export default function AdmissionsPage() {
     const { toast } = useToast();
-    const { families, students, fees, addStudent, addFee, classes, addActivityLog } = useData();
+    const { families, students, fees, addStudent, addFee, classes, addActivityLog, addNotification } = useData();
     const { settings } = useSettings();
     const [familyId, setFamilyId] = useState('');
     const [familyExists, setFamilyExists] = useState(false);
@@ -228,6 +227,8 @@ export default function AdmissionsPage() {
             await addFee(fee);
         }
         
+        addActivityLog({ action: 'Add Student', description: `Admitted new student: ${newStudent.name} (ID: ${newStudent.id}) in Class ${newStudent.class}.` });
+        
         toast({
             title: 'Student Admitted!',
             description: `${studentName} has been successfully admitted. Printing admission form...`,
@@ -245,7 +246,7 @@ export default function AdmissionsPage() {
             try {
               const result = await sendWhatsAppMessage(newStudent.phone, message, settings);
               if (result.success) {
-                addActivityLog({ user: 'System', action: 'Send WhatsApp Message', description: `Sent admission confirmation to 1 recipient.`, recipientCount: 1 });
+                addActivityLog({ action: 'Send WhatsApp Message', description: `Sent admission confirmation to 1 recipient.`, recipientCount: 1 });
               } else {
                 throw new Error(result.error);
               }
@@ -292,15 +293,15 @@ export default function AdmissionsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold font-headline">New Student Admission</h1>
-        <p className="text-muted-foreground">Follow the steps to enroll a new student in the school.</p>
+        <p className="text-muted-foreground md:hidden">Follow the steps to enroll a new student.</p>
       </div>
 
       <form className="space-y-8" onSubmit={handleAdmission}>
         <Card>
           <CardHeader>
-            <CardTitle>Family Information</CardTitle>
+            <CardTitle>Step 1: Family Information</CardTitle>
             <CardDescription>
               Search for an existing family ID. If the family is new, first add them from the 'Families' page.
             </CardDescription>
@@ -371,11 +372,11 @@ export default function AdmissionsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Student Information</CardTitle>
+            <CardTitle>Step 2: Student Information</CardTitle>
             <CardDescription>Enter the personal details for the new student.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="student-name">Student Name</Label>
                 <Input id="student-name" name="student-name" placeholder="Enter full name" value={studentName} onChange={e => setStudentName(e.target.value)} required />
@@ -436,7 +437,7 @@ export default function AdmissionsPage() {
                 <Label htmlFor="photo">Student Photo</Label>
                 <Input id="photo" type="file" className="file:text-primary file:font-medium" onChange={handlePhotoChange} accept="image/*" />
               </div>
-              <div className="space-y-2 md:col-span-3">
+              <div className="space-y-2 lg:col-span-3">
                 <Label htmlFor="address">Address</Label>
                 <Textarea id="address" name="address" placeholder="Enter residential address" value={address} onChange={e => setAddress(e.target.value)} required readOnly={familyExists} />
               </div>
@@ -448,14 +449,14 @@ export default function AdmissionsPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Fee Structure</CardTitle>
+                <CardTitle>Step 3: Fee Structure</CardTitle>
                 <CardDescription>
                   Define the fee structure for this student. The registration fee is a one-time charge.
                 </CardDescription>
               </div>
-              <Button type="button" variant="outline" size="icon" onClick={addCustomFeeField}>
-                  <PlusCircle className="h-4 w-4" />
-                  <span className="sr-only">Add Fee Type</span>
+              <Button type="button" variant="outline" size="sm" onClick={addCustomFeeField}>
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Add Custom Fee
               </Button>
             </div>
           </CardHeader>

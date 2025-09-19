@@ -61,28 +61,7 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      if (user) {
-        // Create session document
-        const sessionId = `SESS-${Date.now()}`;
-        const ipResponse = await fetch('https://api.ipify.org?format=json').catch(() => null);
-        const ipData = ipResponse ? await ipResponse.json() : {};
-
-        const newSession: Session = {
-            id: sessionId,
-            userId: user.uid,
-            loginTime: new Date().toISOString(),
-            lastAccess: new Date().toISOString(),
-            ipAddress: ipData.ip || 'Unknown',
-            userAgent: navigator.userAgent,
-            location: 'Unknown',
-        };
-        await setDoc(doc(db, 'sessions', sessionId), newSession);
-        sessionStorage.setItem('sessionId', sessionId);
-      }
-      
+      await signInWithEmailAndPassword(auth, email, password);
       router.push('/dashboard');
     } catch (error: any) {
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {

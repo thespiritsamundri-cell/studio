@@ -1,9 +1,8 @@
-
 import type {Config} from 'tailwindcss';
 import plugin from 'tailwindcss/plugin';
 
 export default {
-  darkMode: ['class'],
+  darkMode: 'class',
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -12,15 +11,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['var(--font-inter)'], // Default body font
-        inter: ['var(--font-inter)'],
-        roboto: ['var(--font-roboto)'],
-        'open-sans': ['var(--font-open-sans)'],
-        lato: ['var(--font-lato)'],
-        montserrat: ['var(--font-montserrat)'],
-        poppins: ['var(--font-poppins)'],
-        headline: ['var(--font-inter)'], // Default headline font, can be customized too
-        code: ['monospace'],
+        sans: ['Inter', 'sans-serif'],
       },
       colors: {
         background: 'hsl(var(--background))',
@@ -105,12 +96,29 @@ export default {
             '0%': { '--angle': '0deg' },
             '100%': { '--angle': '360deg' },
         },
+        'bounce': {
+          '0%, 100%': {
+            transform: 'translateY(-25%)',
+            animationTimingFunction: 'cubic-bezier(0.8, 0, 1, 1)',
+          },
+          '50%': {
+            transform: 'translateY(0)',
+            animationTimingFunction: 'cubic-bezier(0, 0, 0.2, 1)',
+          },
+        },
+        'pulse': {
+          '50%': {
+            opacity: '.5',
+          },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'scroll': 'scroll 40s linear infinite',
         'gradient-move': 'gradient-move 4s linear infinite',
+        'bounce': 'bounce 1s infinite',
+        'pulse': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       },
     },
   },

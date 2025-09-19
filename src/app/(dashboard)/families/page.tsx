@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect, useRef } from 'react';
@@ -190,7 +189,7 @@ export default function FamiliesPage() {
         await updateStudent(student.id, { status: 'Archived' });
     }
     
-    addActivityLog({ user: 'Admin', action: 'Archive Family', description: `Archived family ${selectedFamily.fatherName} (ID: ${selectedFamily.id}) and ${studentsToArchive.length} students.` });
+    addActivityLog({ action: 'Archive Family', description: `Archived family ${selectedFamily.fatherName} (ID: ${selectedFamily.id}) and ${studentsToArchive.length} students.` });
 
     toast({
         title: "Family Archived",
@@ -273,7 +272,7 @@ export default function FamiliesPage() {
                 title: 'Import Successful',
                 description: `${importedCount} new families have been imported.`,
             });
-            addActivityLog({ user: 'Admin', action: 'Import Families', description: `Imported ${importedCount} families from CSV file.`});
+            addActivityLog({ action: 'Import Families', description: `Imported ${importedCount} families from CSV file.`});
         } else {
             toast({ title: 'Import Failed', description: 'No valid families were found in the file to import.', variant: 'destructive' });
         }
@@ -293,9 +292,9 @@ export default function FamiliesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold font-headline">Families</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
             <input
                 type="file"
                 ref={importInputRef}
@@ -311,46 +310,44 @@ export default function FamiliesPage() {
                 <PlusCircle className="w-4 h-4 mr-2" /> Add New Family
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                 <DialogTitle>Add New Family</DialogTitle>
                 <DialogDescription>
                     Enter the details for the new family. The Family ID will be generated automatically. Click save when you're done.
                 </DialogDescription>
                 </DialogHeader>
-                <form id="add-family-form" onSubmit={handleAddFamily}>
-                <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="fatherName" className="text-right">Father's Name</Label>
-                    <Input id="fatherName" name="fatherName" className="col-span-3" required />
+                <form id="add-family-form" onSubmit={handleAddFamily} className="space-y-4">
+                    <div>
+                        <Label htmlFor="fatherName">Father's Name</Label>
+                        <Input id="fatherName" name="fatherName" required />
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="profession" className="text-right">Profession</Label>
-                    <Select name="profession" onValueChange={setNewProfession} value={newProfession}>
-                        <SelectTrigger className="col-span-3">
-                            <SelectValue placeholder="Select profession" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {professions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
+                    <div>
+                        <Label htmlFor="profession">Profession</Label>
+                        <Select name="profession" onValueChange={setNewProfession} value={newProfession}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select profession" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {professions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="cnic" className="text-right">Father's CNIC</Label>
-                    <Input id="cnic" name="cnic" className="col-span-3" />
+                    <div>
+                        <Label htmlFor="cnic">Father's CNIC</Label>
+                        <Input id="cnic" name="cnic" />
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="phone" className="text-right">Phone</Label>
-                    <Input id="phone" name="phone" type="tel" className="col-span-3" required />
+                    <div>
+                        <Label htmlFor="phone">Phone</Label>
+                        <Input id="phone" name="phone" type="tel" required />
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="address" className="text-right">Address</Label>
-                    <Input id="address" name="address" className="col-span-3" required />
+                    <div>
+                        <Label htmlFor="address">Address</Label>
+                        <Input id="address" name="address" required />
                     </div>
-                </div>
-                <DialogFooter>
-                    <Button type="submit" form="add-family-form">Save Family</Button>
-                </DialogFooter>
+                    <DialogFooter>
+                        <Button type="submit" form="add-family-form">Save Family</Button>
+                    </DialogFooter>
                 </form>
             </DialogContent>
             </Dialog>
@@ -363,11 +360,11 @@ export default function FamiliesPage() {
           <CardDescription>Search, view, and manage family records.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSearch} className="flex items-center space-x-2 mb-4">
+          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 mb-4">
             <Input 
               type="text" 
               placeholder="Search by Family ID, Name, or CNIC..." 
-              className="max-w-sm" 
+              className="flex-grow" 
               value={searchQuery}
               onChange={handleSearchInputChange}
             />
@@ -376,106 +373,106 @@ export default function FamiliesPage() {
               Search
             </Button>
           </form>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Family ID</TableHead>
-                <TableHead>Father's Name</TableHead>
-                <TableHead>Students</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead className="hidden md:table-cell">Profession</TableHead>
-                <TableHead className="hidden md:table-cell">Address</TableHead>
-                <TableHead>
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredFamilies.map((family) => (
-                <TableRow key={family.id}>
-                  <TableCell className="font-medium">{family.id}</TableCell>
-                  <TableCell>{family.fatherName}</TableCell>
-                  <TableCell>
-                     <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span>{getStudentCountForFamily(family.id)}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{family.phone}</TableCell>
-                  <TableCell className="hidden md:table-cell">{family.profession}</TableCell>
-                  <TableCell className="hidden md:table-cell">{family.address}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Toggle menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleEditClick(family)}>Edit Family</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleViewStudents(family.id)}>View Students</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive" onClick={() => handleArchiveClick(family)}>
-                          <Archive className="mr-2 h-4 w-4" />
-                          Archive Family
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-               {filteredFamilies.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center">
-                    No families found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+          <div className="w-full overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Family ID</TableHead>
+                    <TableHead>Father's Name</TableHead>
+                    <TableHead>Students</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead className="hidden md:table-cell">Profession</TableHead>
+                    <TableHead className="hidden lg:table-cell">Address</TableHead>
+                    <TableHead>
+                      <span className="sr-only">Actions</span>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredFamilies.map((family) => (
+                    <TableRow key={family.id}>
+                      <TableCell className="font-medium">{family.id}</TableCell>
+                      <TableCell>{family.fatherName}</TableCell>
+                      <TableCell>
+                         <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <span>{getStudentCountForFamily(family.id)}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{family.phone}</TableCell>
+                      <TableCell className="hidden md:table-cell">{family.profession}</TableCell>
+                      <TableCell className="hidden lg:table-cell truncate max-w-xs">{family.address}</TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button aria-haspopup="true" size="icon" variant="ghost">
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Toggle menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleEditClick(family)}>Edit Family</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleViewStudents(family.id)}>View Students</DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-destructive" onClick={() => handleArchiveClick(family)}>
+                              <Archive className="mr-2 h-4 w-4" />
+                              Archive Family
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                   {filteredFamilies.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="h-24 text-center">
+                        No families found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+          </div>
         </CardContent>
       </Card>
       
       {/* Edit Family Dialog */}
       <Dialog open={openEditDialog} onOpenChange={setOpenEditDialog}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Family: {selectedFamily?.id}</DialogTitle>
             <DialogDescription>
               Update the details for this family. Click save when you're done.
             </DialogDescription>
           </DialogHeader>
-          <form id="edit-family-form" onSubmit={handleEditFamily}>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="editFatherName" className="text-right">Father's Name</Label>
-                <Input id="editFatherName" name="editFatherName" className="col-span-3" defaultValue={selectedFamily?.fatherName} required />
-              </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="editProfession" className="text-right">Profession</Label>
-                  <Select name="editProfession" onValueChange={setEditProfession} value={editProfession}>
-                    <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select profession" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {professions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="editCnic" className="text-right">Father's CNIC</Label>
-                <Input id="editCnic" name="editCnic" className="col-span-3" defaultValue={selectedFamily?.cnic} />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="editPhone" className="text-right">Phone</Label>
-                <Input id="editPhone" name="editPhone" type="tel" className="col-span-3" defaultValue={selectedFamily?.phone} required />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="editAddress" className="text-right">Address</Label>
-                <Input id="editAddress" name="editAddress" className="col-span-3" defaultValue={selectedFamily?.address} required />
-              </div>
+          <form id="edit-family-form" onSubmit={handleEditFamily} className="space-y-4">
+            <div>
+                <Label htmlFor="editFatherName">Father's Name</Label>
+                <Input id="editFatherName" name="editFatherName" defaultValue={selectedFamily?.fatherName} required />
+            </div>
+            <div>
+                <Label htmlFor="editProfession">Profession</Label>
+                <Select name="editProfession" onValueChange={setEditProfession} value={editProfession}>
+                <SelectTrigger>
+                    <SelectValue placeholder="Select profession" />
+                </SelectTrigger>
+                <SelectContent>
+                    {professions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                </SelectContent>
+                </Select>
+            </div>
+            <div>
+                <Label htmlFor="editCnic">Father's CNIC</Label>
+                <Input id="editCnic" name="editCnic" defaultValue={selectedFamily?.cnic} />
+            </div>
+            <div>
+                <Label htmlFor="editPhone">Phone</Label>
+                <Input id="editPhone" name="editPhone" type="tel" defaultValue={selectedFamily?.phone} required />
+            </div>
+            <div>
+                <Label htmlFor="editAddress">Address</Label>
+                <Input id="editAddress" name="editAddress" defaultValue={selectedFamily?.address} required />
             </div>
              <DialogFooter>
               <Button type="button" variant="ghost" onClick={() => setOpenEditDialog(false)}>Cancel</Button>
@@ -506,5 +503,3 @@ export default function FamiliesPage() {
     </div>
   );
 }
-
-    

@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import Link from 'next/link';
@@ -45,43 +44,74 @@ import Image from 'next/image';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useData } from '@/context/data-context';
+import type { PermissionSet, User } from '@/lib/types';
 
-const navItems = [
-  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/families', icon: Home, label: 'Families' },
-  { href: '/admissions', icon: UserPlus, label: 'Admissions' },
-  { href: '/students', icon: Users, label: 'Students' },
-  { href: '/classes', icon: BookCopy, label: 'Classes' },
-  { href: '/teachers', icon: Briefcase, label: 'Teachers' },
-  { href: '/timetable', icon: CalendarClock, label: 'Timetable' },
-  { href: '/fees', icon: Wallet, label: 'Fee Collection' },
-  { href: '/vouchers', icon: Receipt, label: 'Fee Vouchers' },
-  { href: '/income', icon: TrendingUp, label: 'Income' },
-  { href: '/expenses', icon: Landmark, label: 'Expenses' },
-  { href: '/accounts', icon: BookCheck, label: 'Accounts' },
-  { href: '/reports', icon: FileText, label: 'Reports' },
-  { href: '/yearbook', icon: Archive, label: 'Yearbook' },
+
+type NavItem = {
+  href: string;
+  icon: React.ElementType;
+  label: string;
+  permission: keyof PermissionSet | 'any_primary_role';
+};
+
+const navItems: NavItem[] = [
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', permission: 'dashboard' },
+  { href: '/families', icon: Home, label: 'Families', permission: 'families' },
+  { href: '/admissions', icon: UserPlus, label: 'Admissions', permission: 'admissions' },
+  { href: '/students', icon: Users, label: 'Students', permission: 'students' },
+  { href: '/classes', icon: BookCopy, label: 'Classes', permission: 'classes' },
+  { href: '/teachers', icon: Briefcase, label: 'Teachers', permission: 'teachers' },
+  { href: '/timetable', icon: CalendarClock, label: 'Timetable', permission: 'timetable' },
+  { href: '/fees', icon: Wallet, label: 'Fee Collection', permission: 'feeCollection' },
+  { href: '/vouchers', icon: Receipt, label: 'Fee Vouchers', permission: 'feeVouchers' },
+  { href: '/income', icon: TrendingUp, label: 'Income', permission: 'income' },
+  { href: '/expenses', icon: Landmark, label: 'Expenses', permission: 'expenses' },
+  { href: '/accounts', icon: BookCheck, label: 'Accounts', permission: 'accounts' },
+  { href: '/reports', icon: FileText, label: 'Reports', permission: 'reports' },
+  { href: '/yearbook', icon: Archive, label: 'Yearbook', permission: 'yearbook' },
 ];
 
-const examSystemItems = [
-    { href: "/exams", icon: FileSignature, label: "Marksheets" },
-    { href: "/result-cards", icon: FileBadge, label: "Result Cards" },
-    { href: "/roll-number-slips", icon: Ticket, label: "Roll No. Slips" },
-    { href: "/seating-plan", icon: Grid3x3, label: "Seating Plan" },
+const examSystemItems: NavItem[] = [
+    { href: "/exams", icon: FileSignature, label: "Marksheets", permission: "examSystem" },
+    { href: "/result-cards", icon: FileBadge, label: "Result Cards", permission: "examSystem" },
+    { href: "/roll-number-slips", icon: Ticket, label: "Roll No. Slips", permission: "examSystem" },
+    { href: "/seating-plan", icon: Grid3x3, label: "Seating Plan", permission: "examSystem" },
 ];
 
-const attendanceItems = [
-    { href: "/attendance", icon: Users, label: "Student Attendance" },
-    { href: "/teacher-attendance", icon: UserCheck2, label: "Teacher Attendance" },
+const attendanceItems: NavItem[] = [
+    { href: "/attendance", icon: Users, label: "Student Attendance", permission: "attendance" },
+    { href: "/teacher-attendance", icon: UserCheck2, label: "Teacher Attendance", permission: "attendance" },
 ];
+
+const footerItems: NavItem[] = [
+   { href: '/alumni', icon: Medal, label: 'Alumni', permission: 'alumni' },
+   { href: '/settings', icon: Settings, label: 'Settings', permission: 'any_primary_role' },
+   { href: '/archived', icon: Archive, label: 'Archived', permission: 'archived' },
+   { href: '/', icon: LogOut, label: 'Logout', permission: 'dashboard' }, // Anyone with dashboard access can logout
+];
+
 
 export function SidebarNav() {
   const pathname = usePathname();
   const { settings } = useSettings();
-  const [isExamSystemOpen, setIsExamSystemOpen] = useState(pathname.startsWith('/exams') || pathname.startsWith('/result-cards') || pathname.startsWith('/roll-number-slips') || pathname.startsWith('/seating-plan'));
+  const { hasPermission, userRole } = useData();
+  const [isExamSystemOpen, setIsExamSystemOpen] = useState(pathname.startsWith('/exam') || pathname.startsWith('/result-cards') || pathname.startsWith('/roll-number-slips') || pathname.startsWith('/seating-plan'));
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(pathname.startsWith('/attendance') || pathname.startsWith('/teacher-attendance'));
   const { isPinned, isMobile } = useSidebar();
+  
+  const checkGeneralPermission = (permission: keyof PermissionSet | 'any_primary_role') => {
+      if (permission === 'any_primary_role') {
+          return userRole === 'super_admin' || userRole === 'accountant' || userRole === 'coordinator';
+      }
+      return hasPermission(permission);
+  }
+
+  const filteredNavItems = useMemo(() => navItems.filter(item => checkGeneralPermission(item.permission)), [hasPermission, userRole]);
+  const showExamSystem = useMemo(() => hasPermission('examSystem'), [hasPermission]);
+  const showAttendance = useMemo(() => hasPermission('attendance'), [hasPermission]);
+  const filteredFooterItems = useMemo(() => footerItems.filter(item => checkGeneralPermission(item.permission)), [hasPermission, userRole]);
 
 
   return (
@@ -100,7 +130,7 @@ export function SidebarNav() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
-          {navItems.map((item) => (
+          {filteredNavItems.map((item) => (
             <SidebarMenuItem key={item.label}>
               <SidebarMenuButton
                 asChild
@@ -114,6 +144,7 @@ export function SidebarNav() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
+          {showAttendance && (
             <Collapsible asChild open={isAttendanceOpen} onOpenChange={setIsAttendanceOpen}>
               <CollapsibleSidebarMenuItem>
                  <CollapsibleTrigger asChild>
@@ -129,12 +160,7 @@ export function SidebarNav() {
                     <ul className={cn("space-y-1 ml-4 pl-5 py-1 border-l border-sidebar-border/50 transition-all", (isPinned || isMobile) ? "block" : "hidden group-hover/sidebar:block")}>
                         {attendanceItems.map(item => (
                              <li key={item.label}>
-                                <SidebarMenuButton
-                                    asChild
-                                    size="sm"
-                                    isActive={pathname.startsWith(item.href)}
-                                    tooltip={item.label}
-                                >
+                                <SidebarMenuButton asChild size="sm" isActive={pathname.startsWith(item.href)} tooltip={item.label}>
                                     <Link href={item.href}>
                                     <item.icon />
                                     <span className="truncate min-w-0">{item.label}</span>
@@ -146,6 +172,8 @@ export function SidebarNav() {
                 </CollapsibleContent>
               </CollapsibleSidebarMenuItem>
             </Collapsible>
+          )}
+          {showExamSystem && (
             <Collapsible asChild open={isExamSystemOpen} onOpenChange={setIsExamSystemOpen}>
               <CollapsibleSidebarMenuItem>
                  <CollapsibleTrigger asChild>
@@ -161,12 +189,7 @@ export function SidebarNav() {
                     <ul className={cn("space-y-1 ml-4 pl-5 py-1 border-l border-sidebar-border/50 transition-all", (isPinned || isMobile) ? "block" : "hidden group-hover/sidebar:block")}>
                         {examSystemItems.map(item => (
                              <li key={item.label}>
-                                <SidebarMenuButton
-                                    asChild
-                                    size="sm"
-                                    isActive={pathname.startsWith(item.href)}
-                                    tooltip={item.label}
-                                >
+                                <SidebarMenuButton asChild size="sm" isActive={pathname.startsWith(item.href)} tooltip={item.label}>
                                     <Link href={item.href}>
                                     <item.icon />
                                     <span className="truncate min-w-0">{item.label}</span>
@@ -178,54 +201,25 @@ export function SidebarNav() {
                 </CollapsibleContent>
               </CollapsibleSidebarMenuItem>
             </Collapsible>
+          )}
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
-          <SidebarMenuItem>
+          {filteredFooterItems.map((item) => (
+             <SidebarMenuItem key={item.label}>
              <SidebarMenuButton
                 asChild
-                isActive={pathname.startsWith('/alumni')}
-                tooltip="Alumni"
+                isActive={pathname.startsWith(item.href) && item.href !== '/'}
+                tooltip={item.label}
               >
-                <Link href="/alumni">
-                  <Medal />
-                  <span className={cn("truncate min-w-0 transition-opacity duration-200", (isPinned || isMobile) ? "opacity-100" : "opacity-0 group-hover/sidebar:opacity-100")}>Alumni</span>
+                <Link href={item.href}>
+                  <item.icon />
+                  <span className={cn("truncate min-w-0 transition-opacity duration-200", (isPinned || isMobile) ? "opacity-100" : "opacity-0 group-hover/sidebar:opacity-100")}>{item.label}</span>
                 </Link>
               </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem>
-             <SidebarMenuButton
-                asChild
-                isActive={pathname.startsWith('/settings')}
-                tooltip="Settings"
-              >
-                <Link href="/settings">
-                  <Settings />
-                  <span className={cn("truncate min-w-0 transition-opacity duration-200", (isPinned || isMobile) ? "opacity-100" : "opacity-0 group-hover/sidebar:opacity-100")}>Settings</span>
-                </Link>
-              </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-             <SidebarMenuButton
-                asChild
-                isActive={pathname.startsWith('/archived')}
-                tooltip="Archived Students"
-              >
-                <Link href="/archived">
-                  <Archive />
-                  <span className={cn("truncate min-w-0 transition-opacity duration-200", (isPinned || isMobile) ? "opacity-100" : "opacity-0 group-hover/sidebar:opacity-100")}>Archived</span>
-                </Link>
-              </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Logout">
-              <Link href="/">
-                <LogOut />
-                <span className={cn("truncate min-w-0 transition-opacity duration-200", (isPinned || isMobile) ? "opacity-100" : "opacity-0 group-hover/sidebar:opacity-100")}>Logout</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          ))}
         </SidebarMenu>
       </SidebarFooter>
     </>

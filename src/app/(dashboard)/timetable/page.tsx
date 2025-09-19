@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -227,7 +226,7 @@ export default function TimetablePage() {
       <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><CalendarClock /> Timetable Management</h1>
       
       <Tabs defaultValue="master-timetable">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3">
           <TabsTrigger value="master-timetable"><Users className="mr-2 h-4 w-4"/>Master Timetable</TabsTrigger>
           <TabsTrigger value="class-timetable"><BookOpen className="mr-2 h-4 w-4"/>Class Timetable</TabsTrigger>
           <TabsTrigger value="teacher-schedule"><User className="mr-2 h-4 w-4"/>Teacher Schedule</TabsTrigger>
@@ -236,7 +235,7 @@ export default function TimetablePage() {
         <TabsContent value="master-timetable">
             <Card>
                 <CardHeader>
-                    <div className="flex justify-between items-center flex-wrap gap-4">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
                         <CardTitle>Master Timetable Editor</CardTitle>
                         <CardDescription>Define the daily schedule for all classes. This template applies to all weekdays.</CardDescription>
@@ -312,14 +311,14 @@ export default function TimetablePage() {
         <TabsContent value="class-timetable">
           <Card>
             <CardHeader>
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                   <CardTitle>Class Timetable</CardTitle>
                   <CardDescription>View the weekly schedule for a specific class.</CardDescription>
                 </div>
                  <div className="flex items-center gap-2">
                     <Select onValueChange={setSelectedClassId} value={selectedClassId || ''}>
-                        <SelectTrigger className="w-[200px]">
+                        <SelectTrigger className="w-full md:w-[200px]">
                         <SelectValue placeholder="Select a class" />
                         </SelectTrigger>
                         <SelectContent>
@@ -347,14 +346,14 @@ export default function TimetablePage() {
         <TabsContent value="teacher-schedule">
           <Card>
             <CardHeader>
-               <div className="flex justify-between items-center">
+               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                   <CardTitle>Teacher Schedule</CardTitle>
                   <CardDescription>Select a teacher to view and print their individual daily schedule.</CardDescription>
                 </div>
                  <div className="flex items-center gap-2">
                   <Select onValueChange={setSelectedTeacherId} value={selectedTeacherId || ''}>
-                    <SelectTrigger className="w-[250px]">
+                    <SelectTrigger className="w-full md:w-[250px]">
                       <SelectValue placeholder="Select a teacher" />
                     </SelectTrigger>
                     <SelectContent>
@@ -407,5 +406,3 @@ export default function TimetablePage() {
     </div>
   );
 }
-
-    

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useData } from '@/context/data-context';
@@ -9,13 +9,10 @@ import { Input } from '@/components/ui/input';
 import { DateRange } from 'react-day-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { CalendarIcon, Printer, FileSpreadsheet, Trash2, Edit, Save } from 'lucide-react';
+import { CalendarIcon, Printer, Trash2, Edit, Save, PlusCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { IncomePrintReport } from '@/components/reports/income-report';
-import { renderToString } from 'react-dom/server';
-import { useSettings } from '@/context/settings-context';
 import type { Fee } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -28,155 +25,120 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-
+import { useSettings } from '@/context/settings-context';
+import { IncomePrintReport } from '@/components/reports/income-report';
+import { renderToString } from 'react-dom/server';
+import { useSearchParams } from 'next/navigation';
 
 export default function IncomePage() {
-  const { fees: allFees, families, deleteFee, updateFee, addFee, addActivityLog } = useData();
+  const { fees, families, updateFee, deleteFee, hasPermission } = useData();
   const { settings } = useSettings();
+  const searchParams = useSearchParams();
+  const familyIdFromQuery = searchParams.get('familyId');
   const { toast } = useToast();
-  const [dateRange, setDateRange] = useState<DateRange | undefined>();
-  const [familyIdFilter, setFamilyIdFilter] = useState('');
-  const [feeToCancel, setFeeToCancel] = useState<Fee | null>(null);
   
-  const [openEditDialog, setOpenEditDialog] = useState(false);
-  const [feeToEdit, setFeeToEdit] = useState<Fee | null>(null);
-  const [editAmount, setEditAmount] = useState(0);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [familyFilter, setFamilyFilter] = useState('');
 
+  useEffect(() => {
+    if (familyIdFromQuery) {
+        setFamilyFilter(familyIdFromQuery);
+    }
+  }, [familyIdFromQuery]);
 
-  const paidFees = useMemo(() => {
-    return allFees
-      .filter((fee) => fee.status === 'Paid' && fee.paymentDate)
+  const [openDialog, setOpenDialog] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedFee, setSelectedFee] = useState<Fee | null>(null);
+  
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [feeToDelete, setFeeToDelete] = useState<Fee | null>(null);
+
+  const canManageIncome = hasPermission('income');
+
+  const paidFeesWithDetails = useMemo(() => {
+    return fees
+      .filter(fee => fee.status === 'Paid' && fee.paymentDate)
       .map(fee => {
         const family = families.find(f => f.id === fee.familyId);
         return { ...fee, fatherName: family?.fatherName || 'N/A' };
       })
       .sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime());
-  }, [allFees, families]);
+  }, [fees, families]);
 
   const filteredFees = useMemo(() => {
-    let fees = paidFees;
+    let filtered = paidFeesWithDetails;
 
-    if (familyIdFilter) {
-      fees = fees.filter(fee => fee.familyId.toLowerCase().includes(familyIdFilter.toLowerCase()));
+    if (familyFilter) {
+      filtered = filtered.filter(e => e.familyId === familyFilter);
     }
 
     if (dateRange?.from && dateRange?.to) {
-      fees = fees.filter(fee => {
-        const paymentDate = new Date(fee.paymentDate);
-        return paymentDate >= dateRange.from! && paymentDate <= dateRange.to!;
+      filtered = filtered.filter(e => {
+        if (!e.paymentDate) return false;
+        const feeDate = new Date(e.paymentDate);
+        return feeDate >= dateRange.from! && feeDate <= dateRange.to!;
       });
     } else if (dateRange?.from) {
-        fees = fees.filter(fee => {
-            const paymentDate = new Date(fee.paymentDate);
-            return format(paymentDate, 'yyyy-MM-dd') === format(dateRange.from!, 'yyyy-MM-dd');
+        filtered = filtered.filter(e => {
+            if (!e.paymentDate) return false;
+            const feeDate = new Date(e.paymentDate);
+            return format(feeDate, 'yyyy-MM-dd') === format(dateRange.from!, 'yyyy-MM-dd');
         });
     }
-
-    return fees;
-  }, [paidFees, dateRange, familyIdFilter]);
+    return filtered;
+  }, [paidFeesWithDetails, dateRange, familyFilter]);
   
   const totalIncome = useMemo(() => {
       return filteredFees.reduce((acc, fee) => acc + fee.amount, 0);
   }, [filteredFees]);
 
-  const handleOpenCancelDialog = (fee: Fee) => {
-    setFeeToCancel(fee);
+  const handleOpenDialog = (fee: Fee | null) => {
+    if (!canManageIncome) return;
+    setSelectedFee(fee);
+    setIsEditing(!!fee);
+    setOpenDialog(true);
   };
-  
-  const handleConfirmCancel = async () => {
-    if (!feeToCancel) return;
 
-    const originalChallanId = feeToCancel.originalChallanId;
-    if (!originalChallanId) {
-        toast({ title: 'Error', description: 'Cannot find original challan to revert. This might be a legacy record.', variant: 'destructive' });
-        setFeeToCancel(null);
+  const handleSaveFee = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!selectedFee) return;
+
+    const formData = new FormData(event.currentTarget);
+    const data = Object.fromEntries(formData.entries()) as {
+        paymentDate: string;
+        amount: string;
+        paymentMethod: string;
+    };
+    
+    if (!data.paymentDate || !data.amount || !data.paymentMethod) {
+        toast({ title: "Missing Information", description: "Please fill all required fields.", variant: "destructive" });
         return;
     }
-    
-    const existingChallan = allFees.find(f => f.id === originalChallanId);
 
-    if (existingChallan) {
-        const revertedChallan: Partial<Fee> = {
-            amount: existingChallan.amount + feeToCancel.amount,
-        };
-        await updateFee(existingChallan.id, revertedChallan);
-    } else {
-        const newChallan: Omit<Fee, 'id'> = {
-            familyId: feeToCancel.familyId,
-            amount: feeToCancel.amount,
-            month: feeToCancel.month,
-            year: feeToCancel.year,
-            status: 'Unpaid',
-            paymentDate: '',
-        };
-        await addFee(newChallan);
-    }
+    const feeData: Partial<Fee> = {
+        paymentDate: data.paymentDate,
+        amount: Number(data.amount),
+        paymentMethod: data.paymentMethod,
+    };
 
-    await deleteFee(feeToCancel.id);
-    
-    addActivityLog({ user: 'Admin', action: 'Cancel Payment', description: `Cancelled payment of PKR ${feeToCancel.amount} for family ${feeToCancel.fatherName} (${feeToCancel.familyId}).`});
-
-    toast({
-        title: 'Payment Cancelled',
-        description: `Payment of PKR ${feeToCancel.amount.toLocaleString()} has been successfully reversed.`,
-    });
-
-    setFeeToCancel(null);
+    updateFee(selectedFee.id, feeData);
+    toast({ title: 'Income Record Updated' });
+    setOpenDialog(false);
   };
 
-  const handleOpenEditDialog = (fee: Fee) => {
-    setFeeToEdit(fee);
-    setEditAmount(fee.amount);
-    setOpenEditDialog(true);
+  const handleOpenDeleteDialog = (fee: Fee) => {
+    if (!canManageIncome) return;
+    setFeeToDelete(fee);
+    setOpenDeleteDialog(true);
   };
 
-  const handleConfirmEdit = async () => {
-    if (!feeToEdit || editAmount < 0) {
-      toast({ title: "Invalid amount", variant: "destructive"});
-      return;
-    }
-
-    const difference = feeToEdit.amount - editAmount;
-    
-    if (difference === 0) {
-      toast({ title: "No Changes", description: "The amount is the same." });
-      setOpenEditDialog(false);
-      return;
-    }
-    
-    if (difference > 0) { 
-      const originalChallanId = feeToEdit.originalChallanId;
-       if (!originalChallanId) {
-          toast({ title: 'Error', description: 'Cannot find original challan to revert to. This might be a legacy record.', variant: 'destructive' });
-          return;
-       }
-       
-       const existingChallan = allFees.find(f => f.id === originalChallanId);
-       if (existingChallan) {
-           await updateFee(existingChallan.id, { ...existingChallan, amount: existingChallan.amount + difference });
-       } else {
-           await addFee({
-               familyId: feeToEdit.familyId,
-               amount: difference,
-               month: feeToEdit.month,
-               year: feeToEdit.year,
-               status: 'Unpaid',
-               paymentDate: '',
-           });
-       }
-    } else { 
-       toast({ title: 'Not Supported', description: 'Increasing a payment amount is not supported. Please cancel and re-enter.', variant: 'destructive'});
-       return;
-    }
-
-    await updateFee(feeToEdit.id, { ...feeToEdit, amount: editAmount });
-    
-    addActivityLog({ user: 'Admin', action: 'Edit Payment', description: `Edited payment for family ${feeToEdit.fatherName} (${feeToEdit.familyId}). Original: ${feeToEdit.amount}, New: ${editAmount}.`});
-
-    toast({ title: "Payment Updated", description: `Payment has been adjusted to PKR ${editAmount.toLocaleString()}`});
-    setOpenEditDialog(false);
+  const handleConfirmDelete = () => {
+    if (!feeToDelete) return;
+    deleteFee(feeToDelete.id);
+    toast({ title: "Income Record Deleted", description: "The fee record has been successfully deleted.", variant: "destructive" });
+    setOpenDeleteDialog(false);
   };
   
   const triggerPrint = () => {
@@ -201,107 +163,51 @@ export default function IncomePage() {
     }
   };
 
-  const handleExportCsv = () => {
-    const headers = ['Payment ID', 'Family ID', "Father's Name", 'Payment Date', 'Description', 'Amount'];
-    const csvContent = [
-      headers.join(','),
-      ...filteredFees.map((fee) => 
-        [
-          fee.id,
-          fee.familyId,
-          `"${fee.fatherName}"`,
-          fee.paymentDate ? format(new Date(fee.paymentDate), 'yyyy-MM-dd') : '',
-          `${fee.month}, ${fee.year}`,
-          fee.amount
-        ].join(',')
-      )
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    if (link.href) {
-      URL.revokeObjectURL(link.href);
-    }
-    const url = URL.createObjectURL(blob);
-    link.href = url;
-    link.setAttribute('download', 'income-report.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
-
   return (
     <div className="space-y-6">
-      <div className="print:hidden">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h1 className="text-3xl font-bold font-headline">Income</h1>
+        <Button onClick={triggerPrint} variant="outline"><Printer className="mr-2 h-4 w-4"/> Print Report</Button>
+      </div>
 
-        <Card className="mt-6">
+        <Card>
           <CardHeader>
-            <CardTitle>Income Report</CardTitle>
-            <CardDescription>View a detailed history of all collected fees. Total income for selection: PKR {totalIncome.toLocaleString()}</CardDescription>
+            <CardTitle>Income / Fee Collection Report</CardTitle>
+            <CardDescription>View a detailed history of all paid fees. Total for selection: PKR {totalIncome.toLocaleString()}</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-4">
-              <div className="flex flex-col md:flex-row items-center gap-4 flex-grow w-full">
-                  <Input
+            <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
+              <div className="flex items-center gap-4 flex-grow w-full">
+                  <Input 
+                    className="w-full md:w-[180px]"
                     placeholder="Filter by Family ID..."
-                    value={familyIdFilter}
-                    onChange={(e) => setFamilyIdFilter(e.target.value)}
-                    className="w-full md:max-w-xs"
+                    value={familyFilter}
+                    onChange={(e) => setFamilyFilter(e.target.value)}
                   />
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button
-                        id="date"
-                        variant={"outline"}
-                        className={cn(
-                          "w-full md:w-[300px] justify-start text-left font-normal",
-                          !dateRange && "text-muted-foreground"
-                        )}
-                      >
+                      <Button id="date" variant={"outline"} className={cn("w-full md:w-[300px] justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateRange?.from ? (
-                          dateRange.to ? (
-                            <>
-                              {format(dateRange.from, "LLL dd, y")} -{" "}
-                              {format(dateRange.to, "LLL dd, y")}
-                            </>
-                          ) : (
-                            format(dateRange.from, "LLL dd, y")
-                          )
-                        ) : (
-                          <span>Pick a date range</span>
-                        )}
+                        {dateRange?.from ? (dateRange.to ? (<>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</>) : (format(dateRange.from, "LLL dd, y"))) : (<span>Pick a date range</span>)}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        initialFocus
-                        mode="range"
-                        defaultMonth={dateRange?.from}
-                        selected={dateRange}
-                        onSelect={setDateRange}
-                        numberOfMonths={2}
-                      />
+                      <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2}/>
                     </PopoverContent>
                   </Popover>
-                  <Button variant="ghost" onClick={() => { setDateRange(undefined); setFamilyIdFilter(''); }}>Clear Filters</Button>
               </div>
-              <div className="flex items-center gap-2">
-                  <Button variant="outline" onClick={triggerPrint}><Printer className="mr-2 h-4 w-4" />Print Report</Button>
-                  <Button variant="outline" onClick={handleExportCsv}><FileSpreadsheet className="mr-2 h-4 w-4" />Excel Export</Button>
-              </div>
+               <Button variant="ghost" onClick={() => { setDateRange(undefined); setFamilyFilter(''); }}>Clear Filters</Button>
             </div>
-
             <div className="w-full overflow-x-auto">
                 <Table>
                 <TableHeader>
                     <TableRow>
-                    <TableHead>Payment ID</TableHead>
+                    <TableHead>Challan ID</TableHead>
                     <TableHead>Family ID</TableHead>
                     <TableHead>Father's Name</TableHead>
                     <TableHead>Payment Date</TableHead>
-                    <TableHead>Description</TableHead>
+                    <TableHead>Month/Year</TableHead>
+                    <TableHead>Method</TableHead>
                     <TableHead className="text-right">Amount (PKR)</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -314,22 +220,27 @@ export default function IncomePage() {
                         <TableCell>{fee.fatherName}</TableCell>
                         <TableCell>{fee.paymentDate && format(new Date(fee.paymentDate), 'PPP')}</TableCell>
                         <TableCell>{fee.month}, {fee.year}</TableCell>
+                        <TableCell>{fee.paymentMethod || 'N/A'}</TableCell>
                         <TableCell className="text-right font-semibold text-green-600">{fee.amount.toLocaleString()}</TableCell>
                         <TableCell className="text-right">
-                            <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(fee)}>
-                                <Edit className="h-4 w-4" />
-                                <span className="sr-only">Edit Payment</span>
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleOpenCancelDialog(fee)}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                                <span className="sr-only">Cancel Payment</span>
-                            </Button>
+                           {canManageIncome && (
+                             <>
+                                <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(fee)}>
+                                    <Edit className="h-4 w-4" />
+                                    <span className="sr-only">Edit</span>
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleOpenDeleteDialog(fee)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                    <span className="sr-only">Delete</span>
+                                </Button>
+                             </>
+                           )}
                         </TableCell>
                     </TableRow>
                     ))}
                     {filteredFees.length === 0 && (
                     <TableRow>
-                        <TableCell colSpan={7} className='text-center py-10 text-muted-foreground'>No income records found for the selected filters.</TableCell>
+                        <TableCell colSpan={8} className='text-center py-10 text-muted-foreground'>No income records found for the selected filters.</TableCell>
                     </TableRow>
                     )}
                 </TableBody>
@@ -337,57 +248,62 @@ export default function IncomePage() {
             </div>
           </CardContent>
         </Card>
-      </div>
 
-       <AlertDialog open={!!feeToCancel} onOpenChange={(open) => !open && setFeeToCancel(null)}>
+       <AlertDialog open={openDeleteDialog} onOpenChange={setOpenDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently cancel the payment of <strong>PKR {feeToCancel?.amount.toLocaleString()}</strong> for Family <strong>{feeToCancel?.familyId}</strong> ({feeToCancel?.fatherName}). The amount will be added back to the family's outstanding dues. This action cannot be undone.
+              This will permanently delete the income record for <strong>PKR {feeToDelete?.amount.toLocaleString()}</strong>. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setFeeToCancel(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmCancel} className="bg-destructive hover:bg-destructive/90">
-              Yes, cancel payment
+            <AlertDialogCancel onClick={() => setFeeToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">
+              Yes, delete record
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-       <Dialog open={openEditDialog} onOpenChange={setOpenEditDialog}>
+       <Dialog open={openDialog} onOpenChange={setOpenDialog}>
         <DialogContent className="sm:max-w-md">
             <DialogHeader>
-                <DialogTitle>Edit Payment</DialogTitle>
+                <DialogTitle>Edit Income Record</DialogTitle>
                 <DialogDescription>
-                    Adjust the payment amount. The difference will be returned to the family's outstanding dues.
+                    Update the details for this paid fee record.
                 </DialogDescription>
             </DialogHeader>
-            <div className="py-4 space-y-4">
-                <div className="space-y-2">
-                    <Label>Family</Label>
-                    <Input value={`${feeToEdit?.fatherName} (ID: ${feeToEdit?.familyId})`} disabled />
+            <form id="fee-form" onSubmit={handleSaveFee}>
+                <div className="py-4 space-y-4">
+                    <div className="space-y-2">
+                        <Label>Fee For</Label>
+                        <Input value={`${selectedFee?.fatherName} (Family ID: ${selectedFee?.familyId})`} disabled />
+                    </div>
+                     <div className="space-y-2">
+                        <Label>Description</Label>
+                        <Input value={`${selectedFee?.month}, ${selectedFee?.year}`} disabled />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                         <div className="space-y-2">
+                            <Label htmlFor="paymentDate">Payment Date</Label>
+                            <Input id="paymentDate" name="paymentDate" type="date" defaultValue={selectedFee?.paymentDate || ''} required />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="amount">Amount (PKR)</Label>
+                            <Input id="amount" name="amount" type="number" defaultValue={selectedFee?.amount} required/>
+                        </div>
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="paymentMethod">Payment Method</Label>
+                        <Input id="paymentMethod" name="paymentMethod" defaultValue={selectedFee?.paymentMethod} required />
+                    </div>
                 </div>
-                <div className="space-y-2">
-                    <Label>Original Paid Amount</Label>
-                    <Input value={`PKR ${feeToEdit?.amount.toLocaleString()}`} disabled />
-                </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="edit-amount">New Paid Amount (PKR)</Label>
-                    <Input 
-                        id="edit-amount" 
-                        type="number" 
-                        value={editAmount} 
-                        onChange={(e) => setEditAmount(Number(e.target.value))}
-                        max={feeToEdit?.amount}
-                    />
-                </div>
-            </div>
-            <DialogFooter>
-                <Button variant="ghost" onClick={() => setOpenEditDialog(false)}>Cancel</Button>
-                <Button onClick={handleConfirmEdit}><Save className="mr-2 h-4 w-4"/> Save Changes</Button>
-            </DialogFooter>
+                <DialogFooter>
+                    <Button variant="ghost" type="button" onClick={() => setOpenDialog(false)}>Cancel</Button>
+                    <Button type="submit"><Save className="mr-2 h-4 w-4"/>Save Changes</Button>
+                </DialogFooter>
+            </form>
         </DialogContent>
       </Dialog>
     </div>

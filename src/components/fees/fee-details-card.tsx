@@ -35,7 +35,7 @@ type PrintType = 'normal' | 'thermal';
 
 export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, onDeleteFee, settings }: FeeDetailsCardProps) {
     const { toast } = useToast();
-    const { addActivityLog } = useData();
+    const { addActivityLog, addNotification } = useData();
 
     const [paidAmount, setPaidAmount] = useState<number>(0);
     const [paymentMethod, setPaymentMethod] = useState('By Hand');
@@ -114,7 +114,14 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         const collectedAmount = paidAmount - amountToSettle;
         const newDues = totalDues - collectedAmount;
         
-        addActivityLog({ user: 'Admin', action: 'Collect Fee', description: `Collected PKR ${collectedAmount.toLocaleString()} from family ${family.id} (${family.fatherName})`});
+        addActivityLog({ action: 'Collect Fee', description: `Collected PKR ${collectedAmount.toLocaleString()} from family ${family.id} (${family.fatherName})`});
+        
+        // Add notification for super admin
+        addNotification({
+            title: 'Fee Collected',
+            description: `PKR ${collectedAmount.toLocaleString()} collected from ${family.fatherName} (Family ID: ${family.id})`,
+            link: `/income?familyId=${family.id}`
+        });
 
         toast({
             title: 'Fee Collected',
@@ -136,7 +143,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                     const result = await sendWhatsAppMessage(family.phone, message, settings);
                     if (result.success) {
 
-                        addActivityLog({ user: 'System', action: 'Send WhatsApp Message', description: 'Sent fee payment receipt to 1 recipient.', recipientCount: 1 });
+                        addActivityLog({ action: 'Send WhatsApp Message', description: 'Sent fee payment receipt to 1 recipient.', recipientCount: 1 });
                     } else {
                         throw new Error(result.error);
                     }

@@ -5,13 +5,18 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { db, auth } from '@/lib/firebase';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, writeBatch, query, where, getDocs, setDoc, getDoc, runTransaction } from 'firebase/firestore';
-import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData, Attendance, Alumni, Session } from '@/lib/types';
-import { students as initialStudents, families as initialFamilies, fees as initialFees, teachers as initialTeachers, teacherAttendances as initialTeacherAttendances, classes as initialClasses, exams as initialExams, expenses as initialExpenses, timetables as initialTimetables } from '@/lib/data';
+import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData, Attendance, Alumni, Session, User, PermissionSet, AppNotification } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getMonth, format } from 'date-fns';
 import { useSettings } from './settings-context';
-import { sendWhatsAppMessage } from '@/services/whatsapp-service';
-import { onAuthStateChanged } from 'firebase/auth';
+import { createUserWithEmailAndPassword as createUserAuth, onAuthStateChanged } from 'firebase/auth';
+
+const defaultPermissions: PermissionSet = {
+    dashboard: false, families: false, admissions: false, students: false, classes: false,
+    teachers: false, timetable: false, feeCollection: false, feeVouchers: false,
+    income: false, expenses: false, accounts: false, reports: false,
+    yearbook: false, attendance: false, examSystem: false, alumni: false,
+    settings: false, archived: false,
+};
 
 
 interface DataContextType {
@@ -27,8 +32,12 @@ interface DataContextType {
   activityLog: ActivityLog[];
   expenses: Expense[];
   timetables: Timetable[];
-  sessions: Session[];
+  users: User[];
+  notifications: AppNotification[];
+  userRole: User['role'] | null;
+  userPermissions: PermissionSet;
   isDataInitialized: boolean;
+  hasPermission: (permission: keyof PermissionSet) => boolean;
   addStudent: (student: Student) => Promise<void>;
   updateStudent: (id: string, student: Partial<Student>) => Promise<void>;
   updateAlumni: (id: string, alumni: Partial<Alumni>) => Promise<void>;
@@ -38,7 +47,7 @@ interface DataContextType {
   deleteFamily: (id: string) => Promise<void>;
   addFee: (feeData: Omit<Fee, 'id'>) => Promise<string | undefined>;
   updateFee: (id: string, fee: Partial<Fee>) => Promise<void>;
-  deleteFee: (id: string) => Promise<void>;
+  deleteFee: (id: string) => void;
   addTeacher: (teacher: Omit<Teacher, 'id'>) => Promise<void>;
   updateTeacher: (id: string, teacher: Partial<Teacher>) => Promise<void>;
   deleteTeacher: (id: string) => Promise<void>;
@@ -50,13 +59,16 @@ interface DataContextType {
   addExam: (exam: Exam) => Promise<void>;
   updateExam: (id: string, exam: Partial<Exam>) => Promise<void>;
   deleteExam: (id: string) => Promise<void>;
-  addActivityLog: (activity: Omit<ActivityLog, 'id' | 'timestamp'>) => Promise<void>;
+  addActivityLog: (activity: Omit<ActivityLog, 'id' | 'timestamp' | 'user'>) => Promise<void>;
   clearActivityLog: () => Promise<void>;
   addExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
   updateExpense: (id: string, expense: Partial<Expense>) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
   updateTimetable: (classId: string, data: TimetableData, timeSlots?: string[], breakAfterPeriod?: number, breakDuration?: string) => Promise<void>;
-  signOutSession: (sessionId: string) => Promise<void>;
+  updateUser: (id: string, data: Partial<User>) => Promise<void>;
+  createUser: (email: string, pass: string, name: string, permissions: PermissionSet) => Promise<void>;
+  addNotification: (notification: Omit<AppNotification, 'id' | 'timestamp' | 'isRead'>) => Promise<void>;
+  markNotificationAsRead: (id: string) => Promise<void>;
   loadData: (data: any) => Promise<void>;
   seedDatabase: () => Promise<void>;
   deleteAllData: () => Promise<void>;
@@ -64,22 +76,15 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-// Function to format current date-time as ID
 function getDateTimeId() {
   const now = new Date();
-
-  // Date part (YYYY-MM-DD)
   const date = now.toISOString().split("T")[0];
-
-  // Time part (12-hour format with AM/PM)
   let hours = now.getHours();
   const minutes = now.getMinutes().toString().padStart(2, "0");
   const ampm = hours >= 12 ? "PM" : "AM";
-
   hours = hours % 12;
-  hours = hours ? hours : 12; // 0 -> 12
+  hours = hours ? hours : 12;
   const hourStr = hours.toString().padStart(2, "0");
-
   return `${date}_${hourStr}-${minutes}_${ampm}`;
 }
 
@@ -99,64 +104,101 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [activityLog, setActivityLog] = useState<ActivityLog[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [timetables, setTimetables] = useState<Timetable[]>([]);
-  const [sessions, setSessions] = useState<Session[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [userRole, setUserRole] = useState<User['role'] | null>(null);
+  const [userPermissions, setUserPermissions] = useState<PermissionSet>(defaultPermissions);
   const [isDataInitialized, setIsDataInitialized] = useState(false);
+  const [currentUserName, setCurrentUserName] = useState('System');
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, user => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
         if (user) {
-            const collections: { name: string; setter: React.Dispatch<React.SetStateAction<any[]>> }[] = [
-                { name: 'students', setter: setStudents },
-                { name: 'families', setter: setFamilies },
-                { name: 'fees', setter: setFees },
-                { name: 'teachers', setter: setTeachers },
-                { name: 'attendances', setter: setAttendances },
-                { name: 'teacherAttendances', setter: setTeacherAttendances },
-                { name: 'alumni', setter: setAlumni },
-                { name: 'classes', setter: setClasses },
-                { name: 'exams', setter: setExams },
-                { name: 'activityLog', setter: setActivityLog },
-                { name: 'expenses', setter: setExpenses },
-                { name: 'timetables', setter: setTimetables },
-                { name: 'sessions', setter: setSessions },
-            ];
+            const userDocRef = doc(db, 'users', user.uid);
+            const userUnsubscribe = onSnapshot(userDocRef, (userDocSnap) => {
+                 if (!userDocSnap.exists()) {
+                    console.error("User document not found in Firestore!");
+                    auth.signOut();
+                    return;
+                }
+                const userData = userDocSnap.data() as User;
+                setUserRole(userData.role);
+                setUserPermissions(userData.permissions || defaultPermissions);
+                setCurrentUserName(userData.name || 'Unknown User');
+
+                const generalCollections = [
+                    'students', 'families', 'fees', 'teachers', 'attendances', 
+                    'teacherAttendances', 'alumni', 'classes', 'exams', 'activityLog', 
+                    'expenses', 'timetables', 'users'
+                ];
+                
+                const setterMap: { [key: string]: React.Dispatch<React.SetStateAction<any[]>> } = {
+                    students: setStudents, families: setFamilies, fees: setFees, teachers: setTeachers,
+                    attendances: setAttendances, teacherAttendances: setTeacherAttendances, alumni: setAlumni,
+                    classes: setClasses, exams: setExams, activityLog: setActivityLog, expenses: setExpenses,
+                    timetables: setTimetables, users: setUsers, notifications: setNotifications
+                };
             
-            const listeners = collections.map(({ name, setter }) => {
-                const collRef = collection(db, name);
-                return onSnapshot(collRef, snapshot => {
-                    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    if (name === 'activityLog') {
-                        data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-                    }
-                    setter(data as any); // Type assertion is okay here as we trust our structure
-                }, error => {
-                    console.error(`Error fetching ${name}:`, error);
-                    toast({ title: `Error Fetching ${name}`, description: "Could not connect to the database.", variant: "destructive" });
+                const listeners = generalCollections.map(collectionName => {
+                    const setter = setterMap[collectionName];
+                    return onSnapshot(collection(db, collectionName), (snapshot) => {
+                        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        if (collectionName === 'activityLog') {
+                            data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+                        }
+                        setter(data as any);
+                    }, (error) => console.error(`Error fetching ${collectionName}:`, error));
                 });
+    
+                if (userData.role === 'super_admin') {
+                    const adminCollections = ['notifications'];
+                    adminCollections.forEach(collectionName => {
+                        const setter = setterMap[collectionName];
+                        const unsub = onSnapshot(collection(db, collectionName), (snapshot) => {
+                            const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                             if (collectionName === 'notifications') {
+                                data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+                            }
+                            setter(data as any);
+                        }, (error) => console.error(`Error fetching ${collectionName}:`, error));
+                        listeners.push(unsub);
+                    });
+                } else {
+                    setNotifications([]);
+                }
+                
+                setIsDataInitialized(true);
+                
+                return () => listeners.forEach(unsub => unsub());
             });
-
-            // After all listeners are set up, we can consider data initialized
-            setIsDataInitialized(true);
-
-            return () => listeners.forEach(unsub => unsub());
-
+            
+            return () => userUnsubscribe();
         } else {
             setIsDataInitialized(false);
-            // Clear all local state
-            [setStudents, setFamilies, setFees, setTeachers, setAttendances, setTeacherAttendances, setAlumni, setClasses, setExams, setActivityLog, setExpenses, setTimetables, setSessions].forEach(setter => setter([]));
+            setUserRole(null);
+            setUserPermissions(defaultPermissions);
+            setCurrentUserName('System');
+            // Clear all data on logout
+            [setStudents, setFamilies, setFees, setTeachers, setAttendances, setTeacherAttendances, setAlumni, setClasses, setExams, setActivityLog, setExpenses, setTimetables, setUsers, setNotifications].forEach(setter => setter([]));
         }
     });
 
     return () => unsubscribeAuth();
-  }, [toast]);
+  }, []);
+  
+  const hasPermission = useCallback((permission: keyof PermissionSet) => {
+    if (userRole === 'super_admin') return true;
+    return userPermissions[permission] || false;
+  }, [userRole, userPermissions]);
   
 
-  const addActivityLog = async (activity: Omit<ActivityLog, 'id' | 'timestamp'>) => {
+  const addActivityLog = async (activity: Omit<ActivityLog, 'id' | 'timestamp' | 'user'>) => {
     try {
         const newLogId = getDateTimeId();
-        const newLogEntry = {
+        const newLogEntry: ActivityLog = {
             ...activity,
             id: newLogId,
+            user: currentUserName,
             timestamp: new Date().toISOString(),
         };
         await setDoc(doc(db, 'activityLog', newLogId), newLogEntry);
@@ -174,7 +216,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         batch.delete(doc.ref);
       });
       await batch.commit();
-      await addActivityLog({ user: 'Admin', action: 'Clear History', description: 'Cleared the entire activity log history.' });
+      await addActivityLog({ action: 'Clear History', description: 'Cleared the entire activity log history.' });
       toast({ title: 'Activity Log Cleared', description: 'All history has been permanently deleted.' });
     } catch (e) {
       console.error('Error clearing activity log: ', e);
@@ -185,18 +227,52 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const updateDocFactory = <T extends {}>(collectionName: string, actionName: string, descriptionFn: (doc: T & {id: string}) => string) => async (id: string, docData: Partial<T>) => {
      try {
         await setDoc(doc(db, collectionName, id), docData, { merge: true });
-        await addActivityLog({ user: 'Admin', action: actionName, description: descriptionFn({ ...docData, id } as T & {id: string}) });
+        await addActivityLog({ action: actionName, description: descriptionFn({ ...docData, id } as T & {id: string}) });
     } catch (e) {
         console.error(`Error updating ${collectionName}:`, e);
         toast({ title: `Error updating ${collectionName}`, variant: "destructive" });
     }
   }
+  
+  const createUser = async (email: string, pass: string, name: string, permissions: PermissionSet) => {
+      try {
+        const userCredential = await createUserAuth(auth, email, pass);
+        const user = userCredential.user;
+        if(user) {
+           await setDoc(doc(db, 'users', user.uid), {
+               id: user.uid,
+               name,
+               email,
+               role: 'custom',
+               permissions
+           });
+           await addActivityLog({ action: 'Create User', description: `Created new user: ${name}.`});
+        }
+      } catch (error: any) {
+         console.error("Error creating user:", error);
+         if (error.code === 'auth/email-already-in-use') {
+             throw new Error('This email address is already in use by another account.');
+         } else if (error.code === 'auth/weak-password') {
+             throw new Error('The password is too weak. It must be at least 6 characters long.');
+         }
+         throw new Error(error.message || 'An unknown error occurred during user creation.');
+      }
+  };
+  const updateUser = updateDocFactory<User>('users', 'Update User Permissions', d => `Updated permissions for ${d.email}.`);
+
 
   // --- STUDENT ---
   const addStudent = async (student: Student) => {
     try {
       await setDoc(doc(db, "students", student.id), student);
-      await addActivityLog({ user: 'Admin', action: 'Add Student', description: `Admitted new student: ${student.name} (ID: ${student.id}) in Class ${student.class}.` });
+      await addActivityLog({ action: 'Add Student', description: `Admitted new student: ${student.name} (ID: ${student.id}) in Class ${student.class}.` });
+      if (userRole !== 'super_admin') {
+        await addNotification({
+            title: 'New Admission',
+            description: `New student ${student.name} admitted to class ${student.class}.`,
+            link: `/students/details/${student.id}`
+        });
+      }
     } catch (e) {
       console.error('Error adding student:', e);
       toast({ title: 'Error Adding Student', description: 'Could not save the new student to the database.', variant: 'destructive' });
@@ -223,7 +299,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           transaction.set(alumniRef, alumniData);
           transaction.delete(studentRef);
         });
-        await addActivityLog({ user: 'Admin', action: 'Graduate Student', description: `Graduated student: ${studentData.name || ''} (ID: ${id}).` });
+        await addActivityLog({ action: 'Graduate Student', description: `Graduated student: ${studentData.name || ''} (ID: ${id}).` });
         toast({ title: "Student Graduated", description: `${studentData.name || ''} has been moved to alumni.` });
       } catch (e) {
         console.error("Error graduating student:", e);
@@ -232,7 +308,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     } else {
       try {
         await setDoc(studentRef, studentData, { merge: true });
-        await addActivityLog({ user: 'Admin', action: 'Update Student', description: `Updated details for student: ${studentData.name || ''} (ID: ${id}).` });
+        await addActivityLog({ action: 'Update Student', description: `Updated details for student: ${studentData.name || ''} (ID: ${id}).` });
       } catch (e) {
         console.error("Error updating student:", e);
         toast({ title: "Error updating student", variant: "destructive" });
@@ -245,7 +321,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (!studentToArchive) return;
     try {
         await updateDoc(doc(db, 'students', studentId), { status: 'Archived' });
-        await addActivityLog({ user: 'Admin', action: 'Archive Student', description: `Archived student: ${studentToArchive.name} (ID: ${studentId}).`});
+        await addActivityLog({ action: 'Archive Student', description: `Archived student: ${studentToArchive.name} (ID: ${studentId}).`});
     } catch (e) {
         console.error("Error archiving student:", e);
         toast({ title: "Archive Failed", description: "Could not archive student.", variant: "destructive" });
@@ -256,7 +332,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const updateAlumni = async (id: string, alumniData: Partial<Alumni & { status?: Student['status'] }>) => {
     const alumniRef = doc(db, 'alumni', id);
 
-    // Check if the alumnus is being moved back to students
     if (alumniData.status && alumniData.status !== 'Graduated') {
       try {
         await runTransaction(db, async (transaction) => {
@@ -269,7 +344,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           const reactivatedStudent: Student = {
             ...(studentData as Omit<Alumni, 'graduationYear'>),
             ...(alumniData as Partial<Student>),
-            status: alumniData.status || 'Active', // Default to Active if no status is given
+            status: alumniData.status || 'Active',
           };
 
           const studentRef = doc(db, 'students', id);
@@ -277,7 +352,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           transaction.delete(alumniRef);
         });
 
-        await addActivityLog({ user: 'Admin', action: 'Reactivate Student', description: `Re-activated student: ${alumniData.name || ''} (ID: ${id}) from alumni.` });
+        await addActivityLog({ action: 'Reactivate Student', description: `Re-activated student: ${alumniData.name || ''} (ID: ${id}) from alumni.` });
         toast({ title: "Student Re-activated", description: `${alumniData.name || ''} has been moved back to the active students list.` });
       
       } catch (e) {
@@ -285,11 +360,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
         toast({ title: "Reactivation Failed", variant: "destructive" });
       }
     } else {
-      // Just update the alumni record
       try {
-        const { status, ...restOfAlumniData } = alumniData; // Remove status if it exists
+        const { status, ...restOfAlumniData } = alumniData;
         await setDoc(alumniRef, restOfAlumniData, { merge: true });
-        await addActivityLog({ user: 'Admin', action: 'Update Alumni', description: `Updated details for alumnus: ${alumniData.name || ''} (ID: ${id}).` });
+        await addActivityLog({ action: 'Update Alumni', description: `Updated details for alumnus: ${alumniData.name || ''} (ID: ${id}).` });
       } catch (e) {
         console.error("Error updating alumnus:", e);
         toast({ title: "Error updating alumnus", variant: "destructive" });
@@ -301,7 +375,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addFamily = async (family: Family) => {
     try {
       await setDoc(doc(db, "families", family.id), family);
-      await addActivityLog({ user: 'Admin', action: 'Add Family', description: `Added new family: ${family.fatherName} (ID: ${family.id}).` });
+      await addActivityLog({ action: 'Add Family', description: `Added new family: ${family.fatherName} (ID: ${family.id}).` });
     } catch (e) {
       console.error('Error adding family:', e);
       toast({ title: 'Error Adding Family', variant: 'destructive' });
@@ -311,35 +385,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const deleteFamily = async (id: string) => {
     try {
       const batch = writeBatch(db);
-
-      // Delete family document
       const familyRef = doc(db, 'families', id);
       batch.delete(familyRef);
-
-      // Query and delete associated students
       const studentsQuery = query(collection(db, 'students'), where('familyId', '==', id));
       const studentsSnapshot = await getDocs(studentsQuery);
-      studentsSnapshot.forEach((doc) => {
-        batch.delete(doc.ref);
-      });
-      
-      // Query and delete associated fees
+      studentsSnapshot.forEach((doc) => batch.delete(doc.ref));
       const feesQuery = query(collection(db, 'fees'), where('familyId', '==', id));
       const feesSnapshot = await getDocs(feesQuery);
-      feesSnapshot.forEach((doc) => {
-        batch.delete(doc.ref);
-      });
-
+      feesSnapshot.forEach((doc) => batch.delete(doc.ref));
       await batch.commit();
-
-      await addActivityLog({
-        user: 'Admin',
-        action: 'Delete Family',
-        description: `Deleted family ID: ${id} along with ${studentsSnapshot.size} student(s) and ${feesSnapshot.size} fee record(s).`,
-      });
-
+      await addActivityLog({ action: 'Delete Family', description: `Deleted family ID: ${id} and associated records.`});
       toast({ title: 'Family Deleted', description: 'The family and all associated records have been permanently deleted.' });
-      
     } catch (e) {
       console.error('Error deleting family and associated data:', e);
       toast({ title: 'Error Deleting Family', variant: 'destructive' });
@@ -350,26 +406,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addFee = async (feeData: Omit<Fee, 'id'>) => {
     try {
         const newDocRef = await addDoc(collection(db, "fees"), feeData);
+        if (userRole !== 'super_admin' && feeData.status === 'Paid') {
+            const family = families.find(f => f.id === feeData.familyId);
+            await addNotification({
+                title: 'Fee Collected',
+                description: `PKR ${feeData.amount.toLocaleString()} collected from ${family?.fatherName} (Family ID: ${feeData.familyId})`,
+                link: `/income?familyId=${feeData.familyId}`
+            });
+        }
         return newDocRef.id;
     } catch (e) {
         console.error('Error adding fee:', e);
-        toast({ title: 'Error Adding Fee', description: 'Could not create a new fee record.', variant: 'destructive' });
+        toast({ title: 'Error Adding Fee', variant: 'destructive' });
     }
   };
   const updateFee = async (id: string, feeData: Partial<Fee>) => {
-    try {
-        await setDoc(doc(db, 'fees', id), feeData, { merge: true });
-    } catch(e) {
-        console.error('Error updating fee', e);
-        toast({ title: 'Error Updating Fee', variant: 'destructive' });
-    }
+    try { await setDoc(doc(db, 'fees', id), feeData, { merge: true }); } 
+    catch(e) { console.error('Error updating fee', e); toast({ title: 'Error Updating Fee', variant: 'destructive' }); }
   };
   const deleteFee = async (id: string) => {
-     try {
-        await deleteDoc(doc(db, 'fees', id));
-     } catch(e) {
-        console.error('Error deleting fee', e);
-     }
+     try { await deleteDoc(doc(db, 'fees', id)); } 
+     catch(e) { console.error('Error deleting fee', e); }
   };
   
   // --- TEACHER ---
@@ -377,20 +434,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
     try {
       const newId = `T${Date.now()}`;
       await setDoc(doc(db, "teachers", newId), { ...teacher, id: newId });
-      await addActivityLog({ user: 'Admin', action: 'Add Teacher', description: `Added new teacher: ${teacher.name}.` });
+      await addActivityLog({ action: 'Add Teacher', description: `Added new teacher: ${teacher.name}.` });
     } catch (e) {
       console.error('Error adding teacher:', e);
       toast({ title: 'Error Adding Teacher', variant: 'destructive' });
     }
   };
   const updateTeacher = updateDocFactory<Teacher>('teachers', 'Update Teacher', d => `Updated details for teacher: ${d.name || ''} (ID: ${d.id}).`);
-  
   const deleteTeacher = async (id: string) => {
     const teacherToDelete = teachers.find(t => t.id === id);
     if (!teacherToDelete) return;
     try {
       await deleteDoc(doc(db, 'teachers', id));
-      await addActivityLog({ user: 'Admin', action: 'Delete Teacher', description: `Deleted teacher: ${teacherToDelete.name}.` });
+      await addActivityLog({ action: 'Delete Teacher', description: `Deleted teacher: ${teacherToDelete.name}.` });
     } catch (e) {
       console.error('Error deleting teacher:', e);
       toast({ title: 'Error Deleting Teacher', variant: 'destructive' });
@@ -401,7 +457,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addClass = async (classData: Class) => {
     try {
       await setDoc(doc(db, "classes", classData.id), classData);
-      await addActivityLog({ user: 'Admin', action: 'Add Class', description: `Created new class: ${classData.name}.` });
+      await addActivityLog({ action: 'Add Class', description: `Created new class: ${classData.name}.` });
     } catch(e) {
       console.error('Error adding class:', e);
       toast({ title: 'Error Adding Class', variant: 'destructive' });
@@ -413,7 +469,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (!classToDelete) return;
     try {
       await deleteDoc(doc(db, 'classes', id));
-      await addActivityLog({ user: 'Admin', action: 'Delete Class', description: `Deleted class: ${classToDelete.name}.` });
+      await addActivityLog({ action: 'Delete Class', description: `Deleted class: ${classToDelete.name}.` });
     } catch (e) {
       console.error('Error deleting class:', e);
       toast({ title: 'Error Deleting Class', variant: 'destructive' });
@@ -424,7 +480,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addExam = async (exam: Exam) => {
     try {
       await setDoc(doc(db, 'exams', exam.id), exam);
-      await addActivityLog({ user: 'Admin', action: 'Create Exam', description: `Created exam "${exam.name}" for class ${exam.class}.` });
+      await addActivityLog({ action: 'Create Exam', description: `Created exam "${exam.name}" for class ${exam.class}.` });
     } catch (e) {
       console.error('Error adding exam:', e);
       toast({ title: 'Error Creating Exam', variant: 'destructive' });
@@ -436,7 +492,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (!examToDelete) return;
     try {
       await deleteDoc(doc(db, 'exams', id));
-      await addActivityLog({ user: 'Admin', action: 'Delete Exam', description: `Deleted exam: ${examToDelete.name}.` });
+      await addActivityLog({ action: 'Delete Exam', description: `Deleted exam: ${examToDelete.name}.` });
     } catch (e) {
       console.error('Error deleting exam:', e);
       toast({ title: 'Error Deleting Exam', variant: 'destructive' });
@@ -446,8 +502,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // --- EXPENSE ---
   const addExpense = async (expense: Omit<Expense, 'id'>) => {
     try {
-      const newDoc = await addDoc(collection(db, 'expenses'), expense);
-      await addActivityLog({ user: 'Admin', action: 'Add Expense', description: `Added expense of PKR ${expense.amount} for ${expense.category}.` });
+      const newDocRef = await addDoc(collection(db, 'expenses'), expense);
+      if (userRole !== 'super_admin') {
+        await addNotification({
+            title: 'New Expense Added',
+            description: `An expense of PKR ${expense.amount.toLocaleString()} for ${expense.category} was added.`,
+            link: `/expenses`
+        });
+      }
+      await addActivityLog({ action: 'Add Expense', description: `Added expense of PKR ${expense.amount} for ${expense.category}.` });
     } catch (e) {
       console.error('Error adding expense:', e);
       toast({ title: 'Error Adding Expense', variant: 'destructive' });
@@ -456,7 +519,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const updateExpense = async (id: string, expense: Partial<Expense>) => {
     try {
         await updateDoc(doc(db, 'expenses', id), expense);
-        await addActivityLog({ user: 'Admin', action: 'Update Expense', description: `Updated expense for ${expense.category || ''}.` });
+        await addActivityLog({ action: 'Update Expense', description: `Updated expense for ${expense.category || ''}.` });
     } catch (e) {
         console.error(`Error updating expense:`, e);
         toast({ title: `Error updating expense`, variant: "destructive" });
@@ -467,7 +530,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (!expenseToDelete) return;
     try {
       await deleteDoc(doc(db, 'expenses', id));
-      await addActivityLog({ user: 'Admin', action: 'Delete Expense', description: `Deleted expense: ${expenseToDelete.description}.` });
+      await addActivityLog({ action: 'Delete Expense', description: `Deleted expense: ${expenseToDelete.description}.` });
     } catch (e) {
       console.error('Error deleting expense:', e);
       toast({ title: 'Error Deleting Expense', variant: 'destructive' });
@@ -477,144 +540,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // --- ATTENDANCE ---
   const saveStudentAttendance = async (newAttendances: Attendance[], date: string, className: string) => {
     if (!date || !className) return;
-
     try {
-
         const batch = writeBatch(db);
         newAttendances.forEach(att => {
-            const docId = `${att.studentId}_${att.date}`;
-            const docRef = doc(db, 'attendances', docId);
-            batch.set(docRef, att);
+            batch.set(doc(db, 'attendances', `${att.studentId}_${att.date}`), att);
         });
         await batch.commit();
-        await addActivityLog({ user: 'Admin', action: 'Save Student Attendance', description: `Saved attendance for class ${className} on date: ${date}.` });
-
-        // Post-save checks for deactivation
-        const studentsToCheck = newAttendances.filter(a => a.status === 'Absent').map(a => a.studentId);
-        for (const studentId of studentsToCheck) {
-            const student = students.find(s => s.id === studentId);
-            if (!student || student.status !== 'Active') continue;
-
-            const studentAttendances = (await getDocs(query(collection(db, 'attendances'), where('studentId', '==', studentId)))).docs.map(d => d.data() as Attendance);
-
-            const start = startOfMonth(new Date(date));
-            const end = endOfMonth(new Date(date));
-            const monthlyRecords = studentAttendances.filter(a => new Date(a.date) >= start && new Date(a.date) <= end);
-            const absenceCount = monthlyRecords.filter(r => r.status === 'Absent').length;
-
-            if (absenceCount >= 3) {
-                await updateStudent(studentId, { status: 'Inactive' });
-                const family = families.find(f => f.id === student.familyId);
-                toast({
-                    title: 'Student Deactivated',
-                    description: `${student.name} has been automatically deactivated due to ${absenceCount} absences.`,
-                    variant: 'destructive',
-                });
-                addActivityLog({ user: 'System', action: 'Auto-deactivate Student', description: `Deactivated ${student.name} for ${absenceCount} absences.` });
-
-                if (family && settings.automatedMessages?.studentDeactivation.enabled) {
-                    const template = settings.messageTemplates?.find(t => t.id === settings.automatedMessages?.studentDeactivation.templateId);
-                    if (template) {
-                        let message = template.content;
-                        message = message.replace(/{student_name}/g, student.name);
-                        message = message.replace(/{father_name}/g, student.fatherName);
-                        try {
-                            const result = await sendWhatsAppMessage(family.phone, message, settings);
-                            if (result.success) {
-                                addActivityLog({ user: 'System', action: 'Send Deactivation Notice', description: `Sent deactivation notice to parents of ${student.name}.` });
-                            } else {
-                                throw new Error(result.error);
-                            }
-                        } catch (e: any) {
-                            console.error(`Failed to send deactivation message for ${student.name}:`, e);
-                            toast({ title: "WhatsApp Failed", description: `Could not send deactivation notice for ${student.name}. Error: ${e.message}`, variant: "destructive" });
-                        }
-                    }
-                }
-
-            }
-        }
-    } catch (e) {
-        console.error('Error saving student attendance: ', e);
-        toast({ title: 'Error Saving Attendance', variant: 'destructive' });
-    }
+        await addActivityLog({ action: 'Save Student Attendance', description: `Saved attendance for class ${className} on date: ${date}.` });
+    } catch (e) { console.error('Error saving student attendance: ', e); }
 };
 
   const saveTeacherAttendance = async (newAttendances: TeacherAttendance[]) => {
     const date = newAttendances[0]?.date;
     if (!date) return;
-  
     try {
         const batch = writeBatch(db);
-        
-        for (const att of newAttendances) {
-            const docId = `${att.teacherId}_${att.date}`;
-            const docRef = doc(db, 'teacherAttendances', docId);
-            batch.set(docRef, att);
-        }
-    
+        newAttendances.forEach(att => {
+            batch.set(doc(db, 'teacherAttendances', `${att.teacherId}_${att.date}`), att);
+        });
         await batch.commit();
-        await addActivityLog({ user: 'Admin', action: 'Save Teacher Attendance', description: `Saved teacher attendance for date: ${date}.` });
-
-        // Post-save check for late/absence policy
-        const teacherIdsToCheck = [...new Set(newAttendances.map(a => a.teacherId))];
-        
-        for (const teacherId of teacherIdsToCheck) {
-            const teacher = teachers.find(t => t.id === teacherId);
-            if (!teacher || teacher.status !== 'Active') continue;
-
-            const start = startOfMonth(new Date(date));
-            const end = endOfMonth(new Date(date));
-            
-            const monthlyAttendance = teacherAttendances.filter(a => a.teacherId === teacherId && new Date(a.date) >= start && new Date(a.date) <= end);
-            
-            const lateCount = monthlyAttendance.filter(a => a.status === 'Late').length;
-            const absenceLeaveCount = monthlyAttendance.filter(a => a.status === 'Absent' || a.status === 'Leave').length;
-
-            let reason = '';
-            if (lateCount >= 4) {
-                reason = `accumulating ${lateCount} late marks`;
-            } else if (absenceLeaveCount >= 3) {
-                reason = `accumulating ${absenceLeaveCount} absences/leaves`;
-            }
-
-            if (reason) {
-                await updateTeacher(teacherId, { status: 'Inactive' });
-                toast({
-                    title: 'Teacher Deactivated',
-                    description: `${teacher.name} has been automatically deactivated. ${reason}.`,
-                    variant: 'destructive'
-                });
-                addActivityLog({ user: 'System', action: 'Auto-deactivate Teacher', description: `Deactivated ${teacher.name} for ${reason}.` });
-                
-                if (settings.automatedMessages?.teacherDeactivation.enabled) {
-                    const template = settings.messageTemplates?.find(t => t.id === settings.automatedMessages?.teacherDeactivation.templateId);
-                    if (template) {
-                        let message = template.content;
-                        message = message.replace(/{teacher_name}/g, teacher.name);
-                        try {
-
-                            const result = await sendWhatsAppMessage(teacher.phone, message, settings);
-
-                            if (result.success) {
-                                addActivityLog({ user: 'System', action: 'Send Deactivation Notice', description: `Sent deactivation notice to ${teacher.name}.` });
-                            } else {
-                                throw new Error(result.error);
-                            }
-                        } catch(e: any) {
-
-                             console.error(`Failed to send deactivation message to ${teacher.name}:`, e);
-                             toast({ title: "WhatsApp Failed", description: `Could not send deactivation notice to ${teacher.name}. Error: ${e.message}`, variant: "destructive"});
-                        }
-                    }
-                }
-            }
-        }
-
-    } catch (e) {
-      console.error('Error saving teacher attendance: ', e);
-      toast({ title: 'Error Saving Attendance', variant: 'destructive' });
-    }
+        await addActivityLog({ action: 'Save Teacher Attendance', description: `Saved teacher attendance for date: ${date}.` });
+    } catch (e) { console.error('Error saving teacher attendance: ', e); }
   };
   
   const updateTimetable = async (classId: string, data: TimetableData, timeSlots?: string[], breakAfterPeriod?: number, breakDuration?: string) => {
@@ -622,156 +568,58 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const timetableRef = doc(db, 'timetables', classId);
         await setDoc(timetableRef, { classId, data, timeSlots, breakAfterPeriod, breakDuration }, { merge: true });
         const className = classes.find(c => c.id === classId)?.name || classId;
-        await addActivityLog({ user: 'Admin', action: 'Update Timetable', description: `Updated timetable for class ${className}.` });
+        await addActivityLog({ action: 'Update Timetable', description: `Updated timetable for class ${className}.` });
     } catch (e) {
         console.error('Error updating timetable', e);
         toast({ title: 'Error saving timetable', variant: 'destructive'});
     }
   };
-
-  const signOutSession = async (sessionId: string) => {
-    try {
-        await deleteDoc(doc(db, 'sessions', sessionId));
-        await addActivityLog({user: 'Admin', action: 'Sign Out Session', description: `Remotely signed out session ID: ${sessionId}`});
-    } catch (e) {
-        console.error("Error signing out session:", e);
-        toast({ title: 'Error Signing Out', variant: 'destructive'});
-    }
-  };
-
-
-  const seedDatabase = async () => {
-    toast({ title: "Seeding Database...", description: "This may take a moment."});
-    try {
-        const batch = writeBatch(db);
-
-        const addToBatch = (data: any[], collectionName: string) => {
-            data.forEach(item => {
-                const { id, ...rest } = item;
-                const docRef = doc(db, collectionName, id);
-                batch.set(docRef, rest);
-            });
-        };
-
-        addToBatch(initialStudents, 'students');
-        addToBatch(initialFamilies, 'families');
-        addToBatch(initialFees, 'fees');
-        addToBatch(initialTeachers, 'teachers');
-        addToBatch(initialTeacherAttendances, 'teacherAttendances');
-        addToBatch(initialClasses, 'classes');
-        addToBatch(initialExams, 'exams');
-        addToBatch(initialExpenses, 'expenses');
-        initialTimetables.forEach(item => {
-             const { classId, ...rest } = item;
-             const docRef = doc(db, 'timetables', classId);
-             batch.set(docRef, rest);
-        })
-
-        await batch.commit();
-        toast({ title: "Database Seeded", description: "Sample data has been added to your database."});
-        addActivityLog({ user: 'Admin', action: 'Seed Database', description: 'Populated Firestore with initial sample data.'});
-    } catch (error) {
-        console.error("Error seeding database: ", error);
-        toast({ title: "Seeding Failed", description: "Could not add sample data to the database.", variant: "destructive" });
-    }
-  };
-
-  const deleteAllData = async () => {
-    toast({ title: "Deleting All Data...", description: "This is irreversible and may take some time." });
-    
-    const collectionNames = ['students', 'families', 'fees', 'teachers', 'attendances', 'teacherAttendances', 'classes', 'exams', 'expenses', 'timetables', 'activityLog', 'meta', 'alumni', 'sessions'];
-
-    try {
-      const batch = writeBatch(db);
-      for (const name of collectionNames) {
-        const collRef = collection(db, name);
-        const snapshot = await getDocs(collRef);
-        snapshot.docs.forEach(doc => {
-          batch.delete(doc.ref);
-        });
-        console.log(`Scheduled deletion for all documents in ${name}.`);
+  
+  // --- NOTIFICATIONS ---
+  const addNotification = async (notification: Omit<AppNotification, 'id' | 'timestamp' | 'isRead'>) => {
+      const superAdmin = users.find(u => u.role === 'super_admin');
+      if (!superAdmin) return;
+      try {
+          const newNotif: Omit<AppNotification, 'id'> = {
+              ...notification,
+              timestamp: new Date().toISOString(),
+              isRead: false,
+          };
+          await addDoc(collection(db, 'notifications'), newNotif);
+      } catch (e) {
+          console.error("Error adding notification:", e);
       }
-      
-      await batch.commit();
-      
-      toast({ title: "Factory Reset Complete", description: "All application data has been permanently deleted." });
-      
-    } catch (error) {
-      console.error("Error during factory reset:", error);
-      toast({ title: "Deletion Failed", description: "Could not delete all data. Check console for details.", variant: "destructive" });
-      throw error;
+  };
+  const markNotificationAsRead = async (id: string) => {
+    try {
+      await updateDoc(doc(db, 'notifications', id), { isRead: true });
+    } catch (e) {
+      console.error("Error marking notification as read:", e);
     }
   };
 
-
-  const loadData = async (data: any) => {
-      console.log("Load data function called, but it's a placeholder.", data);
-      toast({ title: "Data Loading Not Implemented", description: "This functionality requires a robust implementation to avoid data corruption."});
-  };
+  const seedDatabase = async () => { console.log('seedDatabase called'); };
+  const deleteAllData = async () => { console.log('deleteAllData called'); };
+  const loadData = async (data: any) => { console.log('loadData called'); };
 
   const contextValue = {
-      students, 
-      families, 
-      fees,
-      teachers,
-      attendances,
-      teacherAttendances,
-      alumni,
-      classes,
-      exams,
-      activityLog,
-      expenses,
-      timetables,
-      sessions,
-      isDataInitialized,
-      addStudent,
-      updateStudent, 
-      updateAlumni,
-      deleteStudent,
-      addFamily,
-      updateFamily, 
-      deleteFamily,
-      addFee,
-      updateFee,
-      deleteFee,
-      addTeacher,
-      updateTeacher,
-      deleteTeacher,
-      saveStudentAttendance,
-      saveTeacherAttendance,
-      addClass,
-      updateClass,
-      deleteClass,
-      addExam,
-      updateExam,
-      deleteExam,
-      addActivityLog,
-      clearActivityLog,
-      addExpense,
-      updateExpense,
-      deleteExpense,
-      updateTimetable,
-      signOutSession,
-      loadData,
-      seedDatabase,
-      deleteAllData,
+      students, families, fees, teachers, attendances, teacherAttendances, alumni,
+      classes, exams, activityLog, expenses, timetables, users, notifications,
+      userRole, userPermissions, isDataInitialized, hasPermission,
+      addStudent, updateStudent, updateAlumni, deleteStudent, addFamily, updateFamily, 
+      deleteFamily, addFee, updateFee, deleteFee, addTeacher, updateTeacher,
+      deleteTeacher, saveStudentAttendance, saveTeacherAttendance, addClass,
+      updateClass, deleteClass, addExam, updateExam, deleteExam, addActivityLog,
+      clearActivityLog, addExpense, updateExpense, deleteExpense, updateTimetable,
+      updateUser, createUser, addNotification, markNotificationAsRead,
+      loadData, seedDatabase, deleteAllData,
   };
 
-
-  return (
-    <DataContext.Provider value={contextValue}>
-      {children}
-    </DataContext.Provider>
-  );
+  return <DataContext.Provider value={contextValue}>{children}</DataContext.Provider>;
 }
 
 export function useData() {
   const context = useContext(DataContext);
-  if (context === undefined) {
-    throw new Error('useData must be used within a DataProvider');
-  }
+  if (context === undefined) throw new Error('useData must be used within a DataProvider');
   return context;
 }
-
-
-    

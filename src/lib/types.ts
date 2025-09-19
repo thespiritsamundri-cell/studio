@@ -1,5 +1,36 @@
 
 
+export interface PermissionSet {
+  dashboard: boolean;
+  families: boolean;
+  admissions: boolean;
+  students: boolean;
+  classes: boolean;
+  teachers: boolean;
+  timetable: boolean;
+  feeCollection: boolean;
+  feeVouchers: boolean;
+  income: boolean;
+  expenses: boolean;
+  accounts: boolean;
+  reports: boolean;
+  yearbook: boolean;
+  attendance: boolean;
+  examSystem: boolean;
+  alumni: boolean;
+  settings: boolean;
+  archived: boolean;
+}
+
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'super_admin' | 'custom';
+  permissions: PermissionSet;
+}
+
 export interface Student {
   id: string;
   name: string;
@@ -152,6 +183,15 @@ export interface Session {
   ipAddress: string;
   userAgent: string;
   location?: string;
+}
+
+export interface AppNotification {
+    id: string;
+    title: string;
+    description: string;
+    timestamp: string;
+    isRead: boolean;
+    link?: string;
 }
 
 

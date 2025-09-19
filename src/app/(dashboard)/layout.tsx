@@ -22,46 +22,6 @@ import { format } from 'date-fns';
 import Image from 'next/image';
 import { doc, getDoc } from 'firebase/firestore';
 
-function SessionValidator() {
-  const router = useRouter();
-
-  const validateSession = useCallback(async () => {
-    const sessionId = sessionStorage.getItem('sessionId');
-    if (!sessionId) {
-      // No session, force logout
-      router.push('/');
-      return;
-    }
-
-    const sessionRef = doc(db, 'sessions', sessionId);
-    const sessionDoc = await getDoc(sessionRef);
-
-    if (!sessionDoc.exists()) {
-      // Session has been remotely terminated
-      sessionStorage.removeItem('sessionId');
-      sessionStorage.removeItem('welcomeShown');
-      sessionStorage.removeItem('isUnlocked');
-      await auth.signOut();
-      router.push('/');
-    }
-  }, [router]);
-
-  useEffect(() => {
-    // Check every 30 seconds
-    const interval = setInterval(validateSession, 30000);
-    // Also check when the window gains focus
-    window.addEventListener('focus', validateSession);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('focus', validateSession);
-    };
-  }, [validateSession]);
-
-  return null;
-}
-
-
 
 function InactivityDetector() {
   const router = useRouter();
@@ -157,7 +117,6 @@ function AuthWrapper({ children }: { children: ReactNode }) {
   if (user) {
      return (
         <>
-            {isClient && <SessionValidator />}
             {children}
             <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
                 <DialogContent className="sm:max-w-md text-center">
@@ -204,14 +163,7 @@ function DashboardContent({ children }: { children: ReactNode }) {
     const { isDataInitialized } = useData();
     const { settings } = useSettings();
 
-    if (!isDataInitialized) {
-        return (
-            <div className="flex h-screen w-full items-center justify-center">
-                {settings.preloaderEnabled ? <Preloader style={settings.preloaderStyle} /> : <Loader2 className="h-8 w-8 animate-spin" />}
-            </div>
-        );
-    }
-    
+    // Render the layout immediately, and show a loader inside the main content area if data is still loading.
     return (
         <SidebarProvider>
             <InactivityDetector />
@@ -222,7 +174,13 @@ function DashboardContent({ children }: { children: ReactNode }) {
                 <div className="flex flex-1 flex-col">
                     <Header />
                     <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6 lg:p-8">
-                        {children}
+                        {!isDataInitialized ? (
+                            <div className="flex flex-1 items-center justify-center">
+                                {settings.preloaderEnabled ? <Preloader style={settings.preloaderStyle} /> : <Loader2 className="h-8 w-8 animate-spin" />}
+                            </div>
+                        ) : (
+                            children
+                        )}
                     </main>
                 </div>
             </div>
@@ -262,15 +220,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <AuthWrapper>
-
-        <DataProvider>
-
-            <DashboardContent>
-                {children}
-            </DashboardContent>
-
-        </DataProvider>
+      <DataProvider>
+        <DashboardContent>
+          {children}
+        </DashboardContent>
+      </DataProvider>
     </AuthWrapper>
   );
 }
-
