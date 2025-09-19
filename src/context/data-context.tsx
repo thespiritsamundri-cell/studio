@@ -270,6 +270,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
     try {
       await setDoc(doc(db, "students", student.id), student);
       await addActivityLog({ action: 'Add Student', description: `Admitted new student: ${student.name} (ID: ${student.id}) in Class ${student.class}.` });
+      if (userRole !== 'super_admin') {
+        await addNotification({
+            title: 'New Admission',
+            description: `New student ${student.name} admitted to class ${student.class}.`,
+            link: `/students/details/${student.id}`
+        });
+      }
     } catch (e) {
       console.error('Error adding student:', e);
       toast({ title: 'Error Adding Student', description: 'Could not save the new student to the database.', variant: 'destructive' });
@@ -403,6 +410,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addFee = async (feeData: Omit<Fee, 'id'>) => {
     try {
         const newDocRef = await addDoc(collection(db, "fees"), feeData);
+        if (userRole !== 'super_admin' && feeData.status === 'Paid') {
+            const family = families.find(f => f.id === feeData.familyId);
+            await addNotification({
+                title: 'Fee Collected',
+                description: `PKR ${feeData.amount.toLocaleString()} collected from ${family?.fatherName} (Family ID: ${feeData.familyId})`,
+                link: `/income?familyId=${feeData.familyId}`
+            });
+        }
         return newDocRef.id;
     } catch (e) {
         console.error('Error adding fee:', e);
@@ -491,7 +506,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // --- EXPENSE ---
   const addExpense = async (expense: Omit<Expense, 'id'>) => {
     try {
-      await addDoc(collection(db, 'expenses'), expense);
+      const newDocRef = await addDoc(collection(db, 'expenses'), expense);
+      if (userRole !== 'super_admin') {
+        await addNotification({
+            title: 'New Expense Added',
+            description: `An expense of PKR ${expense.amount.toLocaleString()} for ${expense.category} was added.`,
+            link: `/expenses`
+        });
+      }
       await addActivityLog({ action: 'Add Expense', description: `Added expense of PKR ${expense.amount} for ${expense.category}.` });
     } catch (e) {
       console.error('Error adding expense:', e);

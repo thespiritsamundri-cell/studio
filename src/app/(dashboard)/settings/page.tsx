@@ -277,7 +277,13 @@ export default function SettingsPage() {
 
     if (recipients.length === 0) { toast({ title: 'No Recipients', variant: 'destructive' }); setIsSending(false); return; }
     toast({ title: 'Sending Messages', description: `Sending to ${recipients.length} recipient(s).` });
-    addActivityLog({ action: 'Send WhatsApp Message', description: `Sent custom message to ${recipients.length} recipients: ${targetDescription}.`, recipientCount: recipients.length });
+    
+    // Pass recipientCount to the activity log
+    addActivityLog({ 
+        action: 'Send WhatsApp Message', 
+        description: `Sent custom message to ${targetDescription}.`, 
+        recipientCount: recipients.length 
+    });
     
     let successCount = 0;
     for (const recipient of recipients) {
@@ -669,7 +675,7 @@ export default function SettingsPage() {
                     <div className="space-y-2"> <h3 className="font-medium">Create Backup</h3> <p className="text-sm text-muted-foreground">Download a complete backup as a JSON file.</p> <Button variant="outline" onClick={handleCreateBackup} disabled={!canEdit}><Download className="mr-2"/>Download</Button> </div>
                     <div className="space-y-2"> <h3 className="font-medium">Restore from Backup</h3> <p className="text-sm text-muted-foreground">Upload a JSON backup file to restore data.</p> <div className="flex items-center gap-2"> <Label htmlFor="backup-file" className="sr-only">Restore</Label> <Input id="backup-file" type="file" accept=".json" className="hidden" onChange={handleRestoreBackup} /> <Button onClick={() => document.getElementById('backup-file')?.click()} disabled={!canEdit}><Upload className="mr-2"/>Restore</Button> </div> </div>
                 </div>
-                 <div className="border-t pt-6 space-y-2"> <h3 className="font-medium">Seed Database</h3> <p className="text-sm text-muted-foreground">Populate with sample data. Overwrites existing data.</p> <Button variant="destructive" onClick={seedDatabase} disabled={!canEdit}><Database className="mr-2"/>Seed Sample Data</Button> </div>
+                 <div className="border-t pt-6 space-y-2"> <h3 className="font-medium">Seed Database</h3> <p className="text-sm text-muted-foreground">Populate with sample data. Overwrites existing data.</p> <Button variant="destructive" onClick={seedDatabase} disabled={!canEdit}><Database className="mr-2"/>Seed Sample Data</Button> d>
                 <div className="border-t border-destructive pt-6 space-y-2">
                     <h3 className="font-medium text-destructive flex items-center gap-2"><AlertTriangle /> Danger Zone</h3>
                     <p className="text-sm text-muted-foreground">Permanently delete all data.</p>
