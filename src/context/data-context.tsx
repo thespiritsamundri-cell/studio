@@ -518,80 +518,28 @@ setCurrentUserName('System');
     };
 
     const updateExpense = async (id: string, expenseData: Partial<Expense>) => {
+      try {
         const expenseRef = doc(db, 'expenses', id);
-        try {
-            const docSnap = await getDoc(expenseRef);
-            if (!docSnap.exists()) {
-                // If it doesn't exist, just create it.
-                await setDoc(expenseRef, { id, ...expenseData });
-                await addActivityLog({ action: 'Add Expense', description: `Added new expense through update: ${expenseData.description || id}.` });
-                toast({ title: 'Expense Created' });
-                return;
-            }
-
-            const oldAmount = docSnap.data().amount || 0;
-            const newAmount = expenseData.amount;
-            
-            await setDoc(expenseRef, expenseData, { merge: true });
-
-            if (typeof newAmount === 'number' && newAmount < oldAmount) {
-                const difference = oldAmount - newAmount;
-                const reversalFee: Omit<Fee, 'id'> = {
-                    familyId: 'School',
-                    amount: difference,
-                    month: `Reversal for expense edit: ${id}`,
-                    year: new Date().getFullYear(),
-                    status: 'Paid',
-                    paymentDate: new Date().toISOString().split('T')[0],
-                    paymentMethod: 'Adjustment'
-                };
-                await addFee(reversalFee);
-            }
-    
-            await addActivityLog({ action: 'Update Expense', description: `Updated expense ID: ${id}.` });
-            toast({ title: 'Expense Updated' });
-    
-        } catch (e) {
-            console.error(`Error updating expense:`, e);
-            toast({ title: `Error updating expense`, variant: "destructive" });
-        }
+        await setDoc(expenseRef, expenseData, { merge: true });
+        await addActivityLog({ action: 'Update Expense', description: `Updated expense ID: ${id}.` });
+        toast({ title: 'Expense Updated' });
+      } catch (e) {
+        console.error(`Error updating expense:`, e);
+        toast({ title: `Error updating expense`, variant: "destructive" });
+      }
     };
     
     const deleteExpense = async (id: string) => {
         const expenseToDelete = expenses.find(e => e.id === id);
-        if (!expenseToDelete) {
-            toast({ title: 'Error Deleting Expense', description: 'Could not find the expense to delete.', variant: 'destructive' });
-            return;
-        }
+        if (!expenseToDelete) return; // Should not happen if called from UI
 
         try {
-            const batch = writeBatch(db);
-
-            // 1. Create the reversal income record
-            const reversalFee: Omit<Fee, 'id'> = {
-                familyId: 'School',
-                amount: expenseToDelete.amount,
-                month: `Reversal for deleted expense: ${expenseToDelete.description}`,
-                year: new Date().getFullYear(),
-                status: 'Paid',
-                paymentDate: new Date().toISOString().split('T')[0],
-                paymentMethod: 'Adjustment'
-            };
-            const newFeeRef = doc(collection(db, 'fees'));
-            batch.set(newFeeRef, reversalFee);
-
-            // 2. Delete the original expense document
-            const expenseRef = doc(db, 'expenses', id);
-            batch.delete(expenseRef);
-
-            await batch.commit();
-
-            await addActivityLog({ action: 'Delete Expense', description: `Deleted expense: ${expenseToDelete.description} (PKR ${expenseToDelete.amount}). Amount reversed to income.` });
-            toast({ title: "Expense Deleted", description: "The expense has been deleted and the amount reversed." });
-
+            await deleteDoc(doc(db, 'expenses', id));
+            await addActivityLog({ action: 'Delete Expense', description: `Deleted expense: ${expenseToDelete.description} (PKR ${expenseToDelete.amount}).` });
+            toast({ title: "Expense Deleted", description: "The expense record has been deleted." });
         } catch (e: any) {
             console.error('Error deleting expense:', e);
-            toast({ title: 'Error Deleting Expense', description: e.message || 'Could not process expense deletion.', variant: 'destructive' });
+            toast({ title: 'Error Deleting Expense', description: e.message || 'Could not delete the expense record.', variant: 'destructive' });
         }
     };
 
@@ -681,3 +629,4 @@ export function useData() {
   if (context === undefined) throw new Error('useData must be used within a DataProvider');
   return context;
 }
+
