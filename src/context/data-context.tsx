@@ -265,7 +265,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addStudent = async (student: Student) => {
     try {
       await setDoc(doc(db, "students", student.id), student);
-      await addActivityLog({ action: 'Add Student', description: `Admitted new student: ${student.name} (ID: ${student.id}) in Class ${student.class}.` });
       if (userRole !== 'super_admin') {
         await addNotification({
             title: 'New Admission',
@@ -518,7 +517,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
   const updateExpense = async (id: string, expense: Partial<Expense>) => {
     try {
-        await updateDoc(doc(db, 'expenses', id), expense);
+        await setDoc(doc(db, 'expenses', id), expense, { merge: true });
         await addActivityLog({ action: 'Update Expense', description: `Updated expense for ${expense.category || ''}.` });
     } catch (e) {
         console.error(`Error updating expense:`, e);
