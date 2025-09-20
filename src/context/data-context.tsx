@@ -518,16 +518,24 @@ setCurrentUserName('System');
     };
 
     const updateExpense = async (id: string, expenseData: Partial<Expense>) => {
-        const expenseRef = doc(db, 'expenses', id);
         try {
+            const expenseRef = doc(db, 'expenses', id);
+            
             await runTransaction(db, async (transaction) => {
                 const expenseDoc = await transaction.get(expenseRef);
                 if (!expenseDoc.exists()) {
-                    throw "Document does not exist!";
+                    // If it doesn't exist, just create it. No reversal needed.
+                    transaction.set(expenseRef, { id, ...expenseData });
+                    return;
                 }
+    
                 const oldAmount = expenseDoc.data().amount || 0;
                 const newAmount = expenseData.amount;
-
+    
+                // Update the expense document
+                transaction.update(expenseRef, expenseData);
+    
+                // If the new amount is less than the old, create a reversal income record
                 if (typeof newAmount === 'number' && newAmount < oldAmount) {
                     const difference = oldAmount - newAmount;
                     const reversalFee: Omit<Fee, 'id'> = {
@@ -542,43 +550,51 @@ setCurrentUserName('System');
                     const newFeeRef = doc(collection(db, 'fees'));
                     transaction.set(newFeeRef, reversalFee);
                 }
-                transaction.update(expenseRef, expenseData);
             });
+    
             await addActivityLog({ action: 'Update Expense', description: `Updated expense ID: ${id}.` });
             toast({ title: 'Expense Updated' });
-
+    
         } catch (e) {
             console.error(`Error updating expense:`, e);
-            toast({ title: `Error updating expense: "${e}"`, variant: "destructive" });
+            toast({ title: `Error updating expense`, variant: "destructive" });
         }
     };
     
     const deleteExpense = async (id: string) => {
-        const expenseToDelete = expenses.find(e => e.id === id);
-        if (!expenseToDelete) {
-             toast({ title: 'Error', description: 'Expense not found.', variant: 'destructive'});
-             return;
-        }
+        const expenseRef = doc(db, 'expenses', id);
         try {
-             const reversalFee: Omit<Fee, 'id'> = {
-                familyId: 'School',
-                amount: expenseToDelete.amount,
-                month: `Reversal for deleted expense: ${expenseToDelete.description}`,
-                year: new Date().getFullYear(),
-                status: 'Paid',
-                paymentDate: new Date().toISOString().split('T')[0],
-                paymentMethod: 'Adjustment'
-            };
+            await runTransaction(db, async (transaction) => {
+                const expenseDoc = await transaction.get(expenseRef);
+                if (!expenseDoc.exists()) {
+                    throw new Error("Expense document not found, cannot delete.");
+                }
+                const expenseToDelete = expenseDoc.data() as Expense;
 
-            await addDoc(collection(db, "fees"), reversalFee);
-            await deleteDoc(doc(db, 'expenses', id));
-            
-            await addActivityLog({ action: 'Delete Expense', description: `Deleted expense: ${expenseToDelete.description} (PKR ${expenseToDelete.amount}). Amount returned to income.` });
-            toast({ title: "Expense Deleted", description: "The expense record has been successfully deleted and the amount reversed to income." });
-            
-        } catch (e) {
+                // 1. Create the reversal income record
+                const reversalFee: Omit<Fee, 'id'> = {
+                    familyId: 'School',
+                    amount: expenseToDelete.amount,
+                    month: `Reversal for deleted expense: ${expenseToDelete.description}`,
+                    year: new Date().getFullYear(),
+                    status: 'Paid',
+                    paymentDate: new Date().toISOString().split('T')[0],
+                    paymentMethod: 'Adjustment'
+                };
+                const newFeeRef = doc(collection(db, 'fees'));
+                transaction.set(newFeeRef, reversalFee);
+
+                // 2. Delete the original expense document
+                transaction.delete(expenseRef);
+            });
+
+            const expenseToDelete = expenses.find(e => e.id === id);
+            await addActivityLog({ action: 'Delete Expense', description: `Deleted expense: ${expenseToDelete?.description || id} (PKR ${expenseToDelete?.amount || 'N/A'}). Amount reversed to income.` });
+            toast({ title: "Expense Deleted", description: "The expense record has been deleted and the amount reversed to income." });
+
+        } catch (e: any) {
             console.error('Error deleting expense:', e);
-            toast({ title: 'Error Deleting Expense', variant: 'destructive' });
+            toast({ title: 'Error Deleting Expense', description: e.message || 'Could not process expense deletion.', variant: 'destructive' });
         }
     };
 
