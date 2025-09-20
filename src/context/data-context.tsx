@@ -522,7 +522,6 @@ setCurrentUserName('System');
         const expenseRef = doc(db, 'expenses', id);
         await setDoc(expenseRef, expenseData, { merge: true });
         await addActivityLog({ action: 'Update Expense', description: `Updated expense ID: ${id}.` });
-        toast({ title: 'Expense Updated' });
       } catch (e) {
         console.error(`Error updating expense:`, e);
         toast({ title: `Error updating expense`, variant: "destructive" });
@@ -530,16 +529,13 @@ setCurrentUserName('System');
     };
     
     const deleteExpense = async (id: string) => {
-        const expenseToDelete = expenses.find(e => e.id === id);
-        if (!expenseToDelete) return; // Should not happen if called from UI
-
         try {
-            await deleteDoc(doc(db, 'expenses', id));
-            await addActivityLog({ action: 'Delete Expense', description: `Deleted expense: ${expenseToDelete.description} (PKR ${expenseToDelete.amount}).` });
-            toast({ title: "Expense Deleted", description: "The expense record has been deleted." });
-        } catch (e: any) {
-            console.error('Error deleting expense:', e);
-            toast({ title: 'Error Deleting Expense', description: e.message || 'Could not delete the expense record.', variant: 'destructive' });
+            const expenseRef = doc(db, 'expenses', id);
+            await deleteDoc(expenseRef);
+            await addActivityLog({ action: 'Delete Expense', description: `Deleted expense ID: ${id}.` });
+        } catch (error) {
+            console.error("Error deleting expense:", error);
+            toast({ title: "Error deleting expense", description: "Could not delete the expense record.", variant: "destructive" });
         }
     };
 
@@ -629,4 +625,3 @@ export function useData() {
   if (context === undefined) throw new Error('useData must be used within a DataProvider');
   return context;
 }
-
