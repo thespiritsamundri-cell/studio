@@ -94,17 +94,23 @@ export default function ExpensesPage() {
 
     if (dateRange?.from && dateRange?.to) {
       filtered = filtered.filter(e => {
+        if (!e.date) return false;
         const expenseDate = new Date(e.date);
         return expenseDate >= dateRange.from! && expenseDate <= dateRange.to!;
       });
     } else if (dateRange?.from) {
         filtered = filtered.filter(e => {
+            if (!e.date) return false;
             const expenseDate = new Date(e.date);
             return format(expenseDate, 'yyyy-MM-dd') === format(dateRange.from!, 'yyyy-MM-dd');
         });
     }
 
-    return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return filtered.sort((a, b) => {
+        const dateA = a.date ? new Date(a.date).getTime() : 0;
+        const dateB = b.date ? new Date(b.date).getTime() : 0;
+        return dateB - dateA;
+    });
   }, [expenses, dateRange, categoryFilter]);
   
   const totalExpenses = useMemo(() => {
@@ -145,8 +151,7 @@ export default function ExpensesPage() {
       updateExpense(selectedExpense.id, { ...selectedExpense, ...expenseData });
       toast({ title: 'Expense Updated', description: `Expense for ${expenseData.category} has been updated.` });
     } else {
-      const newId = `EXP-${Date.now()}`;
-      addExpense({ id: newId, ...expenseData });
+      addExpense(expenseData);
       toast({ title: 'Expense Added', description: `New expense of PKR ${expenseData.amount} has been added.` });
     }
     setOpenDialog(false);
@@ -203,9 +208,9 @@ export default function ExpensesPage() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
-              <div className="flex items-center gap-4 flex-grow w-full">
+              <div className="flex flex-col sm:flex-row items-center gap-4 flex-grow w-full">
                   <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                      <SelectTrigger className="w-full md:w-[180px]">
+                      <SelectTrigger className="w-full sm:w-[180px]">
                           <SelectValue placeholder="Filter by category..." />
                       </SelectTrigger>
                       <SelectContent>
@@ -215,7 +220,7 @@ export default function ExpensesPage() {
                   </Select>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button id="date" variant={"outline"} className={cn("w-full md:w-[300px] justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
+                      <Button id="date" variant={"outline"} className={cn("w-full sm:w-[300px] justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {dateRange?.from ? (dateRange.to ? (<>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</>) : (format(dateRange.from, "LLL dd, y"))) : (<span>Pick a date range</span>)}
                       </Button>
@@ -244,7 +249,7 @@ export default function ExpensesPage() {
                     {filteredExpenses.map((expense) => (
                     <TableRow key={expense.id}>
                         <TableCell>{expense.id}</TableCell>
-                        <TableCell className="font-medium">{format(new Date(expense.date), 'PPP')}</TableCell>
+                        <TableCell className="font-medium">{expense.date ? format(new Date(expense.date), 'PPP') : 'N/A'}</TableCell>
                         <TableCell>{expense.category}</TableCell>
                         <TableCell>{expense.description}</TableCell>
                         <TableCell>{expense.vendor || 'N/A'}</TableCell>
@@ -391,3 +396,5 @@ export default function ExpensesPage() {
     </div>
   );
 }
+
+    
