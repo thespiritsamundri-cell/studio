@@ -177,7 +177,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             setIsDataInitialized(false);
             setUserRole(null);
             setUserPermissions(defaultPermissions);
-            setCurrentUserName('System');
+setCurrentUserName('System');
             // Clear all data on logout
             [setStudents, setFamilies, setFees, setTeachers, setAttendances, setTeacherAttendances, setAlumni, setClasses, setExams, setActivityLog, setExpenses, setTimetables, setUsers, setNotifications].forEach(setter => setter([]));
         }
@@ -498,44 +498,91 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   };
   
-  // --- EXPENSE ---
-  const addExpense = async (expense: Omit<Expense, 'id'>) => {
-    try {
-      const newId = `EXP-${Date.now()}`;
-      await setDoc(doc(db, "expenses", newId), { id: newId, ...expense });
-      if (userRole !== 'super_admin') {
-        await addNotification({
-            title: 'New Expense Added',
-            description: `An expense of PKR ${expense.amount.toLocaleString()} for ${expense.category} was added.`,
-            link: `/expenses`
-        });
-      }
-      await addActivityLog({ action: 'Add Expense', description: `Added expense of PKR ${expense.amount} for ${expense.category}.` });
-    } catch (e) {
-      console.error('Error adding expense:', e);
-      toast({ title: 'Error Adding Expense', variant: 'destructive' });
-    }
-  };
-  const updateExpense = async (id: string, expense: Partial<Expense>) => {
-    try {
-        await setDoc(doc(db, 'expenses', id), expense, { merge: true });
-        await addActivityLog({ action: 'Update Expense', description: `Updated expense for ${expense.category || ''}.` });
-    } catch (e) {
-        console.error(`Error updating expense:`, e);
-        toast({ title: `Error updating expense`, variant: "destructive" });
-    }
-  };
-  const deleteExpense = async (id: string) => {
-    const expenseToDelete = expenses.find(e => e.id === id);
-    if (!expenseToDelete) return;
-    try {
-      await deleteDoc(doc(db, 'expenses', id));
-      await addActivityLog({ action: 'Delete Expense', description: `Deleted expense: ${expenseToDelete.description}.` });
-    } catch (e) {
-      console.error('Error deleting expense:', e);
-      toast({ title: 'Error Deleting Expense', variant: 'destructive' });
-    }
-  };
+    // --- EXPENSE ---
+    const addExpense = async (expense: Omit<Expense, 'id'>) => {
+        try {
+            const newId = `EXP-${Date.now()}`;
+            await setDoc(doc(db, "expenses", newId), { id: newId, ...expense });
+            if (userRole !== 'super_admin') {
+                await addNotification({
+                    title: 'New Expense Added',
+                    description: `An expense of PKR ${expense.amount.toLocaleString()} for ${expense.category} was added.`,
+                    link: `/expenses`
+                });
+            }
+            await addActivityLog({ action: 'Add Expense', description: `Added expense of PKR ${expense.amount} for ${expense.category}.` });
+        } catch (e) {
+            console.error('Error adding expense:', e);
+            toast({ title: 'Error Adding Expense', variant: 'destructive' });
+        }
+    };
+
+    const updateExpense = async (id: string, expenseData: Partial<Expense>) => {
+        const expenseRef = doc(db, 'expenses', id);
+        try {
+            await runTransaction(db, async (transaction) => {
+                const expenseDoc = await transaction.get(expenseRef);
+                if (!expenseDoc.exists()) {
+                    throw "Document does not exist!";
+                }
+
+                const oldAmount = expenseDoc.data().amount;
+                const newAmount = expenseData.amount;
+
+                transaction.set(expenseRef, expenseData, { merge: true });
+
+                if (newAmount !== undefined && newAmount < oldAmount) {
+                    const difference = oldAmount - newAmount;
+                    const reversalFee: Omit<Fee, 'id'> = {
+                        familyId: 'School', // Internal transaction
+                        amount: difference,
+                        month: `Expense Reversal`,
+                        year: new Date().getFullYear(),
+                        status: 'Paid',
+                        paymentDate: new Date().toISOString().split('T')[0],
+                        paymentMethod: 'Adjustment',
+                    };
+                    const newFeeRef = doc(collection(db, "fees"));
+                    transaction.set(newFeeRef, reversalFee);
+
+                    await addActivityLog({
+                        action: 'Expense Adjustment',
+                        description: `Adjusted expense, returning PKR ${difference.toLocaleString()} to income.`
+                    });
+                }
+            });
+            await addActivityLog({ action: 'Update Expense', description: `Updated expense for ${expenseData.category || ''}.` });
+
+        } catch (e) {
+            console.error(`Error updating expense:`, e);
+            toast({ title: `Error updating expense`, variant: "destructive" });
+        }
+    };
+    
+    const deleteExpense = async (id: string) => {
+        const expenseToDelete = expenses.find(e => e.id === id);
+        if (!expenseToDelete) return;
+        try {
+             const reversalFee: Omit<Fee, 'id'> = {
+                familyId: 'School', // Use a special ID for internal/school transactions
+                amount: expenseToDelete.amount,
+                month: 'Expense Reversal',
+                year: new Date().getFullYear(),
+                status: 'Paid',
+                paymentDate: new Date().toISOString().split('T')[0],
+                paymentMethod: 'Adjustment'
+            };
+
+            await addDoc(collection(db, "fees"), reversalFee);
+            await deleteDoc(doc(db, 'expenses', id));
+            
+            await addActivityLog({ action: 'Delete Expense', description: `Deleted expense: ${expenseToDelete.description} (PKR ${expenseToDelete.amount}). Amount returned to income.` });
+            
+        } catch (e) {
+            console.error('Error deleting expense:', e);
+            toast({ title: 'Error Deleting Expense', variant: 'destructive' });
+        }
+    };
 
   // --- ATTENDANCE ---
   const saveStudentAttendance = async (newAttendances: Attendance[], date: string, className: string) => {
