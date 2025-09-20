@@ -5,7 +5,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { db, auth } from '@/lib/firebase';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, writeBatch, query, where, getDocs, setDoc, getDoc, runTransaction } from 'firebase/firestore';
-import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData, Attendance, Alumni, Session, User, PermissionSet, AppNotification } from '@/lib/types';
+import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData, Attendance, Alumni, User, PermissionSet, AppNotification } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from './settings-context';
 import { createUserWithEmailAndPassword as createUserAuth, onAuthStateChanged } from 'firebase/auth';
@@ -501,7 +501,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // --- EXPENSE ---
   const addExpense = async (expense: Omit<Expense, 'id'>) => {
     try {
-      const newDocRef = await addDoc(collection(db, 'expenses'), expense);
+      const newId = `EXP-${Date.now()}`;
+      await setDoc(doc(db, "expenses", newId), { id: newId, ...expense });
       if (userRole !== 'super_admin') {
         await addNotification({
             title: 'New Expense Added',
