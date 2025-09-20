@@ -520,37 +520,7 @@ setCurrentUserName('System');
     const updateExpense = async (id: string, expenseData: Partial<Expense>) => {
         const expenseRef = doc(db, 'expenses', id);
         try {
-            await runTransaction(db, async (transaction) => {
-                const expenseDoc = await transaction.get(expenseRef);
-                if (!expenseDoc.exists()) {
-                    throw "Document does not exist!";
-                }
-
-                const oldAmount = expenseDoc.data().amount;
-                const newAmount = expenseData.amount;
-
-                transaction.set(expenseRef, expenseData, { merge: true });
-
-                if (newAmount !== undefined && newAmount < oldAmount) {
-                    const difference = oldAmount - newAmount;
-                    const reversalFee: Omit<Fee, 'id'> = {
-                        familyId: 'School', // Internal transaction
-                        amount: difference,
-                        month: `Expense Reversal`,
-                        year: new Date().getFullYear(),
-                        status: 'Paid',
-                        paymentDate: new Date().toISOString().split('T')[0],
-                        paymentMethod: 'Adjustment',
-                    };
-                    const newFeeRef = doc(collection(db, "fees"));
-                    transaction.set(newFeeRef, reversalFee);
-
-                    await addActivityLog({
-                        action: 'Expense Adjustment',
-                        description: `Adjusted expense, returning PKR ${difference.toLocaleString()} to income.`
-                    });
-                }
-            });
+            await setDoc(expenseRef, expenseData, { merge: true });
             await addActivityLog({ action: 'Update Expense', description: `Updated expense for ${expenseData.category || ''}.` });
 
         } catch (e) {
