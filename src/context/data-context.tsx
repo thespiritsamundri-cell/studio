@@ -520,23 +520,50 @@ setCurrentUserName('System');
     const updateExpense = async (id: string, expenseData: Partial<Expense>) => {
         const expenseRef = doc(db, 'expenses', id);
         try {
-            await setDoc(expenseRef, expenseData, { merge: true });
-            await addActivityLog({ action: 'Update Expense', description: `Updated expense for ${expenseData.category || ''}.` });
+            await runTransaction(db, async (transaction) => {
+                const expenseDoc = await transaction.get(expenseRef);
+                if (!expenseDoc.exists()) {
+                    throw "Document does not exist!";
+                }
+                const oldAmount = expenseDoc.data().amount || 0;
+                const newAmount = expenseData.amount;
+
+                if (typeof newAmount === 'number' && newAmount < oldAmount) {
+                    const difference = oldAmount - newAmount;
+                    const reversalFee: Omit<Fee, 'id'> = {
+                        familyId: 'School',
+                        amount: difference,
+                        month: `Reversal for expense edit: ${id}`,
+                        year: new Date().getFullYear(),
+                        status: 'Paid',
+                        paymentDate: new Date().toISOString().split('T')[0],
+                        paymentMethod: 'Adjustment'
+                    };
+                    const newFeeRef = doc(collection(db, 'fees'));
+                    transaction.set(newFeeRef, reversalFee);
+                }
+                transaction.update(expenseRef, expenseData);
+            });
+            await addActivityLog({ action: 'Update Expense', description: `Updated expense ID: ${id}.` });
+            toast({ title: 'Expense Updated' });
 
         } catch (e) {
             console.error(`Error updating expense:`, e);
-            toast({ title: `Error updating expense`, variant: "destructive" });
+            toast({ title: `Error updating expense: "${e}"`, variant: "destructive" });
         }
     };
     
     const deleteExpense = async (id: string) => {
         const expenseToDelete = expenses.find(e => e.id === id);
-        if (!expenseToDelete) return;
+        if (!expenseToDelete) {
+             toast({ title: 'Error', description: 'Expense not found.', variant: 'destructive'});
+             return;
+        }
         try {
              const reversalFee: Omit<Fee, 'id'> = {
-                familyId: 'School', // Use a special ID for internal/school transactions
+                familyId: 'School',
                 amount: expenseToDelete.amount,
-                month: 'Expense Reversal',
+                month: `Reversal for deleted expense: ${expenseToDelete.description}`,
                 year: new Date().getFullYear(),
                 status: 'Paid',
                 paymentDate: new Date().toISOString().split('T')[0],
@@ -547,6 +574,7 @@ setCurrentUserName('System');
             await deleteDoc(doc(db, 'expenses', id));
             
             await addActivityLog({ action: 'Delete Expense', description: `Deleted expense: ${expenseToDelete.description} (PKR ${expenseToDelete.amount}). Amount returned to income.` });
+            toast({ title: "Expense Deleted", description: "The expense record has been successfully deleted and the amount reversed to income." });
             
         } catch (e) {
             console.error('Error deleting expense:', e);
