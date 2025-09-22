@@ -3,110 +3,115 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
   
-    function isSignedIn() {
-      return request.auth != null;
+    // Helper function to get the user's role and permissions from the 'users' collection
+    function getUserData(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data;
     }
     
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-    
+    // Helper function to check if the user is a super_admin
     function isSuperAdmin() {
-      return getUserData().role == 'super_admin';
-    }
-    
-    function hasPermission(permission) {
-      return getUserData().permissions[permission] == true;
+      let userData = getUserData(request.auth.uid);
+      return userData.role == 'super_admin';
     }
 
-    // Settings are public read, but only super admin can write
-    match /Settings/{settingId} {
-        allow read: if true;
-        allow write: if isSignedIn() && isSuperAdmin();
+    // Helper function to check if the user has a specific permission
+    function hasPermission(permission) {
+      let userData = getUserData(request.auth.uid);
+      return userData.permissions[permission] == true;
+    }
+
+    // Default deny all reads/writes unless explicitly allowed
+    match /{document=**} {
+      allow read, write: if false;
     }
     
-    match /branding/{assetId} {
-        allow read: if true;
-        allow write: if isSignedIn() && isSuperAdmin();
+    // Allow any authenticated user to read their own user data
+    match /users/{userId} {
+      allow read: if request.auth.uid == userId;
+      // Only super_admin can write to user documents (for updating permissions)
+      allow write: if isSuperAdmin();
     }
     
-    // All signed-in users can read, but write access is permission-based
+    // Allow any authenticated user to read settings
+    match /Settings/{docId} {
+      allow read: if request.auth.uid != null;
+      allow write: if isSuperAdmin();
+    }
+    
+    match /branding/{docId} {
+        allow read: if request.auth.uid != null;
+        allow write: if isSuperAdmin();
+    }
+
+    // Activity Log & Notifications: Only super_admin can read all logs. Other authenticated users can create logs.
+    match /activityLog/{logId} {
+      allow list: if isSuperAdmin();
+      allow get: if isSuperAdmin();
+      allow create: if request.auth.uid != null;
+      allow delete, update: if isSuperAdmin(); // Only super_admin can clear history
+    }
+    
+    match /notifications/{notifId} {
+        allow read, write: if isSuperAdmin();
+    }
+
+    // --- Main Data Collections ---
+
+    match /families/{familyId} {
+        allow read: if hasPermission('families') || isSuperAdmin();
+        allow create, update, delete: if hasPermission('families') || isSuperAdmin();
+    }
+    
     match /students/{studentId} {
-      allow get, list: if isSignedIn();
-      allow create, update: if isSignedIn() && (hasPermission('admissions') || hasPermission('students') || isSuperAdmin());
-      allow delete: if isSignedIn() && (hasPermission('students') || isSuperAdmin());
+        allow read: if hasPermission('students') || isSuperAdmin();
+        allow create, update, delete: if hasPermission('admissions') || hasPermission('students') || isSuperAdmin();
     }
     
     match /alumni/{alumniId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn() && (hasPermission('alumni') || isSuperAdmin());
+        allow read: if hasPermission('alumni') || isSuperAdmin();
+        allow create, update, delete: if hasPermission('alumni') || hasPermission('admissions') || isSuperAdmin();
     }
 
-    match /families/{familyId} {
-      allow get, list: if isSignedIn();
-      allow create, update: if isSignedIn() && (hasPermission('families') || isSuperAdmin());
-      allow delete: if isSignedIn() && (hasPermission('families') || isSuperAdmin());
-    }
-    
     match /classes/{classId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn() && (hasPermission('classes') || isSuperAdmin());
+        allow read: if request.auth.uid != null;
+        allow create, update, delete: if hasPermission('classes') || isSuperAdmin();
     }
     
     match /teachers/{teacherId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn() && (hasPermission('teachers') || isSuperAdmin());
-    }
-
-    match /fees/{feeId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn() && (hasPermission('feeCollection') || hasPermission('income') || isSuperAdmin());
+        allow read: if request.auth.uid != null;
+        allow create, update, delete: if hasPermission('teachers') || isSuperAdmin();
     }
     
-    match /expenses/{expenseId} {
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn() && (hasPermission('expenses') || isSuperAdmin());
-      allow update: if isSignedIn() && (hasPermission('expenses') || isSuperAdmin());
-      allow delete: if isSignedIn() && (hasPermission('expenses') || isSuperAdmin());
-    }
-    
-    match /attendances/{attendanceId} {
-      allow get, list: if isSignedIn();
-      allow create, update: if isSignedIn() && (hasPermission('attendance') || isSuperAdmin());
-    }
-    
-    match /teacherAttendances/{attendanceId} {
-      allow get, list: if isSignedIn();
-      allow create, update: if isSignedIn() && (hasPermission('attendance') || isSuperAdmin());
+    match /timetables/{timetableId} {
+        allow read: if request.auth.uid != null;
+        allow create, update, delete: if hasPermission('timetable') || isSuperAdmin();
     }
     
     match /exams/{examId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn() && (hasPermission('examSystem') || isSuperAdmin());
+        allow read: if hasPermission('examSystem') || isSuperAdmin();
+        allow create, update, delete: if hasPermission('examSystem') || isSuperAdmin();
+    }
+    
+    match /fees/{feeId} {
+        allow read: if hasPermission('feeCollection') || hasPermission('income') || isSuperAdmin();
+        allow create, update, delete: if hasPermission('feeCollection') || isSuperAdmin();
+    }
+    
+    match /expenses/{expenseId} {
+        allow read: if hasPermission('expenses') || isSuperAdmin();
+        allow create, update, delete: if hasPermission('expenses') || isSuperAdmin();
     }
 
-    match /timetables/{timetableId} {
-      allow get, list: if isSignedIn();
-      allow create, update: if isSignedIn() && (hasPermission('timetable') || isSuperAdmin());
+    match /attendances/{attendanceId} {
+        allow read: if hasPermission('attendance') || isSuperAdmin();
+        allow create, update: if hasPermission('attendance') || isSuperAdmin();
+        allow delete: if isSuperAdmin();
     }
 
-    match /activityLog/{logId} {
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn(); // Any signed-in user can generate logs
-      allow delete: if isSignedIn() && isSuperAdmin(); // Only super admin can clear
+    match /teacherAttendances/{attendanceId} {
+        allow read: if hasPermission('attendance') || isSuperAdmin();
+        allow create, update: if hasPermission('attendance') || isSuperAdmin();
+        allow delete: if isSuperAdmin();
     }
-    
-    match /users/{userId} {
-       allow read, write: if isSignedIn() && isSuperAdmin();
-       // Allow users to update their own profile, but not change role/permissions
-       allow update: if isSignedIn() && request.auth.uid == userId 
-                    && !('role' in request.resource.data) 
-                    && !('permissions' in request.resource.data);
-    }
-    
-    match /notifications/{notificationId} {
-      allow read, create, update, delete: if isSignedIn() && isSuperAdmin();
-    }
-    
   }
 }
