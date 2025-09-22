@@ -156,11 +156,11 @@ export function Header() {
       <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
         <div className="flex items-center gap-2">
           <SidebarTrigger />
-          <h1 className="text-xl font-semibold hidden md:block">{pageTitle}</h1>
+          <h1 className="text-xl font-semibold hidden sm:block">{pageTitle}</h1>
         </div>
 
         {/* Mobile Header Layout */}
-        <div className="flex-1 flex md:hidden items-center justify-center gap-1">
+        <div className="flex-1 flex sm:hidden items-center justify-center gap-1">
           <div className="relative flex-grow max-w-[200px]">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -181,7 +181,7 @@ export function Header() {
         </div>
 
         {/* Desktop Header Layout */}
-        <div className="hidden md:flex flex-1 items-center justify-end gap-2 md:gap-4">
+        <div className="hidden sm:flex flex-1 items-center justify-end gap-2 md:gap-4">
           <div className="relative flex-grow-0">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
