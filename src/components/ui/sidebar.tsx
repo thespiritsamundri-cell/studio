@@ -97,7 +97,19 @@ const SidebarProvider = React.forwardRef<
   ) => {
     const isMobile = useIsMobile()
     const [openMobile, setOpenMobile] = React.useState(false)
-    const [isPinned, setIsPinned] = useLocalStorage("sidebar-pinned", false);
+    const [isPinned, setIsPinned] = useLocalStorage("sidebar-pinned", !isMobile);
+
+    React.useEffect(() => {
+      if(isMobile) {
+        setIsPinned(false);
+      } else {
+        // Optional: set a default for desktop if it wasn't set before
+        const storedPin = localStorage.getItem("sidebar-pinned");
+        if(storedPin === null) {
+          setIsPinned(true);
+        }
+      }
+    }, [isMobile, setIsPinned]);
 
     // State to manage client-side readiness
     const [isClient, setIsClient] = React.useState(false);
@@ -212,7 +224,7 @@ const Sidebar = React.forwardRef<
         data-sidebar="sidebar"
         data-pinned={isPinned}
         className={cn(
-            "group/sidebar hidden md:flex flex-col h-screen bg-sidebar text-sidebar-foreground sticky top-0 transition-all duration-300 ease-in-out",
+            "group/sidebar hidden sm:flex flex-col h-screen bg-sidebar text-sidebar-foreground sticky top-0 transition-all duration-300 ease-in-out",
             isPinned ? "w-[--sidebar-width]" : "w-[--sidebar-width-icon] hover:w-[--sidebar-width] hover:shadow-lg",
             className
         )}
@@ -237,7 +249,7 @@ const SidebarTrigger = React.forwardRef<
       data-sidebar="trigger"
       variant="ghost"
       size="icon"
-      className={cn("md:hidden h-7 w-7", className)}
+      className={cn("sm:hidden h-7 w-7", className)}
       onClick={(event) => {
         onClick?.(event)
         toggleMobile()
