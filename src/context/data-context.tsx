@@ -5,7 +5,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { db, auth } from '@/lib/firebase';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, writeBatch, query, where, getDocs, setDoc, getDoc, runTransaction } from 'firebase/firestore';
-import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData, Attendance, Alumni, User, PermissionSet, AppNotification } from '@/lib/types';
+import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData, Attendance, Alumni, User, PermissionSet, AppNotification, Session } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from './settings-context';
 import { createUserWithEmailAndPassword as createUserAuth, onAuthStateChanged } from 'firebase/auth';
@@ -33,6 +33,7 @@ interface DataContextType {
   expenses: Expense[];
   timetables: Timetable[];
   users: User[];
+  sessions: Session[];
   notifications: AppNotification[];
   userRole: User['role'] | null;
   userPermissions: PermissionSet;
@@ -67,6 +68,7 @@ interface DataContextType {
   updateTimetable: (classId: string, data: TimetableData, timeSlots?: string[], breakAfterPeriod?: number, breakDuration?: string) => Promise<void>;
   updateUser: (id: string, data: Partial<User>) => Promise<void>;
   createUser: (email: string, pass: string, name: string, permissions: PermissionSet) => Promise<void>;
+  signOutSession: (sessionId: string) => Promise<void>;
   addNotification: (notification: Omit<AppNotification, 'id' | 'timestamp' | 'isRead'>) => Promise<void>;
   markNotificationAsRead: (id: string) => Promise<void>;
   loadData: (data: any) => Promise<void>;
@@ -105,6 +107,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [timetables, setTimetables] = useState<Timetable[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [userRole, setUserRole] = useState<User['role'] | null>(null);
   const [userPermissions, setUserPermissions] = useState<PermissionSet>(defaultPermissions);
@@ -129,22 +132,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 const generalCollections = [
                     'students', 'families', 'fees', 'teachers', 'attendances', 
                     'teacherAttendances', 'alumni', 'classes', 'exams', 'activityLog', 
-                    'expenses', 'timetables', 'users'
+                    'expenses', 'timetables', 'users', 'sessions'
                 ];
                 
                 const setterMap: { [key: string]: React.Dispatch<React.SetStateAction<any[]>> } = {
                     students: setStudents, families: setFamilies, fees: setFees, teachers: setTeachers,
                     attendances: setAttendances, teacherAttendances: setTeacherAttendances, alumni: setAlumni,
                     classes: setClasses, exams: setExams, activityLog: setActivityLog, expenses: setExpenses,
-                    timetables: setTimetables, users: setUsers, notifications: setNotifications
+                    timetables: setTimetables, users: setUsers, sessions: setSessions, notifications: setNotifications
                 };
             
                 const listeners = generalCollections.map(collectionName => {
                     const setter = setterMap[collectionName];
-                    return onSnapshot(collection(db, collectionName), (snapshot) => {
+                    let q = collection(db, collectionName);
+                    // For sessions, only fetch for the current user
+                    if (collectionName === 'sessions') {
+                       q = query(q, where('userId', '==', user.uid));
+                    }
+
+                    return onSnapshot(q, (snapshot) => {
                         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                        if (collectionName === 'activityLog') {
-                            data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+                        if (['activityLog', 'sessions'].includes(collectionName)) {
+                            data.sort((a, b) => new Date(b.lastAccess || b.timestamp).getTime() - new Date(a.lastAccess || a.timestamp).getTime());
                         }
                         setter(data as any);
                     }, (error) => console.error(`Error fetching ${collectionName}:`, error));
@@ -177,9 +186,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
             setIsDataInitialized(false);
             setUserRole(null);
             setUserPermissions(defaultPermissions);
-setCurrentUserName('System');
-            // Clear all data on logout
-            [setStudents, setFamilies, setFees, setTeachers, setAttendances, setTeacherAttendances, setAlumni, setClasses, setExams, setActivityLog, setExpenses, setTimetables, setUsers, setNotifications].forEach(setter => setter([]));
+            setCurrentUserName('System');
+            [setStudents, setFamilies, setFees, setTeachers, setAttendances, setTeacherAttendances, setAlumni, setClasses, setExams, setActivityLog, setExpenses, setTimetables, setUsers, setSessions, setNotifications].forEach(setter => setter([]));
         }
     });
 
@@ -259,6 +267,14 @@ setCurrentUserName('System');
       }
   };
   const updateUser = updateDocFactory<User>('users', 'Update User Permissions', d => `Updated permissions for ${d.email}.`);
+  const signOutSession = async (sessionId: string) => {
+     try {
+        await deleteDoc(doc(db, 'sessions', sessionId));
+        await addActivityLog({ action: 'Sign Out Session', description: `Remotely signed out session ${sessionId}.` });
+     } catch (e) {
+        console.error("Error signing out session: ", e);
+     }
+  }
 
 
   // --- STUDENT ---
@@ -423,10 +439,73 @@ setCurrentUserName('System');
     try { await setDoc(doc(db, 'fees', id), feeData, { merge: true }); } 
     catch(e) { console.error('Error updating fee', e); toast({ title: 'Error Updating Fee', variant: 'destructive' }); }
   };
-  const deleteFee = async (id: string) => {
-     try { await deleteDoc(doc(db, 'fees', id)); } 
-     catch(e) { console.error('Error deleting fee', e); }
-  };
+    const deleteFee = async (id: string) => {
+    const feeToDelete = fees.find(f => f.id === id && f.status === 'Paid');
+    if (!feeToDelete) {
+        toast({ title: 'Error', description: 'Cannot reverse fee. Paid fee record not found.', variant: 'destructive' });
+        return;
+    }
+
+    try {
+        await runTransaction(db, async (transaction) => {
+            const paidFeeRef = doc(db, 'fees', id);
+            
+            // 1. Get the paid fee doc to ensure it exists before proceeding
+            const paidFeeDoc = await transaction.get(paidFeeRef);
+            if (!paidFeeDoc.exists()) {
+                throw new Error("Paid fee document not found. It may have already been deleted.");
+            }
+            const paidFeeData = paidFeeDoc.data() as Fee;
+
+            // 2. Decide whether to update an existing challan or create a new one
+            if (paidFeeData.originalChallanId) {
+                const originalChallanRef = doc(db, 'fees', paidFeeData.originalChallanId);
+                const originalChallanDoc = await transaction.get(originalChallanRef);
+
+                if (originalChallanDoc.exists()) {
+                    // Original challan exists (was partially paid), add the amount back
+                    const currentAmount = originalChallanDoc.data().amount || 0;
+                    transaction.update(originalChallanRef, { amount: currentAmount + paidFeeData.amount });
+                } else {
+                    // Original challan does not exist, create a new unpaid record
+                    const newUnpaidFee: Omit<Fee, 'id'> = {
+                        familyId: paidFeeData.familyId,
+                        amount: paidFeeData.amount,
+                        month: paidFeeData.month,
+                        year: paidFeeData.year,
+                        status: 'Unpaid',
+                        paymentDate: '',
+                    };
+                    const newFeeRef = doc(collection(db, 'fees'));
+                    transaction.set(newFeeRef, newUnpaidFee);
+                }
+            } else {
+                 // No original challan ID, so it was a direct payment or old record. Create a new unpaid fee.
+                 const newUnpaidFee: Omit<Fee, 'id'> = {
+                    familyId: paidFeeData.familyId,
+                    amount: paidFeeData.amount,
+                    month: paidFeeData.month,
+                    year: paidFeeData.year,
+                    status: 'Unpaid',
+                    paymentDate: '',
+                };
+                const newFeeRef = doc(collection(db, 'fees'));
+                transaction.set(newFeeRef, newUnpaidFee);
+            }
+
+            // 3. Delete the 'Paid' fee record
+            transaction.delete(paidFeeRef);
+        });
+
+        toast({ title: "Income Reversed", description: `PKR ${feeToDelete.amount.toLocaleString()} has been added back to Family ${feeToDelete.familyId}'s dues.` });
+        await addActivityLog({ action: 'Reverse Income', description: `Reversed income of PKR ${feeToDelete.amount.toLocaleString()} for Family ID ${feeToDelete.familyId}.` });
+
+    } catch (e: any) {
+        console.error('Error reversing fee:', e);
+        toast({ title: 'Error Reversing Income', description: e.message || "An unknown error occurred.", variant: 'destructive' });
+    }
+};
+
   
   // --- TEACHER ---
   const addTeacher = async (teacher: Omit<Teacher, 'id'>) => {
@@ -529,37 +608,45 @@ setCurrentUserName('System');
     };
     
     const deleteExpense = async (id: string) => {
-        const expenseToDelete = expenses.find(exp => exp.id === id);
-        if (!expenseToDelete) {
-             toast({ title: 'Error', description: 'Could not find expense to delete.', variant: 'destructive' });
-            return;
-        }
+    const expenseToDelete = expenses.find(exp => exp.id === id);
+    if (!expenseToDelete) {
+        toast({ title: 'Error', description: 'Could not find the expense to delete in local data.', variant: 'destructive' });
+        return;
+    }
 
-        const reversalFee: Omit<Fee, 'id'> = {
-            familyId: 'SYSTEM_REVERSAL',
-            amount: expenseToDelete.amount,
-            month: `Expense Reversal: ${expenseToDelete.description.substring(0, 20)}`,
-            year: new Date().getFullYear(),
-            paymentDate: new Date().toISOString(),
-            status: 'Paid',
-            paymentMethod: 'Adjustment',
-        };
+    try {
+        await runTransaction(db, async (transaction) => {
+            const expenseRef = doc(db, "expenses", id);
+            
+            // We use the local data `expenseToDelete` to construct the reversal.
+            // This avoids a `get` call inside the transaction which can cause contention issues.
+            // This assumes the local state is reasonably up-to-date.
+            
+            // Create reversal income record
+            const reversalFee: Omit<Fee, 'id'> = {
+                familyId: 'SYSTEM_REVERSAL',
+                amount: expenseToDelete.amount,
+                month: `Expense Reversal: ${expenseToDelete.description.substring(0, 20)}`,
+                year: new Date().getFullYear(),
+                paymentDate: new Date().toISOString(),
+                status: 'Paid',
+                paymentMethod: 'Adjustment',
+            };
+            const newFeeRef = doc(collection(db, "fees"));
+            transaction.set(newFeeRef, reversalFee);
 
-        try {
-            // First, add the reversal income record
-            await addDoc(collection(db, "fees"), reversalFee);
+            // Delete the expense document
+            transaction.delete(expenseRef);
+        });
 
-            // Then, delete the expense document
-            await deleteDoc(doc(db, "expenses", id));
+        toast({ title: "Expense Deleted", description: "The expense has been deleted and the amount reversed into income." });
+        await addActivityLog({ action: 'Delete Expense', description: `Deleted and reversed expense ID: ${id}.` });
 
-            await addActivityLog({ action: 'Delete Expense', description: `Deleted and reversed expense ID: ${id}.` });
-            toast({ title: "Expense Deleted", description: "The expense has been deleted and the amount reversed into income." });
-
-        } catch (error: any) {
-            console.error("Error deleting expense and creating reversal:", error);
-            toast({ title: "Error Deleting Expense", description: error.message, variant: "destructive" });
-        }
-    };
+    } catch (error: any) {
+        console.error("Error deleting expense:", error);
+        toast({ title: "Error Deleting Expense", description: error.message, variant: "destructive" });
+    }
+};
 
   // --- ATTENDANCE ---
   const saveStudentAttendance = async (newAttendances: Attendance[], date: string, className: string) => {
@@ -628,14 +715,14 @@ setCurrentUserName('System');
 
   const contextValue = {
       students, families, fees, teachers, attendances, teacherAttendances, alumni,
-      classes, exams, activityLog, expenses, timetables, users, notifications,
+      classes, exams, activityLog, expenses, timetables, users, sessions, notifications,
       userRole, userPermissions, isDataInitialized, hasPermission,
       addStudent, updateStudent, updateAlumni, deleteStudent, addFamily, updateFamily, 
       deleteFamily, addFee, updateFee, deleteFee, addTeacher, updateTeacher,
       deleteTeacher, saveStudentAttendance, saveTeacherAttendance, addClass,
       updateClass, deleteClass, addExam, updateExam, deleteExam, addActivityLog,
       clearActivityLog, addExpense, updateExpense, deleteExpense, updateTimetable,
-      updateUser, createUser, addNotification, markNotificationAsRead,
+      updateUser, createUser, signOutSession, addNotification, markNotificationAsRead,
       loadData, seedDatabase, deleteAllData,
   };
 
@@ -647,3 +734,4 @@ export function useData() {
   if (context === undefined) throw new Error('useData must be used within a DataProvider');
   return context;
 }
+
