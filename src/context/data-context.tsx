@@ -529,35 +529,34 @@ setCurrentUserName('System');
     };
     
     const deleteExpense = async (id: string) => {
-        try {
-            await runTransaction(db, async (transaction) => {
-                const expenseRef = doc(db, "expenses", id);
-                const expenseDoc = await transaction.get(expenseRef);
+        const expenseToDelete = expenses.find(exp => exp.id === id);
+        if (!expenseToDelete) {
+             toast({ title: 'Error', description: 'Could not find expense to delete.', variant: 'destructive' });
+            return;
+        }
 
-                if (!expenseDoc.exists()) {
-                    throw new Error("Expense document not found, cannot delete.");
-                }
-                const expenseToDelete = expenseDoc.data() as Expense;
-                
-                const reversalFee: Omit<Fee, 'id'> = {
-                    familyId: 'SYSTEM_REVERSAL',
-                    amount: expenseToDelete.amount,
-                    month: `Expense Reversal: ${expenseToDelete.description.substring(0, 20)}`,
-                    year: new Date().getFullYear(),
-                    paymentDate: new Date().toISOString(),
-                    status: 'Paid',
-                    paymentMethod: 'Adjustment',
-                };
-                
-                const newFeeRef = doc(collection(db, "fees"));
-                transaction.set(newFeeRef, reversalFee);
-                transaction.delete(expenseRef);
-            });
+        const reversalFee: Omit<Fee, 'id'> = {
+            familyId: 'SYSTEM_REVERSAL',
+            amount: expenseToDelete.amount,
+            month: `Expense Reversal: ${expenseToDelete.description.substring(0, 20)}`,
+            year: new Date().getFullYear(),
+            paymentDate: new Date().toISOString(),
+            status: 'Paid',
+            paymentMethod: 'Adjustment',
+        };
+
+        try {
+            // First, add the reversal income record
+            await addDoc(collection(db, "fees"), reversalFee);
+
+            // Then, delete the expense document
+            await deleteDoc(doc(db, "expenses", id));
 
             await addActivityLog({ action: 'Delete Expense', description: `Deleted and reversed expense ID: ${id}.` });
             toast({ title: "Expense Deleted", description: "The expense has been deleted and the amount reversed into income." });
+
         } catch (error: any) {
-            console.error("Error deleting expense:", error);
+            console.error("Error deleting expense and creating reversal:", error);
             toast({ title: "Error Deleting Expense", description: error.message, variant: "destructive" });
         }
     };
