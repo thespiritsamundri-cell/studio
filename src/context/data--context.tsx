@@ -617,16 +617,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
     try {
         await runTransaction(db, async (transaction) => {
             const expenseRef = doc(db, "expenses", id);
-            
-            // We use the local data `expenseToDelete` to construct the reversal.
-            // This avoids a `get` call inside the transaction which can cause contention issues.
-            // This assumes the local state is reasonably up-to-date.
-            
+            const expenseDoc = await transaction.get(expenseRef);
+
+            if (!expenseDoc.exists()) {
+                throw new Error("Expense document not found, cannot delete.");
+            }
+            const expenseData = expenseDoc.data() as Expense;
+
             // Create reversal income record
             const reversalFee: Omit<Fee, 'id'> = {
                 familyId: 'SYSTEM_REVERSAL',
-                amount: expenseToDelete.amount,
-                month: `Expense Reversal: ${expenseToDelete.description.substring(0, 20)}`,
+                amount: expenseData.amount,
+                month: `Expense Reversal: ${expenseData.description.substring(0, 20)}`,
                 year: new Date().getFullYear(),
                 paymentDate: new Date().toISOString(),
                 status: 'Paid',
@@ -734,4 +736,3 @@ export function useData() {
   if (context === undefined) throw new Error('useData must be used within a DataProvider');
   return context;
 }
-

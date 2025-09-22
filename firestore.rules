@@ -3,101 +3,110 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper function to check user role
-    function isRole(role) {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+  
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSuperAdmin() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
     }
     
-    // Helper function to check specific permission
     function hasPermission(permission) {
-        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions[permission] == true;
+      let userPermissions = get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions;
+      return userPermissions[permission] == true;
     }
-
-    // Super admins can do anything
+    
+    // Allow super_admin to read/write anything
     match /{document=**} {
-      allow read, write: if isRole('super_admin');
-    }
-
-    // Rules for non-super admins
-    
-    match /Settings/{docId} {
-        allow read: if request.auth != null;
-        allow write: if isRole('super_admin') || hasPermission('settings');
+      allow read, write: if isSuperAdmin();
     }
     
+    // USERS: Only signed in users can see their own data, only super_admin can write.
     match /users/{userId} {
-        allow read: if request.auth != null;
-        allow list: if isRole('super_admin');
-        allow create, update: if isRole('super_admin');
+      allow read: if isSignedIn();
+      allow write: if isSuperAdmin();
     }
     
-    match /activityLog/{logId} {
-        allow read, list, create: if hasPermission('settings');
-        allow delete: if isRole('super_admin');
+    // SESSIONS: Users can manage their own sessions.
+    match /sessions/{sessionId} {
+      allow read, write: if isSignedIn() && request.auth.uid == resource.data.userId;
     }
     
-    match /notifications/{notifId} {
-        allow read, list, create, update: if isRole('super_admin');
+    // SETTINGS: Any signed-in user can read, only admin can write.
+    match /Settings/{docId} {
+      allow read: if isSignedIn();
+      allow write: if hasPermission('settings');
     }
 
-    match /students/{studentId} {
-      allow read, list: if hasPermission('students');
-      allow create: if hasPermission('admissions');
-      allow update: if hasPermission('students');
+    // BRANDING: Any signed-in user can read, only admin can write.
+    match /branding/{docId} {
+        allow read: if isSignedIn();
+        allow write: if hasPermission('settings');
     }
     
-    match /alumni/{alumniId} {
-      allow read, list: if hasPermission('alumni');
-      allow create, update: if hasPermission('students'); // a student is updated to become an alumnus
+    // NOTIFICATIONS: only super_admin can manage.
+    match /notifications/{docId} {
+      allow read, write: if isSuperAdmin();
+    }
+    
+    // ACTIVITY LOG: only super_admin can read/write
+    match /activityLog/{logId} {
+        allow read, write: if isSuperAdmin();
+    }
+
+    // GENERAL COLLECTIONS
+    match /students/{studentId} {
+      allow read: if hasPermission('students');
+      allow create, update: if hasPermission('admissions');
+      allow delete: if hasPermission('archived');
+    }
+    
+    match /alumni/{alumnusId} {
+      allow read: if hasPermission('alumni');
+      allow write: if hasPermission('admissions'); // To reactivate
     }
     
     match /families/{familyId} {
-        allow read, list: if hasPermission('families');
-        allow create, update: if hasPermission('families');
-        allow delete: if isRole('super_admin'); // Deleting a family deletes students, requires high privilege
-    }
-    
-    match /teachers/{teacherId} {
-        allow read, list: if hasPermission('teachers');
-        allow create, update, delete: if hasPermission('teachers');
+      allow read, write: if hasPermission('families');
+      allow delete: if hasPermission('archived');
     }
     
     match /classes/{classId} {
-        allow read, list: if request.auth != null;
-        allow create, update, delete: if hasPermission('classes');
+        allow read, write: if hasPermission('classes');
+    }
+
+    match /teachers/{teacherId} {
+        allow read, write: if hasPermission('teachers');
+    }
+    
+    match /timetable/{timetableId} {
+        allow read, write: if hasPermission('timetable');
     }
     
     match /exams/{examId} {
-        allow read, list: if hasPermission('examSystem');
-        allow create, update, delete: if hasPermission('examSystem');
-    }
-
-    match /expenses/{expenseId} {
-        allow read, list, create: if hasPermission('expenses');
-        allow update: if hasPermission('expenses');
-        // Deleting an expense also creates a fee record, so user needs both permissions
-        allow delete: if hasPermission('expenses') && hasPermission('income');
-    }
-
-    match /fees/{feeId} {
-        allow read, list: if hasPermission('feeCollection') || hasPermission('income');
-        allow create, update: if hasPermission('feeCollection');
-        allow delete: if hasPermission('feeCollection');
+        allow read, write: if hasPermission('examSystem');
     }
     
     match /attendances/{attendanceId} {
-        allow read, list: if hasPermission('attendance');
-        allow create, update: if hasPermission('attendance');
+        allow read, write: if hasPermission('attendance');
     }
-    
+
     match /teacherAttendances/{attendanceId} {
-        allow read, list: if hasPermission('attendance');
-        allow create, update: if hasPermission('attendance');
+        allow read, write: if hasPermission('attendance');
     }
     
-    match /timetables/{timetableId} {
-        allow read, list, create, update: if hasPermission('timetable');
+    match /expenses/{expenseId} {
+      allow read: if hasPermission('expenses');
+      allow create, update: if hasPermission('expenses');
+      // Allow delete if user has both income and expenses permission for reversal
+      allow delete: if hasPermission('expenses') && hasPermission('income');
+    }
+    
+    match /fees/{feeId} {
+      allow read: if hasPermission('income') || hasPermission('feeCollection');
+      // Allow write for fee collection, income management, and expense reversal
+      allow write: if hasPermission('feeCollection') || hasPermission('income') || (hasPermission('expenses') && hasPermission('income'));
     }
   }
 }
