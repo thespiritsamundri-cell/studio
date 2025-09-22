@@ -530,12 +530,37 @@ setCurrentUserName('System');
     
     const deleteExpense = async (id: string) => {
         try {
-            const expenseRef = doc(db, 'expenses', id);
-            await deleteDoc(expenseRef);
-            await addActivityLog({ action: 'Delete Expense', description: `Deleted expense ID: ${id}.` });
-        } catch (error) {
+            await runTransaction(db, async (transaction) => {
+                const expenseRef = doc(db, "expenses", id);
+                const expenseDoc = await transaction.get(expenseRef);
+
+                if (!expenseDoc.exists()) {
+                    throw new Error("Expense document not found, cannot delete.");
+                }
+                const expenseToDelete = expenseDoc.data() as Expense;
+
+                // 1. Create a reversal income record (as a fee)
+                const reversalFee: Omit<Fee, 'id'> = {
+                    familyId: 'SYSTEM_REVERSAL', // Special ID for system-generated records
+                    amount: expenseToDelete.amount,
+                    month: `Expense Reversal: ${expenseToDelete.description.substring(0, 20)}`,
+                    year: new Date().getFullYear(),
+                    paymentDate: new Date().toISOString(),
+                    status: 'Paid',
+                    paymentMethod: 'Adjustment',
+                };
+                const newFeeRef = doc(collection(db, "fees")); // Create a new doc reference for the fee
+                transaction.set(newFeeRef, reversalFee);
+
+                // 2. Delete the original expense document
+                transaction.delete(expenseRef);
+            });
+
+            await addActivityLog({ action: 'Delete Expense', description: `Deleted and reversed expense ID: ${id}.` });
+            toast({ title: "Expense Deleted", description: "The expense has been deleted and the amount reversed." });
+        } catch (error: any) {
             console.error("Error deleting expense:", error);
-            toast({ title: "Error deleting expense", description: "Could not delete the expense record.", variant: "destructive" });
+            toast({ title: "Error Deleting Expense", description: error.message, variant: "destructive" });
         }
     };
 
