@@ -529,32 +529,33 @@ setCurrentUserName('System');
     };
     
     const deleteExpense = async (id: string) => {
+        const expenseToDelete = expenses.find(exp => exp.id === id);
+        if (!expenseToDelete) {
+             toast({ title: "Error", description: "Could not find the expense to delete.", variant: "destructive"});
+             return;
+        }
+
         try {
-            await runTransaction(db, async (transaction) => {
-                const expenseRef = doc(db, "expenses", id);
-                const expenseDoc = await transaction.get(expenseRef);
+            const batch = writeBatch(db);
 
-                if (!expenseDoc.exists()) {
-                    throw new Error("Expense document not found, cannot delete.");
-                }
-                const expenseToDelete = expenseDoc.data() as Expense;
+            // 1. Create a reversal income record (as a fee)
+            const reversalFee: Omit<Fee, 'id'> = {
+                familyId: 'SYSTEM_REVERSAL', // Special ID
+                amount: expenseToDelete.amount,
+                month: `Expense Reversal: ${expenseToDelete.description.substring(0, 20)}`,
+                year: new Date().getFullYear(),
+                paymentDate: new Date().toISOString(),
+                status: 'Paid',
+                paymentMethod: 'Adjustment',
+            };
+            const newFeeRef = doc(collection(db, "fees")); // Create ref for new fee
+            batch.set(newFeeRef, reversalFee);
 
-                // 1. Create a reversal income record (as a fee)
-                const reversalFee: Omit<Fee, 'id'> = {
-                    familyId: 'SYSTEM_REVERSAL', // Special ID for system-generated records
-                    amount: expenseToDelete.amount,
-                    month: `Expense Reversal: ${expenseToDelete.description.substring(0, 20)}`,
-                    year: new Date().getFullYear(),
-                    paymentDate: new Date().toISOString(),
-                    status: 'Paid',
-                    paymentMethod: 'Adjustment',
-                };
-                const newFeeRef = doc(collection(db, "fees")); // Create a new doc reference for the fee
-                transaction.set(newFeeRef, reversalFee);
-
-                // 2. Delete the original expense document
-                transaction.delete(expenseRef);
-            });
+            // 2. Delete the original expense document
+            const expenseRef = doc(db, "expenses", id);
+            batch.delete(expenseRef);
+            
+            await batch.commit();
 
             await addActivityLog({ action: 'Delete Expense', description: `Deleted and reversed expense ID: ${id}.` });
             toast({ title: "Expense Deleted", description: "The expense has been deleted and the amount reversed." });
