@@ -5,7 +5,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { db, auth } from '@/lib/firebase';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, writeBatch, query, where, getDocs, setDoc, getDoc, runTransaction } from 'firebase/firestore';
-import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData, Attendance, Alumni, Session, User, PermissionSet, AppNotification } from '@/lib/types';
+import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData, Attendance, Alumni, User, PermissionSet, AppNotification } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from './settings-context';
 import { createUserWithEmailAndPassword as createUserAuth, onAuthStateChanged } from 'firebase/auth';
@@ -177,7 +177,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             setIsDataInitialized(false);
             setUserRole(null);
             setUserPermissions(defaultPermissions);
-            setCurrentUserName('System');
+setCurrentUserName('System');
             // Clear all data on logout
             [setStudents, setFamilies, setFees, setTeachers, setAttendances, setTeacherAttendances, setAlumni, setClasses, setExams, setActivityLog, setExpenses, setTimetables, setUsers, setNotifications].forEach(setter => setter([]));
         }
@@ -265,7 +265,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addStudent = async (student: Student) => {
     try {
       await setDoc(doc(db, "students", student.id), student);
-      await addActivityLog({ action: 'Add Student', description: `Admitted new student: ${student.name} (ID: ${student.id}) in Class ${student.class}.` });
       if (userRole !== 'super_admin') {
         await addNotification({
             title: 'New Admission',
@@ -499,43 +498,68 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   };
   
-  // --- EXPENSE ---
-  const addExpense = async (expense: Omit<Expense, 'id'>) => {
-    try {
-      const newDocRef = await addDoc(collection(db, 'expenses'), expense);
-      if (userRole !== 'super_admin') {
-        await addNotification({
-            title: 'New Expense Added',
-            description: `An expense of PKR ${expense.amount.toLocaleString()} for ${expense.category} was added.`,
-            link: `/expenses`
-        });
-      }
-      await addActivityLog({ action: 'Add Expense', description: `Added expense of PKR ${expense.amount} for ${expense.category}.` });
-    } catch (e) {
-      console.error('Error adding expense:', e);
-      toast({ title: 'Error Adding Expense', variant: 'destructive' });
-    }
-  };
-  const updateExpense = async (id: string, expense: Partial<Expense>) => {
-    try {
-        await updateDoc(doc(db, 'expenses', id), expense);
-        await addActivityLog({ action: 'Update Expense', description: `Updated expense for ${expense.category || ''}.` });
-    } catch (e) {
+    // --- EXPENSE ---
+    const addExpense = async (expense: Omit<Expense, 'id'>) => {
+        try {
+            const newId = `EXP-${Date.now()}`;
+            await setDoc(doc(db, "expenses", newId), { id: newId, ...expense });
+            if (userRole !== 'super_admin') {
+                await addNotification({
+                    title: 'New Expense Added',
+                    description: `An expense of PKR ${expense.amount.toLocaleString()} for ${expense.category} was added.`,
+                    link: `/expenses`
+                });
+            }
+            await addActivityLog({ action: 'Add Expense', description: `Added expense of PKR ${expense.amount} for ${expense.category}.` });
+        } catch (e) {
+            console.error('Error adding expense:', e);
+            toast({ title: 'Error Adding Expense', variant: 'destructive' });
+        }
+    };
+
+    const updateExpense = async (id: string, expenseData: Partial<Expense>) => {
+      try {
+        const expenseRef = doc(db, 'expenses', id);
+        await setDoc(expenseRef, expenseData, { merge: true });
+        await addActivityLog({ action: 'Update Expense', description: `Updated expense ID: ${id}.` });
+      } catch (e) {
         console.error(`Error updating expense:`, e);
         toast({ title: `Error updating expense`, variant: "destructive" });
-    }
-  };
-  const deleteExpense = async (id: string) => {
-    const expenseToDelete = expenses.find(e => e.id === id);
-    if (!expenseToDelete) return;
-    try {
-      await deleteDoc(doc(db, 'expenses', id));
-      await addActivityLog({ action: 'Delete Expense', description: `Deleted expense: ${expenseToDelete.description}.` });
-    } catch (e) {
-      console.error('Error deleting expense:', e);
-      toast({ title: 'Error Deleting Expense', variant: 'destructive' });
-    }
-  };
+      }
+    };
+    
+    const deleteExpense = async (id: string) => {
+        const expenseToDelete = expenses.find(exp => exp.id === id);
+        if (!expenseToDelete) {
+             toast({ title: 'Error', description: 'Could not find expense to delete.', variant: 'destructive' });
+            return;
+        }
+
+        const reversalFee: Omit<Fee, 'id'> = {
+            familyId: 'SYSTEM_REVERSAL',
+            amount: expenseToDelete.amount,
+            month: `Expense Reversal: ${expenseToDelete.description.substring(0, 20)}`,
+            year: new Date().getFullYear(),
+            paymentDate: new Date().toISOString(),
+            status: 'Paid',
+            paymentMethod: 'Adjustment',
+        };
+
+        try {
+            // First, add the reversal income record
+            await addDoc(collection(db, "fees"), reversalFee);
+
+            // Then, delete the expense document
+            await deleteDoc(doc(db, "expenses", id));
+
+            await addActivityLog({ action: 'Delete Expense', description: `Deleted and reversed expense ID: ${id}.` });
+            toast({ title: "Expense Deleted", description: "The expense has been deleted and the amount reversed into income." });
+
+        } catch (error: any) {
+            console.error("Error deleting expense and creating reversal:", error);
+            toast({ title: "Error Deleting Expense", description: error.message, variant: "destructive" });
+        }
+    };
 
   // --- ATTENDANCE ---
   const saveStudentAttendance = async (newAttendances: Attendance[], date: string, className: string) => {
