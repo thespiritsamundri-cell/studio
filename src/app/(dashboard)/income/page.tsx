@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { DateRange } from 'react-day-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { CalendarIcon, Printer, Trash2, Edit, Save, PlusCircle } from 'lucide-react';
+import { CalendarIcon, Printer, Trash2, Edit, Save, PlusCircle, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
@@ -71,7 +71,7 @@ export default function IncomePage() {
     let filtered = paidFeesWithDetails;
 
     if (familyFilter) {
-      filtered = filtered.filter(e => e.familyId === familyFilter);
+      filtered = filtered.filter(e => e.familyId.toLowerCase().includes(familyFilter.toLowerCase()));
     }
 
     if (dateRange?.from && dateRange?.to) {
@@ -177,18 +177,21 @@ export default function IncomePage() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
+              <div className="relative w-full md:w-auto">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  className="pl-8 w-full md:w-[250px]"
+                  placeholder="Search by Family ID..."
+                  value={familyFilter}
+                  onChange={(e) => setFamilyFilter(e.target.value)}
+                />
+              </div>
               <div className="flex items-center gap-4 flex-grow w-full">
-                  <Input 
-                    className="w-full md:w-[180px]"
-                    placeholder="Filter by Family ID..."
-                    value={familyFilter}
-                    onChange={(e) => setFamilyFilter(e.target.value)}
-                  />
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button id="date" variant={"outline"} className={cn("w-full md:w-[300px] justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateRange?.from ? (dateRange.to ? (<>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</>) : (format(dateRange.from, "LLL dd, y"))) : (<span>Pick a date range</span>)}
+                        {dateRange?.from ? (dateRange.to ? (<>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</>) : (format(dateRange.from, "LLL dd, y"))) : (<span>Filter by date range</span>)}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
