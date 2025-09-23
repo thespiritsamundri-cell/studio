@@ -42,7 +42,6 @@ export default function SingleSubjectTestPage() {
   // State for filtering saved tests
   const [filterClass, setFilterClass] = useState<string | null>(null);
   const [filterSubject, setFilterSubject] = useState<string | null>(null);
-  const [summaryFontSize, setSummaryFontSize] = useState(14);
 
 
   useEffect(() => {
@@ -205,6 +204,61 @@ export default function SingleSubjectTestPage() {
       setDownloadingTestId(null);
     }
   };
+  
+  const handleDownloadSummaryJpg = async () => {
+    if (!filterClass || !filterSubject) {
+      toast({ title: "Filter required", description: "Please select a class and a subject.", variant: "destructive" });
+      return;
+    }
+
+    const studentsForSummary = allStudents.filter(s => s.class === filterClass);
+
+    setIsDownloading(true);
+    setDownloadingTestId('summary');
+
+    const printContentString = renderToString(
+      <SubjectSummaryPrintReport
+        students={studentsForSummary}
+        tests={filteredTests}
+        subject={filterSubject}
+        className={filterClass}
+        settings={settings}
+        fontSize={14}
+      />
+    );
+
+    const reportElement = document.createElement('div');
+    reportElement.style.position = 'absolute';
+    reportElement.style.left = '-9999px';
+    reportElement.style.width = '1123px'; // A4 landscape width at 96 DPI
+    reportElement.style.height = '794px'; // A4 landscape height at 96 DPI
+    reportElement.innerHTML = printContentString;
+    document.body.appendChild(reportElement);
+
+    try {
+      const canvas = await html2canvas(reportElement.firstChild as HTMLElement, {
+        scale: 2,
+        useCORS: true,
+        width: 1123,
+        height: 794,
+      });
+      
+      const image = canvas.toDataURL('image/jpeg', 0.95);
+      const link = document.createElement('a');
+      link.download = `SubjectSummary-${filterSubject}-${filterClass}.jpg`;
+      link.href = image;
+      link.click();
+      
+      toast({ title: 'Download Started', description: 'Your summary report is being downloaded.' });
+    } catch (error) {
+      console.error('Error generating summary JPG:', error);
+      toast({ title: 'Download Failed', variant: 'destructive' });
+    } finally {
+      document.body.removeChild(reportElement);
+      setIsDownloading(false);
+      setDownloadingTestId(null);
+    }
+  };
 
   const handlePrint = () => {
     if (!selectedClass || !selectedSubject || !testName) {
@@ -288,7 +342,7 @@ export default function SingleSubjectTestPage() {
         subject={filterSubject}
         className={filterClass}
         settings={settings}
-        fontSize={summaryFontSize}
+        fontSize={14}
       />
     );
 
@@ -440,10 +494,14 @@ export default function SingleSubjectTestPage() {
                     </Select>
                 </div>
                  {filterClass && filterSubject && (
-                    <div className="mb-4">
+                    <div className="mb-4 flex gap-2">
                         <Button variant="secondary" className="w-full" onClick={handlePrintSubjectSummary}>
-                            <FileSpreadsheet className="mr-2 h-4 w-4"/>
-                            Print Subject Summary
+                            <Printer className="mr-2 h-4 w-4"/>
+                            Print Summary
+                        </Button>
+                        <Button variant="outline" className="w-full" onClick={handleDownloadSummaryJpg} disabled={isDownloading && downloadingTestId === 'summary'}>
+                             {isDownloading && downloadingTestId === 'summary' ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Download className="mr-2 h-4 w-4"/>}
+                            JPG Summary
                         </Button>
                     </div>
                 )}
@@ -498,7 +556,6 @@ export default function SingleSubjectTestPage() {
     </div>
   );
 
+}
+
     
-
-
-
