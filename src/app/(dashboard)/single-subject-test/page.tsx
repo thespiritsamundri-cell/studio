@@ -39,6 +39,7 @@ export default function SingleSubjectTestPage() {
   // State for filtering saved tests
   const [filterClass, setFilterClass] = useState<string | null>(null);
   const [filterSubject, setFilterSubject] = useState<string | null>(null);
+  const [summaryFontSize, setSummaryFontSize] = useState('text-sm');
 
 
   useEffect(() => {
@@ -234,7 +235,7 @@ export default function SingleSubjectTestPage() {
         subject={filterSubject}
         className={filterClass}
         settings={settings}
-        layout={'portrait'}
+        fontSize={summaryFontSize}
       />
     );
 
@@ -382,7 +383,17 @@ export default function SingleSubjectTestPage() {
                     </Select>
                 </div>
                  {filterClass && filterSubject && (
-                    <div className="mb-4">
+                    <div className="mb-4 flex items-center gap-2">
+                         <Select value={summaryFontSize} onValueChange={setSummaryFontSize}>
+                            <SelectTrigger className="w-[140px]">
+                                <SelectValue placeholder="Font Size" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="text-xs">Small</SelectItem>
+                                <SelectItem value="text-sm">Medium</SelectItem>
+                                <SelectItem value="text-base">Large</SelectItem>
+                            </SelectContent>
+                        </Select>
                         <Button variant="secondary" className="w-full" onClick={handlePrintSubjectSummary}>
                             <FileSpreadsheet className="mr-2 h-4 w-4"/>
                             Print Subject Summary
@@ -440,3 +451,4 @@ export default function SingleSubjectTestPage() {
   );
 
     
+

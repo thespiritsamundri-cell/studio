@@ -14,17 +14,16 @@ interface SubjectSummaryPrintReportProps {
   subject: string;
   className: string;
   settings: SchoolSettings;
-  layout: 'portrait' | 'landscape';
+  fontSize: string;
 }
 
 export const SubjectSummaryPrintReport = React.forwardRef<HTMLDivElement, SubjectSummaryPrintReportProps>(
-  ({ students, tests, subject, className, settings, layout }, ref) => {
+  ({ students, tests, subject, className, settings, fontSize }, ref) => {
     
     const cellStyle: React.CSSProperties = {
       border: '1px solid #999',
       padding: '4px',
       textAlign: 'center',
-      fontSize: '10px',
       whiteSpace: 'nowrap',
     };
     const headerCellStyle: React.CSSProperties = { ...cellStyle, fontWeight: 'bold', backgroundColor: '#f2f2f2' };
@@ -33,7 +32,7 @@ export const SubjectSummaryPrintReport = React.forwardRef<HTMLDivElement, Subjec
     const sortedTests = tests.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     return (
-      <div ref={ref} className="p-8 font-sans bg-white text-black text-sm" data-layout={layout}>
+      <div ref={ref} className={`p-8 font-sans bg-white text-black ${fontSize}`}>
         <header className="flex items-start justify-between pb-4 border-b border-gray-400">
           <div className="flex items-center gap-4">
             {settings.schoolLogo && <Image src={settings.schoolLogo} alt="School Logo" width={64} height={64} className="object-contain" />}
@@ -55,7 +54,7 @@ export const SubjectSummaryPrintReport = React.forwardRef<HTMLDivElement, Subjec
         </div>
 
         <main>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto' }}>
             <thead>
               <tr>
                 <th rowSpan={2} style={nameCellStyle}>Student Name</th>
@@ -116,5 +115,3 @@ export const SubjectSummaryPrintReport = React.forwardRef<HTMLDivElement, Subjec
 );
 
 SubjectSummaryPrintReport.displayName = 'SubjectSummaryPrintReport';
-
-    
