@@ -30,9 +30,18 @@ export const SubjectSummaryPrintReport = React.forwardRef<HTMLDivElement, Subjec
     const nameCellStyle: React.CSSProperties = { ...cellStyle, textAlign: 'left', minWidth: '150px' };
 
     const sortedTests = tests.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    
+    const printStyles = `
+        @media print {
+            .print-font-size {
+                font-size: ${fontSize}px !important;
+            }
+        }
+    `;
 
     return (
-      <div ref={ref} className="p-8 font-sans bg-white text-black" style={{ fontSize: `${fontSize}px` }}>
+      <div ref={ref} className="p-8 font-sans bg-white text-black print-font-size">
+        <style>{printStyles}</style>
         <header className="flex items-start justify-between pb-4 border-b border-gray-400">
           <div className="flex items-center gap-4">
             {settings.schoolLogo && <Image src={settings.schoolLogo} alt="School Logo" width={64} height={64} className="object-contain" />}
