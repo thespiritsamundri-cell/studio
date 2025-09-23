@@ -502,24 +502,28 @@ export default function ExamsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredSavedExams.map(exam => (
-                  <TableRow key={exam.id}>
-                    <TableCell>{format(new Date(exam.id.split('-')[1]), 'dd-MMM-yyyy')}</TableCell>
-                    <TableCell className="font-medium">{exam.name}</TableCell>
-                    <TableCell>{exam.class} {exam.section ? `(${exam.section})` : ''}</TableCell>
-                    <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => setSelectedExamId(exam.id)}><Edit className="h-4 w-4"/></Button>
-                        <Button variant="ghost" size="icon" onClick={() => handlePrintMarksheet(exam.id)}><Printer className="h-4 w-4"/></Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDownloadJpg(exam.id)} disabled={isDownloading && downloadingTestId === exam.id}>
-                            {isDownloading && downloadingTestId === exam.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Download className="h-4 w-4"/>}
-                        </Button>
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger>
-                            <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete this exam and all its results. This action cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => {deleteExam(exam.id);}} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
-                        </AlertDialog>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {filteredSavedExams.map(exam => {
+                  const timestamp = exam.id.split('-')[1];
+                  const isValidDate = timestamp && !isNaN(Number(timestamp));
+                  return (
+                    <TableRow key={exam.id}>
+                      <TableCell>{isValidDate ? format(new Date(Number(timestamp)), 'dd-MMM-yyyy') : 'Invalid Date'}</TableCell>
+                      <TableCell className="font-medium">{exam.name}</TableCell>
+                      <TableCell>{exam.class} {exam.section ? `(${exam.section})` : ''}</TableCell>
+                      <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" onClick={() => setSelectedExamId(exam.id)}><Edit className="h-4 w-4"/></Button>
+                          <Button variant="ghost" size="icon" onClick={() => handlePrintMarksheet(exam.id)}><Printer className="h-4 w-4"/></Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDownloadJpg(exam.id)} disabled={isDownloading && downloadingTestId === exam.id}>
+                              {isDownloading && downloadingTestId === exam.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Download className="h-4 w-4"/>}
+                          </Button>
+                          <AlertDialog>
+                              <AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger>
+                              <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete this exam and all its results. This action cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => {deleteExam(exam.id);}} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+                          </AlertDialog>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
                  {filteredSavedExams.length === 0 && (
                     <TableRow><TableCell colSpan={4} className="text-center h-24 text-muted-foreground">No saved exams match filters.</TableCell></TableRow>
                 )}
@@ -531,4 +535,3 @@ export default function ExamsPage() {
     </div>
   );
 }
-
