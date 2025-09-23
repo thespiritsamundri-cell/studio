@@ -33,7 +33,30 @@ export const SubjectSummaryPrintReport = React.forwardRef<HTMLDivElement, Subjec
     
     const printStyles = `
       body {
-        font-size: ${fontSize}px !important;
+        font-size: 14px !important;
+      }
+      @page {
+        size: A4 landscape;
+        margin: 0.5in;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th, td {
+        border: 1px solid #ccc;
+        padding: 4px 6px;
+        text-align: center;
+        white-space: normal;
+        word-break: break-word;
+      }
+      th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+      }
+       .student-name {
+        text-align: left;
+        white-space: nowrap;
       }
     `;
 
@@ -61,22 +84,22 @@ export const SubjectSummaryPrintReport = React.forwardRef<HTMLDivElement, Subjec
         </div>
 
         <main>
-          <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto' }}>
+          <table className="w-full border-collapse">
             <thead>
               <tr>
-                <th rowSpan={2} style={nameCellStyle}>Student Name</th>
+                <th rowSpan={2} className="student-name">Student Name</th>
                 {sortedTests.map(test => (
-                  <th key={test.id} style={headerCellStyle}>
+                  <th key={test.id}>
                       {test.testName}
                       <br/>
                       ({format(new Date(test.date), 'dd-MMM-yy')})
                   </th>
                 ))}
-                <th rowSpan={2} style={headerCellStyle}>Overall %</th>
+                <th rowSpan={2}>Overall %</th>
               </tr>
               <tr>
                 {sortedTests.map(test => (
-                  <th key={`${test.id}-total`} style={headerCellStyle}>
+                  <th key={`${test.id}-total`}>
                     Total: {test.totalMarks}
                   </th>
                 ))}
@@ -96,18 +119,18 @@ export const SubjectSummaryPrintReport = React.forwardRef<HTMLDivElement, Subjec
 
                     return (
                         <tr key={student.id}>
-                            <td style={nameCellStyle}>{student.name}</td>
+                            <td className="student-name">{student.name}</td>
                             {sortedTests.map(test => (
-                                <td key={test.id} style={cellStyle}>
+                                <td key={test.id}>
                                     {test.results[student.id] ?? '-'}
                                 </td>
                             ))}
-                            <td style={{...cellStyle, fontWeight: 'bold'}}>{overallPercentage.toFixed(1)}%</td>
+                            <td className="font-bold">{overallPercentage.toFixed(1)}%</td>
                         </tr>
                     );
                 })}
                  {students.length === 0 && (
-                    <tr><td colSpan={sortedTests.length + 2} style={cellStyle}>No students in this class.</td></tr>
+                    <tr><td colSpan={sortedTests.length + 2}>No students in this class.</td></tr>
                  )}
             </tbody>
           </table>

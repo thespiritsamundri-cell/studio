@@ -95,16 +95,12 @@
   }
   
   /* --- FOR LAYOUTS --- */
-  [data-layout="portrait"] {
-    page-break-after: always;
+  body[data-layout="portrait"] {
+    @page {
+        size: A4 portrait;
+    }
   }
-  [data-layout="landscape"] {
-    page-break-after: always;
-  }
-  @page {
-    size: A4;
-  }
-  [data-layout="landscape"] {
+  body[data-layout="landscape"] {
     @page {
         size: A4 landscape;
     }
@@ -112,5 +108,3 @@
 
 
 }
-
-    

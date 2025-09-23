@@ -37,11 +37,12 @@ export default function SingleSubjectTestPage() {
   const [totalMarks, setTotalMarks] = useState<number>(100);
   const [studentMarks, setStudentMarks] = useState<Record<string, number | undefined>>({});
   const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadingTestId, setDownloadingTestId] = useState<string | null>(null);
 
   // State for filtering saved tests
   const [filterClass, setFilterClass] = useState<string | null>(null);
   const [filterSubject, setFilterSubject] = useState<string | null>(null);
-  const [summaryFontSize, setSummaryFontSize] = useState(12);
+  const [summaryFontSize, setSummaryFontSize] = useState(14);
 
 
   useEffect(() => {
@@ -155,26 +156,27 @@ export default function SingleSubjectTestPage() {
     }));
   }, [classStudents, studentMarks]);
 
-  const renderAndDownloadJpg = async () => {
-    if (!selectedClass || !selectedSubject || !testName) {
-      toast({ title: 'Incomplete Information', description: 'Please select a class, subject, and provide a test name.', variant: 'destructive' });
-      return;
-    }
-    
+  const renderAndDownloadJpg = async (testToDownload: SingleSubjectTest | { testName: string, class: string, subject: string, totalMarks: number, results: Record<string, number|undefined>}) => {
+    const currentStudents = allStudents.filter(s => s.class === testToDownload.class && (!('section' in testToDownload) || !testToDownload.section || s.section === testToDownload.section));
+    const currentMarksheetData = currentStudents.map(student => ({
+      ...student,
+      obtainedMarks: testToDownload.results[student.id],
+    }));
+
     setIsDownloading(true);
-    
+    if ('id' in testToDownload) setDownloadingTestId(testToDownload.id);
+
     const printContentString = renderToString(
       <SingleSubjectTestReport
-        testName={testName}
-        className={selectedClass}
-        subject={selectedSubject}
-        marksheetData={marksheetData}
-        totalMarks={totalMarks}
+        testName={testToDownload.testName}
+        className={testToDownload.class}
+        subject={testToDownload.subject}
+        marksheetData={currentMarksheetData}
+        totalMarks={testToDownload.totalMarks}
         settings={settings}
       />
     );
   
-    // Create an off-screen element to render the report
     const reportElement = document.createElement('div');
     reportElement.style.position = 'absolute';
     reportElement.style.left = '-9999px';
@@ -183,13 +185,13 @@ export default function SingleSubjectTestPage() {
   
     try {
       const canvas = await html2canvas(reportElement.firstChild as HTMLElement, {
-        scale: 2, // Higher scale for better quality
+        scale: 2,
         useCORS: true,
       });
       
       const image = canvas.toDataURL('image/jpeg', 0.9);
       const link = document.createElement('a');
-      link.download = `${testName}-${selectedClass}.jpg`;
+      link.download = `${testToDownload.testName}-${testToDownload.class}.jpg`;
       link.href = image;
       link.click();
       
@@ -200,6 +202,7 @@ export default function SingleSubjectTestPage() {
     } finally {
       document.body.removeChild(reportElement);
       setIsDownloading(false);
+      setDownloadingTestId(null);
     }
   };
 
@@ -296,15 +299,9 @@ export default function SingleSubjectTestPage() {
           <head>
             <title>Subject Summary - ${filterSubject} - ${filterClass}</title>
             <script src="https://cdn.tailwindcss.com"></script>
-            <style>
-              @media print {
-                body {
-                  font-size: ${summaryFontSize}px;
-                }
-              }
-            </style>
+            <link rel="stylesheet" href="/print-styles.css" />
           </head>
-          <body>${printContent}</body>
+          <body data-layout="landscape">${printContent}</body>
         </html>
       `);
       printWindow.document.close();
@@ -378,8 +375,8 @@ export default function SingleSubjectTestPage() {
                  <div className="flex items-center gap-2">
                     <Button onClick={handleSaveTest}><Save className="mr-2 h-4 w-4"/> {isEditing ? 'Update Test' : 'Save Test'}</Button>
                     <Button variant="outline" onClick={handlePrint}><Printer className="mr-2 h-4 w-4"/>Print</Button>
-                    <Button variant="outline" onClick={renderAndDownloadJpg} disabled={isDownloading}>
-                      {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Download className="mr-2 h-4 w-4"/>}
+                    <Button variant="outline" onClick={() => renderAndDownloadJpg({ testName, class: selectedClass, subject: selectedSubject!, totalMarks, results: studentMarks })} disabled={isDownloading}>
+                      {isDownloading && !downloadingTestId ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Download className="mr-2 h-4 w-4"/>}
                       JPG
                     </Button>
                  </div>
@@ -443,16 +440,7 @@ export default function SingleSubjectTestPage() {
                     </Select>
                 </div>
                  {filterClass && filterSubject && (
-                    <div className="mb-4 flex items-center gap-2">
-                         <div className="flex-grow">
-                             <Input
-                                type="number"
-                                value={summaryFontSize}
-                                onChange={(e) => setSummaryFontSize(Number(e.target.value))}
-                                className="w-full"
-                                placeholder="Font Size (e.g., 12)"
-                             />
-                         </div>
+                    <div className="mb-4">
                         <Button variant="secondary" className="w-full" onClick={handlePrintSubjectSummary}>
                             <FileSpreadsheet className="mr-2 h-4 w-4"/>
                             Print Subject Summary
@@ -466,20 +454,21 @@ export default function SingleSubjectTestPage() {
                                 <TableHead>Date</TableHead>
                                 <TableHead>Test</TableHead>
                                 <TableHead>Class</TableHead>
-                                <TableHead>Subject</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
+                                <TableHead>Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {filteredTests.map(test => (
                                 <TableRow key={test.id} className={selectedTestId === test.id ? 'bg-muted' : ''}>
-                                    <TableCell>{format(new Date(test.date), 'dd-MM-yyyy')}</TableCell>
+                                    <TableCell>{format(new Date(test.date), 'dd-MM-yy')}</TableCell>
                                     <TableCell>{test.testName}</TableCell>
                                     <TableCell>{test.class} {test.section ? `(${test.section})` : ''}</TableCell>
-                                    <TableCell>{test.subject}</TableCell>
                                     <TableCell className="text-right">
                                         <Button variant="ghost" size="icon" onClick={() => setSelectedTestId(test.id)}><Edit className="h-4 w-4"/></Button>
                                         <Button variant="ghost" size="icon" onClick={() => handlePrintSavedTest(test)}><Printer className="h-4 w-4"/></Button>
+                                        <Button variant="ghost" size="icon" onClick={() => renderAndDownloadJpg(test)} disabled={isDownloading && downloadingTestId === test.id}>
+                                            {isDownloading && downloadingTestId === test.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Download className="h-4 w-4"/>}
+                                        </Button>
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
                                                 <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button>
@@ -510,5 +499,6 @@ export default function SingleSubjectTestPage() {
   );
 
     
+
 
 
