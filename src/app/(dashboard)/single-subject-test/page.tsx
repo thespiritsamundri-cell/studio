@@ -10,13 +10,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useData } from '@/context/data-context';
 import type { Student, SingleSubjectTest } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { Printer, BookText, Save, Edit, Trash2, PlusCircle, CalendarIcon, Loader2 } from 'lucide-react';
+import { Printer, BookText, Save, Edit, Trash2, PlusCircle, CalendarIcon, Loader2, FileSpreadsheet } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import { renderToString } from 'react-dom/server';
 import { SingleSubjectTestReport } from '@/components/reports/single-subject-test-report';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { SubjectSummaryPrintReport } from '@/components/reports/subject-summary-report';
 
 
 export default function SingleSubjectTestPage() {
@@ -217,6 +218,41 @@ export default function SingleSubjectTestPage() {
       printWindow.focus();
     }
   };
+  
+    const handlePrintSubjectSummary = () => {
+    if (!filterClass || !filterSubject) {
+      toast({ title: "Filter required", description: "Please select a class and a subject to generate the summary.", variant: "destructive" });
+      return;
+    }
+
+    const studentsForSummary = allStudents.filter(s => s.class === filterClass);
+
+    const printContent = renderToString(
+      <SubjectSummaryPrintReport
+        students={studentsForSummary}
+        tests={filteredTests}
+        subject={filterSubject}
+        className={filterClass}
+        settings={settings}
+      />
+    );
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Subject Summary - ${filterSubject} - ${filterClass}</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+            <link rel="stylesheet" href="/print-styles.css">
+          </head>
+          <body>${printContent}</body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+    }
+  };
 
 
   return (
@@ -344,6 +380,14 @@ export default function SingleSubjectTestPage() {
                         </SelectContent>
                     </Select>
                 </div>
+                 {filterClass && filterSubject && (
+                    <div className="mb-4">
+                        <Button variant="secondary" className="w-full" onClick={handlePrintSubjectSummary}>
+                            <FileSpreadsheet className="mr-2 h-4 w-4"/>
+                            Print Subject Summary for {filterSubject}
+                        </Button>
+                    </div>
+                )}
                 <ScrollArea className="h-80">
                     <Table>
                         <TableHeader>
@@ -393,7 +437,3 @@ export default function SingleSubjectTestPage() {
       </div>
     </div>
   );
-
-    
-
-    
