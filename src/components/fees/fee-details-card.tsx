@@ -13,12 +13,13 @@ import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { FeeReceipt } from '../reports/fee-receipt';
 import { useToast } from '@/hooks/use-toast';
-import { Printer } from 'lucide-react';
+import { Printer, Download, Loader2 } from 'lucide-react';
 import { renderToString } from 'react-dom/server';
 import type { SchoolSettings } from '@/context/settings-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useData } from '@/context/data-context';
 import { sendWhatsAppMessage } from '@/services/whatsapp-service';
+import html2canvas from 'html2canvas';
 
 
 interface FeeDetailsCardProps {
@@ -40,6 +41,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
     const [paidAmount, setPaidAmount] = useState<number>(0);
     const [paymentMethod, setPaymentMethod] = useState('By Hand');
     const [printType, setPrintType] = useState<PrintType>('normal');
+    const [isDownloadingJpg, setIsDownloadingJpg] = useState(false);
     
     const unpaidFees = useMemo(() => fees.filter(f => f.status === 'Unpaid'), [fees]);
     const totalDues = useMemo(() => unpaidFees.reduce((acc, fee) => acc + fee.amount, 0), [unpaidFees]);
@@ -192,6 +194,55 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
             printWindow.focus();
         }
     };
+    
+     const triggerJpgDownload = async (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string) => {
+        if (collectedAmount === 0 && unpaidFees.length === 0) {
+            toast({ title: 'No Dues', description: 'There are no outstanding fees to generate a JPG for.', variant: 'destructive' });
+            return;
+        }
+        setIsDownloadingJpg(true);
+
+        const printContentString = renderToString(
+            <FeeReceipt
+                family={family}
+                students={students}
+                fees={paidFeesForReceipt}
+                totalDues={totalDues}
+                paidAmount={collectedAmount}
+                remainingDues={newRemainingDues}
+                settings={settings}
+                paymentMethod={method}
+                printType={printType}
+            />
+        );
+      
+        const reportElement = document.createElement('div');
+        reportElement.style.position = 'absolute';
+        reportElement.style.left = '-9999px';
+        reportElement.innerHTML = printContentString;
+        document.body.appendChild(reportElement);
+      
+        try {
+          const canvas = await html2canvas(reportElement.firstChild as HTMLElement, {
+            scale: 2,
+            useCORS: true,
+          });
+          
+          const image = canvas.toDataURL('image/jpeg', 0.9);
+          const link = document.createElement('a');
+          link.download = `FeeReceipt-Family-${family.id}-${new Date().toISOString().split('T')[0]}.jpg`;
+          link.href = image;
+          link.click();
+          
+          toast({ title: 'Download Started', description: 'Your fee receipt is being downloaded as a JPG.' });
+        } catch (error) {
+          console.error('Error generating JPG:', error);
+          toast({ title: 'Download Failed', description: 'Could not generate the image file.', variant: 'destructive' });
+        } finally {
+          document.body.removeChild(reportElement);
+          setIsDownloadingJpg(false);
+        }
+    };
 
 
     return (
@@ -313,6 +364,9 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                                 <SelectItem value="thermal">Thermal (80mm)</SelectItem>
                             </SelectContent>
                         </Select>
+                        <Button variant="outline" onClick={() => triggerJpgDownload([], 0, totalDues, paymentMethod)} disabled={isDownloadingJpg}>
+                            {isDownloadingJpg ? <Loader2 className="h-4 w-4 animate-spin"/> : <Download className="h-4 w-4" />}
+                        </Button>
                         <Button variant="outline" onClick={() => triggerPrint([], 0, totalDues, paymentMethod)}><Printer className="h-4 w-4" /></Button>
                      </div>
                 </div>
