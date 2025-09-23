@@ -59,21 +59,11 @@ export const SingleSubjectTestReport = React.forwardRef<HTMLDivElement, SingleSu
           </div>
         </header>
         
-        <div className="text-center my-4">
-            <h3 className="text-2xl font-bold">{testName}</h3>
+        <div className="text-center my-6">
+            <h3 className="text-xl font-semibold">
+                <span className="font-bold">Class:</span> {className} &nbsp;&nbsp;|&nbsp;&nbsp; <span className="font-bold">Subject:</span> {subject} &nbsp;&nbsp;|&nbsp;&nbsp; <span className="font-bold">Test:</span> {testName}
+            </h3>
         </div>
-
-        <div className="my-6 flex justify-center items-center gap-4">
-            <div className="border-2 border-gray-400 rounded-md p-2 text-center">
-                <span className="text-xs font-bold text-gray-500">CLASS</span>
-                <p className="text-lg font-bold">{className}</p>
-            </div>
-            <div className="border-2 border-gray-400 rounded-md p-2 text-center">
-                <span className="text-xs font-bold text-gray-500">SUBJECT</span>
-                <p className="text-lg font-bold">{subject}</p>
-            </div>
-        </div>
-
 
         <main className="mt-8">
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
