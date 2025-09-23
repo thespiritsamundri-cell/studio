@@ -130,7 +130,9 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
             description: `PKR ${collectedAmount.toLocaleString()} collected for Family ${family.id}.`,
         });
         
+        // Trigger both print and download
         triggerPrint(newlyPaidFees, collectedAmount, newDues, paymentMethod);
+        await triggerJpgDownload(newlyPaidFees, collectedAmount, newDues, paymentMethod);
 
         if (settings.automatedMessages?.payment.enabled) {
             const paymentTemplate = settings.messageTemplates?.find(t => t.id === settings.automatedMessages?.payment.templateId);
