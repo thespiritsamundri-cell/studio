@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -164,6 +163,41 @@ export default function SingleSubjectTestPage() {
     }
   };
 
+  const handlePrintSavedTest = (test: SingleSubjectTest) => {
+    const studentsForTest = allStudents.filter(s => s.class === test.class && (!test.section || s.section === test.section));
+    const marksheetDataForTest = studentsForTest.map(student => ({
+      ...student,
+      obtainedMarks: test.results[student.id],
+    }));
+
+     const printContent = renderToString(
+      <SingleSubjectTestReport
+        testName={test.testName}
+        className={test.class}
+        subject={test.subject}
+        marksheetData={marksheetDataForTest}
+        totalMarks={test.totalMarks}
+        settings={settings}
+      />
+    );
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>${test.testName} - ${test.class}</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+            <link rel="stylesheet" href="/print-styles.css">
+          </head>
+          <body>${printContent}</body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+    }
+  };
+
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><BookText /> Single Subject Test</h1>
@@ -297,6 +331,7 @@ export default function SingleSubjectTestPage() {
                                     <TableCell>{test.subject}</TableCell>
                                     <TableCell className="text-right">
                                         <Button variant="ghost" size="icon" onClick={() => setSelectedTestId(test.id)}><Edit className="h-4 w-4"/></Button>
+                                        <Button variant="ghost" size="icon" onClick={() => handlePrintSavedTest(test)}><Printer className="h-4 w-4"/></Button>
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
                                                 <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button>
@@ -325,4 +360,5 @@ export default function SingleSubjectTestPage() {
       </div>
     </div>
   );
-}
+
+    
