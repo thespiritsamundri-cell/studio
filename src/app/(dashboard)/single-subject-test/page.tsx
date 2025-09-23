@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useData } from '@/context/data-context';
 import type { Student, SingleSubjectTest } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { Printer, BookText, Save, Edit, Trash2, PlusCircle, CalendarIcon, Loader2, FileSpreadsheet } from 'lucide-react';
+import { Printer, BookText, Save, Edit, Trash2, PlusCircle, CalendarIcon, Loader2, FileSpreadsheet, Download } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import { renderToString } from 'react-dom/server';
 import { SingleSubjectTestReport } from '@/components/reports/single-subject-test-report';
@@ -18,6 +18,7 @@ import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { SubjectSummaryPrintReport } from '@/components/reports/subject-summary-report';
+import html2canvas from 'html2canvas';
 
 
 export default function SingleSubjectTestPage() {
@@ -35,6 +36,7 @@ export default function SingleSubjectTestPage() {
   const [testDate, setTestDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [totalMarks, setTotalMarks] = useState<number>(100);
   const [studentMarks, setStudentMarks] = useState<Record<string, number | undefined>>({});
+  const [isDownloading, setIsDownloading] = useState(false);
 
   // State for filtering saved tests
   const [filterClass, setFilterClass] = useState<string | null>(null);
@@ -153,6 +155,54 @@ export default function SingleSubjectTestPage() {
     }));
   }, [classStudents, studentMarks]);
 
+  const renderAndDownloadJpg = async () => {
+    if (!selectedClass || !selectedSubject || !testName) {
+      toast({ title: 'Incomplete Information', description: 'Please select a class, subject, and provide a test name.', variant: 'destructive' });
+      return;
+    }
+    
+    setIsDownloading(true);
+    
+    const printContentString = renderToString(
+      <SingleSubjectTestReport
+        testName={testName}
+        className={selectedClass}
+        subject={selectedSubject}
+        marksheetData={marksheetData}
+        totalMarks={totalMarks}
+        settings={settings}
+      />
+    );
+  
+    // Create an off-screen element to render the report
+    const reportElement = document.createElement('div');
+    reportElement.style.position = 'absolute';
+    reportElement.style.left = '-9999px';
+    reportElement.innerHTML = printContentString;
+    document.body.appendChild(reportElement);
+  
+    try {
+      const canvas = await html2canvas(reportElement.firstChild as HTMLElement, {
+        scale: 2, // Higher scale for better quality
+        useCORS: true,
+      });
+      
+      const image = canvas.toDataURL('image/jpeg', 0.9);
+      const link = document.createElement('a');
+      link.download = `${testName}-${selectedClass}.jpg`;
+      link.href = image;
+      link.click();
+      
+      toast({ title: 'Download Started', description: 'Your test report is being downloaded as a JPG.' });
+    } catch (error) {
+      console.error('Error generating JPG:', error);
+      toast({ title: 'Download Failed', description: 'Could not generate the image file.', variant: 'destructive' });
+    } finally {
+      document.body.removeChild(reportElement);
+      setIsDownloading(false);
+    }
+  };
+
   const handlePrint = () => {
     if (!selectedClass || !selectedSubject || !testName) {
       toast({ title: 'Incomplete Information', description: 'Please select a class, subject, and provide a test name.', variant: 'destructive' });
@@ -246,7 +296,13 @@ export default function SingleSubjectTestPage() {
           <head>
             <title>Subject Summary - ${filterSubject} - ${filterClass}</title>
             <script src="https://cdn.tailwindcss.com"></script>
-            <link rel="stylesheet" href="/print-styles.css">
+            <style>
+              @media print {
+                body {
+                  font-size: ${summaryFontSize}px;
+                }
+              }
+            </style>
           </head>
           <body>${printContent}</body>
         </html>
@@ -322,6 +378,10 @@ export default function SingleSubjectTestPage() {
                  <div className="flex items-center gap-2">
                     <Button onClick={handleSaveTest}><Save className="mr-2 h-4 w-4"/> {isEditing ? 'Update Test' : 'Save Test'}</Button>
                     <Button variant="outline" onClick={handlePrint}><Printer className="mr-2 h-4 w-4"/>Print</Button>
+                    <Button variant="outline" onClick={renderAndDownloadJpg} disabled={isDownloading}>
+                      {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Download className="mr-2 h-4 w-4"/>}
+                      JPG
+                    </Button>
                  </div>
               </CardHeader>
               <CardContent>
@@ -450,4 +510,5 @@ export default function SingleSubjectTestPage() {
   );
 
     
+
 

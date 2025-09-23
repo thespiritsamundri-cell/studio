@@ -61,7 +61,7 @@ export const SingleSubjectTestReport = React.forwardRef<HTMLDivElement, SingleSu
         
         <div className="text-center my-6">
             <h3 className="text-xl font-semibold">
-                <span className="font-bold">Class:</span> {className} &nbsp;&nbsp;|&nbsp;&nbsp; <span className="font-bold">Subject:</span> {subject} &nbsp;&nbsp;|&nbsp;&nbsp; <span className="font-bold">Test:</span> {testName}
+                <span className="font-bold">Class :</span> {className} &nbsp;&nbsp;|&nbsp;&nbsp; <span className="font-bold">Subject :</span> {subject} &nbsp;&nbsp;|&nbsp;&nbsp; <span className="font-bold">Test :</span> {testName}
             </h3>
         </div>
 
