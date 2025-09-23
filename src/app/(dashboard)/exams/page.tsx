@@ -10,12 +10,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useData } from '@/context/data-context';
 import type { Student, Exam as ExamType, ExamResult } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { FileSignature, PlusCircle, Trash2, Printer } from 'lucide-react';
+import { FileSignature, PlusCircle, Trash2, Printer, File } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { MarksheetPrintReport } from '@/components/reports/marksheet-print';
 import { useSettings } from '@/context/settings-context';
 import { renderToString } from 'react-dom/server';
+import { BlankExamMarksheetPrint } from '@/components/reports/blank-exam-marksheet-print';
 
 interface MarksheetData {
   studentId: string;
@@ -218,6 +219,43 @@ export default function ExamsPage() {
       }
   };
 
+  const handlePrintBlankSheet = () => {
+    if (!selectedClass || !selectedExamId) {
+        toast({ title: "Cannot Print", description: "Please select a class and an exam.", variant: 'destructive' });
+        return;
+    }
+    const exam = exams.find(e => e.id === selectedExamId);
+    if (!exam) return;
+
+    const printContent = renderToString(
+        <BlankExamMarksheetPrint
+            examName={exam.name}
+            className={selectedClass}
+            subjects={subjects}
+            students={classStudents}
+            subjectTotals={subjectTotals}
+            settings={settings}
+        />
+    );
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>Blank Marksheet - ${exam.name}</title>
+              <script src="https://cdn.tailwindcss.com"></script>
+              <link rel="stylesheet" href="/print-styles.css">
+            </head>
+            <body>
+              ${printContent}
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+    }
+  };
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><FileSignature /> Exam Management</h1>
@@ -294,6 +332,7 @@ export default function ExamsPage() {
                     </SelectContent>
                 </Select>
                 <Button variant="outline" onClick={handlePrintMarksheet}><Printer className="mr-2 h-4 w-4"/>Print Marksheet</Button>
+                 <Button variant="outline" onClick={handlePrintBlankSheet}><File className="mr-2 h-4 w-4"/>Blank Sheet</Button>
             </div>
           </CardHeader>
           <CardContent>
