@@ -38,6 +38,7 @@ import {
   CalendarClock,
   Archive,
   Medal,
+  BookText,
 } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import Image from 'next/image';
@@ -75,6 +76,7 @@ const navItems: NavItem[] = [
 
 const examSystemItems: NavItem[] = [
     { href: "/exams", icon: FileSignature, label: "Marksheets", permission: "examSystem" },
+    { href: "/single-subject-test", icon: BookText, label: "Single Subject Test", permission: "examSystem" },
     { href: "/result-cards", icon: FileBadge, label: "Result Cards", permission: "examSystem" },
     { href: "/roll-number-slips", icon: Ticket, label: "Roll No. Slips", permission: "examSystem" },
     { href: "/seating-plan", icon: Grid3x3, label: "Seating Plan", permission: "examSystem" },
@@ -97,7 +99,7 @@ export function SidebarNav() {
   const pathname = usePathname();
   const { settings } = useSettings();
   const { hasPermission, userRole } = useData();
-  const [isExamSystemOpen, setIsExamSystemOpen] = useState(pathname.startsWith('/exam') || pathname.startsWith('/result-cards') || pathname.startsWith('/roll-number-slips') || pathname.startsWith('/seating-plan'));
+  const [isExamSystemOpen, setIsExamSystemOpen] = useState(pathname.startsWith('/exam') || pathname.startsWith('/result-cards') || pathname.startsWith('/roll-number-slips') || pathname.startsWith('/seating-plan') || pathname.startsWith('/single-subject-test'));
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(pathname.startsWith('/attendance') || pathname.startsWith('/teacher-attendance'));
   const { isPinned, isMobile } = useSidebar();
   
