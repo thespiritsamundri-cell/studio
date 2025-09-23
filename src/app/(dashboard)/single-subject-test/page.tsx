@@ -35,6 +35,11 @@ export default function SingleSubjectTestPage() {
   const [totalMarks, setTotalMarks] = useState<number>(100);
   const [studentMarks, setStudentMarks] = useState<Record<string, number | undefined>>({});
 
+  // State for filtering saved tests
+  const [filterClass, setFilterClass] = useState<string | null>(null);
+  const [filterSubject, setFilterSubject] = useState<string | null>(null);
+
+
   useEffect(() => {
     if (selectedTestId) {
       const test = singleSubjectTests.find(t => t.id === selectedTestId);
@@ -86,6 +91,22 @@ export default function SingleSubjectTestPage() {
     const cls = classes.find(c => c.name === selectedClass);
     return cls?.subjects || [];
   }, [selectedClass, classes]);
+  
+  const filterSubjects = useMemo(() => {
+    if (!filterClass) return [];
+    return classes.find(c => c.name === filterClass)?.subjects || [];
+  }, [filterClass, classes]);
+  
+  const filteredTests = useMemo(() => {
+      let tests = singleSubjectTests;
+      if (filterClass) {
+          tests = tests.filter(t => t.class === filterClass);
+      }
+      if (filterSubject) {
+          tests = tests.filter(t => t.subject === filterSubject);
+      }
+      return tests;
+  }, [singleSubjectTests, filterClass, filterSubject]);
 
   const handleMarksChange = (studentId: string, value: string) => {
     const marks = value === '' ? undefined : parseInt(value, 10);
@@ -311,19 +332,31 @@ export default function SingleSubjectTestPage() {
                 <CardDescription>View, edit, or delete previously saved tests.</CardDescription>
             </CardHeader>
             <CardContent>
-                <ScrollArea className="h-96">
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                     <Select onValueChange={(val) => { setFilterClass(val); setFilterSubject(null); }}>
+                        <SelectTrigger><SelectValue placeholder="Filter by Class" /></SelectTrigger>
+                        <SelectContent>{classes.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
+                    </Select>
+                     <Select onValueChange={setFilterSubject} value={filterSubject || ''} disabled={!filterClass}>
+                        <SelectTrigger><SelectValue placeholder="Filter by Subject" /></SelectTrigger>
+                        <SelectContent>
+                            {filterSubjects.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <ScrollArea className="h-80">
                     <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Date</TableHead>
-                                <TableHead>Test Name</TableHead>
+                                <TableHead>Test</TableHead>
                                 <TableHead>Class</TableHead>
                                 <TableHead>Subject</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {singleSubjectTests.map(test => (
+                            {filteredTests.map(test => (
                                 <TableRow key={test.id} className={selectedTestId === test.id ? 'bg-muted' : ''}>
                                     <TableCell>{format(new Date(test.date), 'dd-MM-yyyy')}</TableCell>
                                     <TableCell>{test.testName}</TableCell>
@@ -347,9 +380,9 @@ export default function SingleSubjectTestPage() {
                                     </TableCell>
                                 </TableRow>
                             ))}
-                            {singleSubjectTests.length === 0 && (
+                            {filteredTests.length === 0 && (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center h-24">No tests saved yet.</TableCell>
+                                    <TableCell colSpan={5} className="text-center h-24">No tests match the selected filters.</TableCell>
                                 </TableRow>
                             )}
                         </TableBody>
@@ -360,5 +393,7 @@ export default function SingleSubjectTestPage() {
       </div>
     </div>
   );
+
+    
 
     
