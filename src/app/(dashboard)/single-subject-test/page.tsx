@@ -39,6 +39,7 @@ export default function SingleSubjectTestPage() {
   // State for filtering saved tests
   const [filterClass, setFilterClass] = useState<string | null>(null);
   const [filterSubject, setFilterSubject] = useState<string | null>(null);
+  const [printLayout, setPrintLayout] = useState<'portrait' | 'landscape'>('portrait');
 
 
   useEffect(() => {
@@ -234,6 +235,7 @@ export default function SingleSubjectTestPage() {
         subject={filterSubject}
         className={filterClass}
         settings={settings}
+        layout={printLayout}
       />
     );
 
@@ -381,11 +383,20 @@ export default function SingleSubjectTestPage() {
                     </Select>
                 </div>
                  {filterClass && filterSubject && (
-                    <div className="mb-4">
-                        <Button variant="secondary" className="w-full" onClick={handlePrintSubjectSummary}>
+                    <div className="mb-4 flex items-center gap-2">
+                        <Button variant="secondary" className="flex-grow" onClick={handlePrintSubjectSummary}>
                             <FileSpreadsheet className="mr-2 h-4 w-4"/>
-                            Print Subject Summary for {filterSubject}
+                            Print Subject Summary
                         </Button>
+                        <Select value={printLayout} onValueChange={v => setPrintLayout(v as 'portrait' | 'landscape')}>
+                            <SelectTrigger className="w-32">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="portrait">Portrait</SelectItem>
+                                <SelectItem value="landscape">Landscape</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                 )}
                 <ScrollArea className="h-80">
@@ -437,3 +448,5 @@ export default function SingleSubjectTestPage() {
       </div>
     </div>
   );
+
+    
