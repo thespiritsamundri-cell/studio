@@ -5,7 +5,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { db, auth } from '@/lib/firebase';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, writeBatch, query, where, getDocs, setDoc, getDoc, runTransaction } from 'firebase/firestore';
-import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData, Attendance, Alumni, User, PermissionSet, AppNotification, Session } from '@/lib/types';
+import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData, Attendance, Alumni, User, PermissionSet, AppNotification, Session, SingleSubjectTest } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from './settings-context';
 import { createUserWithEmailAndPassword as createUserAuth, onAuthStateChanged } from 'firebase/auth';
@@ -29,6 +29,7 @@ interface DataContextType {
   alumni: Alumni[];
   classes: Class[];
   exams: Exam[];
+  singleSubjectTests: SingleSubjectTest[];
   activityLog: ActivityLog[];
   expenses: Expense[];
   timetables: Timetable[];
@@ -60,6 +61,9 @@ interface DataContextType {
   addExam: (exam: Exam) => Promise<void>;
   updateExam: (id: string, exam: Partial<Exam>) => Promise<void>;
   deleteExam: (id: string) => Promise<void>;
+  addSingleSubjectTest: (test: Omit<SingleSubjectTest, 'id'>) => Promise<string | undefined>;
+  updateSingleSubjectTest: (id: string, test: Partial<SingleSubjectTest>) => Promise<void>;
+  deleteSingleSubjectTest: (id: string) => Promise<void>;
   addActivityLog: (activity: Omit<ActivityLog, 'id' | 'timestamp' | 'user'>) => Promise<void>;
   clearActivityLog: () => Promise<void>;
   addExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
@@ -103,6 +107,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [classes, setClasses] = useState<Class[]>([]);
   const [alumni, setAlumni] = useState<Alumni[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
+  const [singleSubjectTests, setSingleSubjectTests] = useState<SingleSubjectTest[]>([]);
   const [activityLog, setActivityLog] = useState<ActivityLog[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [timetables, setTimetables] = useState<Timetable[]>([]);
@@ -131,14 +136,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
                 const generalCollections = [
                     'students', 'families', 'fees', 'teachers', 'attendances', 
-                    'teacherAttendances', 'alumni', 'classes', 'exams', 'activityLog', 
+                    'teacherAttendances', 'alumni', 'classes', 'exams', 'singleSubjectTests', 'activityLog', 
                     'expenses', 'timetables', 'users', 'sessions'
                 ];
                 
                 const setterMap: { [key: string]: React.Dispatch<React.SetStateAction<any[]>> } = {
                     students: setStudents, families: setFamilies, fees: setFees, teachers: setTeachers,
                     attendances: setAttendances, teacherAttendances: setTeacherAttendances, alumni: setAlumni,
-                    classes: setClasses, exams: setExams, activityLog: setActivityLog, expenses: setExpenses,
+                    classes: setClasses, exams: setExams, singleSubjectTests: setSingleSubjectTests, activityLog: setActivityLog, expenses: setExpenses,
                     timetables: setTimetables, users: setUsers, sessions: setSessions, notifications: setNotifications
                 };
             
@@ -154,6 +159,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
                         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                         if (['activityLog', 'sessions'].includes(collectionName)) {
                             data.sort((a, b) => new Date(b.lastAccess || b.timestamp).getTime() - new Date(a.lastAccess || a.timestamp).getTime());
+                        }
+                        if (collectionName === 'singleSubjectTests') {
+                            data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
                         }
                         setter(data as any);
                     }, (error) => console.error(`Error fetching ${collectionName}:`, error));
@@ -187,7 +195,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             setUserRole(null);
             setUserPermissions(defaultPermissions);
             setCurrentUserName('System');
-            [setStudents, setFamilies, setFees, setTeachers, setAttendances, setTeacherAttendances, setAlumni, setClasses, setExams, setActivityLog, setExpenses, setTimetables, setUsers, setSessions, setNotifications].forEach(setter => setter([]));
+            [setStudents, setFamilies, setFees, setTeachers, setAttendances, setTeacherAttendances, setAlumni, setClasses, setExams, setSingleSubjectTests, setActivityLog, setExpenses, setTimetables, setUsers, setSessions, setNotifications].forEach(setter => setter([]));
         }
     });
 
@@ -567,6 +575,30 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   };
   
+    // --- SINGLE SUBJECT TEST ---
+    const addSingleSubjectTest = async (test: Omit<SingleSubjectTest, 'id'>) => {
+        try {
+            const newDocRef = await addDoc(collection(db, "singleSubjectTests"), test);
+            await addActivityLog({ action: 'Create Single Subject Test', description: `Created test "${test.testName}" for class ${test.class}.` });
+            return newDocRef.id;
+        } catch (e) {
+            console.error('Error adding single subject test:', e);
+            toast({ title: 'Error Creating Test', variant: 'destructive' });
+        }
+    };
+    const updateSingleSubjectTest = updateDocFactory<SingleSubjectTest>('singleSubjectTests', 'Update Single Subject Test', d => `Updated results for test: ${d.testName}.`);
+    const deleteSingleSubjectTest = async (id: string) => {
+        const testToDelete = singleSubjectTests.find(t => t.id === id);
+        if (!testToDelete) return;
+        try {
+            await deleteDoc(doc(db, 'singleSubjectTests', id));
+            await addActivityLog({ action: 'Delete Single Subject Test', description: `Deleted test: ${testToDelete.testName}.` });
+        } catch (e) {
+            console.error('Error deleting single subject test:', e);
+            toast({ title: 'Error Deleting Test', variant: 'destructive' });
+        }
+    };
+
     // --- EXPENSE ---
     const addExpense = async (expense: Omit<Expense, 'id'>) => {
         try {
@@ -697,12 +729,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const contextValue = {
       students, families, fees, teachers, attendances, teacherAttendances, alumni,
-      classes, exams, activityLog, expenses, timetables, users, sessions, notifications,
+      classes, exams, singleSubjectTests, activityLog, expenses, timetables, users, sessions, notifications,
       userRole, userPermissions, isDataInitialized, hasPermission,
       addStudent, updateStudent, updateAlumni, deleteStudent, addFamily, updateFamily, 
       deleteFamily, addFee, updateFee, deleteFee, addTeacher, updateTeacher,
       deleteTeacher, saveStudentAttendance, saveTeacherAttendance, addClass,
-      updateClass, deleteClass, addExam, updateExam, deleteExam, addActivityLog,
+      updateClass, deleteClass, addExam, updateExam, deleteExam, addSingleSubjectTest, updateSingleSubjectTest, deleteSingleSubjectTest, addActivityLog,
       clearActivityLog, addExpense, updateExpense, deleteExpense, updateTimetable,
       updateUser, createUser, signOutSession, addNotification, markNotificationAsRead,
       loadData, seedDatabase, deleteAllData,

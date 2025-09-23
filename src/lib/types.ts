@@ -132,6 +132,19 @@ export interface Exam {
     };
 }
 
+export interface SingleSubjectTest {
+    id: string;
+    testName: string;
+    class: string;
+    section?: string;
+    subject: string;
+    date: string;
+    totalMarks: number;
+    results: {
+        [studentId: string]: number | undefined;
+    };
+}
+
 export interface Grade {
     name: string;
     minPercentage: number;
