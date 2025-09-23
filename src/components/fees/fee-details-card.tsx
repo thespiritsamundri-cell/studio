@@ -219,6 +219,9 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         const reportElement = document.createElement('div');
         reportElement.style.position = 'absolute';
         reportElement.style.left = '-9999px';
+        if (printType === 'thermal') {
+            reportElement.style.width = '80mm';
+        }
         reportElement.innerHTML = printContentString;
         document.body.appendChild(reportElement);
       
