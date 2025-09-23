@@ -41,7 +41,7 @@ export const SingleSubjectTestReport = React.forwardRef<HTMLDivElement, SingleSu
 
 
     return (
-      <div ref={ref} className="p-8 font-sans bg-white text-black">
+      <div ref={ref} className="p-8 font-sans bg-white text-black text-sm">
         <header className="flex items-start justify-between pb-4 border-b border-gray-300">
           <div className="flex items-center gap-4">
             {settings.schoolLogo && (
@@ -49,19 +49,31 @@ export const SingleSubjectTestReport = React.forwardRef<HTMLDivElement, SingleSu
             )}
             <div>
               <h1 className="text-4xl font-bold text-gray-800">{settings.schoolName}</h1>
-              <p className="text-sm text-gray-500">{settings.schoolAddress}</p>
-              <p className="text-sm text-gray-500">Phone: {settings.schoolPhone}</p>
+              <p className="text-base text-gray-500">{settings.schoolAddress}</p>
+              <p className="text-base text-gray-500">Phone: {settings.schoolPhone}</p>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-sm text-gray-500">Date: {format(new Date(), 'PPP')}</p>
+            <h2 className="text-2xl font-semibold text-gray-700">Test Marksheet</h2>
+            <p className="text-base text-gray-500">Date: {format(new Date(), 'PPP')}</p>
           </div>
         </header>
         
-        <div className="text-center my-6">
-            <h3 className="text-xl font-bold">{testName}</h3>
-            <p className="text-lg font-semibold">Class: {className} | Subject: {subject}</p>
+        <div className="text-center my-4">
+            <h3 className="text-2xl font-bold">{testName}</h3>
         </div>
+
+        <div className="my-6 flex justify-center items-center gap-4">
+            <div className="border-2 border-gray-400 rounded-md p-2 text-center">
+                <span className="text-xs font-bold text-gray-500">CLASS</span>
+                <p className="text-lg font-bold">{className}</p>
+            </div>
+            <div className="border-2 border-gray-400 rounded-md p-2 text-center">
+                <span className="text-xs font-bold text-gray-500">SUBJECT</span>
+                <p className="text-lg font-bold">{subject}</p>
+            </div>
+        </div>
+
 
         <main className="mt-8">
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -77,7 +89,7 @@ export const SingleSubjectTestReport = React.forwardRef<HTMLDivElement, SingleSu
             <tbody>
               {marksheetData.map((row) => (
                 <tr key={row.id}>
-                  <td style={cellStyle}>{row.id}</td>
+                  <td style={{...cellStyle, textAlign: 'center'}}>{row.id}</td>
                   <td style={studentNameCellStyle}>{row.name}</td>
                   <td style={{...cellStyle, textAlign: 'center'}}>{row.obtainedMarks ?? 'N/A'}</td>
                   <td style={{...cellStyle, textAlign: 'center'}}>{totalMarks}</td>
@@ -100,3 +112,4 @@ export const SingleSubjectTestReport = React.forwardRef<HTMLDivElement, SingleSu
 );
 
 SingleSubjectTestReport.displayName = 'SingleSubjectTestReport';
+
