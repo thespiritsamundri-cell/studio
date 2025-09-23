@@ -32,15 +32,13 @@ export const SubjectSummaryPrintReport = React.forwardRef<HTMLDivElement, Subjec
     const sortedTests = tests.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     
     const printStyles = `
-        @media print {
-            .print-font-size {
-                font-size: ${fontSize}px !important;
-            }
-        }
+      body {
+        font-size: ${fontSize}px !important;
+      }
     `;
 
     return (
-      <div ref={ref} className="p-8 font-sans bg-white text-black print-font-size">
+      <div ref={ref} className="p-8 font-sans bg-white text-black">
         <style>{printStyles}</style>
         <header className="flex items-start justify-between pb-4 border-b border-gray-400">
           <div className="flex items-center gap-4">
