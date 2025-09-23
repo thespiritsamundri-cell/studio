@@ -10,6 +10,7 @@ import { AllStudentsPrintReport } from '@/components/reports/all-students-report
 import { IncomePrintReport } from '@/components/reports/income-report';
 import { AttendancePrintReport } from '@/components/reports/attendance-report';
 import { UnpaidFeesPrintReport } from '@/components/reports/unpaid-fees-report';
+import { StudentFinancialPrintReport, type StudentFinancialData } from '@/components/reports/student-financial-report';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -38,31 +39,48 @@ export default function ReportsPage() {
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [attendanceDate, setAttendanceDate] = useState<Date | undefined>(new Date());
 
-  const generateStudentFinancialReport = () => {
-    setIsLoading('student-financial');
-    try {
-      const headers = ['Roll Number', 'Student Name', "Father's Name", 'Date of Birth', 'Class', 'Family Number', 'Total Dues', 'Paid Fees', 'Remaining Dues'];
-      
-      const studentData = allStudents.map(student => {
+  const getStudentFinancialData = (): StudentFinancialData[] => {
+      return allStudents.map(student => {
         const familyFees = allFees.filter(fee => fee.familyId === student.familyId);
         const totalDues = familyFees.reduce((acc, fee) => acc + fee.amount, 0);
         const paidFees = familyFees.filter(f => f.status === 'Paid').reduce((acc, fee) => acc + fee.amount, 0);
         const remainingDues = totalDues - paidFees;
         
-        return [
-          student.id,
-          student.name,
-          student.fatherName,
-          student.dob,
-          student.class,
-          student.familyId,
+        return {
+          id: student.id,
+          name: student.name,
+          fatherName: student.fatherName,
+          dob: student.dob,
+          class: student.class,
+          familyId: student.familyId,
           totalDues,
           paidFees,
           remainingDues
-        ].join(',');
+        };
       });
+  }
 
-      const csvContent = [headers.join(','), ...studentData].join('\n');
+  const generateStudentFinancialCsv = () => {
+    setIsLoading('student-financial-csv');
+    try {
+      const headers = ['Roll Number', 'Student Name', "Father's Name", 'Date of Birth', 'Class', 'Family Number', 'Total Dues', 'Paid Fees', 'Remaining Dues'];
+      const studentData = getStudentFinancialData();
+
+      const csvRows = studentData.map(s =>
+        [
+          s.id,
+          s.name,
+          s.fatherName,
+          s.dob,
+          s.class,
+          s.familyId,
+          s.totalDues,
+          s.paidFees,
+          s.remainingDues
+        ].join(',')
+      );
+
+      const csvContent = [headers.join(','), ...csvRows].join('\n');
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
@@ -80,6 +98,37 @@ export default function ReportsPage() {
       setIsLoading(null);
     }
   };
+
+  const generateStudentFinancialPrintReport = () => {
+    setIsLoading('student-financial-print');
+    try {
+        const studentData = getStudentFinancialData();
+        const printContent = renderToString(
+            <StudentFinancialPrintReport
+                students={studentData}
+                date={new Date()}
+                settings={settings}
+            />
+        );
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(`
+                <html>
+                <head><title>Student Financial Report</title><script src="https://cdn.tailwindcss.com"></script></head>
+                <body>${printContent}</body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.focus();
+        }
+        toast({ title: 'Report Generated', description: 'The student financial report is ready for printing.' });
+    } catch (error) {
+        toast({ title: 'Error Generating Report', variant: 'destructive' });
+        console.error(error);
+    } finally {
+        setIsLoading(null);
+    }
+  }
 
   const generateReport = (type: string) => {
     setIsLoading(type);
@@ -230,16 +279,22 @@ export default function ReportsPage() {
               <FileSpreadsheet className="w-8 h-8 text-green-600" />
               <div>
                 <CardTitle>Student Financial Report</CardTitle>
-                <CardDescription>Export a detailed CSV of student financials.</CardDescription>
+                <CardDescription>Export or print detailed student financials.</CardDescription>
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            <Button onClick={generateStudentFinancialReport} disabled={isLoading === 'student-financial'}>
-              {isLoading === 'student-financial'
+          <CardContent className="flex items-center gap-2">
+            <Button onClick={generateStudentFinancialCsv} disabled={isLoading === 'student-financial-csv'} variant="outline">
+              {isLoading === 'student-financial-csv'
                 ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 : <Download className="mr-2 h-4 w-4" />}
-              Export to Excel
+              Excel
+            </Button>
+             <Button onClick={generateStudentFinancialPrintReport} disabled={isLoading === 'student-financial-print'}>
+              {isLoading === 'student-financial-print'
+                ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                : <Printer className="mr-2 h-4 w-4" />}
+              Print
             </Button>
           </CardContent>
         </Card>
@@ -350,3 +405,5 @@ export default function ReportsPage() {
     </div>
   );
 }
+
+    
