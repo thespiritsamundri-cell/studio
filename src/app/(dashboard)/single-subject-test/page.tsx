@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -10,10 +11,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useData } from '@/context/data-context';
 import type { Student, SingleSubjectTest } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { Printer, BookText, Save, Edit, Trash2, PlusCircle, CalendarIcon, Loader2, FileSpreadsheet, Download } from 'lucide-react';
+import { Printer, BookText, Save, Edit, Trash2, PlusCircle, CalendarIcon, Loader2, FileSpreadsheet, Download, File } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import { renderToString } from 'react-dom/server';
 import { SingleSubjectTestReport } from '@/components/reports/single-subject-test-report';
+import { BlankMarksheetPrint } from '@/components/reports/blank-marksheet-print';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -223,7 +225,6 @@ export default function SingleSubjectTestPage() {
         subject={filterSubject}
         className={filterClass}
         settings={settings}
-        fontSize={14}
       />
     );
 
@@ -293,6 +294,39 @@ export default function SingleSubjectTestPage() {
     }
   };
 
+  const handlePrintBlankSheet = () => {
+    if (!selectedClass || !selectedSubject || !testName) {
+      toast({ title: 'Incomplete Information', description: 'Please select class, subject and enter test name.', variant: 'destructive' });
+      return;
+    }
+
+    const printContent = renderToString(
+      <BlankMarksheetPrint
+        testName={testName}
+        className={selectedClass}
+        subject={selectedSubject}
+        students={classStudents}
+        totalMarks={totalMarks}
+        settings={settings}
+      />
+    );
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Blank Marksheet - ${testName}</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+            <link rel="stylesheet" href="/print-styles.css">
+          </head>
+          <body>${printContent}</body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+    }
+  };
+
   const handlePrintSavedTest = (test: SingleSubjectTest) => {
     const studentsForTest = allStudents.filter(s => s.class === test.class && (!test.section || s.section === test.section));
     const marksheetDataForTest = studentsForTest.map(student => ({
@@ -342,7 +376,6 @@ export default function SingleSubjectTestPage() {
         subject={filterSubject}
         className={filterClass}
         settings={settings}
-        fontSize={14}
       />
     );
 
@@ -427,8 +460,9 @@ export default function SingleSubjectTestPage() {
                   <CardDescription>Enter marks for each student out of {totalMarks}.</CardDescription>
                 </div>
                  <div className="flex items-center gap-2">
-                    <Button onClick={handleSaveTest}><Save className="mr-2 h-4 w-4"/> {isEditing ? 'Update Test' : 'Save Test'}</Button>
+                    <Button onClick={handleSaveTest}><Save className="mr-2 h-4 w-4"/> {isEditing ? 'Update' : 'Save'}</Button>
                     <Button variant="outline" onClick={handlePrint}><Printer className="mr-2 h-4 w-4"/>Print</Button>
+                    <Button variant="outline" onClick={handlePrintBlankSheet}><File className="mr-2 h-4 w-4"/>Blank Sheet</Button>
                     <Button variant="outline" onClick={() => renderAndDownloadJpg({ testName, class: selectedClass, subject: selectedSubject!, totalMarks, results: studentMarks })} disabled={isDownloading}>
                       {isDownloading && !downloadingTestId ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Download className="mr-2 h-4 w-4"/>}
                       JPG
@@ -557,5 +591,3 @@ export default function SingleSubjectTestPage() {
   );
 
 }
-
-    
