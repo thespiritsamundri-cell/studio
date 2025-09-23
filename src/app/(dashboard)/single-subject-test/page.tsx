@@ -39,7 +39,7 @@ export default function SingleSubjectTestPage() {
   // State for filtering saved tests
   const [filterClass, setFilterClass] = useState<string | null>(null);
   const [filterSubject, setFilterSubject] = useState<string | null>(null);
-  const [summaryFontSize, setSummaryFontSize] = useState('text-sm');
+  const [summaryFontSize, setSummaryFontSize] = useState(12);
 
 
   useEffect(() => {
@@ -384,16 +384,15 @@ export default function SingleSubjectTestPage() {
                 </div>
                  {filterClass && filterSubject && (
                     <div className="mb-4 flex items-center gap-2">
-                         <Select value={summaryFontSize} onValueChange={setSummaryFontSize}>
-                            <SelectTrigger className="w-[140px]">
-                                <SelectValue placeholder="Font Size" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="text-xs">Small</SelectItem>
-                                <SelectItem value="text-sm">Medium</SelectItem>
-                                <SelectItem value="text-base">Large</SelectItem>
-                            </SelectContent>
-                        </Select>
+                         <div className="flex-grow">
+                             <Input
+                                type="number"
+                                value={summaryFontSize}
+                                onChange={(e) => setSummaryFontSize(Number(e.target.value))}
+                                className="w-full"
+                                placeholder="Font Size (e.g., 12)"
+                             />
+                         </div>
                         <Button variant="secondary" className="w-full" onClick={handlePrintSubjectSummary}>
                             <FileSpreadsheet className="mr-2 h-4 w-4"/>
                             Print Subject Summary
