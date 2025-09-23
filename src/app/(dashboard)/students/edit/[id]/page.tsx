@@ -148,7 +148,7 @@ export default function EditStudentPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="name">Student Name</Label>
               <Input id="name" value={student.name} onChange={handleInputChange} placeholder="Enter full name" />
@@ -160,6 +160,19 @@ export default function EditStudentPage() {
             <div className="space-y-2">
               <Label htmlFor="dob">Date of Birth</Label>
               <Input id="dob" type="date" value={student.dob} onChange={handleInputChange} />
+            </div>
+             <div className="space-y-2">
+                <Label htmlFor="gender">Gender</Label>
+                <Select value={student.gender} onValueChange={handleSelectChange('gender')}>
+                    <SelectTrigger id="gender">
+                        <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="Male">Male</SelectItem>
+                        <SelectItem value="Female">Female</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
             <div className="space-y-2">
                 <Label htmlFor="cnic">Student CNIC / B-Form</Label>
@@ -219,7 +232,7 @@ export default function EditStudentPage() {
                 <Label htmlFor="alternatePhone">Alternate Phone</Label>
                 <Input id="alternatePhone" value={student.alternatePhone || ''} onChange={handleInputChange} placeholder="Enter alternate number" />
             </div>
-            <div className="space-y-2 md:col-span-2">
+            <div className="space-y-2 lg:col-span-2">
               <Label htmlFor="address">Address</Label>
               <Input id="address" value={student.address} onChange={handleInputChange} placeholder="Enter residential address" />
             </div>
@@ -227,7 +240,7 @@ export default function EditStudentPage() {
               <Label htmlFor="photoUrl">Student Photo</Label>
               <Input id="photoUrl" type="file" className="file:text-primary file:font-medium" onChange={handlePhotoChange} accept="image/*" />
             </div>
-            <div className="flex justify-end gap-2 md:col-span-2">
+            <div className="flex justify-end gap-2 lg:col-span-3">
               <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
               <Button type="submit">Save Changes</Button>
             </div>

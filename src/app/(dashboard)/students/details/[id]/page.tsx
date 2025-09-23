@@ -105,6 +105,7 @@ export default function StudentDetailsPage() {
                 <h3 className="text-xl font-semibold mb-4 border-b pb-2">Personal Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <DetailItem label="Date of Birth" value={student.dob} />
+                    <DetailItem label="Gender" value={student.gender} />
                     <DetailItem label="Admission Date" value={student.admissionDate} />
                     <DetailItem label="Contact Number" value={student.phone} />
                     <DetailItem label="Alternate Contact" value={student.alternatePhone} />

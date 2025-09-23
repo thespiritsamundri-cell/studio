@@ -46,6 +46,7 @@ export interface Student {
   dob: string;
   photoUrl: string;
   cnic?: string;
+  gender?: 'Male' | 'Female' | 'Other';
 }
 
 export interface Alumni extends Omit<Student, 'status'> {
