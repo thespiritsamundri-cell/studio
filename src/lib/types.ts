@@ -46,6 +46,7 @@ export interface Student {
   dob: string;
   photoUrl: string;
   cnic?: string;
+  gender?: 'Male' | 'Female' | 'Other';
 }
 
 export interface Alumni extends Omit<Student, 'status'> {
@@ -128,6 +129,19 @@ export interface Exam {
     results: ExamResult[];
     subjectTotals: {
         [subject: string]: number;
+    };
+}
+
+export interface SingleSubjectTest {
+    id: string;
+    testName: string;
+    class: string;
+    section?: string;
+    subject: string;
+    date: string;
+    totalMarks: number;
+    results: {
+        [studentId: string]: number | undefined;
     };
 }
 

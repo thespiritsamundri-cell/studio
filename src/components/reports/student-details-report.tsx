@@ -63,6 +63,7 @@ export const StudentDetailsPrint = React.forwardRef<HTMLDivElement, StudentDetai
                   <p><span className='font-semibold'>Status:</span> <span className={`font-bold ${student.status === 'Active' ? 'text-green-600' : 'text-red-600'}`}>{student.status}</span></p>
                   <p><span className='font-semibold'>Admission Date:</span> {student.admissionDate}</p>
                   <p><span className='font-semibold'>Date of Birth:</span> {student.dob}</p>
+                   <p><span className='font-semibold'>Gender:</span> {student.gender}</p>
               </div>
             </div>
           </section>
@@ -72,6 +73,7 @@ export const StudentDetailsPrint = React.forwardRef<HTMLDivElement, StudentDetai
                   <h3 className="text-xl font-semibold mb-4 border-b border-gray-300 pb-2 text-gray-700">Personal Information</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <DetailItem label="Contact Number" value={student.phone} />
+                       <DetailItem label="Student CNIC / B-Form" value={student.cnic} />
                       <div className="md:col-span-2">
                        <DetailItem label="Address" value={student.address} />
                       </div>
@@ -83,6 +85,8 @@ export const StudentDetailsPrint = React.forwardRef<HTMLDivElement, StudentDetai
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <DetailItem label="Family ID" value={student.familyId} />
                       <DetailItem label="Father's Name" value={family?.fatherName} />
+                      <DetailItem label="Father's CNIC" value={family?.cnic} />
+                      <DetailItem label="Father's Profession" value={family?.profession} />
                       <DetailItem label="Family Contact" value={family?.phone} />
                       <div className="md:col-span-2">
                           <DetailItem label="Family Address" value={family?.address} />

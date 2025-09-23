@@ -42,6 +42,7 @@ export default function AdmissionsPage() {
     const [fatherName, setFatherName] = useState('');
     const [profession, setProfession] = useState('');
     const [dob, setDob] = useState('');
+    const [gender, setGender] = useState<'Male' | 'Female' | 'Other'>();
     const [studentClass, setStudentClass] = useState('');
     const [studentSection, setStudentSection] = useState('');
     const [phone, setPhone] = useState('');
@@ -183,7 +184,8 @@ export default function AdmissionsPage() {
             address: address,
             dob: dob,
             cnic: studentCnic,
-            photoUrl: photoUrl
+            photoUrl: photoUrl,
+            gender: gender
         };
 
         const feesToAdd: Omit<Fee, 'id'>[] = [];
@@ -268,6 +270,7 @@ export default function AdmissionsPage() {
         setFoundFamily(null);
         setStudentName('');
         setDob('');
+        setGender(undefined);
         setStudentClass('');
         setStudentSection('');
         setStudentCnic('');
@@ -392,6 +395,19 @@ export default function AdmissionsPage() {
               <div className="space-y-2">
                 <Label htmlFor="dob">Date of Birth</Label>
                 <Input id="dob" name="dob" type="date" value={dob} onChange={e => setDob(e.target.value)} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="gender">Gender</Label>
+                <Select name="gender" onValueChange={(value) => setGender(value as 'Male' | 'Female' | 'Other')} value={gender} required>
+                    <SelectTrigger id="gender">
+                        <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="Male">Male</SelectItem>
+                        <SelectItem value="Female">Female</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="studentCnic">Student CNIC / B-Form</Label>
