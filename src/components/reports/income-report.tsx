@@ -14,11 +14,12 @@ interface IncomePrintReportProps {
   fees: (Fee & { fatherName?: string })[];
   totalIncome: number;
   dateRange?: DateRange;
+  familyName?: string;
   settings: SchoolSettings;
 }
 
 export const IncomePrintReport = React.forwardRef<HTMLDivElement, IncomePrintReportProps>(
-  ({ fees, totalIncome, dateRange, settings }, ref) => {
+  ({ fees, totalIncome, dateRange, familyName, settings }, ref) => {
     
     const getPeriodText = () => {
         if (dateRange?.from && dateRange?.to) {
@@ -48,6 +49,7 @@ export const IncomePrintReport = React.forwardRef<HTMLDivElement, IncomePrintRep
           <div className="text-right">
             <h2 className="text-2xl font-semibold text-gray-700">Income Report</h2>
             <p className="text-sm text-gray-500">{getPeriodText()}</p>
+            {familyName && <p className="text-sm font-semibold text-gray-600">For Family: {familyName}</p>}
           </div>
         </header>
 

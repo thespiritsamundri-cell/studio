@@ -71,7 +71,10 @@ export default function IncomePage() {
     let filtered = paidFeesWithDetails;
 
     if (familyFilter) {
-      filtered = filtered.filter(e => e.familyId.toLowerCase().includes(familyFilter.toLowerCase()));
+      filtered = filtered.filter(e => 
+          e.familyId.toLowerCase().includes(familyFilter.toLowerCase()) ||
+          e.fatherName?.toLowerCase().includes(familyFilter.toLowerCase())
+      );
     }
 
     if (dateRange?.from && dateRange?.to) {
@@ -142,8 +145,9 @@ export default function IncomePage() {
   };
   
   const triggerPrint = () => {
+    const familyName = familyFilter && filteredFees.length > 0 ? filteredFees[0].fatherName : undefined;
     const printContent = renderToString(
-      <IncomePrintReport fees={filteredFees} totalIncome={totalIncome} dateRange={dateRange} settings={settings} />
+      <IncomePrintReport fees={filteredFees} totalIncome={totalIncome} dateRange={dateRange} settings={settings} familyName={familyName} />
     );
     const printWindow = window.open('', '_blank');
     if(printWindow) {
@@ -181,7 +185,7 @@ export default function IncomePage() {
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input 
                   className="pl-8 w-full md:w-[250px]"
-                  placeholder="Search by Family ID..."
+                  placeholder="Search by Family ID or Name..."
                   value={familyFilter}
                   onChange={(e) => setFamilyFilter(e.target.value)}
                 />
@@ -257,13 +261,13 @@ export default function IncomePage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the income record for <strong>PKR {feeToDelete?.amount.toLocaleString()}</strong>. This action cannot be undone.
+              This action cannot be undone. This will delete the income record and the amount will be added back to the family's unpaid dues.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setFeeToDelete(null)}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">
-              Yes, delete record
+              Yes, delete & reverse
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
