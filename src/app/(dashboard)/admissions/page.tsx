@@ -69,18 +69,9 @@ export default function AdmissionsPage() {
             const children = students.filter(s => s.familyId === foundFamily.id && s.status !== 'Archived').sort((a,b) => new Date(b.admissionDate).getTime() - new Date(a.admissionDate).getTime());
             setExistingChildren(children);
 
-            // Autofill fees from the most recently admitted existing child
-            if (children.length > 0) {
-                const latestChild = children[0];
-                const familyFees = fees.filter(f => f.familyId === latestChild.familyId);
-                
-                const regFee = familyFees.find(f => f.month === 'Registration');
-                if (regFee) setRegistrationFee(regFee.amount);
-
-                const tuitionFee = familyFees.find(f => !['Registration', 'Annual'].includes(f.month));
-                if (tuitionFee) setMonthlyFee(tuitionFee.amount);
-            }
-
+            // Set fees to empty by default
+            setRegistrationFee('');
+            setMonthlyFee('');
         } else {
             setFatherName('');
             setPhone('');
@@ -91,7 +82,7 @@ export default function AdmissionsPage() {
             setRegistrationFee('');
             setMonthlyFee('');
         }
-    }, [foundFamily, students, fees]);
+    }, [foundFamily, students]);
     
     useEffect(() => {
         if (familyId === '') {
@@ -561,3 +552,5 @@ export default function AdmissionsPage() {
     </div>
   );
 }
+
+    
