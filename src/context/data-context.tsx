@@ -450,68 +450,68 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const deleteFee = async (id: string) => {
     const feeToDelete = fees.find(f => f.id === id);
     if (!feeToDelete) {
-        toast({ title: 'Error', description: 'Cannot reverse fee. Paid fee record not found.', variant: 'destructive' });
+        toast({ title: 'Fee record not found.', variant: 'destructive' });
         return;
     }
+    
+    // If it's an unpaid challan, just delete it directly.
+    if (feeToDelete.status === 'Unpaid') {
+        try {
+            await deleteDoc(doc(db, 'fees', id));
+            toast({ title: "Challan Deleted", description: `Unpaid challan for Family ${feeToDelete.familyId} was deleted.` });
+            await addActivityLog({ action: 'Delete Challan', description: `Deleted unpaid challan ID ${id} for Family ${feeToDelete.familyId}.` });
+        } catch (e: any) {
+            console.error('Error deleting unpaid challan:', e);
+            toast({ title: 'Error Deleting Challan', description: e.message, variant: 'destructive' });
+        }
+        return;
+    }
+    
+    // If it's a paid fee, reverse the transaction.
+    if (feeToDelete.status === 'Paid') {
+        try {
+            await runTransaction(db, async (transaction) => {
+                const paidFeeRef = doc(db, 'fees', id);
+                const paidFeeDoc = await transaction.get(paidFeeRef);
 
-    try {
-        await runTransaction(db, async (transaction) => {
-            const paidFeeRef = doc(db, 'fees', id);
-            
-            const paidFeeDoc = await transaction.get(paidFeeRef);
-            if (!paidFeeDoc.exists()) {
-                // If it doesn't exist, maybe it was already deleted. Don't throw an error.
-                console.warn(`Tried to delete fee ${id}, but it was already gone.`);
-                return;
-            }
-            const paidFeeData = paidFeeDoc.data() as Fee;
+                if (!paidFeeDoc.exists()) {
+                    console.warn(`Tried to reverse fee ${id}, but it was already gone.`);
+                    return; // Exit transaction if doc is already gone.
+                }
+                const paidFeeData = paidFeeDoc.data() as Fee;
 
-            // Only proceed if the fee status is 'Paid'
-            if (paidFeeData.status !== 'Paid') {
-                throw new Error("Cannot reverse a fee that is not marked as 'Paid'.");
-            }
+                if (paidFeeData.originalChallanId) {
+                    const originalChallanRef = doc(db, 'fees', paidFeeData.originalChallanId);
+                    const originalChallanDoc = await transaction.get(originalChallanRef);
 
-            if (paidFeeData.originalChallanId) {
-                const originalChallanRef = doc(db, 'fees', paidFeeData.originalChallanId);
-                const originalChallanDoc = await transaction.get(originalChallanRef);
-
-                if (originalChallanDoc.exists()) {
-                    const currentAmount = originalChallanDoc.data().amount || 0;
-                    transaction.update(originalChallanRef, { amount: currentAmount + paidFeeData.amount });
+                    if (originalChallanDoc.exists()) {
+                        const currentAmount = originalChallanDoc.data().amount || 0;
+                        transaction.update(originalChallanRef, { amount: currentAmount + paidFeeData.amount });
+                    } else {
+                        const newUnpaidFee: Omit<Fee, 'id'> = {
+                            familyId: paidFeeData.familyId, amount: paidFeeData.amount, month: paidFeeData.month,
+                            year: paidFeeData.year, status: 'Unpaid', paymentDate: '',
+                        };
+                        const newFeeRef = doc(collection(db, 'fees'));
+                        transaction.set(newFeeRef, newUnpaidFee);
+                    }
                 } else {
                     const newUnpaidFee: Omit<Fee, 'id'> = {
-                        familyId: paidFeeData.familyId,
-                        amount: paidFeeData.amount,
-                        month: paidFeeData.month,
-                        year: paidFeeData.year,
-                        status: 'Unpaid',
-                        paymentDate: '',
+                        familyId: paidFeeData.familyId, amount: paidFeeData.amount, month: paidFeeData.month,
+                        year: paidFeeData.year, status: 'Unpaid', paymentDate: '',
                     };
                     const newFeeRef = doc(collection(db, 'fees'));
                     transaction.set(newFeeRef, newUnpaidFee);
                 }
-            } else {
-                 const newUnpaidFee: Omit<Fee, 'id'> = {
-                    familyId: paidFeeData.familyId,
-                    amount: paidFeeData.amount,
-                    month: paidFeeData.month,
-                    year: paidFeeData.year,
-                    status: 'Unpaid',
-                    paymentDate: '',
-                };
-                const newFeeRef = doc(collection(db, 'fees'));
-                transaction.set(newFeeRef, newUnpaidFee);
-            }
+                transaction.delete(paidFeeRef);
+            });
 
-            transaction.delete(paidFeeRef);
-        });
-
-        toast({ title: "Income Reversed", description: `PKR ${feeToDelete.amount.toLocaleString()} has been added back to Family ${feeToDelete.familyId}'s dues.` });
-        await addActivityLog({ action: 'Reverse Income', description: `Reversed income of PKR ${feeToDelete.amount.toLocaleString()} for Family ID ${feeToDelete.familyId}.` });
-
-    } catch (e: any) {
-        console.error('Error reversing fee:', e);
-        toast({ title: 'Error Reversing Income', description: e.message || "An unknown error occurred.", variant: "destructive" });
+            toast({ title: "Income Reversed", description: `PKR ${feeToDelete.amount.toLocaleString()} has been added back to Family ${feeToDelete.familyId}'s dues.` });
+            await addActivityLog({ action: 'Reverse Income', description: `Reversed income of PKR ${feeToDelete.amount.toLocaleString()} for Family ID ${feeToDelete.familyId}.` });
+        } catch (e: any) {
+            console.error('Error reversing fee:', e);
+            toast({ title: 'Error Reversing Income', description: e.message || "An unknown error occurred.", variant: 'destructive' });
+        }
     }
 };
 
