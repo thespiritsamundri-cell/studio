@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { useData } from '@/context/data-context';
 import { sendWhatsAppMessage } from '@/services/whatsapp-service';
 import html2canvas from 'html2canvas';
+import { generateQrCode } from '@/ai/flows/generate-qr-code';
 
 
 interface FeeDetailsCardProps {
@@ -118,7 +119,6 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         
         addActivityLog({ action: 'Collect Fee', description: `Collected PKR ${collectedAmount.toLocaleString()} from family ${family.id} (${family.fatherName})`});
         
-        // Add notification for super admin
         addNotification({
             title: 'Fee Collected',
             description: `PKR ${collectedAmount.toLocaleString()} collected from ${family.fatherName} (Family ID: ${family.id})`,
@@ -130,9 +130,20 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
             description: `PKR ${collectedAmount.toLocaleString()} collected for Family ${family.id}.`,
         });
         
+        const receiptId = `INV-${Date.now()}`;
+        let qrCodeDataUri = '';
+        try {
+            const qrResult = await generateQrCode({ content: `FeeReceipt-${receiptId}` });
+            qrCodeDataUri = qrResult.qrCodeDataUri;
+        } catch (error) {
+            console.error("QR Code generation failed:", error);
+            toast({ title: 'QR Code Failed', description: 'Could not generate QR code for the receipt.', variant: 'destructive' });
+        }
+
+
         // Trigger both print and download
-        triggerPrint(newlyPaidFees, collectedAmount, newDues, paymentMethod);
-        await triggerJpgDownload(newlyPaidFees, collectedAmount, newDues, paymentMethod);
+        triggerPrint(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId, qrCodeDataUri);
+        await triggerJpgDownload(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId, qrCodeDataUri);
 
         if (settings.automatedMessages?.payment.enabled) {
             const paymentTemplate = settings.messageTemplates?.find(t => t.id === settings.automatedMessages?.payment.templateId);
@@ -160,7 +171,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         }
     };
     
-    const triggerPrint = (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string) => {
+    const triggerPrint = (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, qrCodeDataUri?: string) => {
         if (collectedAmount === 0 && unpaidFees.length === 0) {
              toast({ title: 'No Dues', description: 'There are no outstanding fees to generate a receipt for.', variant: 'destructive' });
             return;
@@ -177,6 +188,8 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                 settings={settings}
                 paymentMethod={method}
                 printType={printType}
+                receiptId={receiptId}
+                qrCodeDataUri={qrCodeDataUri}
             />
         );
         const printWindow = window.open('', '_blank');
@@ -197,7 +210,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         }
     };
     
-     const triggerJpgDownload = async (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string) => {
+     const triggerJpgDownload = async (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, qrCodeDataUri?: string) => {
         if (collectedAmount === 0 && unpaidFees.length === 0) {
             toast({ title: 'No Dues', description: 'There are no outstanding fees to generate a JPG for.', variant: 'destructive' });
             return;
@@ -215,6 +228,8 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                 settings={settings}
                 paymentMethod={method}
                 printType={printType}
+                receiptId={receiptId}
+                qrCodeDataUri={qrCodeDataUri}
             />
         );
       
@@ -369,10 +384,10 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                                 <SelectItem value="thermal">Thermal (80mm)</SelectItem>
                             </SelectContent>
                         </Select>
-                        <Button variant="outline" onClick={() => triggerJpgDownload([], 0, totalDues, paymentMethod)} disabled={isDownloadingJpg}>
+                        <Button variant="outline" onClick={() => triggerJpgDownload([], 0, totalDues, paymentMethod, `INV-${Date.now()}`)} disabled={isDownloadingJpg}>
                             {isDownloadingJpg ? <Loader2 className="h-4 w-4 animate-spin"/> : <Download className="h-4 w-4" />}
                         </Button>
-                        <Button variant="outline" onClick={() => triggerPrint([], 0, totalDues, paymentMethod)}><Printer className="h-4 w-4" /></Button>
+                        <Button variant="outline" onClick={() => triggerPrint([], 0, totalDues, paymentMethod, `INV-${Date.now()}`)}><Printer className="h-4 w-4" /></Button>
                      </div>
                 </div>
 
