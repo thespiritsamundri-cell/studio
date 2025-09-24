@@ -2,8 +2,14 @@
 'use client';
 
 import { DataProvider } from '@/context/data-context';
+import { SettingsProvider } from '@/context/settings-context';
 import { ReactNode } from 'react';
 
-export default function ReceiptLayout({ children }: { children: ReactNode }) {
-  return <DataProvider>{children}</DataProvider>;
+// A lightweight layout for public-facing pages that still need data context.
+export default function PublicDataLayout({ children }: { children: ReactNode }) {
+  return (
+    <SettingsProvider>
+        <DataProvider>{children}</DataProvider>
+    </SettingsProvider>
+  );
 }
