@@ -20,6 +20,7 @@ import { StudentDetailsPrint } from '@/components/reports/student-details-report
 import { useSettings } from '@/context/settings-context';
 import { sendWhatsAppMessage } from '@/services/whatsapp-service';
 import { uploadFile } from '@/services/storage-service';
+import { format } from 'date-fns';
 
 
 interface CustomFee {
@@ -42,6 +43,7 @@ export default function AdmissionsPage() {
     const [fatherName, setFatherName] = useState('');
     const [profession, setProfession] = useState('');
     const [dob, setDob] = useState('');
+    const [admissionDate, setAdmissionDate] = useState(format(new Date(), 'yyyy-MM-dd'));
     const [gender, setGender] = useState<'Male' | 'Female' | 'Other'>();
     const [studentClass, setStudentClass] = useState('');
     const [studentSection, setStudentSection] = useState('');
@@ -141,7 +143,7 @@ export default function AdmissionsPage() {
         const registrationFee = Number(formData.get('registration-fee'));
         const monthlyFee = Number(formData.get('monthly-fee'));
 
-        if (!studentName || !fatherName || !dob || !studentClass || !phone || !address || !registrationFee || !monthlyFee) {
+        if (!studentName || !fatherName || !dob || !studentClass || !phone || !address || !registrationFee || !monthlyFee || !admissionDate) {
              toast({
                 title: 'Missing Information',
                 description: 'Please fill out all required fields.',
@@ -176,7 +178,7 @@ export default function AdmissionsPage() {
             fatherName: fatherName,
             class: studentClass,
             section: studentSection,
-            admissionDate: new Date().toISOString().split('T')[0],
+            admissionDate: admissionDate,
             familyId: familyId,
             status: 'Active',
             phone: phone,
@@ -195,7 +197,7 @@ export default function AdmissionsPage() {
             familyId: familyId,
             amount: registrationFee,
             month: 'Registration', // This indicates it's a one-time registration fee
-            year: new Date().getFullYear(),
+            year: new Date(admissionDate).getFullYear(),
             status: 'Unpaid',
             paymentDate: ''
         });
@@ -204,8 +206,8 @@ export default function AdmissionsPage() {
         feesToAdd.push({
             familyId: familyId,
             amount: monthlyFee,
-            month: new Date().toLocaleString('default', { month: 'long' }), // Fee for the current month
-            year: new Date().getFullYear(),
+            month: format(new Date(admissionDate), 'MMMM'), // Fee for the admission month
+            year: new Date(admissionDate).getFullYear(),
             status: 'Unpaid',
             paymentDate: ''
         });
@@ -217,7 +219,7 @@ export default function AdmissionsPage() {
                     familyId: familyId,
                     amount: fee.amount,
                     month: fee.name, // Use the custom fee name as the one-time charge description
-                    year: new Date().getFullYear(),
+                    year: new Date(admissionDate).getFullYear(),
                     status: 'Unpaid',
                     paymentDate: ''
                 });
@@ -270,6 +272,7 @@ export default function AdmissionsPage() {
         setFoundFamily(null);
         setStudentName('');
         setDob('');
+        setAdmissionDate(format(new Date(), 'yyyy-MM-dd'));
         setGender(undefined);
         setStudentClass('');
         setStudentSection('');
@@ -395,6 +398,10 @@ export default function AdmissionsPage() {
               <div className="space-y-2">
                 <Label htmlFor="dob">Date of Birth</Label>
                 <Input id="dob" name="dob" type="date" value={dob} onChange={e => setDob(e.target.value)} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="admissionDate">Admission Date</Label>
+                <Input id="admissionDate" name="admissionDate" type="date" value={admissionDate} onChange={e => setAdmissionDate(e.target.value)} required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="gender">Gender</Label>
