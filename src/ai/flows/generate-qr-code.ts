@@ -3,47 +3,43 @@
  * @fileOverview A flow for generating QR codes.
  *
  * - generateQrCode - A function that generates a QR code from a given string.
- * - GenerateQrCodeInput - The input type for the generateQrCode function.
- * - GenerateQrCodeOutput - The return type for the generateQrCode function.
+ * - GenerateQrCodeRequest - The input type for the generateQrCode function.
+ * - GenerateQrCodeResponse - The return type for the generateQrCode function.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-const GenerateQrCodeInputSchema = z.object({
+const GenerateQrCodeRequestSchema = z.object({
   content: z.string().describe('The content to encode in the QR code.'),
 });
-export type GenerateQrCodeInput = z.infer<typeof GenerateQrCodeInputSchema>;
+export type GenerateQrCodeRequest = z.infer<typeof GenerateQrCodeRequestSchema>;
 
-const GenerateQrCodeOutputSchema = z.object({
+const GenerateQrCodeResponseSchema = z.object({
   qrCodeDataUri: z
     .string()
     .describe(
       "The generated QR code image as a data URI. Expected format: 'data:image/png;base64,<encoded_data>'."
     ),
 });
-export type GenerateQrCodeOutput = z.infer<typeof GenerateQrCodeOutputSchema>;
+export type GenerateQrCodeResponse = z.infer<typeof GenerateQrCodeResponseSchema>;
 
-export async function generateQrCode(input: GenerateQrCodeInput): Promise<GenerateQrCodeOutput> {
+export async function generateQrCode(input: GenerateQrCodeRequest): Promise<GenerateQrCodeResponse> {
   return generateQrCodeFlow(input);
 }
 
 const generateQrCodeFlow = ai.defineFlow(
   {
     name: 'generateQrCodeFlow',
-    inputSchema: GenerateQrCodeInputSchema,
-    outputSchema: GenerateQrCodeOutputSchema,
+    inputSchema: GenerateQrCodeRequestSchema,
+    outputSchema: GenerateQrCodeResponseSchema,
   },
   async (input) => {
-    // In a real scenario, we would use a library like 'qrcode' to generate the image.
-    // For this example, we will use a placeholder service that returns a QR code image.
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+    // Using barcode.tec-it.com to generate a QR Code image.
+    const qrCodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(
       input.content
-    )}`;
+    )}&code=QRCode&dpi=96`;
     
-    // In a real app, you'd fetch the image and convert to a data URI.
-    // To avoid a server-side dependency on node-fetch for this example, we will use a known placeholder.
-    // This is a simulation. A full implementation would require fetching the image and converting it to base64.
     const response = await fetch(qrCodeUrl);
     const buffer = await response.arrayBuffer();
     const base64 = Buffer.from(buffer).toString('base64');

@@ -447,60 +447,66 @@ export function DataProvider({ children }: { children: ReactNode }) {
     try { await setDoc(doc(db, 'fees', id), feeData, { merge: true }); } 
     catch(e) { console.error('Error updating fee', e); toast({ title: 'Error Updating Fee', variant: 'destructive' }); }
   };
-    const deleteFee = async (id: string) => {
-    try {
-        await runTransaction(db, async (transaction) => {
-            const paidFeeRef = doc(db, 'fees', id);
-            const paidFeeDoc = await transaction.get(paidFeeRef);
+    
+const deleteFee = async (id: string) => {
+    const feeToDelete = fees.find(f => f.id === id);
+    if (!feeToDelete) {
+        toast({ title: 'Fee record not found in local data.', variant: 'destructive' });
+        return;
+    }
+    
+    // This is for paid income records being reversed.
+    if (feeToDelete.status === 'Paid') {
+        try {
+            await runTransaction(db, async (transaction) => {
+                const paidFeeRef = doc(db, "fees", id);
+                const feeDoc = await transaction.get(paidFeeRef);
 
-            if (!paidFeeDoc.exists()) {
-                throw new Error("Paid fee document not found. It may have already been deleted or never existed.");
-            }
-            const paidFeeData = paidFeeDoc.data() as Fee;
-
-            if (paidFeeData.status !== 'Paid') {
-                throw new Error("This reversal logic is only for 'Paid' fees.");
-            }
-
-            if (paidFeeData.originalChallanId) {
-                const originalChallanRef = doc(db, 'fees', paidFeeData.originalChallanId);
-                const originalChallanDoc = await transaction.get(originalChallanRef);
-
-                if (originalChallanDoc.exists()) {
-                    const currentAmount = originalChallanDoc.data().amount || 0;
-                    transaction.update(originalChallanRef, { amount: currentAmount + paidFeeData.amount });
-                } else {
-                    const newUnpaidFee: Omit<Fee, 'id' | 'originalChallanId' | 'paymentMethod' | 'paymentDate' > = {
-                        familyId: paidFeeData.familyId,
-                        amount: paidFeeData.amount,
-                        month: paidFeeData.month,
-                        year: paidFeeData.year,
-                        status: 'Unpaid',
-                    };
-                    transaction.set(originalChallanRef, newUnpaidFee);
+                if (!feeDoc.exists()) {
+                    // This is the "ghost" entry case. It's not in the DB, so we just inform the user.
+                    // The onSnapshot listener will automatically clear it from the UI upon its next refresh.
+                    console.warn(`Attempted to delete a non-existent paid fee record: ${id}. The UI will refresh.`);
+                    return; // Exit transaction gracefully
                 }
-            } else {
-                 const newFeeRef = doc(collection(db, 'fees'));
-                 const newUnpaidFee: Omit<Fee, 'id' > = {
+                
+                const paidFeeData = feeDoc.data() as Fee;
+                if (!paidFeeData.familyId) {
+                     throw new Error("Cannot reverse fee: Family ID is missing from the paid record.");
+                }
+
+                // Re-create the unpaid fee.
+                const newUnpaidFee: Omit<Fee, 'id'> = {
                     familyId: paidFeeData.familyId,
                     amount: paidFeeData.amount,
                     month: paidFeeData.month,
                     year: paidFeeData.year,
                     status: 'Unpaid',
                     paymentDate: '',
-                 };
-                 transaction.set(newFeeRef, newUnpaidFee);
-            }
-            transaction.delete(paidFeeRef);
-        });
+                };
+                const newFeeRef = doc(collection(db, 'fees'));
+                transaction.set(newFeeRef, newUnpaidFee);
+                
+                // Delete the paid fee record.
+                transaction.delete(paidFeeRef);
+            });
 
-        const deletedFee = fees.find(f => f.id === id);
-        toast({ title: "Income Reversed", description: `PKR ${deletedFee?.amount.toLocaleString()} has been added back to Family ${deletedFee?.familyId}'s dues.` });
-        await addActivityLog({ action: 'Reverse Income', description: `Reversed income of PKR ${deletedFee?.amount.toLocaleString()} for Family ID ${deletedFee?.familyId}.` });
-
-    } catch (e: any) {
-        console.error('Error reversing fee:', e);
-        toast({ title: 'Error Reversing Income', description: e.message || "An unknown error occurred.", variant: 'destructive' });
+            toast({ title: "Income Reversed", description: `PKR ${feeToDelete.amount.toLocaleString()} has been added back to Family ${feeToDelete.familyId}'s dues.` });
+            await addActivityLog({ action: 'Reverse Income', description: `Reversed income of PKR ${feeToDelete.amount.toLocaleString()} for Family ID ${feeToDelete.familyId}.` });
+        
+        } catch (error: any) {
+            console.error('Error reversing fee:', error);
+            toast({ title: "Error Reversing Income", description: error.message, variant: "destructive" });
+        }
+    } else {
+        // This handles deleting an "Unpaid" challan
+        try {
+            await deleteDoc(doc(db, 'fees', id));
+            toast({ title: "Challan Deleted", description: `Unpaid challan for Family ${feeToDelete.familyId} was deleted.` });
+            await addActivityLog({ action: 'Delete Challan', description: `Deleted unpaid challan ID ${id} for Family ${feeToDelete.familyId}.` });
+        } catch (e: any) {
+             console.error('Error deleting unpaid challan:', e);
+             toast({ title: 'Error Deleting Challan', description: e.message, variant: 'destructive' });
+        }
     }
 };
 
@@ -630,19 +636,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
     
     const deleteExpense = async (id: string) => {
+    const expenseToDelete = expenses.find(exp => exp.id === id);
+    if (!expenseToDelete) {
+        toast({ title: 'Error', description: 'Could not find the expense to delete in local data.', variant: 'destructive' });
+        return;
+    }
+
     try {
-        const expenseToDelete = expenses.find(exp => exp.id === id);
-        if (!expenseToDelete) {
-            throw new Error("Expense to delete not found in local state.");
-        }
-        
         await runTransaction(db, async (transaction) => {
             const expenseRef = doc(db, "expenses", id);
-            
+            const expenseDoc = await transaction.get(expenseRef);
+
+            if (!expenseDoc.exists()) {
+                throw new Error("Expense document not found, cannot delete.");
+            }
+            const expenseData = expenseDoc.data() as Expense;
+
+            // Create reversal income record
             const reversalFee: Omit<Fee, 'id'> = {
                 familyId: 'SYSTEM_REVERSAL',
-                amount: expenseToDelete.amount,
-                month: `Expense Reversal: ${expenseToDelete.description.substring(0, 20)}`,
+                amount: expenseData.amount,
+                month: `Expense Reversal: ${expenseData.description.substring(0, 20)}`,
                 year: new Date().getFullYear(),
                 paymentDate: new Date().toISOString(),
                 status: 'Paid',
@@ -650,6 +664,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
             };
             const newFeeRef = doc(collection(db, "fees"));
             transaction.set(newFeeRef, reversalFee);
+
+            // Delete the expense document
             transaction.delete(expenseRef);
         });
 

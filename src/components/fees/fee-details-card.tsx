@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -20,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { useData } from '@/context/data-context';
 import { sendWhatsAppMessage } from '@/services/whatsapp-service';
 import html2canvas from 'html2canvas';
+import { generateQrCode } from '@/ai/flows/generate-qr-code';
 
 
 interface FeeDetailsCardProps {
@@ -52,6 +52,44 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
 
     const remainingDues = totalDues - paidAmount;
 
+    const generateReceiptJpg = async (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, qrCodeDataUri?: string): Promise<string> => {
+        const printContentString = renderToString(
+            <FeeReceipt
+                family={family}
+                students={students}
+                fees={paidFeesForReceipt}
+                totalDues={totalDues}
+                paidAmount={collectedAmount}
+                remainingDues={newRemainingDues}
+                settings={settings}
+                paymentMethod={method}
+                printType={printType}
+                receiptId={receiptId}
+                qrCodeDataUri={qrCodeDataUri}
+            />
+        );
+
+        const reportElement = document.createElement('div');
+        reportElement.style.position = 'absolute';
+        reportElement.style.left = '-9999px';
+        if (printType === 'thermal') {
+            reportElement.style.width = '80mm';
+        }
+        reportElement.innerHTML = printContentString;
+        document.body.appendChild(reportElement);
+
+        try {
+            const canvas = await html2canvas(reportElement.firstChild as HTMLElement, {
+                scale: 2,
+                useCORS: true,
+            });
+            return canvas.toDataURL('image/jpeg', 0.9);
+        } finally {
+            document.body.removeChild(reportElement);
+        }
+    };
+
+
     const handleCollectFee = async () => {
         if (paidAmount <= 0) {
             toast({ title: 'Invalid Amount', description: 'Paid amount must be greater than zero.', variant: 'destructive' });
@@ -80,45 +118,85 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
             return monthOrder.indexOf(a.month) - monthOrder.indexOf(b.month);
         });
 
+        // This loop simulates the payment process to prepare for receipt generation
+        // but does not commit changes yet.
+        const feesToPay: { fee: Fee, payment: number }[] = [];
         for (const fee of sortedUnpaidFees) {
             if (amountToSettle <= 0) break;
-            
             const paymentForThisChallan = Math.min(amountToSettle, fee.amount);
+            feesToPay.push({ fee, payment: paymentForThisChallan });
+            amountToSettle -= paymentForThisChallan;
+        }
+        const collectedAmount = paidAmount - amountToSettle;
+        const newDues = totalDues - collectedAmount;
 
+        const receiptId = `INV-${Date.now()}`;
+        
+        // Generate a public URL for the receipt
+        const receiptUrl = `${window.location.origin}/receipt/${receiptId}`;
+        
+        let qrCodeDataUri = '';
+        try {
+            const qrCodeResult = await generateQrCode({ content: receiptUrl });
+            qrCodeDataUri = qrCodeResult.qrCodeDataUri;
+        } catch (error) {
+            console.error("QR Code generation failed:", error);
+            toast({ title: 'QR Code Failed', description: 'Could not generate QR code for the receipt.', variant: 'destructive' });
+        }
+        
+        // Now, commit the changes to the database
+        const paidFeeRecordIds: string[] = [];
+        const feesToUpdateInDB: {id: string, data: Partial<Fee>}[] = [];
+        const feesToDeleteFromDB: string[] = [];
+        const feesToAddInDB: Omit<Fee, 'id'>[] = [];
+
+        for (const { fee, payment } of feesToPay) {
             const paymentRecord: Omit<Fee, 'id'> = {
                 familyId: fee.familyId,
-                amount: paymentForThisChallan,
+                amount: payment,
                 month: fee.month,
                 year: fee.year,
                 status: 'Paid',
                 paymentDate: new Date().toISOString().split('T')[0],
                 originalChallanId: fee.id, 
                 paymentMethod: paymentMethod,
+                receiptId: receiptId
             };
-            
-            const newFeeId = await onAddFee(paymentRecord);
-            if (newFeeId) {
-                newlyPaidFees.push({ ...paymentRecord, id: newFeeId });
-            }
-            
-            const remainingAmountInChallan = fee.amount - paymentForThisChallan;
-            
-            if (remainingAmountInChallan > 0) {
-                 const updatedChallan: Partial<Fee> = { amount: remainingAmountInChallan };
-                 await onUpdateFee(fee.id, updatedChallan);
-            } else {
-                 await onDeleteFee(fee.id);
-            }
+            feesToAddInDB.push(paymentRecord);
 
-            amountToSettle -= paymentForThisChallan;
+            const remainingAmountInChallan = fee.amount - payment;
+            if (remainingAmountInChallan > 0) {
+                 feesToUpdateInDB.push({ id: fee.id, data: { amount: remainingAmountInChallan } });
+            } else {
+                 feesToDeleteFromDB.push(fee.id);
+            }
         }
-        
-        const collectedAmount = paidAmount - amountToSettle;
-        const newDues = totalDues - collectedAmount;
+
+        // Add all fees first to get their IDs
+        for (const feeData of feesToAddInDB) {
+            const newId = await onAddFee(feeData);
+            if (newId) {
+                paidFeeRecordIds.push(newId);
+                newlyPaidFees.push({ ...feeData, id: newId });
+            }
+        }
+
+        // Now that we have all IDs for the transaction, update them with the full list
+        for (const id of paidFeeRecordIds) {
+            feesToUpdateInDB.push({ id, data: { transactionFeeIds: paidFeeRecordIds } });
+        }
+
+        // Apply all other updates and deletes
+        for (const { id, data } of feesToUpdateInDB) {
+            await onUpdateFee(id, data);
+        }
+        for (const id of feesToDeleteFromDB) {
+            await onDeleteFee(id);
+        }
+
         
         addActivityLog({ action: 'Collect Fee', description: `Collected PKR ${collectedAmount.toLocaleString()} from family ${family.id} (${family.fatherName})`});
         
-        // Add notification for super admin
         addNotification({
             title: 'Fee Collected',
             description: `PKR ${collectedAmount.toLocaleString()} collected from ${family.fatherName} (Family ID: ${family.id})`,
@@ -129,10 +207,9 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
             title: 'Fee Collected',
             description: `PKR ${collectedAmount.toLocaleString()} collected for Family ${family.id}.`,
         });
-        
-        // Trigger both print and download
-        triggerPrint(newlyPaidFees, collectedAmount, newDues, paymentMethod);
-        await triggerJpgDownload(newlyPaidFees, collectedAmount, newDues, paymentMethod);
+
+        triggerPrint(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId, qrCodeDataUri);
+        await triggerJpgDownload(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId, qrCodeDataUri);
 
         if (settings.automatedMessages?.payment.enabled) {
             const paymentTemplate = settings.messageTemplates?.find(t => t.id === settings.automatedMessages?.payment.templateId);
@@ -143,16 +220,13 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                 message = message.replace(/{remaining_dues}/g, newDues.toLocaleString());
                 message = message.replace(/{school_name}/g, settings.schoolName);
                 try {
-
                     const result = await sendWhatsAppMessage(family.phone, message, settings);
                     if (result.success) {
-
                         addActivityLog({ action: 'Send WhatsApp Message', description: 'Sent fee payment receipt to 1 recipient.', recipientCount: 1 });
                     } else {
                         throw new Error(result.error);
                     }
                 } catch (error: any) {
-
                     console.error("Failed to send payment receipt.", error);
                     toast({ title: 'WhatsApp Failed', description: `Could not send payment receipt. Error: ${error.message}`, variant: 'destructive' });
                 }
@@ -160,7 +234,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         }
     };
     
-    const triggerPrint = (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string) => {
+    const triggerPrint = (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, qrCodeDataUri?: string) => {
         if (collectedAmount === 0 && unpaidFees.length === 0) {
              toast({ title: 'No Dues', description: 'There are no outstanding fees to generate a receipt for.', variant: 'destructive' });
             return;
@@ -177,6 +251,8 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                 settings={settings}
                 paymentMethod={method}
                 printType={printType}
+                receiptId={receiptId}
+                qrCodeDataUri={qrCodeDataUri}
             />
         );
         const printWindow = window.open('', '_blank');
@@ -197,55 +273,24 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         }
     };
     
-     const triggerJpgDownload = async (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string) => {
-        if (collectedAmount === 0 && unpaidFees.length === 0) {
-            toast({ title: 'No Dues', description: 'There are no outstanding fees to generate a JPG for.', variant: 'destructive' });
-            return;
+     const triggerJpgDownload = async (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, qrCodeDataUri?: string) => {
+        if (collectedAmount === 0 && totalDues === 0) {
+             return;
         }
-        setIsDownloadingJpg(true);
 
-        const printContentString = renderToString(
-            <FeeReceipt
-                family={family}
-                students={students}
-                fees={paidFeesForReceipt}
-                totalDues={totalDues}
-                paidAmount={collectedAmount}
-                remainingDues={newRemainingDues}
-                settings={settings}
-                paymentMethod={method}
-                printType={printType}
-            />
-        );
-      
-        const reportElement = document.createElement('div');
-        reportElement.style.position = 'absolute';
-        reportElement.style.left = '-9999px';
-        if (printType === 'thermal') {
-            reportElement.style.width = '80mm';
-        }
-        reportElement.innerHTML = printContentString;
-        document.body.appendChild(reportElement);
-      
+        setIsDownloadingJpg(true);
         try {
-          const canvas = await html2canvas(reportElement.firstChild as HTMLElement, {
-            scale: 2,
-            useCORS: true,
-          });
-          
-          const image = canvas.toDataURL('image/jpeg', 0.9);
-          const link = document.createElement('a');
-          link.download = `FeeReceipt-Family-${family.id}-${new Date().toISOString().split('T')[0]}.jpg`;
-          link.href = image;
-          link.click();
-          
-          toast({ title: 'Download Started', description: 'Your fee receipt is being downloaded as a JPG.' });
+            const jpgDataUri = await generateReceiptJpg(paidFeesForReceipt, collectedAmount, newRemainingDues, method, receiptId, qrCodeDataUri);
+            const link = document.createElement('a');
+            link.download = `${receiptId}.jpg`;
+            link.href = jpgDataUri;
+            link.click();
+            toast({ title: 'Download Started', description: `Fee receipt ${receiptId}.jpg is downloading.` });
         } catch (error) {
-          console.error('Error generating JPG:', error);
-          toast({ title: 'Download Failed', description: 'Could not generate the image file.', variant: 'destructive' });
+            console.error('Error generating JPG:', error);
+            toast({ title: 'Download Failed', description: 'Could not generate the image file.', variant: 'destructive' });
         } finally {
-          document.body.removeChild(reportElement);
-          setIsDownloadingJpg(false);
+            setIsDownloadingJpg(false);
         }
     };
 
@@ -369,10 +414,10 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                                 <SelectItem value="thermal">Thermal (80mm)</SelectItem>
                             </SelectContent>
                         </Select>
-                        <Button variant="outline" onClick={() => triggerJpgDownload([], 0, totalDues, paymentMethod)} disabled={isDownloadingJpg}>
+                        <Button variant="outline" onClick={() => triggerJpgDownload(unpaidFees, 0, totalDues, paymentMethod, `INV-${Date.now()}`)} disabled={isDownloadingJpg}>
                             {isDownloadingJpg ? <Loader2 className="h-4 w-4 animate-spin"/> : <Download className="h-4 w-4" />}
                         </Button>
-                        <Button variant="outline" onClick={() => triggerPrint([], 0, totalDues, paymentMethod)}><Printer className="h-4 w-4" /></Button>
+                        <Button variant="outline" onClick={() => triggerPrint(unpaidFees, 0, totalDues, paymentMethod, `INV-${Date.now()}`)}><Printer className="h-4 w-4" /></Button>
                      </div>
                 </div>
 

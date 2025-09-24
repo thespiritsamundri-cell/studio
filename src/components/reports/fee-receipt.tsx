@@ -21,6 +21,8 @@ interface FeeReceiptProps {
     settings: SchoolSettings;
     paymentMethod: string;
     printType: PrintType;
+    receiptId: string;
+    qrCodeDataUri?: string;
 }
 
 const thermalStyles = `
@@ -54,7 +56,7 @@ const thermalStyles = `
 `;
 
 export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
-  ({ family, students, fees, totalDues, paidAmount, remainingDues, settings, paymentMethod, printType }, ref) => {
+  ({ family, students, fees, totalDues, paidAmount, remainingDues, settings, paymentMethod, printType, receiptId, qrCodeDataUri }, ref) => {
     const date = new Date();
 
     const isThermal = printType === 'thermal';
@@ -89,7 +91,7 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
             </div>
             <div className={isThermal ? 'text-center mt-2 border-t pt-1' : 'text-right'}>
                 <h2 className={isThermal ? 'font-semibold' : 'text-2xl font-semibold text-gray-700'}>Fee Receipt</h2>
-                <p className={isThermal ? 'text-xs' : 'text-sm text-gray-500'}>Receipt #: {`INV-${Date.now()}`}</p>
+                <p className={isThermal ? 'text-xs' : 'text-sm text-gray-500'}>Receipt #: {receiptId}</p>
                 <p className={isThermal ? 'text-xs' : 'text-sm text-gray-500'}>Date: {date.toLocaleDateString()}</p>
             </div>
             </header>
@@ -155,8 +157,13 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
             </div>
             
             <footer className={isThermal ? 'mt-4 pt-2 border-t text-center' : 'mt-12 pt-4 border-t border-gray-300 text-center text-xs text-gray-500'}>
-            <p className={isThermal ? 'mb-1' : 'mb-2'}>Thank you for your payment!</p>
-            <p>&copy; {new Date().getFullYear()} {settings.schoolName}. All rights reserved.</p>
+                {qrCodeDataUri && (
+                    <div className="flex justify-center my-2">
+                        <Image src={qrCodeDataUri} alt="Receipt QR Code" width={isThermal ? 60 : 80} height={isThermal ? 60 : 80} style={{imageRendering: 'pixelated'}}/>
+                    </div>
+                )}
+                <p className={isThermal ? 'mb-1' : 'mb-2'}>Thank you for your payment!</p>
+                <p>&copy; {new Date().getFullYear()} {settings.schoolName}. All rights reserved.</p>
             </footer>
         </div>
       </div>
@@ -165,4 +172,3 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
 );
 
 FeeReceipt.displayName = 'FeeReceipt';
-
