@@ -447,8 +447,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     try { await setDoc(doc(db, 'fees', id), feeData, { merge: true }); } 
     catch(e) { console.error('Error updating fee', e); toast({ title: 'Error Updating Fee', variant: 'destructive' }); }
   };
-  const deleteFee = async (id: string) => {
-    const feeToDelete = fees.find(f => f.id === id && f.status === 'Paid');
+    const deleteFee = async (id: string) => {
+    const feeToDelete = fees.find(f => f.id === id);
     if (!feeToDelete) {
         toast({ title: 'Error', description: 'Cannot reverse fee. Paid fee record not found.', variant: 'destructive' });
         return;
@@ -460,9 +460,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
             
             const paidFeeDoc = await transaction.get(paidFeeRef);
             if (!paidFeeDoc.exists()) {
-                throw new Error("Paid fee document not found. It may have already been deleted.");
+                // If it doesn't exist, maybe it was already deleted. Don't throw an error.
+                console.warn(`Tried to delete fee ${id}, but it was already gone.`);
+                return;
             }
             const paidFeeData = paidFeeDoc.data() as Fee;
+
+            // Only proceed if the fee status is 'Paid'
+            if (paidFeeData.status !== 'Paid') {
+                throw new Error("Cannot reverse a fee that is not marked as 'Paid'.");
+            }
 
             if (paidFeeData.originalChallanId) {
                 const originalChallanRef = doc(db, 'fees', paidFeeData.originalChallanId);
@@ -504,7 +511,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     } catch (e: any) {
         console.error('Error reversing fee:', e);
-        toast({ title: 'Error Reversing Income', description: e.message || "An unknown error occurred.", variant: 'destructive' });
+        toast({ title: 'Error Reversing Income', description: e.message || "An unknown error occurred.", variant: "destructive" });
     }
 };
 
