@@ -447,19 +447,64 @@ export function DataProvider({ children }: { children: ReactNode }) {
     try { await setDoc(doc(db, 'fees', id), feeData, { merge: true }); } 
     catch(e) { console.error('Error updating fee', e); toast({ title: 'Error Updating Fee', variant: 'destructive' }); }
   };
-    const deleteFee = async (id: string) => {
-    try {
-        const feeToDelete = fees.find(f => f.id === id);
-        if (!feeToDelete) {
-             throw new Error("Cannot find fee record in local state.");
-        }
-        await deleteDoc(doc(db, "fees", id));
-        toast({ title: "Income Record Deleted", description: "The fee payment record has been removed." });
-        await addActivityLog({ action: 'Delete Income Record', description: `Deleted fee record ID: ${id} of PKR ${feeToDelete.amount}.` });
+  const deleteFee = async (id: string) => {
+    const feeToDelete = fees.find(f => f.id === id && f.status === 'Paid');
+    if (!feeToDelete) {
+        toast({ title: 'Error', description: 'Cannot reverse fee. Paid fee record not found.', variant: 'destructive' });
+        return;
+    }
 
-    } catch (error: any) {
-        console.error("Error deleting income record:", error);
-        toast({ title: "Error Deleting Record", description: error.message, variant: "destructive" });
+    try {
+        await runTransaction(db, async (transaction) => {
+            const paidFeeRef = doc(db, 'fees', id);
+            
+            const paidFeeDoc = await transaction.get(paidFeeRef);
+            if (!paidFeeDoc.exists()) {
+                throw new Error("Paid fee document not found. It may have already been deleted.");
+            }
+            const paidFeeData = paidFeeDoc.data() as Fee;
+
+            if (paidFeeData.originalChallanId) {
+                const originalChallanRef = doc(db, 'fees', paidFeeData.originalChallanId);
+                const originalChallanDoc = await transaction.get(originalChallanRef);
+
+                if (originalChallanDoc.exists()) {
+                    const currentAmount = originalChallanDoc.data().amount || 0;
+                    transaction.update(originalChallanRef, { amount: currentAmount + paidFeeData.amount });
+                } else {
+                    const newUnpaidFee: Omit<Fee, 'id'> = {
+                        familyId: paidFeeData.familyId,
+                        amount: paidFeeData.amount,
+                        month: paidFeeData.month,
+                        year: paidFeeData.year,
+                        status: 'Unpaid',
+                        paymentDate: '',
+                    };
+                    const newFeeRef = doc(collection(db, 'fees'));
+                    transaction.set(newFeeRef, newUnpaidFee);
+                }
+            } else {
+                 const newUnpaidFee: Omit<Fee, 'id'> = {
+                    familyId: paidFeeData.familyId,
+                    amount: paidFeeData.amount,
+                    month: paidFeeData.month,
+                    year: paidFeeData.year,
+                    status: 'Unpaid',
+                    paymentDate: '',
+                };
+                const newFeeRef = doc(collection(db, 'fees'));
+                transaction.set(newFeeRef, newUnpaidFee);
+            }
+
+            transaction.delete(paidFeeRef);
+        });
+
+        toast({ title: "Income Reversed", description: `PKR ${feeToDelete.amount.toLocaleString()} has been added back to Family ${feeToDelete.familyId}'s dues.` });
+        await addActivityLog({ action: 'Reverse Income', description: `Reversed income of PKR ${feeToDelete.amount.toLocaleString()} for Family ID ${feeToDelete.familyId}.` });
+
+    } catch (e: any) {
+        console.error('Error reversing fee:', e);
+        toast({ title: 'Error Reversing Income', description: e.message || "An unknown error occurred.", variant: 'destructive' });
     }
 };
 
