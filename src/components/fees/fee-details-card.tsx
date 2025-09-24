@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { useData } from '@/context/data-context';
 import { sendWhatsAppMessage } from '@/services/whatsapp-service';
 import html2canvas from 'html2canvas';
-import { generateBarcode } from '@/ai/flows/generate-qr-code';
+import { generateBarcode } from '@/ai/flows/generate-barcode';
 
 
 interface FeeDetailsCardProps {
@@ -52,6 +52,44 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
     }, [totalDues]);
 
     const remainingDues = totalDues - paidAmount;
+
+    const generateReceiptJpg = async (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, barcodeDataUri?: string): Promise<string> => {
+        const printContentString = renderToString(
+            <FeeReceipt
+                family={family}
+                students={students}
+                fees={paidFeesForReceipt}
+                totalDues={totalDues}
+                paidAmount={collectedAmount}
+                remainingDues={newRemainingDues}
+                settings={settings}
+                paymentMethod={method}
+                printType={printType}
+                receiptId={receiptId}
+                barcodeDataUri={barcodeDataUri}
+            />
+        );
+
+        const reportElement = document.createElement('div');
+        reportElement.style.position = 'absolute';
+        reportElement.style.left = '-9999px';
+        if (printType === 'thermal') {
+            reportElement.style.width = '80mm';
+        }
+        reportElement.innerHTML = printContentString;
+        document.body.appendChild(reportElement);
+
+        try {
+            const canvas = await html2canvas(reportElement.firstChild as HTMLElement, {
+                scale: 2,
+                useCORS: true,
+            });
+            return canvas.toDataURL('image/jpeg', 0.9);
+        } finally {
+            document.body.removeChild(reportElement);
+        }
+    };
+
 
     const handleCollectFee = async () => {
         if (paidAmount <= 0) {
@@ -131,19 +169,31 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         });
         
         const receiptId = `INV-${Date.now()}`;
-        let barcodeDataUri = '';
+        
+        // Generate the receipt JPG data first (without a barcode initially)
+        let jpgDataUri = '';
         try {
-            const result = await generateBarcode({ content: receiptId });
-            barcodeDataUri = result.barcodeDataUri;
+            jpgDataUri = await generateReceiptJpg(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId);
+        } catch (error) {
+            console.error("Initial JPG generation failed:", error);
+            toast({ title: 'JPG Generation Failed', description: 'Could not generate the receipt image.', variant: 'destructive' });
+            return;
+        }
+
+        // Now, generate a barcode that contains the JPG Data URI
+        let finalBarcodeDataUri = '';
+        try {
+            const result = await generateBarcode({ content: jpgDataUri });
+            finalBarcodeDataUri = result.barcodeDataUri;
         } catch (error) {
             console.error("Barcode generation failed:", error);
             toast({ title: 'Barcode Failed', description: 'Could not generate barcode for the receipt.', variant: 'destructive' });
         }
 
 
-        // Trigger both print and download
-        triggerPrint(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId, barcodeDataUri);
-        await triggerJpgDownload(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId, barcodeDataUri);
+        // Trigger both print and download with the final barcode
+        triggerPrint(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId, finalBarcodeDataUri);
+        await triggerJpgDownload(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId, finalBarcodeDataUri);
 
         if (settings.automatedMessages?.payment.enabled) {
             const paymentTemplate = settings.messageTemplates?.find(t => t.id === settings.automatedMessages?.payment.templateId);
@@ -211,60 +261,24 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
     };
     
      const triggerJpgDownload = async (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, barcodeDataUri?: string) => {
-        if (collectedAmount === 0 && unpaidFees.length === 0) {
-            // This case should ideally not be called after a fee collection, but it's a good guard.
-            // If the user manually clicks download with 0 dues, we prevent it.
-            if (totalDues === 0) {
-                toast({ title: 'No Dues', description: 'There are no outstanding fees to generate a JPG for.', variant: 'destructive' });
-                return;
-            }
+        if (collectedAmount === 0 && totalDues === 0) {
+            toast({ title: 'No Dues', description: 'There are no outstanding fees to generate a JPG for.', variant: 'destructive' });
+            return;
         }
-        setIsDownloadingJpg(true);
 
-        const printContentString = renderToString(
-            <FeeReceipt
-                family={family}
-                students={students}
-                fees={paidFeesForReceipt}
-                totalDues={totalDues}
-                paidAmount={collectedAmount}
-                remainingDues={newRemainingDues}
-                settings={settings}
-                paymentMethod={method}
-                printType={printType}
-                receiptId={receiptId}
-                barcodeDataUri={barcodeDataUri}
-            />
-        );
-      
-        const reportElement = document.createElement('div');
-        reportElement.style.position = 'absolute';
-        reportElement.style.left = '-9999px';
-        if (printType === 'thermal') {
-            reportElement.style.width = '80mm';
-        }
-        reportElement.innerHTML = printContentString;
-        document.body.appendChild(reportElement);
-      
+        setIsDownloadingJpg(true);
         try {
-          const canvas = await html2canvas(reportElement.firstChild as HTMLElement, {
-            scale: 2,
-            useCORS: true,
-          });
-          
-          const image = canvas.toDataURL('image/jpeg', 0.9);
-          const link = document.createElement('a');
-          link.download = `${receiptId}.jpg`;
-          link.href = image;
-          link.click();
-          
-          toast({ title: 'Download Started', description: `Fee receipt ${receiptId}.jpg is downloading.` });
+            const jpgDataUri = await generateReceiptJpg(paidFeesForReceipt, collectedAmount, newRemainingDues, method, receiptId, barcodeDataUri);
+            const link = document.createElement('a');
+            link.download = `${receiptId}.jpg`;
+            link.href = jpgDataUri;
+            link.click();
+            toast({ title: 'Download Started', description: `Fee receipt ${receiptId}.jpg is downloading.` });
         } catch (error) {
-          console.error('Error generating JPG:', error);
-          toast({ title: 'Download Failed', description: 'Could not generate the image file.', variant: 'destructive' });
+            console.error('Error generating JPG:', error);
+            toast({ title: 'Download Failed', description: 'Could not generate the image file.', variant: 'destructive' });
         } finally {
-          document.body.removeChild(reportElement);
-          setIsDownloadingJpg(false);
+            setIsDownloadingJpg(false);
         }
     };
 
