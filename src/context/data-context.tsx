@@ -448,69 +448,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
     catch(e) { console.error('Error updating fee', e); toast({ title: 'Error Updating Fee', variant: 'destructive' }); }
   };
     const deleteFee = async (id: string) => {
-    const feeToDelete = fees.find(f => f.id === id);
-    if (!feeToDelete) {
-        toast({ title: 'Error', description: 'Cannot reverse fee. Paid fee record not found.', variant: 'destructive' });
-        return;
-    }
-
     try {
-        await runTransaction(db, async (transaction) => {
-            const paidFeeRef = doc(db, 'fees', id);
-            
-            // 1. Get the paid fee doc to ensure it exists before proceeding
-            const paidFeeDoc = await transaction.get(paidFeeRef);
-            if (!paidFeeDoc.exists()) {
-                throw new Error("Paid fee document not found. It may have already been deleted.");
-            }
-            const paidFeeData = paidFeeDoc.data() as Fee;
+        const feeToDelete = fees.find(f => f.id === id);
+        if (!feeToDelete) {
+             throw new Error("Cannot find fee record in local state.");
+        }
+        await deleteDoc(doc(db, "fees", id));
+        toast({ title: "Income Record Deleted", description: "The fee payment record has been removed." });
+        await addActivityLog({ action: 'Delete Income Record', description: `Deleted fee record ID: ${id} of PKR ${feeToDelete.amount}.` });
 
-            // 2. Decide whether to update an existing challan or create a new one
-            if (paidFeeData.originalChallanId) {
-                const originalChallanRef = doc(db, 'fees', paidFeeData.originalChallanId);
-                const originalChallanDoc = await transaction.get(originalChallanRef);
-
-                if (originalChallanDoc.exists()) {
-                    // Original challan exists (was partially paid), add the amount back
-                    const currentAmount = originalChallanDoc.data().amount || 0;
-                    transaction.update(originalChallanRef, { amount: currentAmount + paidFeeData.amount });
-                } else {
-                    // Original challan does not exist, create a new unpaid record
-                    const newUnpaidFee: Omit<Fee, 'id'> = {
-                        familyId: paidFeeData.familyId,
-                        amount: paidFeeData.amount,
-                        month: paidFeeData.month,
-                        year: paidFeeData.year,
-                        status: 'Unpaid',
-                        paymentDate: '',
-                    };
-                    const newFeeRef = doc(collection(db, 'fees'));
-                    transaction.set(newFeeRef, newUnpaidFee);
-                }
-            } else {
-                 // No original challan ID, so it was a direct payment or old record. Create a new unpaid fee.
-                 const newUnpaidFee: Omit<Fee, 'id'> = {
-                    familyId: paidFeeData.familyId,
-                    amount: paidFeeData.amount,
-                    month: paidFeeData.month,
-                    year: paidFeeData.year,
-                    status: 'Unpaid',
-                    paymentDate: '',
-                };
-                const newFeeRef = doc(collection(db, 'fees'));
-                transaction.set(newFeeRef, newUnpaidFee);
-            }
-
-            // 3. Delete the 'Paid' fee record
-            transaction.delete(paidFeeRef);
-        });
-
-        toast({ title: "Income Reversed", description: `PKR ${feeToDelete.amount.toLocaleString()} has been added back to Family ${feeToDelete.familyId}'s dues.` });
-        await addActivityLog({ action: 'Reverse Income', description: `Reversed income of PKR ${feeToDelete.amount.toLocaleString()} for Family ID ${feeToDelete.familyId}.` });
-
-    } catch (e: any) {
-        console.error('Error reversing fee:', e);
-        toast({ title: 'Error Reversing Income', description: e.message || "An unknown error occurred.", variant: 'destructive' });
+    } catch (error: any) {
+        console.error("Error deleting income record:", error);
+        toast({ title: "Error Deleting Record", description: error.message, variant: "destructive" });
     }
 };
 
@@ -640,19 +589,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
     
     const deleteExpense = async (id: string) => {
+    const expenseToDelete = expenses.find(exp => exp.id === id);
+    if (!expenseToDelete) {
+        toast({ title: 'Error', description: 'Could not find the expense to delete in local data.', variant: 'destructive' });
+        return;
+    }
+
     try {
-        const expenseToDelete = expenses.find(exp => exp.id === id);
-        if (!expenseToDelete) {
-            throw new Error("Expense to delete not found in local state.");
-        }
-        
         await runTransaction(db, async (transaction) => {
             const expenseRef = doc(db, "expenses", id);
-            
+            const expenseDoc = await transaction.get(expenseRef);
+
+            if (!expenseDoc.exists()) {
+                throw new Error("Expense document not found, cannot delete.");
+            }
+            const expenseData = expenseDoc.data() as Expense;
+
+            // Create reversal income record
             const reversalFee: Omit<Fee, 'id'> = {
                 familyId: 'SYSTEM_REVERSAL',
-                amount: expenseToDelete.amount,
-                month: `Expense Reversal: ${expenseToDelete.description.substring(0, 20)}`,
+                amount: expenseData.amount,
+                month: `Expense Reversal: ${expenseData.description.substring(0, 20)}`,
                 year: new Date().getFullYear(),
                 paymentDate: new Date().toISOString(),
                 status: 'Paid',
@@ -660,6 +617,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
             };
             const newFeeRef = doc(collection(db, "fees"));
             transaction.set(newFeeRef, reversalFee);
+
+            // Delete the expense document
             transaction.delete(expenseRef);
         });
 
