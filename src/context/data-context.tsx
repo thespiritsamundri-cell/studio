@@ -471,46 +471,43 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (feeToDelete.status === 'Paid') {
         try {
             await runTransaction(db, async (transaction) => {
-                // Find all fee documents that are part of this same transaction
                 const paidFeesInTxQuery = query(collection(db, 'fees'), where('receiptId', '==', feeToDelete.receiptId));
+                
+                // --- READ PHASE ---
                 const paidFeesSnapshot = await getDocs(paidFeesInTxQuery);
-                 if (paidFeesSnapshot.empty) {
-                    // This might happen if deletion is triggered twice quickly.
-                    // We can try deleting just the one doc if we can't find others.
-                    console.warn(`Could not find any fees with receiptId ${feeToDelete.receiptId}. Trying to delete the single fee document.`);
-                    const singleFeeDoc = await transaction.get(doc(db, 'fees', id));
-                    if(singleFeeDoc.exists()) {
-                        transaction.delete(singleFeeDoc.ref);
-                    }
-                    return; // Exit transaction
+                if (paidFeesSnapshot.empty) {
+                    throw new Error(`Could not find any fees with receiptId ${feeToDelete.receiptId} to reverse.`);
                 }
+                
+                const originalChallanRefs = paidFeesSnapshot.docs
+                    .map(doc => doc.data().originalChallanId)
+                    .filter((id): id is string => !!id)
+                    .map(id => doc(db, 'fees', id));
+                
+                const originalChallanDocs = await Promise.all(originalChallanRefs.map(ref => transaction.get(ref)));
+                const originalChallansMap = new Map(originalChallanDocs.map(doc => [doc.id, doc]));
 
+                // --- WRITE PHASE ---
                 let totalReversedAmount = 0;
-                const reversalActions: { ref: any, data: any }[] = [];
-
                 for (const feeDoc of paidFeesSnapshot.docs) {
                     const paidFee = feeDoc.data() as Fee;
                     totalReversedAmount += paidFee.amount;
                     transaction.delete(feeDoc.ref);
 
                     if (paidFee.originalChallanId) {
-                        const originalChallanRef = doc(db, 'fees', paidFee.originalChallanId);
-                        reversalActions.push({ ref: originalChallanRef, data: paidFee });
-                    }
-                }
-                
-                for(const action of reversalActions) {
-                     const originalChallanDoc = await transaction.get(action.ref);
-                     if (originalChallanDoc.exists()) {
-                        const currentAmount = originalChallanDoc.data().amount || 0;
-                        transaction.update(action.ref, { amount: currentAmount + action.data.amount });
-                    } else {
-                         const newUnpaidFee: Omit<Fee, 'id'> = {
-                            familyId: action.data.familyId, amount: action.data.amount, month: action.data.month,
-                            year: action.data.year, status: 'Unpaid', paymentDate: '',
-                        };
-                        const newFeeRef = doc(collection(db, 'fees'));
-                        transaction.set(newFeeRef, newUnpaidFee);
+                        const originalChallanDoc = originalChallansMap.get(paidFee.originalChallanId);
+
+                        if (originalChallanDoc && originalChallanDoc.exists()) {
+                            const currentAmount = originalChallanDoc.data().amount || 0;
+                            transaction.update(originalChallanDoc.ref, { amount: currentAmount + paidFee.amount });
+                        } else {
+                            const newUnpaidFee: Omit<Fee, 'id'> = {
+                                familyId: paidFee.familyId, amount: paidFee.amount, month: paidFee.month,
+                                year: paidFee.year, status: 'Unpaid', paymentDate: '',
+                            };
+                            const newFeeRef = doc(collection(db, 'fees'));
+                            transaction.set(newFeeRef, newUnpaidFee);
+                        }
                     }
                 }
             });
@@ -519,7 +516,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             await addActivityLog({ action: 'Reverse Income', description: `Reversed income for receipt ${feeToDelete.receiptId}.` });
         } catch (e: any) {
             console.error('Error reversing fee:', e);
-            toast({ title: 'Error Reversing Income', description: e.message || "An unknown error occurred.", variant: 'destructive' });
+            toast({ title: 'Error Reversing Income', description: e.message || "An unknown error occurred.", variant: "destructive" });
         }
     }
 };
@@ -778,4 +775,3 @@ export function useData() {
   if (context === undefined) throw new Error('useData must be used within a DataProvider');
   return context;
 }
-
