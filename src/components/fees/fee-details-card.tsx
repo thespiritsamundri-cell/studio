@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { useData } from '@/context/data-context';
 import { sendWhatsAppMessage } from '@/services/whatsapp-service';
 import html2canvas from 'html2canvas';
-import { generateQrCode } from '@/ai/flows/generate-qr-code';
+import { generateBarcode } from '@/ai/flows/generate-qr-code';
 
 
 interface FeeDetailsCardProps {
@@ -131,19 +131,19 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         });
         
         const receiptId = `INV-${Date.now()}`;
-        let qrCodeDataUri = '';
+        let barcodeDataUri = '';
         try {
-            const qrResult = await generateQrCode({ content: `FeeReceipt-${receiptId}` });
-            qrCodeDataUri = qrResult.qrCodeDataUri;
+            const result = await generateBarcode({ content: receiptId });
+            barcodeDataUri = result.barcodeDataUri;
         } catch (error) {
-            console.error("QR Code generation failed:", error);
-            toast({ title: 'QR Code Failed', description: 'Could not generate QR code for the receipt.', variant: 'destructive' });
+            console.error("Barcode generation failed:", error);
+            toast({ title: 'Barcode Failed', description: 'Could not generate barcode for the receipt.', variant: 'destructive' });
         }
 
 
         // Trigger both print and download
-        triggerPrint(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId, qrCodeDataUri);
-        await triggerJpgDownload(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId, qrCodeDataUri);
+        triggerPrint(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId, barcodeDataUri);
+        await triggerJpgDownload(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId, barcodeDataUri);
 
         if (settings.automatedMessages?.payment.enabled) {
             const paymentTemplate = settings.messageTemplates?.find(t => t.id === settings.automatedMessages?.payment.templateId);
@@ -171,7 +171,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         }
     };
     
-    const triggerPrint = (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, qrCodeDataUri?: string) => {
+    const triggerPrint = (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, barcodeDataUri?: string) => {
         if (collectedAmount === 0 && unpaidFees.length === 0) {
              toast({ title: 'No Dues', description: 'There are no outstanding fees to generate a receipt for.', variant: 'destructive' });
             return;
@@ -189,7 +189,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                 paymentMethod={method}
                 printType={printType}
                 receiptId={receiptId}
-                qrCodeDataUri={qrCodeDataUri}
+                barcodeDataUri={barcodeDataUri}
             />
         );
         const printWindow = window.open('', '_blank');
@@ -210,10 +210,14 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         }
     };
     
-     const triggerJpgDownload = async (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, qrCodeDataUri?: string) => {
+     const triggerJpgDownload = async (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, barcodeDataUri?: string) => {
         if (collectedAmount === 0 && unpaidFees.length === 0) {
-            toast({ title: 'No Dues', description: 'There are no outstanding fees to generate a JPG for.', variant: 'destructive' });
-            return;
+            // This case should ideally not be called after a fee collection, but it's a good guard.
+            // If the user manually clicks download with 0 dues, we prevent it.
+            if (totalDues === 0) {
+                toast({ title: 'No Dues', description: 'There are no outstanding fees to generate a JPG for.', variant: 'destructive' });
+                return;
+            }
         }
         setIsDownloadingJpg(true);
 
@@ -229,7 +233,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                 paymentMethod={method}
                 printType={printType}
                 receiptId={receiptId}
-                qrCodeDataUri={qrCodeDataUri}
+                barcodeDataUri={barcodeDataUri}
             />
         );
       
@@ -250,11 +254,11 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
           
           const image = canvas.toDataURL('image/jpeg', 0.9);
           const link = document.createElement('a');
-          link.download = `FeeReceipt-Family-${family.id}-${new Date().toISOString().split('T')[0]}.jpg`;
+          link.download = `${receiptId}.jpg`;
           link.href = image;
           link.click();
           
-          toast({ title: 'Download Started', description: 'Your fee receipt is being downloaded as a JPG.' });
+          toast({ title: 'Download Started', description: `Fee receipt ${receiptId}.jpg is downloading.` });
         } catch (error) {
           console.error('Error generating JPG:', error);
           toast({ title: 'Download Failed', description: 'Could not generate the image file.', variant: 'destructive' });
