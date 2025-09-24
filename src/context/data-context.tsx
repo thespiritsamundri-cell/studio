@@ -454,7 +454,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return;
     }
     
-    // If it's an unpaid challan, just delete it directly.
     if (feeToDelete.status === 'Unpaid') {
         try {
             await deleteDoc(doc(db, 'fees', id));
@@ -467,53 +466,59 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return;
     }
     
-    // If it's a paid fee, reverse the transaction.
     if (feeToDelete.status === 'Paid') {
         try {
             await runTransaction(db, async (transaction) => {
-                const paidFeesInTxQuery = query(collection(db, 'fees'), where('receiptId', '==', feeToDelete.receiptId));
-                
-                // --- READ PHASE ---
-                const paidFeesSnapshot = await getDocs(paidFeesInTxQuery);
-                if (paidFeesSnapshot.empty) {
-                    throw new Error(`Could not find any fees with receiptId ${feeToDelete.receiptId} to reverse.`);
+                let paidFeesSnapshot: any;
+
+                if (feeToDelete.receiptId) {
+                    const paidFeesInTxQuery = query(collection(db, 'fees'), where('receiptId', '==', feeToDelete.receiptId));
+                    paidFeesSnapshot = await getDocs(paidFeesInTxQuery);
                 }
                 
-                const originalChallanRefs = paidFeesSnapshot.docs
-                    .map(doc => doc.data().originalChallanId)
-                    .filter((id): id is string => !!id)
-                    .map(id => doc(db, 'fees', id));
-                
-                const originalChallanDocs = await Promise.all(originalChallanRefs.map(ref => transaction.get(ref)));
-                const originalChallansMap = new Map(originalChallanDocs.map(doc => [doc.id, doc]));
+                if (feeToDelete.receiptId && !paidFeesSnapshot.empty) {
+                    // --- READ PHASE ---
+                    const originalChallanRefs = paidFeesSnapshot.docs
+                        .map((doc: any) => doc.data().originalChallanId)
+                        .filter((id: any): id is string => !!id)
+                        .map((id: string) => doc(db, 'fees', id));
+                    
+                    const originalChallanDocs = originalChallanRefs.length > 0 ? await Promise.all(originalChallanRefs.map(ref => transaction.get(ref))) : [];
+                    const originalChallansMap = new Map(originalChallanDocs.map(doc => [doc.id, doc]));
 
-                // --- WRITE PHASE ---
-                let totalReversedAmount = 0;
-                for (const feeDoc of paidFeesSnapshot.docs) {
-                    const paidFee = feeDoc.data() as Fee;
-                    totalReversedAmount += paidFee.amount;
-                    transaction.delete(feeDoc.ref);
+                    // --- WRITE PHASE ---
+                    for (const feeDoc of paidFeesSnapshot.docs) {
+                        const paidFee = feeDoc.data() as Fee;
+                        transaction.delete(feeDoc.ref);
 
-                    if (paidFee.originalChallanId) {
-                        const originalChallanDoc = originalChallansMap.get(paidFee.originalChallanId);
+                        if (paidFee.originalChallanId) {
+                            const originalChallanDoc = originalChallansMap.get(paidFee.originalChallanId);
 
-                        if (originalChallanDoc && originalChallanDoc.exists()) {
-                            const currentAmount = originalChallanDoc.data().amount || 0;
-                            transaction.update(originalChallanDoc.ref, { amount: currentAmount + paidFee.amount });
-                        } else {
-                            const newUnpaidFee: Omit<Fee, 'id'> = {
-                                familyId: paidFee.familyId, amount: paidFee.amount, month: paidFee.month,
-                                year: paidFee.year, status: 'Unpaid', paymentDate: '',
-                            };
-                            const newFeeRef = doc(collection(db, 'fees'));
-                            transaction.set(newFeeRef, newUnpaidFee);
+                            if (originalChallanDoc && originalChallanDoc.exists()) {
+                                const currentAmount = originalChallanDoc.data().amount || 0;
+                                transaction.update(originalChallanDoc.ref, { amount: currentAmount + paidFee.amount });
+                            } else {
+                                const newUnpaidFee: Omit<Fee, 'id'> = {
+                                    familyId: paidFee.familyId, amount: paidFee.amount, month: paidFee.month,
+                                    year: paidFee.year, status: 'Unpaid', paymentDate: '',
+                                };
+                                transaction.set(doc(collection(db, 'fees')), newUnpaidFee);
+                            }
                         }
                     }
+                } else {
+                    // Fallback for single record deletion (no receiptId or query empty)
+                    transaction.delete(doc(db, 'fees', feeToDelete.id));
+                    const newUnpaidFee: Omit<Fee, 'id'> = {
+                        familyId: feeToDelete.familyId, amount: feeToDelete.amount, month: feeToDelete.month,
+                        year: feeToDelete.year, status: 'Unpaid', paymentDate: '',
+                    };
+                    transaction.set(doc(collection(db, 'fees')), newUnpaidFee);
                 }
             });
 
             toast({ title: "Income Reversed", description: `Reversed payment from Family ${feeToDelete.familyId}.` });
-            await addActivityLog({ action: 'Reverse Income', description: `Reversed income for receipt ${feeToDelete.receiptId}.` });
+            await addActivityLog({ action: 'Reverse Income', description: `Reversed income for receipt ${feeToDelete.receiptId || feeToDelete.id}.` });
         } catch (e: any) {
             console.error('Error reversing fee:', e);
             toast({ title: 'Error Reversing Income', description: e.message || "An unknown error occurred.", variant: "destructive" });
