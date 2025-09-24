@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { useData } from '@/context/data-context';
 import { sendWhatsAppMessage } from '@/services/whatsapp-service';
 import html2canvas from 'html2canvas';
-import { generateBarcode } from '@/services/barcode-service';
+import { generateQrCode } from '@/ai/flows/generate-qr-code';
 
 
 interface FeeDetailsCardProps {
@@ -52,7 +52,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
 
     const remainingDues = totalDues - paidAmount;
 
-    const generateReceiptJpg = async (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, barcodeDataUri?: string): Promise<string> => {
+    const generateReceiptJpg = async (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, qrCodeDataUri?: string): Promise<string> => {
         const printContentString = renderToString(
             <FeeReceipt
                 family={family}
@@ -65,7 +65,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                 paymentMethod={method}
                 printType={printType}
                 receiptId={receiptId}
-                barcodeDataUri={barcodeDataUri}
+                qrCodeDataUri={qrCodeDataUri}
             />
         );
 
@@ -135,13 +135,13 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         // Generate a public URL for the receipt
         const receiptUrl = `${window.location.origin}/receipt/${receiptId}`;
         
-        let barcodeDataUri = '';
+        let qrCodeDataUri = '';
         try {
-            const barcodeResult = await generateBarcode({ content: receiptUrl });
-            barcodeDataUri = barcodeResult.barcodeDataUri;
+            const qrCodeResult = await generateQrCode({ content: receiptUrl });
+            qrCodeDataUri = qrCodeResult.qrCodeDataUri;
         } catch (error) {
-            console.error("Barcode generation failed:", error);
-            toast({ title: 'Barcode Failed', description: 'Could not generate barcode for the receipt.', variant: 'destructive' });
+            console.error("QR Code generation failed:", error);
+            toast({ title: 'QR Code Failed', description: 'Could not generate QR code for the receipt.', variant: 'destructive' });
         }
         
         // Now, commit the changes to the database
@@ -208,8 +208,8 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
             description: `PKR ${collectedAmount.toLocaleString()} collected for Family ${family.id}.`,
         });
 
-        triggerPrint(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId, barcodeDataUri);
-        await triggerJpgDownload(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId, barcodeDataUri);
+        triggerPrint(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId, qrCodeDataUri);
+        await triggerJpgDownload(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId, qrCodeDataUri);
 
         if (settings.automatedMessages?.payment.enabled) {
             const paymentTemplate = settings.messageTemplates?.find(t => t.id === settings.automatedMessages?.payment.templateId);
@@ -234,7 +234,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         }
     };
     
-    const triggerPrint = (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, barcodeDataUri?: string) => {
+    const triggerPrint = (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, qrCodeDataUri?: string) => {
         if (collectedAmount === 0 && unpaidFees.length === 0) {
              toast({ title: 'No Dues', description: 'There are no outstanding fees to generate a receipt for.', variant: 'destructive' });
             return;
@@ -252,7 +252,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                 paymentMethod={method}
                 printType={printType}
                 receiptId={receiptId}
-                barcodeDataUri={barcodeDataUri}
+                qrCodeDataUri={qrCodeDataUri}
             />
         );
         const printWindow = window.open('', '_blank');
@@ -273,14 +273,14 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         }
     };
     
-     const triggerJpgDownload = async (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, barcodeDataUri?: string) => {
+     const triggerJpgDownload = async (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, qrCodeDataUri?: string) => {
         if (collectedAmount === 0 && totalDues === 0) {
              return;
         }
 
         setIsDownloadingJpg(true);
         try {
-            const jpgDataUri = await generateReceiptJpg(paidFeesForReceipt, collectedAmount, newRemainingDues, method, receiptId, barcodeDataUri);
+            const jpgDataUri = await generateReceiptJpg(paidFeesForReceipt, collectedAmount, newRemainingDues, method, receiptId, qrCodeDataUri);
             const link = document.createElement('a');
             link.download = `${receiptId}.jpg`;
             link.href = jpgDataUri;
@@ -425,4 +425,3 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         </Card>
     );
 }
-

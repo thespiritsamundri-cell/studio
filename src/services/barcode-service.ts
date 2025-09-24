@@ -9,10 +9,10 @@ interface GenerateBarcodeResponse {
 }
 
 export async function generateBarcode(input: GenerateBarcodeRequest): Promise<GenerateBarcodeResponse> {
-    // Using barcode.tec-it.com to generate a Code 128 barcode image.
+    // Using barcode.tec-it.com to generate a QR Code image.
     const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(
       input.content
-    )}&code=Code128&dpi=96`;
+    )}&code=QRCode&dpi=96`;
     
     const response = await fetch(barcodeUrl);
     const buffer = await response.arrayBuffer();

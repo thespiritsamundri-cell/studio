@@ -8,7 +8,7 @@ import { useSettings } from '@/context/settings-context';
 import type { Family, Student, Fee } from '@/lib/types';
 import { FeeReceipt } from '@/components/reports/fee-receipt';
 import { Loader2 } from 'lucide-react';
-import { generateBarcode } from '@/services/barcode-service';
+import { generateQrCode } from '@/ai/flows/generate-qr-code';
 
 export default function PublicReceiptPage() {
     const params = useParams();
@@ -24,7 +24,7 @@ export default function PublicReceiptPage() {
     const [remainingDues, setRemainingDues] = useState(0);
     const [paymentMethod, setPaymentMethod] = useState('');
     const [isLoading, setIsLoading] = useState(true);
-    const [barcodeDataUri, setBarcodeDataUri] = useState('');
+    const [qrCodeDataUri, setQrCodeDataUri] = useState('');
 
     useEffect(() => {
         if (!id || !allFees.length || !families.length || !allStudents.length) {
@@ -62,13 +62,13 @@ export default function PublicReceiptPage() {
             setRemainingDues(currentRemainingDues);
             setPaymentMethod(transactionFees[0].paymentMethod || 'N/A');
 
-            // Generate barcode
+            // Generate QR code
             const receiptUrl = `${window.location.origin}/receipt/${receiptId}`;
             try {
-                const barcodeResult = await generateBarcode({ content: receiptUrl });
-                setBarcodeDataUri(barcodeResult.barcodeDataUri);
+                const qrCodeResult = await generateQrCode({ content: receiptUrl });
+                setQrCodeDataUri(qrCodeResult.qrCodeDataUri);
             } catch (error) {
-                console.error("Barcode generation failed for public receipt:", error);
+                console.error("QR Code generation failed for public receipt:", error);
             }
 
             setIsLoading(false);
@@ -109,10 +109,9 @@ export default function PublicReceiptPage() {
                     paymentMethod={paymentMethod}
                     printType="normal"
                     receiptId={id as string}
-                    barcodeDataUri={barcodeDataUri}
+                    qrCodeDataUri={qrCodeDataUri}
                 />
             </div>
         </div>
     );
 }
-
