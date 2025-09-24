@@ -74,8 +74,7 @@ export default function IncomePage() {
     if (searchFilter) {
       filtered = filtered.filter(e => 
           e.familyId.toLowerCase().includes(lowercasedFilter) ||
-          e.fatherName?.toLowerCase().includes(lowercasedFilter) ||
-          e.id.toLowerCase().includes(lowercasedFilter)
+          e.fatherName?.toLowerCase().includes(lowercasedFilter)
       );
     }
 
@@ -186,7 +185,7 @@ export default function IncomePage() {
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input 
                   className="pl-8 w-full md:w-[300px]"
-                  placeholder="Search by Family, Name, or Receipt ID..."
+                  placeholder="Search by Family ID or Name..."
                   value={searchFilter}
                   onChange={(e) => setSearchFilter(e.target.value)}
                 />
