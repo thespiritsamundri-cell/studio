@@ -451,62 +451,65 @@ export function DataProvider({ children }: { children: ReactNode }) {
 const deleteFee = async (id: string) => {
     const feeToDelete = fees.find(f => f.id === id);
     if (!feeToDelete) {
-        console.log(`Fee record ${id} not found in local state, cannot delete.`);
         toast({ title: 'Fee record not found.', variant: 'destructive' });
         return;
     }
-    
-    // This is for paid income records being reversed.
-    if (feeToDelete.status === 'Paid') {
-        try {
-            await runTransaction(db, async (transaction) => {
-                const feeRef = doc(db, "fees", id);
-                const feeDoc = await transaction.get(feeRef);
 
-                if (!feeDoc.exists()) {
-                    // This handles the "ghost" entry case.
-                    console.log(`Fee record ${id} not in DB, assuming it's a ghost entry.`);
-                    // We can't delete it from the DB if it's not there,
-                    // but the live listener will cause the UI to update once any other change happens.
-                    // To force a UI refresh if needed, we'd have to manage local state differently,
-                    // but onSnapshot should handle this.
-                    return; 
-                }
-
-                const paidFeeData = feeDoc.data() as Fee;
-
-                // Re-create the unpaid fee.
-                const newUnpaidFee: Omit<Fee, 'id'> = {
-                    familyId: paidFeeData.familyId,
-                    amount: paidFeeData.amount,
-                    month: paidFeeData.month,
-                    year: paidFeeData.year,
-                    status: 'Unpaid',
-                    paymentDate: '',
-                };
-                const newFeeRef = doc(collection(db, 'fees'));
-                transaction.set(newFeeRef, newUnpaidFee);
-                
-                // Delete the paid fee record.
-                transaction.delete(feeRef);
-            });
-
-            toast({ title: "Income Reversed", description: `PKR ${feeToDelete.amount.toLocaleString()} has been added back to Family ${feeToDelete.familyId}'s dues.` });
-            await addActivityLog({ action: 'Reverse Income', description: `Reversed income of PKR ${feeToDelete.amount.toLocaleString()} for Family ID ${feeToDelete.familyId}.` });
-        
-        } catch (error: any) {
-            console.error('Error reversing fee:', error);
-            toast({ title: "Error Reversing Income", description: error.message, variant: "destructive" });
-        }
-    } else { // This handles deleting an 'Unpaid' challan.
+    if (feeToDelete.status === 'Unpaid') {
         try {
             await deleteDoc(doc(db, 'fees', id));
             toast({ title: "Challan Deleted", description: `Unpaid challan for Family ${feeToDelete.familyId} was deleted.` });
             await addActivityLog({ action: 'Delete Challan', description: `Deleted unpaid challan ID ${id} for Family ${feeToDelete.familyId}.` });
         } catch (e: any) {
             console.error('Error deleting unpaid challan:', e);
-            toast({ title: 'Error Deleting Challan', description: e.message, variant: 'destructive' });
+            if (e.code === 'not-found') {
+                // This is the "ghost" entry case. It's not in the DB, so we just inform the user.
+                // The onSnapshot listener should automatically clear it from the UI.
+                toast({ title: "Record Cleared", description: "The selected item was not in the database and has been cleared from the view."});
+            } else {
+                toast({ title: 'Error Deleting Challan', description: e.message, variant: 'destructive' });
+            }
         }
+        return;
+    }
+    
+    // This is for paid income records being reversed.
+    try {
+        await runTransaction(db, async (transaction) => {
+            const paidFeeRef = doc(db, "fees", id);
+            const paidFeeDoc = await transaction.get(paidFeeRef);
+
+            if (!paidFeeDoc.exists()) {
+                // If the document doesn't exist, we can't reverse it, but we also don't need to.
+                // This will remove "ghost" entries from the UI.
+                console.warn(`Attempted to delete a non-existent paid fee record: ${id}. The UI will refresh.`);
+                return; // Exit transaction gracefully
+            }
+            
+            const paidFeeData = paidFeeDoc.data() as Fee;
+
+            // Re-create the unpaid fee.
+            const newUnpaidFee: Omit<Fee, 'id'> = {
+                familyId: paidFeeData.familyId,
+                amount: paidFeeData.amount,
+                month: paidFeeData.month,
+                year: paidFeeData.year,
+                status: 'Unpaid',
+                paymentDate: '',
+            };
+            const newFeeRef = doc(collection(db, 'fees'));
+            transaction.set(newFeeRef, newUnpaidFee);
+            
+            // Delete the paid fee record.
+            transaction.delete(paidFeeRef);
+        });
+
+        toast({ title: "Income Reversed", description: `PKR ${feeToDelete.amount.toLocaleString()} has been added back to Family ${feeToDelete.familyId}'s dues.` });
+        await addActivityLog({ action: 'Reverse Income', description: `Reversed income of PKR ${feeToDelete.amount.toLocaleString()} for Family ID ${feeToDelete.familyId}.` });
+    
+    } catch (error: any) {
+        console.error('Error reversing fee:', error);
+        toast({ title: "Error Reversing Income", description: error.message, variant: "destructive" });
     }
 };
 
@@ -764,3 +767,5 @@ export function useData() {
   if (context === undefined) throw new Error('useData must be used within a DataProvider');
   return context;
 }
+
+    
