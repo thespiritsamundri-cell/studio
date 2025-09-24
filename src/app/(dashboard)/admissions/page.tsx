@@ -53,7 +53,9 @@ export default function AdmissionsPage() {
     const [studentCnic, setStudentCnic] = useState('');
     const [photoFile, setPhotoFile] = useState<File | null>(null);
 
-    // State for dynamic fees
+    // Fee state
+    const [registrationFee, setRegistrationFee] = useState<number | string>('');
+    const [monthlyFee, setMonthlyFee] = useState<number | string>('');
     const [customFees, setCustomFees] = useState<CustomFee[]>([]);
     
     const availableSections = classes.find(c => c.name === studentClass)?.sections || [];
@@ -64,8 +66,21 @@ export default function AdmissionsPage() {
             setPhone(foundFamily.phone);
             setAddress(foundFamily.address);
             setProfession(foundFamily.profession || '');
-            const children = students.filter(s => s.familyId === foundFamily.id && s.status !== 'Archived');
+            const children = students.filter(s => s.familyId === foundFamily.id && s.status !== 'Archived').sort((a,b) => new Date(b.admissionDate).getTime() - new Date(a.admissionDate).getTime());
             setExistingChildren(children);
+
+            // Autofill fees from the most recently admitted existing child
+            if (children.length > 0) {
+                const latestChild = children[0];
+                const familyFees = fees.filter(f => f.familyId === latestChild.familyId);
+                
+                const regFee = familyFees.find(f => f.month === 'Registration');
+                if (regFee) setRegistrationFee(regFee.amount);
+
+                const tuitionFee = familyFees.find(f => !['Registration', 'Annual'].includes(f.month));
+                if (tuitionFee) setMonthlyFee(tuitionFee.amount);
+            }
+
         } else {
             setFatherName('');
             setPhone('');
@@ -73,8 +88,10 @@ export default function AdmissionsPage() {
             setProfession('');
             setAlternatePhone('');
             setExistingChildren([]);
+            setRegistrationFee('');
+            setMonthlyFee('');
         }
-    }, [foundFamily, students]);
+    }, [foundFamily, students, fees]);
     
     const handleFamilySearch = () => {
         const family = families.find(f => f.id === familyId);
@@ -128,7 +145,6 @@ export default function AdmissionsPage() {
 
     const handleAdmission = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        const form = e.currentTarget;
         
         if (!familyExists || !foundFamily) {
             toast({
@@ -139,11 +155,10 @@ export default function AdmissionsPage() {
             return;
         }
 
-        const formData = new FormData(form);
-        const registrationFee = Number(formData.get('registration-fee'));
-        const monthlyFee = Number(formData.get('monthly-fee'));
+        const regFee = Number(registrationFee);
+        const monFee = Number(monthlyFee);
 
-        if (!studentName || !fatherName || !dob || !studentClass || !phone || !address || !registrationFee || !monthlyFee || !admissionDate) {
+        if (!studentName || !fatherName || !dob || !studentClass || !phone || !address || !regFee || !monFee || !admissionDate) {
              toast({
                 title: 'Missing Information',
                 description: 'Please fill out all required fields.',
@@ -195,7 +210,7 @@ export default function AdmissionsPage() {
         // Registration Fee (One-time)
         feesToAdd.push({
             familyId: familyId,
-            amount: registrationFee,
+            amount: regFee,
             month: 'Registration', // This indicates it's a one-time registration fee
             year: new Date(admissionDate).getFullYear(),
             status: 'Unpaid',
@@ -205,7 +220,7 @@ export default function AdmissionsPage() {
         // First Month's Tuition Fee
         feesToAdd.push({
             familyId: familyId,
-            amount: monthlyFee,
+            amount: monFee,
             month: format(new Date(admissionDate), 'MMMM'), // Fee for the admission month
             year: new Date(admissionDate).getFullYear(),
             status: 'Unpaid',
@@ -266,7 +281,7 @@ export default function AdmissionsPage() {
         triggerAdmissionPrint(newStudent, foundFamily);
 
         // Reset form
-        form.reset();
+        e.currentTarget.reset();
         setFamilyId('');
         setFamilyExists(false);
         setFoundFamily(null);
@@ -279,6 +294,8 @@ export default function AdmissionsPage() {
         setStudentCnic('');
         setCustomFees([]);
         setPhotoFile(null);
+        setRegistrationFee('');
+        setMonthlyFee('');
     };
 
     const addCustomFeeField = () => {
@@ -338,199 +355,201 @@ export default function AdmissionsPage() {
         </Card>
         
         {foundFamily && (
-        <Card>
+        <>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Users className="w-5 h-5"/>Existing Children</CardTitle>
+                    <CardDescription>
+                        The following students are already enrolled from this family.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {existingChildren.length > 0 ? (
+                        <div className="border rounded-md">
+                            <ul className="divide-y">
+                                {existingChildren.map(child => (
+                                    <li key={child.id} className="flex items-center justify-between p-3">
+                                        <div>
+                                            <p className="font-semibold">{child.name} <span className="font-normal text-muted-foreground">(ID: {child.id})</span></p>
+                                            <p className="text-sm text-muted-foreground">Class: {child.class} {child.section ? `(${child.section})` : ''}</p>
+                                        </div>
+                                        <div className='flex items-center gap-4'>
+                                            <Badge variant={child.status === 'Active' ? 'default' : 'destructive'} className={child.status === 'Active' ? 'bg-green-500/20 text-green-700 border-green-500/30' : ''}>{child.status}</Badge>
+                                            <Button asChild variant="link" size="sm"><Link href={`/students/details/${child.id}`}>View</Link></Button>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    ) : (
+                        <Alert variant="default" className="border-dashed">
+                            <Info className="h-4 w-4"/>
+                            <AlertTitle>No Existing Students</AlertTitle>
+                            <AlertDescription>
+                                There are currently no other students enrolled from this family.
+                            </AlertDescription>
+                        </Alert>
+                    )}
+                </CardContent>
+            </Card>
+
+            <Card>
             <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Users className="w-5 h-5"/>Existing Children</CardTitle>
-                <CardDescription>
-                    The following students are already enrolled from this family.
-                </CardDescription>
+                <CardTitle>Step 2: Student Information</CardTitle>
+                <CardDescription>Enter the personal details for the new student.</CardDescription>
             </CardHeader>
             <CardContent>
-                 {existingChildren.length > 0 ? (
-                    <div className="border rounded-md">
-                        <ul className="divide-y">
-                            {existingChildren.map(child => (
-                                <li key={child.id} className="flex items-center justify-between p-3">
-                                    <div>
-                                        <p className="font-semibold">{child.name} <span className="font-normal text-muted-foreground">(ID: {child.id})</span></p>
-                                        <p className="text-sm text-muted-foreground">Class: {child.class} {child.section ? `(${child.section})` : ''}</p>
-                                    </div>
-                                    <div className='flex items-center gap-4'>
-                                        <Badge variant={child.status === 'Active' ? 'default' : 'destructive'} className={child.status === 'Active' ? 'bg-green-500/20 text-green-700 border-green-500/30' : ''}>{child.status}</Badge>
-                                        <Button asChild variant="link" size="sm"><Link href={`/students/details/${child.id}`}>View</Link></Button>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                ) : (
-                    <Alert variant="default" className="border-dashed">
-                        <Info className="h-4 w-4"/>
-                        <AlertTitle>No Existing Students</AlertTitle>
-                        <AlertDescription>
-                            There are currently no other students enrolled from this family.
-                        </AlertDescription>
-                    </Alert>
-                )}
-            </CardContent>
-        </Card>
-        )}
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Step 2: Student Information</CardTitle>
-            <CardDescription>Enter the personal details for the new student.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="student-name">Student Name</Label>
-                <Input id="student-name" name="student-name" placeholder="Enter full name" value={studentName} onChange={e => setStudentName(e.target.value)} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="father-name">Father's Name</Label>
-                <Input id="father-name" name="father-name" placeholder="Enter father's name" value={fatherName} onChange={e => setFatherName(e.target.value)} required readOnly={familyExists} />
-              </div>
-               <div className="space-y-2">
-                <Label htmlFor="profession">Father's Profession</Label>
-                <Input id="profession" name="profession" placeholder="Father's Profession" value={profession} onChange={e => setProfession(e.target.value)} required readOnly={familyExists} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="dob">Date of Birth</Label>
-                <Input id="dob" name="dob" type="date" value={dob} onChange={e => setDob(e.target.value)} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="admissionDate">Admission Date</Label>
-                <Input id="admissionDate" name="admissionDate" type="date" value={admissionDate} onChange={e => setAdmissionDate(e.target.value)} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="gender">Gender</Label>
-                <Select name="gender" onValueChange={(value) => setGender(value as 'Male' | 'Female' | 'Other')} value={gender} required>
-                    <SelectTrigger id="gender">
-                        <SelectValue placeholder="Select gender" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="Male">Male</SelectItem>
-                        <SelectItem value="Female">Female</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="studentCnic">Student CNIC / B-Form</Label>
-                <Input id="studentCnic" name="studentCnic" placeholder="e.g. 12345-1234567-1" value={studentCnic} onChange={e => setStudentCnic(e.target.value)} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="class">Class to Admit</Label>
-                    <Select name="class" onValueChange={setStudentClass} value={studentClass} required>
-                      <SelectTrigger id="class">
-                        <SelectValue placeholder="Select class" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {classes.map((c) => (
-                          <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                   <div className="space-y-2">
-                    <Label htmlFor="section">Section</Label>
-                    <Select name="section" onValueChange={setStudentSection} value={studentSection} disabled={!studentClass || availableSections.length === 0}>
-                        <SelectTrigger id="section">
-                            <SelectValue placeholder="Select section" />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                    <Label htmlFor="student-name">Student Name</Label>
+                    <Input id="student-name" name="student-name" placeholder="Enter full name" value={studentName} onChange={e => setStudentName(e.target.value)} required />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="father-name">Father's Name</Label>
+                    <Input id="father-name" name="father-name" placeholder="Enter father's name" value={fatherName} onChange={e => setFatherName(e.target.value)} required readOnly={familyExists} />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="profession">Father's Profession</Label>
+                    <Input id="profession" name="profession" placeholder="Father's Profession" value={profession} onChange={e => setProfession(e.target.value)} required readOnly={familyExists} />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="dob">Date of Birth</Label>
+                    <Input id="dob" name="dob" type="date" value={dob} onChange={e => setDob(e.target.value)} required />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="admissionDate">Admission Date</Label>
+                    <Input id="admissionDate" name="admissionDate" type="date" value={admissionDate} onChange={e => setAdmissionDate(e.target.value)} required />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="gender">Gender</Label>
+                    <Select name="gender" onValueChange={(value) => setGender(value as 'Male' | 'Female' | 'Other')} value={gender} required>
+                        <SelectTrigger id="gender">
+                            <SelectValue placeholder="Select gender" />
                         </SelectTrigger>
                         <SelectContent>
-                            {availableSections.map((section) => (
-                                <SelectItem key={section} value={section}>{section}</SelectItem>
-                            ))}
+                            <SelectItem value="Male">Male</SelectItem>
+                            <SelectItem value="Female">Female</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
                         </SelectContent>
                     </Select>
-                  </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Primary Phone</Label>
-                <Input id="phone" name="phone" type="tel" placeholder="Enter contact number" value={phone} onChange={e => setPhone(e.target.value)} required readOnly={familyExists} />
-              </div>
-               <div className="space-y-2">
-                <Label htmlFor="alternate-phone">Alternate Phone (Optional)</Label>
-                <Input id="alternate-phone" name="alternate-phone" type="tel" placeholder="Enter alternate contact" value={alternatePhone} onChange={e => setAlternatePhone(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="photo">Student Photo</Label>
-                <Input id="photo" type="file" className="file:text-primary file:font-medium" onChange={handlePhotoChange} accept="image/*" />
-              </div>
-              <div className="space-y-2 lg:col-span-3">
-                <Label htmlFor="address">Address</Label>
-                <Textarea id="address" name="address" placeholder="Enter residential address" value={address} onChange={e => setAddress(e.target.value)} required readOnly={familyExists} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Step 3: Fee Structure</CardTitle>
-                <CardDescription>
-                  Define the fee structure for this student. The registration fee is a one-time charge.
-                </CardDescription>
-              </div>
-              <Button type="button" variant="outline" size="sm" onClick={addCustomFeeField}>
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  Add Custom Fee
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="registration-fee">Registration Fee (PKR)</Label>
-                <Input id="registration-fee" name="registration-fee" type="number" placeholder="e.g., 5000" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="monthly-fee">Monthly Tution Fee (PKR)</Label>
-                <Input id="monthly-fee" name="monthly-fee" type="number" placeholder="e.g., 2500" required />
-              </div>
-               {customFees.map((fee, index) => (
-                    <div key={fee.id} className="grid grid-cols-10 gap-x-2">
-                        <div className="space-y-2 col-span-5">
-                            <Label htmlFor={`custom-fee-name-${fee.id}`}>Fee Name</Label>
-                            <Input 
-                                id={`custom-fee-name-${fee.id}`} 
-                                name={`custom-fee-name-${index}`}
-                                placeholder="e.g., Annual" 
-                                value={fee.name}
-                                onChange={(e) => handleCustomFeeChange(fee.id, 'name', e.target.value)}
-                            />
-                        </div>
-                        <div className="space-y-2 col-span-4">
-                            <Label htmlFor={`custom-fee-amount-${fee.id}`}>Amount</Label>
-                            <Input 
-                                id={`custom-fee-amount-${fee.id}`}
-                                name={`custom-fee-amount-${index}`}
-                                type="number" 
-                                placeholder="e.g., 3000" 
-                                value={fee.amount === 0 ? '' : fee.amount}
-                                onChange={(e) => handleCustomFeeChange(fee.id, 'amount', e.target.value)}
-                            />
-                        </div>
-                        <div className="flex items-end col-span-1">
-                             <Button type="button" variant="ghost" size="icon" onClick={() => removeCustomFeeField(fee.id)}>
-                                <X className="h-4 w-4 text-destructive" />
-                                <span className="sr-only">Remove</span>
-                            </Button>
-                        </div>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="studentCnic">Student CNIC / B-Form</Label>
+                    <Input id="studentCnic" name="studentCnic" placeholder="e.g. 12345-1234567-1" value={studentCnic} onChange={e => setStudentCnic(e.target.value)} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="class">Class to Admit</Label>
+                        <Select name="class" onValueChange={setStudentClass} value={studentClass} required>
+                        <SelectTrigger id="class">
+                            <SelectValue placeholder="Select class" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {classes.map((c) => (
+                            <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                        </Select>
                     </div>
-                ))}
-            </div>
-          </CardContent>
-        </Card>
+                    <div className="space-y-2">
+                        <Label htmlFor="section">Section</Label>
+                        <Select name="section" onValueChange={setStudentSection} value={studentSection} disabled={!studentClass || availableSections.length === 0}>
+                            <SelectTrigger id="section">
+                                <SelectValue placeholder="Select section" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {availableSections.map((section) => (
+                                    <SelectItem key={section} value={section}>{section}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="phone">Primary Phone</Label>
+                    <Input id="phone" name="phone" type="tel" placeholder="Enter contact number" value={phone} onChange={e => setPhone(e.target.value)} required readOnly={familyExists} />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="alternate-phone">Alternate Phone (Optional)</Label>
+                    <Input id="alternate-phone" name="alternate-phone" type="tel" placeholder="Enter alternate contact" value={alternatePhone} onChange={e => setAlternatePhone(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="photo">Student Photo</Label>
+                    <Input id="photo" type="file" className="file:text-primary file:font-medium" onChange={handlePhotoChange} accept="image/*" />
+                </div>
+                <div className="space-y-2 lg:col-span-3">
+                    <Label htmlFor="address">Address</Label>
+                    <Textarea id="address" name="address" placeholder="Enter residential address" value={address} onChange={e => setAddress(e.target.value)} required readOnly={familyExists} />
+                </div>
+                </div>
+            </CardContent>
+            </Card>
 
-        <div className="flex justify-end pt-4">
-          <Button size="lg" type="submit">Admit Student</Button>
-        </div>
+            <Card>
+            <CardHeader>
+                <div className="flex items-center justify-between">
+                <div>
+                    <CardTitle>Step 3: Fee Structure</CardTitle>
+                    <CardDescription>
+                    Define the fee structure for this student. The registration fee is a one-time charge.
+                    </CardDescription>
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={addCustomFeeField}>
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Add Custom Fee
+                </Button>
+                </div>
+            </CardHeader>
+            <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="space-y-2">
+                    <Label htmlFor="registration-fee">Registration Fee (PKR)</Label>
+                    <Input id="registration-fee" name="registration-fee" type="number" placeholder="e.g., 5000" value={registrationFee} onChange={(e) => setRegistrationFee(e.target.value)} required />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="monthly-fee">Monthly Tution Fee (PKR)</Label>
+                    <Input id="monthly-fee" name="monthly-fee" type="number" placeholder="e.g., 2500" value={monthlyFee} onChange={(e) => setMonthlyFee(e.target.value)} required />
+                </div>
+                {customFees.map((fee, index) => (
+                        <div key={fee.id} className="grid grid-cols-10 gap-x-2">
+                            <div className="space-y-2 col-span-5">
+                                <Label htmlFor={`custom-fee-name-${fee.id}`}>Fee Name</Label>
+                                <Input 
+                                    id={`custom-fee-name-${fee.id}`} 
+                                    name={`custom-fee-name-${index}`}
+                                    placeholder="e.g., Annual" 
+                                    value={fee.name}
+                                    onChange={(e) => handleCustomFeeChange(fee.id, 'name', e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-2 col-span-4">
+                                <Label htmlFor={`custom-fee-amount-${fee.id}`}>Amount</Label>
+                                <Input 
+                                    id={`custom-fee-amount-${fee.id}`}
+                                    name={`custom-fee-amount-${index}`}
+                                    type="number" 
+                                    placeholder="e.g., 3000" 
+                                    value={fee.amount === 0 ? '' : fee.amount}
+                                    onChange={(e) => handleCustomFeeChange(fee.id, 'amount', e.target.value)}
+                                />
+                            </div>
+                            <div className="flex items-end col-span-1">
+                                <Button type="button" variant="ghost" size="icon" onClick={() => removeCustomFeeField(fee.id)}>
+                                    <X className="h-4 w-4 text-destructive" />
+                                    <span className="sr-only">Remove</span>
+                                </Button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </CardContent>
+            </Card>
+
+            <div className="flex justify-end pt-4">
+            <Button size="lg" type="submit">Admit Student</Button>
+            </div>
+        </>
+        )}
       </form>
     </div>
   );
