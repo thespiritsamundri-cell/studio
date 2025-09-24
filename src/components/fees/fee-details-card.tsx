@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { useData } from '@/context/data-context';
 import { sendWhatsAppMessage } from '@/services/whatsapp-service';
 import html2canvas from 'html2canvas';
-import { generateBarcode } from '@/ai/flows/generate-barcode';
+import { generateBarcode } from '@/services/barcode-service';
 
 
 interface FeeDetailsCardProps {
@@ -170,7 +170,6 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         
         const receiptId = `INV-${Date.now()}`;
         
-        // Generate the receipt JPG data first (without a barcode initially)
         let jpgDataUri = '';
         try {
             jpgDataUri = await generateReceiptJpg(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId);
@@ -180,7 +179,6 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
             return;
         }
 
-        // Now, generate a barcode that contains the JPG Data URI
         let finalBarcodeDataUri = '';
         try {
             const result = await generateBarcode({ content: jpgDataUri });
@@ -191,7 +189,6 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         }
 
 
-        // Trigger both print and download with the final barcode
         triggerPrint(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId, finalBarcodeDataUri);
         await triggerJpgDownload(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId, finalBarcodeDataUri);
 
@@ -262,8 +259,6 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
     
      const triggerJpgDownload = async (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, barcodeDataUri?: string) => {
         if (collectedAmount === 0 && totalDues === 0) {
-            toast({ title: 'No Dues', description: 'There are no outstanding fees to generate a JPG for.', variant: 'destructive' });
-            return;
         }
 
         setIsDownloadingJpg(true);
@@ -402,10 +397,10 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                                 <SelectItem value="thermal">Thermal (80mm)</SelectItem>
                             </SelectContent>
                         </Select>
-                        <Button variant="outline" onClick={() => triggerJpgDownload([], 0, totalDues, paymentMethod, `INV-${Date.now()}`)} disabled={isDownloadingJpg}>
+                        <Button variant="outline" onClick={() => triggerJpgDownload(unpaidFees, 0, totalDues, paymentMethod, `INV-${Date.now()}`)} disabled={isDownloadingJpg}>
                             {isDownloadingJpg ? <Loader2 className="h-4 w-4 animate-spin"/> : <Download className="h-4 w-4" />}
                         </Button>
-                        <Button variant="outline" onClick={() => triggerPrint([], 0, totalDues, paymentMethod, `INV-${Date.now()}`)}><Printer className="h-4 w-4" /></Button>
+                        <Button variant="outline" onClick={() => triggerPrint(unpaidFees, 0, totalDues, paymentMethod, `INV-${Date.now()}`)}><Printer className="h-4 w-4" /></Button>
                      </div>
                 </div>
 
