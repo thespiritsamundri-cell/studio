@@ -160,7 +160,7 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
             <footer className={isThermal ? 'mt-4 pt-2 border-t text-center' : 'mt-12 pt-4 border-t border-gray-300 text-center text-xs text-gray-500'}>
                 {qrCodeDataUri && (
                     <div className="flex justify-center my-2">
-                        <Image src={qrCodeDataUri} alt="Receipt QR Code" width={isThermal ? 60 : 80} height={isThermal ? 60 : 80} style={{imageRendering: 'pixelated'}}/>
+                        <Image src={qrCodeDataUri} alt="Receipt QR Code" width={isThermal ? 48 : 60} height={isThermal ? 48 : 60} style={{imageRendering: 'pixelated'}}/>
                     </div>
                 )}
                 <p className={isThermal ? 'mb-1' : 'mb-2'}>Thank you for your payment!</p>
