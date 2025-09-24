@@ -40,11 +40,11 @@ export default function IncomePage() {
   const { toast } = useToast();
   
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
-  const [familyFilter, setFamilyFilter] = useState('');
+  const [searchFilter, setSearchFilter] = useState('');
 
   useEffect(() => {
     if (familyIdFromQuery) {
-        setFamilyFilter(familyIdFromQuery);
+        setSearchFilter(familyIdFromQuery);
     }
   }, [familyIdFromQuery]);
 
@@ -69,11 +69,13 @@ export default function IncomePage() {
 
   const filteredFees = useMemo(() => {
     let filtered = paidFeesWithDetails;
+    const lowercasedFilter = searchFilter.toLowerCase();
 
-    if (familyFilter) {
+    if (searchFilter) {
       filtered = filtered.filter(e => 
-          e.familyId.toLowerCase().includes(familyFilter.toLowerCase()) ||
-          e.fatherName?.toLowerCase().includes(familyFilter.toLowerCase())
+          e.familyId.toLowerCase().includes(lowercasedFilter) ||
+          e.fatherName?.toLowerCase().includes(lowercasedFilter) ||
+          e.id.toLowerCase().includes(lowercasedFilter)
       );
     }
 
@@ -91,7 +93,7 @@ export default function IncomePage() {
         });
     }
     return filtered;
-  }, [paidFeesWithDetails, dateRange, familyFilter]);
+  }, [paidFeesWithDetails, dateRange, searchFilter]);
   
   const totalIncome = useMemo(() => {
       return filteredFees.reduce((acc, fee) => acc + fee.amount, 0);
@@ -140,12 +142,11 @@ export default function IncomePage() {
   const handleConfirmDelete = () => {
     if (!feeToDelete) return;
     deleteFee(feeToDelete.id);
-    toast({ title: "Income Record Deleted", description: "The fee record has been successfully deleted.", variant: "destructive" });
     setOpenDeleteDialog(false);
   };
   
   const triggerPrint = () => {
-    const familyName = familyFilter && filteredFees.length > 0 ? filteredFees[0].fatherName : undefined;
+    const familyName = searchFilter && filteredFees.length > 0 ? filteredFees[0].fatherName : undefined;
     const printContent = renderToString(
       <IncomePrintReport fees={filteredFees} totalIncome={totalIncome} dateRange={dateRange} settings={settings} familyName={familyName} />
     );
@@ -184,10 +185,10 @@ export default function IncomePage() {
               <div className="relative w-full md:w-auto">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input 
-                  className="pl-8 w-full md:w-[250px]"
-                  placeholder="Search by Family ID or Name..."
-                  value={familyFilter}
-                  onChange={(e) => setFamilyFilter(e.target.value)}
+                  className="pl-8 w-full md:w-[300px]"
+                  placeholder="Search by Family, Name, or Receipt ID..."
+                  value={searchFilter}
+                  onChange={(e) => setSearchFilter(e.target.value)}
                 />
               </div>
               <div className="flex items-center gap-4 flex-grow w-full">
@@ -203,7 +204,7 @@ export default function IncomePage() {
                     </PopoverContent>
                   </Popover>
               </div>
-               <Button variant="ghost" onClick={() => { setDateRange(undefined); setFamilyFilter(''); }}>Clear Filters</Button>
+               <Button variant="ghost" onClick={() => { setDateRange(undefined); setSearchFilter(''); }}>Clear Filters</Button>
             </div>
             <div className="w-full overflow-x-auto">
                 <Table>

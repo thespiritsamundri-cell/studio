@@ -126,6 +126,7 @@ export interface Exam {
     id: string;
     name: string;
     class: string;
+    section?: string;
     results: ExamResult[];
     subjectTotals: {
         [subject: string]: number;

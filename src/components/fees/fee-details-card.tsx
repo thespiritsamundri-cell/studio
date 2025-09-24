@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -119,41 +118,54 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
             return monthOrder.indexOf(a.month) - monthOrder.indexOf(b.month);
         });
 
+        // This loop simulates the payment process to prepare for receipt generation
+        // but does not commit changes yet.
+        const feesToPay: { fee: Fee, payment: number }[] = [];
         for (const fee of sortedUnpaidFees) {
             if (amountToSettle <= 0) break;
-            
             const paymentForThisChallan = Math.min(amountToSettle, fee.amount);
+            feesToPay.push({ fee, payment: paymentForThisChallan });
+            amountToSettle -= paymentForThisChallan;
+        }
+        const collectedAmount = paidAmount - amountToSettle;
+        const newDues = totalDues - collectedAmount;
 
+        const receiptId = `INV-${Date.now()}`;
+        let barcodeDataUri = '';
+        try {
+            const barcodeResult = await generateBarcode({ content: receiptId });
+            barcodeDataUri = barcodeResult.barcodeDataUri;
+        } catch (error) {
+            console.error("Barcode generation failed:", error);
+            toast({ title: 'Barcode Failed', description: 'Could not generate barcode for the receipt.', variant: 'destructive' });
+        }
+        
+        // Now, commit the changes to the database
+        for (const { fee, payment } of feesToPay) {
             const paymentRecord: Omit<Fee, 'id'> = {
                 familyId: fee.familyId,
-                amount: paymentForThisChallan,
+                amount: payment,
                 month: fee.month,
                 year: fee.year,
                 status: 'Paid',
                 paymentDate: new Date().toISOString().split('T')[0],
                 originalChallanId: fee.id, 
                 paymentMethod: paymentMethod,
+                id: receiptId // Use the generated receipt ID
             };
             
             const newFeeId = await onAddFee(paymentRecord);
             if (newFeeId) {
                 newlyPaidFees.push({ ...paymentRecord, id: newFeeId });
             }
-            
-            const remainingAmountInChallan = fee.amount - paymentForThisChallan;
-            
+
+            const remainingAmountInChallan = fee.amount - payment;
             if (remainingAmountInChallan > 0) {
-                 const updatedChallan: Partial<Fee> = { amount: remainingAmountInChallan };
-                 await onUpdateFee(fee.id, updatedChallan);
+                 await onUpdateFee(fee.id, { amount: remainingAmountInChallan });
             } else {
                  await onDeleteFee(fee.id);
             }
-
-            amountToSettle -= paymentForThisChallan;
         }
-        
-        const collectedAmount = paidAmount - amountToSettle;
-        const newDues = totalDues - collectedAmount;
         
         addActivityLog({ action: 'Collect Fee', description: `Collected PKR ${collectedAmount.toLocaleString()} from family ${family.id} (${family.fatherName})`});
         
@@ -167,30 +179,9 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
             title: 'Fee Collected',
             description: `PKR ${collectedAmount.toLocaleString()} collected for Family ${family.id}.`,
         });
-        
-        const receiptId = `INV-${Date.now()}`;
-        
-        let jpgDataUri = '';
-        try {
-            jpgDataUri = await generateReceiptJpg(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId);
-        } catch (error) {
-            console.error("Initial JPG generation failed:", error);
-            toast({ title: 'JPG Generation Failed', description: 'Could not generate the receipt image.', variant: 'destructive' });
-            return;
-        }
 
-        let finalBarcodeDataUri = '';
-        try {
-            const result = await generateBarcode({ content: jpgDataUri });
-            finalBarcodeDataUri = result.barcodeDataUri;
-        } catch (error) {
-            console.error("Barcode generation failed:", error);
-            toast({ title: 'Barcode Failed', description: 'Could not generate barcode for the receipt.', variant: 'destructive' });
-        }
-
-
-        triggerPrint(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId, finalBarcodeDataUri);
-        await triggerJpgDownload(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId, finalBarcodeDataUri);
+        triggerPrint(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId, barcodeDataUri);
+        await triggerJpgDownload(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId, barcodeDataUri);
 
         if (settings.automatedMessages?.payment.enabled) {
             const paymentTemplate = settings.messageTemplates?.find(t => t.id === settings.automatedMessages?.payment.templateId);
@@ -201,16 +192,13 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                 message = message.replace(/{remaining_dues}/g, newDues.toLocaleString());
                 message = message.replace(/{school_name}/g, settings.schoolName);
                 try {
-
                     const result = await sendWhatsAppMessage(family.phone, message, settings);
                     if (result.success) {
-
                         addActivityLog({ action: 'Send WhatsApp Message', description: 'Sent fee payment receipt to 1 recipient.', recipientCount: 1 });
                     } else {
                         throw new Error(result.error);
                     }
                 } catch (error: any) {
-
                     console.error("Failed to send payment receipt.", error);
                     toast({ title: 'WhatsApp Failed', description: `Could not send payment receipt. Error: ${error.message}`, variant: 'destructive' });
                 }
