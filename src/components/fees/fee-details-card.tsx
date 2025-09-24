@@ -131,9 +131,13 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         const newDues = totalDues - collectedAmount;
 
         const receiptId = `INV-${Date.now()}`;
+        
+        // Generate a public URL for the receipt
+        const receiptUrl = `${window.location.origin}/receipt/${receiptId}`;
+        
         let barcodeDataUri = '';
         try {
-            const barcodeResult = await generateBarcode({ content: receiptId });
+            const barcodeResult = await generateBarcode({ content: receiptUrl });
             barcodeDataUri = barcodeResult.barcodeDataUri;
         } catch (error) {
             console.error("Barcode generation failed:", error);
@@ -141,6 +145,11 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         }
         
         // Now, commit the changes to the database
+        const paidFeeRecordIds: string[] = [];
+        const feesToUpdateInDB: {id: string, data: Partial<Fee>}[] = [];
+        const feesToDeleteFromDB: string[] = [];
+        const feesToAddInDB: Omit<Fee, 'id'>[] = [];
+
         for (const { fee, payment } of feesToPay) {
             const paymentRecord: Omit<Fee, 'id'> = {
                 familyId: fee.familyId,
@@ -151,21 +160,40 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                 paymentDate: new Date().toISOString().split('T')[0],
                 originalChallanId: fee.id, 
                 paymentMethod: paymentMethod,
-                id: receiptId // Use the generated receipt ID
+                receiptId: receiptId
             };
-            
-            const newFeeId = await onAddFee(paymentRecord);
-            if (newFeeId) {
-                newlyPaidFees.push({ ...paymentRecord, id: newFeeId });
-            }
+            feesToAddInDB.push(paymentRecord);
 
             const remainingAmountInChallan = fee.amount - payment;
             if (remainingAmountInChallan > 0) {
-                 await onUpdateFee(fee.id, { amount: remainingAmountInChallan });
+                 feesToUpdateInDB.push({ id: fee.id, data: { amount: remainingAmountInChallan } });
             } else {
-                 await onDeleteFee(fee.id);
+                 feesToDeleteFromDB.push(fee.id);
             }
         }
+
+        // Add all fees first to get their IDs
+        for (const feeData of feesToAddInDB) {
+            const newId = await onAddFee(feeData);
+            if (newId) {
+                paidFeeRecordIds.push(newId);
+                newlyPaidFees.push({ ...feeData, id: newId });
+            }
+        }
+
+        // Now that we have all IDs for the transaction, update them with the full list
+        for (const id of paidFeeRecordIds) {
+            feesToUpdateInDB.push({ id, data: { transactionFeeIds: paidFeeRecordIds } });
+        }
+
+        // Apply all other updates and deletes
+        for (const { id, data } of feesToUpdateInDB) {
+            await onUpdateFee(id, data);
+        }
+        for (const id of feesToDeleteFromDB) {
+            await onDeleteFee(id);
+        }
+
         
         addActivityLog({ action: 'Collect Fee', description: `Collected PKR ${collectedAmount.toLocaleString()} from family ${family.id} (${family.fatherName})`});
         
@@ -247,6 +275,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
     
      const triggerJpgDownload = async (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, barcodeDataUri?: string) => {
         if (collectedAmount === 0 && totalDues === 0) {
+             return;
         }
 
         setIsDownloadingJpg(true);
@@ -396,3 +425,4 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         </Card>
     );
 }
+

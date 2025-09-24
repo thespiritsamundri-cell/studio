@@ -102,6 +102,8 @@ export interface Fee {
   status: 'Paid' | 'Unpaid';
   originalChallanId?: string; // Links a 'Paid' record to the original 'Unpaid' challan ID
   paymentMethod?: string; // e.g., 'Cash', 'Bank Transfer'
+  receiptId?: string; // Unique ID for the transaction
+  transactionFeeIds?: string[]; // IDs of all other fees paid in the same transaction
 }
 
 export interface Class {
