@@ -451,12 +451,54 @@ export function DataProvider({ children }: { children: ReactNode }) {
 const deleteFee = async (id: string) => {
     const feeToDelete = fees.find(f => f.id === id);
     if (!feeToDelete) {
+        console.log(`Fee record ${id} not found in local state, cannot delete.`);
         toast({ title: 'Fee record not found.', variant: 'destructive' });
         return;
     }
+    
+    // This is for paid income records being reversed.
+    if (feeToDelete.status === 'Paid') {
+        try {
+            await runTransaction(db, async (transaction) => {
+                const feeRef = doc(db, "fees", id);
+                const feeDoc = await transaction.get(feeRef);
 
-    // If it's an unpaid challan, just delete it.
-    if (feeToDelete.status === 'Unpaid') {
+                if (!feeDoc.exists()) {
+                    // This handles the "ghost" entry case.
+                    console.log(`Fee record ${id} not in DB, assuming it's a ghost entry.`);
+                    // We can't delete it from the DB if it's not there,
+                    // but the live listener will cause the UI to update once any other change happens.
+                    // To force a UI refresh if needed, we'd have to manage local state differently,
+                    // but onSnapshot should handle this.
+                    return; 
+                }
+
+                const paidFeeData = feeDoc.data() as Fee;
+
+                // Re-create the unpaid fee.
+                const newUnpaidFee: Omit<Fee, 'id'> = {
+                    familyId: paidFeeData.familyId,
+                    amount: paidFeeData.amount,
+                    month: paidFeeData.month,
+                    year: paidFeeData.year,
+                    status: 'Unpaid',
+                    paymentDate: '',
+                };
+                const newFeeRef = doc(collection(db, 'fees'));
+                transaction.set(newFeeRef, newUnpaidFee);
+                
+                // Delete the paid fee record.
+                transaction.delete(feeRef);
+            });
+
+            toast({ title: "Income Reversed", description: `PKR ${feeToDelete.amount.toLocaleString()} has been added back to Family ${feeToDelete.familyId}'s dues.` });
+            await addActivityLog({ action: 'Reverse Income', description: `Reversed income of PKR ${feeToDelete.amount.toLocaleString()} for Family ID ${feeToDelete.familyId}.` });
+        
+        } catch (error: any) {
+            console.error('Error reversing fee:', error);
+            toast({ title: "Error Reversing Income", description: error.message, variant: "destructive" });
+        }
+    } else { // This handles deleting an 'Unpaid' challan.
         try {
             await deleteDoc(doc(db, 'fees', id));
             toast({ title: "Challan Deleted", description: `Unpaid challan for Family ${feeToDelete.familyId} was deleted.` });
@@ -464,39 +506,6 @@ const deleteFee = async (id: string) => {
         } catch (e: any) {
             console.error('Error deleting unpaid challan:', e);
             toast({ title: 'Error Deleting Challan', description: e.message, variant: 'destructive' });
-        }
-        return;
-    }
-
-    // If it's a paid fee, reverse the transaction.
-    if (feeToDelete.status === 'Paid') {
-        try {
-            const batch = writeBatch(db);
-
-            // Re-create the unpaid fee
-            const newUnpaidFee: Omit<Fee, 'id'> = {
-                familyId: feeToDelete.familyId,
-                amount: feeToDelete.amount,
-                month: feeToDelete.month,
-                year: feeToDelete.year,
-                status: 'Unpaid',
-                paymentDate: '',
-            };
-            const newFeeRef = doc(collection(db, 'fees'));
-            batch.set(newFeeRef, newUnpaidFee);
-
-            // Delete the 'Paid' fee record
-            const paidFeeRef = doc(db, 'fees', id);
-            batch.delete(paidFeeRef);
-            
-            await batch.commit();
-
-            toast({ title: "Income Reversed", description: `PKR ${feeToDelete.amount.toLocaleString()} has been added back to Family ${feeToDelete.familyId}'s dues.` });
-            await addActivityLog({ action: 'Reverse Income', description: `Reversed income of PKR ${feeToDelete.amount.toLocaleString()} for Family ID ${feeToDelete.familyId}.` });
-
-        } catch (e: any) {
-            console.error('Error reversing fee:', e);
-            toast({ title: 'Error Reversing Income', description: e.message || "An unknown error occurred.", variant: "destructive" });
         }
     }
 };
@@ -755,5 +764,3 @@ export function useData() {
   if (context === undefined) throw new Error('useData must be used within a DataProvider');
   return context;
 }
-
-    
