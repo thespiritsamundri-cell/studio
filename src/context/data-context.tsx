@@ -454,7 +454,7 @@ const deleteFee = async (id: string) => {
         toast({ title: 'Fee record not found.', variant: 'destructive' });
         return;
     }
-    
+
     // If it's an unpaid challan, just delete it.
     if (feeToDelete.status === 'Unpaid') {
         try {
@@ -467,11 +467,13 @@ const deleteFee = async (id: string) => {
         }
         return;
     }
-    
+
     // If it's a paid fee, reverse the transaction.
     if (feeToDelete.status === 'Paid') {
         try {
-            // Create a new unpaid fee to reverse the payment
+            const batch = writeBatch(db);
+
+            // Re-create the unpaid fee
             const newUnpaidFee: Omit<Fee, 'id'> = {
                 familyId: feeToDelete.familyId,
                 amount: feeToDelete.amount,
@@ -480,14 +482,18 @@ const deleteFee = async (id: string) => {
                 status: 'Unpaid',
                 paymentDate: '',
             };
-            await addDoc(collection(db, 'fees'), newUnpaidFee);
+            const newFeeRef = doc(collection(db, 'fees'));
+            batch.set(newFeeRef, newUnpaidFee);
 
             // Delete the 'Paid' fee record
-            await deleteDoc(doc(db, 'fees', id));
+            const paidFeeRef = doc(db, 'fees', id);
+            batch.delete(paidFeeRef);
+            
+            await batch.commit();
 
             toast({ title: "Income Reversed", description: `PKR ${feeToDelete.amount.toLocaleString()} has been added back to Family ${feeToDelete.familyId}'s dues.` });
             await addActivityLog({ action: 'Reverse Income', description: `Reversed income of PKR ${feeToDelete.amount.toLocaleString()} for Family ID ${feeToDelete.familyId}.` });
-        
+
         } catch (e: any) {
             console.error('Error reversing fee:', e);
             toast({ title: 'Error Reversing Income', description: e.message || "An unknown error occurred.", variant: "destructive" });
@@ -749,3 +755,5 @@ export function useData() {
   if (context === undefined) throw new Error('useData must be used within a DataProvider');
   return context;
 }
+
+    
