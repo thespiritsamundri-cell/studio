@@ -93,6 +93,13 @@ export default function AdmissionsPage() {
         }
     }, [foundFamily, students, fees]);
     
+    useEffect(() => {
+        if (familyId === '') {
+            setFoundFamily(null);
+            setFamilyExists(false);
+        }
+    }, [familyId]);
+    
     const handleFamilySearch = () => {
         const family = families.find(f => f.id === familyId);
         if (family) {
