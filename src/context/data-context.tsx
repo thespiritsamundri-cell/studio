@@ -448,13 +448,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     catch(e) { console.error('Error updating fee', e); toast({ title: 'Error Updating Fee', variant: 'destructive' }); }
   };
     
-    const deleteFee = async (id: string) => {
+const deleteFee = async (id: string) => {
     const feeToDelete = fees.find(f => f.id === id);
     if (!feeToDelete) {
         toast({ title: 'Fee record not found.', variant: 'destructive' });
         return;
     }
     
+    // If it's an unpaid challan, just delete it.
     if (feeToDelete.status === 'Unpaid') {
         try {
             await deleteDoc(doc(db, 'fees', id));
@@ -467,58 +468,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return;
     }
     
+    // If it's a paid fee, reverse the transaction.
     if (feeToDelete.status === 'Paid') {
         try {
-            await runTransaction(db, async (transaction) => {
-                // Step 1 (READ): Get all necessary documents first.
-                const feeToDeleteRef = doc(db, 'fees', id);
-                const feeDoc = await transaction.get(feeToDeleteRef);
+            // Create a new unpaid fee to reverse the payment
+            const newUnpaidFee: Omit<Fee, 'id'> = {
+                familyId: feeToDelete.familyId,
+                amount: feeToDelete.amount,
+                month: feeToDelete.month,
+                year: feeToDelete.year,
+                status: 'Unpaid',
+                paymentDate: '',
+            };
+            await addDoc(collection(db, 'fees'), newUnpaidFee);
 
-                if (!feeDoc.exists()) {
-                    throw new Error("Paid fee document not found. It may have already been deleted.");
-                }
-                const paidFeeData = feeDoc.data() as Fee;
+            // Delete the 'Paid' fee record
+            await deleteDoc(doc(db, 'fees', id));
 
-                let allPaidFeesInTx: {id: string, data: Fee}[] = [{ id: feeDoc.id, data: paidFeeData }];
-                if (paidFeeData.receiptId) {
-                    const paidFeesQuery = query(collection(db, 'fees'), where('receiptId', '==', paidFeeData.receiptId));
-                    const snapshot = await getDocs(paidFeesQuery); // This is a read outside transaction, but we need it to know which docs to get inside
-                    if(!snapshot.empty) {
-                        allPaidFeesInTx = snapshot.docs.map(d => ({id: d.id, data: d.data() as Fee}));
-                    }
-                }
-                
-                const originalChallanIds = [...new Set(allPaidFeesInTx.map(f => f.data.originalChallanId).filter(Boolean))];
-                const challanRefs = originalChallanIds.map(challanId => doc(db, 'fees', challanId!));
-                const challanDocs = await Promise.all(challanRefs.map(ref => transaction.get(ref)));
-                const challanMap = new Map(challanDocs.map(d => [d.id, d]));
-
-
-                // Step 2 (WRITE): Perform all writes now.
-                for (const paidFee of allPaidFeesInTx) {
-                    transaction.delete(doc(db, 'fees', paidFee.id)); // Delete the paid fee record
-
-                    const originalId = paidFee.data.originalChallanId;
-                    if (originalId) {
-                        const originalChallanDoc = challanMap.get(originalId);
-                        if (originalChallanDoc && originalChallanDoc.exists()) {
-                            // Original challan exists, add amount back
-                            const currentAmount = originalChallanDoc.data().amount || 0;
-                            transaction.update(originalChallanDoc.ref, { amount: currentAmount + paidFee.data.amount });
-                        } else {
-                            // Original challan doesn't exist, create a new one
-                            const newUnpaidFee: Omit<Fee, 'id'> = {
-                                familyId: paidFee.data.familyId, amount: paidFee.data.amount, month: paidFee.data.month,
-                                year: paidFee.data.year, status: 'Unpaid', paymentDate: ''
-                            };
-                            transaction.set(doc(collection(db, 'fees')), newUnpaidFee);
-                        }
-                    }
-                }
-            });
-
-            toast({ title: "Income Reversed", description: `Reversed payment from Family ${feeToDelete.familyId}.` });
-            await addActivityLog({ action: 'Reverse Income', description: `Reversed income for receipt ${feeToDelete.receiptId || feeToDelete.id}.` });
+            toast({ title: "Income Reversed", description: `PKR ${feeToDelete.amount.toLocaleString()} has been added back to Family ${feeToDelete.familyId}'s dues.` });
+            await addActivityLog({ action: 'Reverse Income', description: `Reversed income of PKR ${feeToDelete.amount.toLocaleString()} for Family ID ${feeToDelete.familyId}.` });
+        
         } catch (e: any) {
             console.error('Error reversing fee:', e);
             toast({ title: 'Error Reversing Income', description: e.message || "An unknown error occurred.", variant: "destructive" });
