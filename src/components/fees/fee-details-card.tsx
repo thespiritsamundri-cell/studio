@@ -14,6 +14,7 @@ import { FeeReceipt } from '../reports/fee-receipt';
 import { useToast } from '@/hooks/use-toast';
 import { Printer, Download, Loader2 } from 'lucide-react';
 import { renderToString } from 'react-dom/server';
+import { createRoot } from 'react-dom/client';
 import type { SchoolSettings } from '@/context/settings-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useData } from '@/context/data-context';
@@ -53,40 +54,53 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
     const remainingDues = totalDues - paidAmount;
 
     const generateReceiptJpg = async (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, qrCodeDataUri?: string): Promise<string> => {
-        const printContentString = renderToString(
-            <FeeReceipt
-                family={family}
-                students={students}
-                fees={paidFeesForReceipt}
-                totalDues={totalDues}
-                paidAmount={collectedAmount}
-                remainingDues={newRemainingDues}
-                settings={settings}
-                paymentMethod={method}
-                printType={printType}
-                receiptId={receiptId}
-                qrCodeDataUri={qrCodeDataUri}
-            />
-        );
+        return new Promise((resolve, reject) => {
+            const container = document.createElement('div');
+            container.style.position = 'absolute';
+            container.style.left = '-9999px';
+            document.body.appendChild(container);
 
-        const reportElement = document.createElement('div');
-        reportElement.style.position = 'absolute';
-        reportElement.style.left = '-9999px';
-        if (printType === 'thermal') {
-            reportElement.style.width = '80mm';
-        }
-        reportElement.innerHTML = printContentString;
-        document.body.appendChild(reportElement);
+            const receiptElement = (
+                <FeeReceipt
+                    family={family}
+                    students={students}
+                    fees={paidFeesForReceipt}
+                    totalDues={totalDues}
+                    paidAmount={collectedAmount}
+                    remainingDues={newRemainingDues}
+                    settings={settings}
+                    paymentMethod={method}
+                    printType={printType}
+                    receiptId={receiptId}
+                    qrCodeDataUri={qrCodeDataUri}
+                />
+            );
+            
+            const root = createRoot(container);
+            root.render(receiptElement);
 
-        try {
-            const canvas = await html2canvas(reportElement.firstChild as HTMLElement, {
-                scale: 2,
-                useCORS: true,
-            });
-            return canvas.toDataURL('image/jpeg', 0.9);
-        } finally {
-            document.body.removeChild(reportElement);
-        }
+            setTimeout(async () => {
+                const receiptNode = container.firstChild as HTMLElement;
+                if (!receiptNode) {
+                    document.body.removeChild(container);
+                    return reject(new Error("Receipt element not found for canvas generation."));
+                }
+                
+                try {
+                    const canvas = await html2canvas(receiptNode, {
+                        useCORS: true,
+                        scale: 2
+                    });
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                    resolve(dataUrl);
+                } catch (error) {
+                    reject(error);
+                } finally {
+                    root.unmount();
+                    document.body.removeChild(container);
+                }
+            }, 500);
+        });
     };
 
 
@@ -118,8 +132,6 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
             return monthOrder.indexOf(a.month) - monthOrder.indexOf(b.month);
         });
 
-        // This loop simulates the payment process to prepare for receipt generation
-        // but does not commit changes yet.
         const feesToPay: { fee: Fee, payment: number }[] = [];
         for (const fee of sortedUnpaidFees) {
             if (amountToSettle <= 0) break;
@@ -132,7 +144,6 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
 
         const receiptId = `INV-${Date.now()}`;
         
-        // Generate a public URL for the receipt
         const receiptUrl = `${window.location.origin}/receipt/${receiptId}`;
         
         let qrCodeDataUri = '';
@@ -144,7 +155,6 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
             toast({ title: 'QR Code Failed', description: 'Could not generate QR code for the receipt.', variant: 'destructive' });
         }
         
-        // Now, commit the changes to the database
         const paidFeeRecordIds: string[] = [];
         const feesToUpdateInDB: {id: string, data: Partial<Fee>}[] = [];
         const feesToDeleteFromDB: string[] = [];
@@ -172,7 +182,6 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
             }
         }
 
-        // Add all fees first to get their IDs
         for (const feeData of feesToAddInDB) {
             const newId = await onAddFee(feeData);
             if (newId) {
@@ -181,12 +190,10 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
             }
         }
 
-        // Now that we have all IDs for the transaction, update them with the full list
         for (const id of paidFeeRecordIds) {
             feesToUpdateInDB.push({ id, data: { transactionFeeIds: paidFeeRecordIds } });
         }
 
-        // Apply all other updates and deletes
         for (const { id, data } of feesToUpdateInDB) {
             await onUpdateFee(id, data);
         }
@@ -209,7 +216,6 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         });
 
         triggerPrint(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId, qrCodeDataUri);
-        await triggerJpgDownload(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId, qrCodeDataUri);
 
         if (settings.automatedMessages?.payment.enabled) {
             const paymentTemplate = settings.messageTemplates?.find(t => t.id === settings.automatedMessages?.payment.templateId);
@@ -257,13 +263,15 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         );
         const printWindow = window.open('', '_blank');
         if(printWindow) {
+            const bodyClass = printType === 'thermal' ? 'thermal-receipt-body' : '';
             printWindow.document.write(`
                 <html>
                     <head>
                         <title>Fee Receipt - Family ${family.id}</title>
                         <script src="https://cdn.tailwindcss.com"></script>
+                        <link rel="stylesheet" href="/print-styles.css">
                     </head>
-                    <body>
+                    <body class="${bodyClass}">
                         ${printContent}
                     </body>
                 </html>
@@ -411,7 +419,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="normal">Normal (A4)</SelectItem>
-                                <SelectItem value="thermal">Thermal (80mm)</SelectItem>
+                                <SelectItem value="thermal">Thermal</SelectItem>
                             </SelectContent>
                         </Select>
                         <Button variant="outline" onClick={() => triggerJpgDownload(unpaidFees, 0, totalDues, paymentMethod, `INV-${Date.now()}`)} disabled={isDownloadingJpg}>

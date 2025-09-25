@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -145,15 +146,15 @@ export default function AccountsPage() {
                     <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><BookCheck /> Financial Accounts</h1>
                     <p className="text-muted-foreground">Generate and review financial reports for your school.</p>
                 </div>
-                 <div className="flex items-center gap-2">
+                 <div className="flex flex-wrap items-center gap-2">
                     <Select value={String(selectedMonth)} onValueChange={(val) => setSelectedMonth(Number(val))}>
-                        <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
                         <SelectContent>
                             {months.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}
                         </SelectContent>
                     </Select>
                     <Select value={String(selectedYear)} onValueChange={(val) => setSelectedYear(Number(val))}>
-                        <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
                         <SelectContent>
                              {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
                         </SelectContent>
@@ -164,7 +165,7 @@ export default function AccountsPage() {
                 </div>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 <Card className="bg-green-500/5 border-green-500/20">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle className="text-sm font-medium text-green-800">Income (This Month)</CardTitle>
@@ -183,7 +184,7 @@ export default function AccountsPage() {
                         <div className="text-2xl font-bold text-red-700">PKR {monthlyFinancialData.totalExpenses.toLocaleString()}</div>
                     </CardContent>
                 </Card>
-                 <Card className={monthlyFinancialData.netProfit >= 0 ? "bg-primary/5 border-primary/20" : "bg-destructive/5 border-destructive/20"}>
+                 <Card className={cn("lg:col-span-1 md:col-span-2", monthlyFinancialData.netProfit >= 0 ? "bg-primary/5 border-primary/20" : "bg-destructive/5 border-destructive/20")}>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle className={cn("text-sm font-medium", monthlyFinancialData.netProfit >=0 ? "text-primary" : "text-destructive")}>Net Profit / Loss</CardTitle>
                         <Scale className={cn("w-4 h-4", monthlyFinancialData.netProfit >=0 ? "text-primary" : "text-destructive")} />

@@ -10,6 +10,13 @@
     print-color-adjust: exact;
   }
 
+  body.thermal-receipt-body {
+    @page {
+        size: 101.6mm 152.4mm;
+        margin: 0;
+    }
+  }
+
   .printable-page {
     page-break-after: always;
     display: flex;
