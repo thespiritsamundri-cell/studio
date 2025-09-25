@@ -27,8 +27,8 @@ interface FeeReceiptProps {
 }
 
 const thermalContainerStyle: React.CSSProperties = {
-    width: '101.6mm', // 4 inches
-    height: '152.4mm', // 6 inches
+    width: '80mm',
+    height: '6in',
     fontSize: '10px',
     color: '#000',
     backgroundColor: '#fff',

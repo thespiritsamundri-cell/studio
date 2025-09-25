@@ -78,9 +78,9 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         
         if (printType === 'thermal') {
             const dpi = 96; // Standard screen DPI.
-            const widthInInches = 4;
+            const widthInMM = 80;
             const heightInInches = 6;
-            canvasWidth = widthInInches * dpi;
+            canvasWidth = (widthInMM / 25.4) * dpi;
             canvasHeight = heightInInches * dpi;
             reportElement.style.width = `${canvasWidth}px`;
             reportElement.style.height = `${canvasHeight}px`;
