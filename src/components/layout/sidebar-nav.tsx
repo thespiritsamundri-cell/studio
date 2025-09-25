@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -39,6 +38,7 @@ import {
   Archive,
   Medal,
   BookText,
+  UserSquare2,
 } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import Image from 'next/image';
@@ -74,6 +74,11 @@ const navItems: NavItem[] = [
   { href: '/yearbook', icon: Archive, label: 'Yearbook', permission: 'yearbook' },
 ];
 
+const idCardItems: NavItem[] = [
+    { href: "/id-cards/student", icon: UserSquare2, label: "Student Cards", permission: "students" },
+    { href: "/id-cards/teacher", icon: UserSquare2, label: "Teacher Cards", permission: "teachers" },
+];
+
 const examSystemItems: NavItem[] = [
     { href: "/exams", icon: FileSignature, label: "Marksheets", permission: "examSystem" },
     { href: "/single-subject-test", icon: BookText, label: "Single Subject Test", permission: "examSystem" },
@@ -99,8 +104,11 @@ export function SidebarNav() {
   const pathname = usePathname();
   const { settings } = useSettings();
   const { hasPermission, userRole } = useData();
+  
   const [isExamSystemOpen, setIsExamSystemOpen] = useState(pathname.startsWith('/exam') || pathname.startsWith('/result-cards') || pathname.startsWith('/roll-number-slips') || pathname.startsWith('/seating-plan') || pathname.startsWith('/single-subject-test'));
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(pathname.startsWith('/attendance') || pathname.startsWith('/teacher-attendance'));
+  const [isIdCardsOpen, setIsIdCardsOpen] = useState(pathname.startsWith('/id-cards'));
+
   const { isPinned, isMobile } = useSidebar();
   
   const checkGeneralPermission = (permission: keyof PermissionSet | 'any_primary_role') => {
@@ -113,6 +121,7 @@ export function SidebarNav() {
   const filteredNavItems = useMemo(() => navItems.filter(item => checkGeneralPermission(item.permission)), [hasPermission, userRole]);
   const showExamSystem = useMemo(() => hasPermission('examSystem'), [hasPermission]);
   const showAttendance = useMemo(() => hasPermission('attendance'), [hasPermission]);
+  const showIdCards = useMemo(() => hasPermission('students') || hasPermission('teachers'), [hasPermission]);
   const filteredFooterItems = useMemo(() => footerItems.filter(item => checkGeneralPermission(item.permission)), [hasPermission, userRole]);
 
 
@@ -161,6 +170,35 @@ export function SidebarNav() {
                 <CollapsibleContent asChild>
                     <ul className={cn("space-y-1 ml-4 pl-5 py-1 border-l border-sidebar-border/50 transition-all", (isPinned || isMobile) ? "block" : "hidden group-hover/sidebar:block")}>
                         {attendanceItems.map(item => (
+                             <li key={item.label}>
+                                <SidebarMenuButton asChild size="sm" isActive={pathname.startsWith(item.href)} tooltip={item.label}>
+                                    <Link href={item.href}>
+                                    <item.icon />
+                                    <span className="truncate min-w-0">{item.label}</span>
+                                    </Link>
+                                </SidebarMenuButton>
+                             </li>
+                        ))}
+                    </ul>
+                </CollapsibleContent>
+              </CollapsibleSidebarMenuItem>
+            </Collapsible>
+          )}
+          {showIdCards && (
+             <Collapsible asChild open={isIdCardsOpen} onOpenChange={setIsIdCardsOpen}>
+              <CollapsibleSidebarMenuItem>
+                 <CollapsibleTrigger asChild>
+                    <SidebarMenuButton tooltip='ID Cards' className="justify-between w-full">
+                      <div className="flex items-center gap-3">
+                        <UserSquare2 />
+                        <span className={cn("truncate min-w-0 transition-opacity duration-200", (isPinned || isMobile) ? "opacity-100" : "opacity-0 group-hover/sidebar:opacity-100")}>ID Cards</span>
+                      </div>
+                      <ChevronRight className={cn('h-4 w-4 transition-all duration-200 ml-auto', (isPinned || isMobile) ? "opacity-100" : "opacity-0 group-hover/sidebar:opacity-100", isIdCardsOpen && 'rotate-90')} />
+                  </SidebarMenuButton>
+                 </CollapsibleTrigger>
+                <CollapsibleContent asChild>
+                    <ul className={cn("space-y-1 ml-4 pl-5 py-1 border-l border-sidebar-border/50 transition-all", (isPinned || isMobile) ? "block" : "hidden group-hover/sidebar:block")}>
+                        {idCardItems.filter(item => checkGeneralPermission(item.permission)).map(item => (
                              <li key={item.label}>
                                 <SidebarMenuButton asChild size="sm" isActive={pathname.startsWith(item.href)} tooltip={item.label}>
                                     <Link href={item.href}>
