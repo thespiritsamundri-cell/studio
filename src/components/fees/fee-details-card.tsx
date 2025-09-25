@@ -73,23 +73,29 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         reportElement.style.position = 'absolute';
         reportElement.style.left = '-9999px';
         
+        let canvasWidth: number | undefined = undefined;
+        let canvasHeight: number | undefined = undefined;
+
         if (printType === 'thermal') {
-            const dpi = 96;
-            const widthInPixels = (101 / 25.4) * dpi;
-            const heightInPixels = (153 / 25.4) * dpi;
-            reportElement.style.width = `${widthInPixels}px`;
-            reportElement.style.height = `${heightInPixels}px`;
+            const dpi = 96; // Standard screen DPI
+            const widthInInches = 101 / 25.4;
+            const heightInInches = 153 / 25.4;
+            canvasWidth = widthInInches * dpi;
+            canvasHeight = heightInInches * dpi;
+            reportElement.style.width = `${canvasWidth}px`;
+            reportElement.style.height = `${canvasHeight}px`;
         }
+
 
         reportElement.innerHTML = printContentString;
         document.body.appendChild(reportElement);
 
         try {
             const canvas = await html2canvas(reportElement.firstChild as HTMLElement, {
-                scale: 2,
+                scale: 2, // Increase resolution for better quality
                 useCORS: true,
-                width: printType === 'thermal' ? (101 / 25.4) * 96 : undefined,
-                height: printType === 'thermal' ? (153 / 25.4) * 96 : undefined,
+                width: canvasWidth,
+                height: canvasHeight,
             });
             return canvas.toDataURL('image/jpeg', 0.9);
         } finally {
@@ -435,3 +441,5 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         </Card>
     );
 }
+
+    

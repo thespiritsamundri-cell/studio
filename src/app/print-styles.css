@@ -13,7 +13,7 @@
   body.thermal-receipt-body {
     @page {
         size: 101mm 153mm;
-        margin: 5mm;
+        margin: 0;
     }
   }
 
@@ -115,3 +115,5 @@
 
 
 }
+
+    
