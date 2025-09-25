@@ -14,6 +14,7 @@ import { FeeReceipt } from '../reports/fee-receipt';
 import { useToast } from '@/hooks/use-toast';
 import { Printer, Download, Loader2 } from 'lucide-react';
 import { renderToString } from 'react-dom/server';
+import ReactDOM from 'react-dom';
 import type { SchoolSettings } from '@/context/settings-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useData } from '@/context/data-context';
@@ -54,7 +55,12 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
 
     const generateReceiptJpg = async (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, qrCodeDataUri?: string): Promise<string> => {
         return new Promise((resolve, reject) => {
-            const printContentString = renderToString(
+            const container = document.createElement('div');
+            container.style.position = 'absolute';
+            container.style.left = '-9999px';
+            document.body.appendChild(container);
+
+            const receiptElement = (
                 <FeeReceipt
                     family={family}
                     students={students}
@@ -69,61 +75,28 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                     qrCodeDataUri={qrCodeDataUri}
                 />
             );
-
-            // Create an iframe to render the content
-            const iframe = document.createElement('iframe');
-            iframe.style.position = 'absolute';
-            iframe.style.left = '-9999px';
-            iframe.style.top = '-9999px';
-            iframe.style.width = '80mm'; // Set width for layout calculation
-            iframe.style.border = 'none';
-
-            document.body.appendChild(iframe);
-
-            const iframeDoc = iframe.contentWindow?.document;
-            if (!iframeDoc) {
-                document.body.removeChild(iframe);
-                return reject(new Error("Could not access iframe document."));
-            }
-
-            // Write the HTML and styles to the iframe
-            iframeDoc.open();
-            iframeDoc.write(`
-                <html>
-                    <head>
-                        <script src="https://cdn.tailwindcss.com"></script>
-                        <link rel="stylesheet" href="/print-styles.css">
-                    </head>
-                    <body class="bg-white">
-                        ${printContentString}
-                    </body>
-                </html>
-            `);
-            iframeDoc.close();
-
-            // Wait for the content (especially images) to load inside the iframe
-            iframe.onload = () => {
-                setTimeout(async () => {
-                    const reportElement = iframeDoc.body.firstChild as HTMLElement;
-                    if (!reportElement) {
-                        document.body.removeChild(iframe);
-                        return reject(new Error("Report element not found in iframe."));
-                    }
-                    
-                    try {
-                        const canvas = await html2canvas(reportElement, {
-                            useCORS: true,
-                            scale: 2, // Higher resolution
-                        });
-                        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-                        resolve(dataUrl);
-                    } catch (error) {
-                        reject(error);
-                    } finally {
-                        document.body.removeChild(iframe);
-                    }
-                }, 500); // Add a slight delay to ensure rendering is complete
-            };
+            
+            ReactDOM.render(receiptElement, container, async () => {
+                const receiptNode = container.firstChild as HTMLElement;
+                if (!receiptNode) {
+                    document.body.removeChild(container);
+                    return reject(new Error("Receipt element not found for canvas generation."));
+                }
+                
+                try {
+                    const canvas = await html2canvas(receiptNode, {
+                        useCORS: true,
+                        scale: 2,
+                    });
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                    resolve(dataUrl);
+                } catch (error) {
+                    reject(error);
+                } finally {
+                    ReactDOM.unmountComponentAtNode(container);
+                    document.body.removeChild(container);
+                }
+            });
         });
     };
 
@@ -156,8 +129,6 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
             return monthOrder.indexOf(a.month) - monthOrder.indexOf(b.month);
         });
 
-        // This loop simulates the payment process to prepare for receipt generation
-        // but does not commit changes yet.
         const feesToPay: { fee: Fee, payment: number }[] = [];
         for (const fee of sortedUnpaidFees) {
             if (amountToSettle <= 0) break;
@@ -170,7 +141,6 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
 
         const receiptId = `INV-${Date.now()}`;
         
-        // Generate a public URL for the receipt
         const receiptUrl = `${window.location.origin}/receipt/${receiptId}`;
         
         let qrCodeDataUri = '';
@@ -182,7 +152,6 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
             toast({ title: 'QR Code Failed', description: 'Could not generate QR code for the receipt.', variant: 'destructive' });
         }
         
-        // Now, commit the changes to the database
         const paidFeeRecordIds: string[] = [];
         const feesToUpdateInDB: {id: string, data: Partial<Fee>}[] = [];
         const feesToDeleteFromDB: string[] = [];
@@ -210,7 +179,6 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
             }
         }
 
-        // Add all fees first to get their IDs
         for (const feeData of feesToAddInDB) {
             const newId = await onAddFee(feeData);
             if (newId) {
@@ -219,12 +187,10 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
             }
         }
 
-        // Now that we have all IDs for the transaction, update them with the full list
         for (const id of paidFeeRecordIds) {
             feesToUpdateInDB.push({ id, data: { transactionFeeIds: paidFeeRecordIds } });
         }
 
-        // Apply all other updates and deletes
         for (const { id, data } of feesToUpdateInDB) {
             await onUpdateFee(id, data);
         }
@@ -465,5 +431,3 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         </Card>
     );
 }
-
-    
