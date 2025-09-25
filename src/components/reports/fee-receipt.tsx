@@ -32,7 +32,7 @@ const thermalContainerStyle: React.CSSProperties = {
     fontSize: '10px',
     color: '#000',
     backgroundColor: '#fff',
-    padding: '5mm',
+    padding: '4mm',
     boxSizing: 'border-box',
 };
 
@@ -59,20 +59,21 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
                 )}
                 <div className="relative z-10 flex flex-col h-full">
                     <header className="text-center">
-                        {settings.schoolLogo ? <Image src={settings.schoolLogo} alt="School Logo" width={50} height={50} className="mx-auto" /> : <School className="w-12 h-12 text-black mx-auto" />}
+                        {settings.schoolLogo ? <Image src={settings.schoolLogo} alt="School Logo" width={50} height={50} className="mx-auto text-black" /> : <School className="w-12 h-12 text-black mx-auto" />}
                         <h1 className="text-lg font-bold mt-1">{settings.schoolName}</h1>
                         <p className="text-[10px]">{settings.schoolAddress}</p>
                         <p className="text-[10px]">Phone: {settings.schoolPhone}</p>
                     </header>
+                    
+                    <div className='text-center my-2'>
+                        <h2 className='text-sm font-bold underline'>Fee Receipt</h2>
+                        <p className="text-[10px] text-gray-700 font-bold">Receipt #: {receiptId}</p>
+                        <p className="text-[10px] text-gray-700 font-bold">Date: {format(date, 'dd/MM/yyyy')}</p>
+                    </div>
 
                     <hr className="border-t border-dashed border-black my-2" />
 
                     <section className="text-xs space-y-1">
-                         <h2 className='text-center font-bold text-sm'>Fee Receipt</h2>
-                         <div className="text-center text-[10px] text-gray-700">
-                           <p>Receipt #: {receiptId}</p>
-                           <p>Date: {format(date, 'dd/MM/yyyy')}</p>
-                         </div>
                         <div className="mt-2">
                             <p className="font-bold">Billed To:</p>
                             <p>{family.fatherName} (Family ID: {family.id})</p>
@@ -109,7 +110,7 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
                     
                     <hr className="border-t border-dashed border-black my-2" />
                     
-                    <section className="text-xs space-y-1">
+                    <section className="text-xs space-y-1 text-right">
                         <div className="flex justify-between">
                             <span>Previous Balance:</span>
                             <span>PKR {totalDues.toLocaleString()}</span>
