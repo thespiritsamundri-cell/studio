@@ -6,7 +6,6 @@ To get started, take a look at src/app/page.tsx.
 
 ## Applying Firestore Security Rules
 
-This project includes a `firestore.rules` file with recommended security settings for a single-admin application.
 
 To apply them:
 

@@ -73,7 +73,9 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         reportElement.style.position = 'absolute';
         reportElement.style.left = '-9999px';
         if (printType === 'thermal') {
-            reportElement.style.width = '80mm';
+            // Approx 3in width and 6in height in pixels at 96 DPI
+            reportElement.style.width = '288px'; 
+            reportElement.style.height = '576px';
         }
         reportElement.innerHTML = printContentString;
         document.body.appendChild(reportElement);
