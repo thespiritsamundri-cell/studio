@@ -13,72 +13,54 @@ interface TeacherIdCardPrintProps {
 }
 
 export const IDCard = ({ teacher, settings, qrCode }: { teacher: Teacher, settings: SchoolSettings, qrCode?: string }) => {
-    // CR80 Card: 85.6mm x 54mm. At 96 DPI, that's approx 323px x 204px.
-    // We'll use these dimensions and scale up for printing.
+    // CR80 Card: 85.6mm x 54mm. In Tailwind, we approximate this with pixels.
+    // At 96 DPI, this is roughly 323px x 204px. We will use a vertical layout: 204px x 323px
+    // The design is based on the user-provided JSX component.
     return (
-        <div className="relative w-[323px] h-[204px] bg-white text-black shadow-lg rounded-xl overflow-hidden font-sans flex flex-col">
-            
-            {/* Header SVG */}
-            <div className="absolute top-0 left-0 right-0 h-[70px] z-0">
-                <svg viewBox="0 0 323 70" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-                    <path d="M0 0H323V50C323 50 250 70 161.5 70C73 70 0 50 0 50V0Z" fill="#2563EB"/>
-                </svg>
+        <div className="w-[204px] h-[323px] bg-white shadow-lg rounded-2xl overflow-hidden border border-gray-200 font-sans flex flex-col">
+            {/* Header with logo and school name */}
+            <div className="bg-blue-600 text-white p-3 flex items-center gap-2 flex-shrink-0">
+                {settings.schoolLogo ? (
+                    <Image src={settings.schoolLogo} alt="logo" width={32} height={32} className="object-contain bg-white rounded-full p-0.5" />
+                ) : (
+                    <div className="w-8 h-8 bg-white/20 rounded-full" />
+                )}
+                <div className="text-lg font-bold leading-tight">{settings.schoolName}</div>
             </div>
 
-             {/* Footer SVG */}
-            <div className="absolute bottom-0 left-0 right-0 h-[30px] z-0">
-                 <svg viewBox="0 0 323 30" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-                    <path d="M0 10C0 10 73 0 161.5 0C250 0 323 10 323 10V30H0V10Z" fill="#DC2626"/>
-                </svg>
+            {/* Photo and Name */}
+            <div className="p-4 flex flex-col items-center text-center flex-shrink-0">
+                <div className="w-24 h-24 rounded-full border-4 border-blue-600 overflow-hidden flex items-center justify-center -mt-12 bg-white shadow-md">
+                    {teacher.photoUrl ? (
+                        <Image src={teacher.photoUrl} alt="photo" width={96} height={96} className="w-full h-full object-cover" />
+                    ) : (
+                        <div className="text-xs text-gray-400">Photo</div>
+                    )}
+                </div>
+                <div className="mt-2 text-base font-bold text-gray-800 leading-tight">{teacher.name}</div>
+                <div className="text-xs text-gray-600">Teacher</div>
             </div>
 
-            <div className="relative z-10 p-3 flex flex-col h-full">
-                {/* School Info */}
-                <div className="flex items-center gap-2 mb-2">
-                    {settings.schoolLogo && <Image src={settings.schoolLogo} alt="School Logo" width={32} height={32} className="object-contain rounded-full bg-white/80 p-0.5" />}
-                    <h1 className="text-white font-bold text-sm uppercase">{settings.schoolName}</h1>
-                </div>
-
-                {/* Profile Picture */}
-                <div className="absolute top-[40px] left-1/2 -translate-x-1/2 w-20 h-20 rounded-full border-4 border-white bg-gray-200 overflow-hidden shadow-md">
-                     <Image
-                        src={teacher.photoUrl}
-                        alt="Teacher Photo"
-                        width={80}
-                        height={80}
-                        className="object-cover w-full h-full"
-                        data-ai-hint="teacher photo"
-                    />
-                </div>
-
-                {/* Main Content */}
-                <div className="flex-grow mt-14 text-center">
-                    <h2 className="text-lg font-bold text-gray-800 leading-tight">{teacher.name}</h2>
-                    <p className="text-xs font-medium text-gray-500">Teacher</p>
-                </div>
-                
-                <div className="flex justify-between items-end text-[9px] leading-snug">
-                    {/* Left Details */}
-                    <div className="w-1/2 space-y-0.5">
-                        <p><span className="font-bold">Contact No:</span> {teacher.phone}</p>
-                        <p><span className="font-bold">Education:</span> {teacher.education}</p>
-                        <p><span className="font-bold">Subjects:</span> {teacher.assignedSubjects?.join(', ')}</p>
+            {/* Details and QR Code */}
+            <div className="px-3 text-[10px] text-gray-700 flex-grow flex items-center">
+                 <div className="w-full grid grid-cols-2 gap-x-2 items-center">
+                    <div className="space-y-1">
+                        <div><span className="font-medium">ID:</span> {teacher.id}</div>
+                        <div><span className="font-medium">Education:</span> {teacher.education}</div>
+                        <div><span className="font-medium">Phone:</span> {teacher.phone}</div>
+                        <div><span className="font-medium">Subjects:</span> {teacher.assignedSubjects?.join(', ')}</div>
                     </div>
-
-                    {/* Right QR/ID */}
-                    <div className="flex items-center gap-2">
-                        {qrCode && <Image src={qrCode} alt="QR Code" width={45} height={45} />}
-                        <div className="text-center">
-                            <p className="font-bold">ID No.</p>
-                            <p>{teacher.id}</p>
+                    {qrCode && (
+                        <div className="flex justify-center items-center">
+                           <Image src={qrCode} alt="QR Code" width={64} height={64} />
                         </div>
-                    </div>
+                    )}
                 </div>
             </div>
 
-            {/* Website in footer */}
-            <div className="absolute bottom-1 left-0 right-0 z-10 text-center">
-                 <p className="text-white text-[9px] font-semibold">www.thespiritschool.edu.pk</p>
+            {/* Footer */}
+            <div className="p-2 bg-red-600 text-[9px] text-white text-center font-medium flex-shrink-0">
+                {settings.schoolAddress}
             </div>
         </div>
     );
@@ -87,16 +69,16 @@ export const IDCard = ({ teacher, settings, qrCode }: { teacher: Teacher, settin
 export const TeacherIdCardPrint = React.forwardRef<HTMLDivElement, TeacherIdCardPrintProps>(
   ({ teachers, settings, qrCodes }, ref) => {
     
-    // 3 cards per A4 portrait page
+    // Fit up to 8 cards per A4 portrait page
     const teacherGroups: Teacher[][] = [];
-    for (let i = 0; i < teachers.length; i += 3) {
-      teacherGroups.push(teachers.slice(i, i + 3));
+    for (let i = 0; i < teachers.length; i += 8) {
+      teacherGroups.push(teachers.slice(i, i + 8));
     }
 
     return (
       <div ref={ref} className="bg-gray-200">
         {teacherGroups.map((group, pageIndex) => (
-          <div key={pageIndex} className="printable-page p-8 flex flex-col justify-around items-center bg-white" style={{ height: '297mm', width: '210mm' }}>
+          <div key={pageIndex} className="printable-page p-4 grid grid-cols-4 grid-rows-2 gap-4 bg-white" style={{ height: '297mm', width: '210mm' }}>
             {group.map((teacher) => (
                <IDCard 
                     key={teacher.id}
