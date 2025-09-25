@@ -29,17 +29,17 @@ interface FeeReceiptProps {
 const thermalStyles = `
     @media print {
         @page {
-            size: 4in 6in;
-            margin: 0.15in;
+            size: 101mm 153mm;
+            margin: 5mm;
         }
     }
     .receipt-container {
-        width: 4in;
-        height: 6in;
+        width: 101mm;
+        height: 153mm;
         font-size: 10px;
         color: #000;
         background-color: #fff;
-        padding: 0.15in;
+        padding: 5mm;
         box-sizing: border-box;
     }
     .receipt-container h1 { font-size: 16px; font-weight: bold; }

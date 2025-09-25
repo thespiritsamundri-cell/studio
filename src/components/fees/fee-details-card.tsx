@@ -74,9 +74,11 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         reportElement.style.left = '-9999px';
         
         if (printType === 'thermal') {
-            // 4 inches is approx 384px, 6 inches is approx 576px at 96 DPI
-            reportElement.style.width = '384px';
-            reportElement.style.height = '576px';
+            const dpi = 96;
+            const widthInPixels = (101 / 25.4) * dpi;
+            const heightInPixels = (153 / 25.4) * dpi;
+            reportElement.style.width = `${widthInPixels}px`;
+            reportElement.style.height = `${heightInPixels}px`;
         }
 
         reportElement.innerHTML = printContentString;
@@ -86,8 +88,8 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
             const canvas = await html2canvas(reportElement.firstChild as HTMLElement, {
                 scale: 2,
                 useCORS: true,
-                width: printType === 'thermal' ? 384 : undefined,
-                height: printType === 'thermal' ? 576 : undefined,
+                width: printType === 'thermal' ? (101 / 25.4) * 96 : undefined,
+                height: printType === 'thermal' ? (153 / 25.4) * 96 : undefined,
             });
             return canvas.toDataURL('image/jpeg', 0.9);
         } finally {
