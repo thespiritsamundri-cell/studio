@@ -144,7 +144,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
 
         const receiptId = `INV-${Date.now()}`;
         
-        const receiptUrl = `${window.location.origin}/vouchers/${receiptId}`;
+        const receiptUrl = `${window.location.origin}/receipt/${receiptId}`;
         
         let qrCodeDataUri = '';
         try {
