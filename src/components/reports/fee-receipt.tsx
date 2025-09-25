@@ -26,32 +26,16 @@ interface FeeReceiptProps {
     qrCodeDataUri?: string;
 }
 
-const thermalStyles = `
-    @media print {
-        @page {
-            size: 101mm 153mm;
-            margin: 5mm;
-        }
-    }
-    .receipt-container {
-        width: 101mm;
-        height: 153mm;
-        font-size: 10px;
-        color: #000;
-        background-color: #fff;
-        padding: 5mm;
-        box-sizing: border-box;
-    }
-    .receipt-container h1 { font-size: 16px; font-weight: bold; }
-    .receipt-container h2 { font-size: 14px; font-weight: bold; }
-    .receipt-container .paid-stamp-wrapper {
-        width: 150px;
-        height: 150px;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-    }
-`;
+const thermalContainerStyle: React.CSSProperties = {
+    width: '101mm',
+    height: '153mm',
+    fontSize: '10px',
+    color: '#000',
+    backgroundColor: '#fff',
+    padding: '5mm',
+    boxSizing: 'border-box',
+};
+
 
 export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
   ({ family, students, fees, totalDues, paidAmount, remainingDues, settings, paymentMethod, printType, receiptId, qrCodeDataUri }, ref) => {
@@ -61,10 +45,9 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
     
     if (isThermal) {
         return (
-             <div ref={ref} className='receipt-container font-sans relative flex flex-col'>
-                <style>{thermalStyles}</style>
+             <div ref={ref} style={thermalContainerStyle} className='receipt-container font-sans relative flex flex-col'>
                  {paidAmount > 0 && (
-                    <div className='paid-stamp-wrapper absolute opacity-10 pointer-events-none'>
+                    <div className='paid-stamp-wrapper absolute opacity-10 pointer-events-none' style={{ width: '150px', height: '150px', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
                         <PaidStamp
                             schoolName={settings.schoolName}
                             schoolPhone={settings.schoolPhone}
@@ -75,10 +58,10 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
                 <div className="relative z-10">
                     <header className="text-center">
                         {settings.schoolLogo && <Image src={settings.schoolLogo} alt="School Logo" width={50} height={50} className="mx-auto" />}
-                        <h1>{settings.schoolName}</h1>
+                        <h1 style={{ fontSize: '16px', fontWeight: 'bold' }}>{settings.schoolName}</h1>
                         <p className="text-[9px]">{settings.schoolAddress}</p>
                         <p className="text-[9px]">Phone: {settings.schoolPhone}</p>
-                        <h2 className='mt-1'>Fee Receipt</h2>
+                        <h2 className='mt-1' style={{ fontSize: '14px', fontWeight: 'bold' }}>Fee Receipt</h2>
                     </header>
                     <hr className="border-t border-dashed border-black my-2" />
                     <section className="text-xs space-y-1">

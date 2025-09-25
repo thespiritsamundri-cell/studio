@@ -265,13 +265,15 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         );
         const printWindow = window.open('', '_blank');
         if(printWindow) {
+            const bodyClass = printType === 'thermal' ? 'thermal-receipt-body' : '';
             printWindow.document.write(`
                 <html>
                     <head>
                         <title>Fee Receipt - Family ${family.id}</title>
                         <script src="https://cdn.tailwindcss.com"></script>
+                        <link rel="stylesheet" href="/print-styles.css">
                     </head>
-                    <body>
+                    <body class="${bodyClass}">
                         ${printContent}
                     </body>
                 </html>
