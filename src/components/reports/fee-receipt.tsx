@@ -67,8 +67,8 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
                     
                     <div className='text-center my-2'>
                         <h2 className='text-sm font-bold underline'>Fee Receipt</h2>
-                        <p className="text-[10px] text-gray-700 font-bold">Receipt #: {receiptId}</p>
-                        <p className="text-[10px] text-gray-700 font-bold">Date: {format(date, 'dd/MM/yyyy')}</p>
+                        <p className="text-xs text-gray-700 font-bold">Receipt #: {receiptId}</p>
+                        <p className="text-xs text-gray-700 font-bold">Date: {format(date, 'dd/MM/yyyy')}</p>
                     </div>
 
                     <hr className="border-t border-dashed border-black my-2" />
@@ -140,9 +140,9 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
     }
 
 
-    // Original A4 Receipt
+    // Original A4 Receipt (Now Responsive)
     return (
-      <div ref={ref} className='p-8 font-sans bg-white text-black relative'>
+      <div ref={ref} className='p-4 sm:p-8 font-sans bg-white text-black relative'>
          {paidAmount > 0 && (
             <div className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-15 pointer-events-none'>
                 <PaidStamp
@@ -154,7 +154,7 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
         )}
 
         <div className="relative z-10">
-            <header className='flex items-center justify-between pb-4 border-b border-gray-300'>
+            <header className='flex flex-col sm:flex-row items-center justify-between pb-4 border-b border-gray-300 gap-4'>
             <div className='flex items-center gap-4'>
                 {settings.schoolLogo ? (
                 <Image src={settings.schoolLogo} alt="School Logo" width={64} height={64} className="object-contain" />
@@ -162,19 +162,19 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
                   <School className="w-16 h-16 text-gray-800" />
                 )}
                 <div>
-                <h1 className='text-4xl font-bold text-gray-800'>{settings.schoolName}</h1>
-                <p className='text-sm text-gray-500'>{settings.schoolAddress}</p>
-                <p className='text-sm text-gray-500'>Phone: {settings.schoolPhone}</p>
+                <h1 className='text-3xl md:text-4xl font-bold text-gray-800'>{settings.schoolName}</h1>
+                <p className='text-xs sm:text-sm text-gray-500'>{settings.schoolAddress}</p>
+                <p className='text-xs sm:text-sm text-gray-500'>Phone: {settings.schoolPhone}</p>
                 </div>
             </div>
-            <div className='text-right'>
-                <h2 className='text-2xl font-semibold text-gray-700'>Fee Receipt</h2>
-                <p className='text-sm text-gray-500'>Receipt #: {receiptId}</p>
-                <p className='text-sm text-gray-500'>Date: {date.toLocaleDateString()}</p>
+            <div className='text-left sm:text-right w-full sm:w-auto'>
+                <h2 className='text-xl sm:text-2xl font-semibold text-gray-700'>Fee Receipt</h2>
+                <p className='text-xs sm:text-sm text-gray-500'>Receipt #: {receiptId}</p>
+                <p className='text-xs sm:text-sm text-gray-500'>Date: {date.toLocaleDateString()}</p>
             </div>
             </header>
 
-            <section className='my-6 grid grid-cols-2 gap-4'>
+            <section className='my-6 grid grid-cols-1 md:grid-cols-2 gap-4'>
             <div>
                 <h3 className='text-lg font-semibold text-gray-700 mb-2'>Billed To:</h3>
                 <p className="font-bold">{family.fatherName} (Family ID: {family.id})</p>
@@ -185,7 +185,7 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
                     <p className="text-sm text-gray-600">{students.map(s => s.name).join(', ')}</p>
                 </div>
             </div>
-                <div className='text-right'>
+                <div className='text-left md:text-right'>
                 <h3 className='text-lg font-semibold text-gray-700 mb-2'>Payment Details:</h3>
                 <p className="text-sm text-gray-600"><span className="font-semibold">Method:</span> {paymentMethod}</p>
                 <p className="text-sm text-gray-600"><span className="font-semibold">Status:</span> {paidAmount > 0 ? (remainingDues > 0 ? 'Partially Paid' : 'Paid in Full') : 'Unpaid'}</p>
@@ -194,27 +194,29 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
 
             <div className="my-4">
             <h3 className='text-lg font-semibold text-gray-700 mb-2'>Fee Description</h3>
-            <Table>
-                <TableHeader className='bg-gray-100'>
-                    <TableRow>
-                    <TableHead className='text-gray-600'>Description</TableHead>
-                    <TableHead className='text-right text-gray-600'>Amount (PKR)</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {fees.map((fee) => (
-                    <TableRow key={fee.id}>
-                        <TableCell className="font-medium">{fee.month} {fee.year}</TableCell>
-                        <TableCell className="text-right">{fee.amount.toLocaleString()}</TableCell>
-                    </TableRow>
-                    ))}
-                    {fees.length === 0 && (
-                        <TableRow>
-                            <TableCell colSpan={2} className="text-center p-1">No fees being paid with this transaction.</TableCell>
-                        </TableRow>
-                    )}
-                </TableBody>
-            </Table>
+            <div className="w-full overflow-x-auto">
+              <Table>
+                  <TableHeader className='bg-gray-100'>
+                      <TableRow>
+                      <TableHead className='text-gray-600'>Description</TableHead>
+                      <TableHead className='text-right text-gray-600'>Amount (PKR)</TableHead>
+                      </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                      {fees.map((fee) => (
+                      <TableRow key={fee.id}>
+                          <TableCell className="font-medium">{fee.month} {fee.year}</TableCell>
+                          <TableCell className="text-right">{fee.amount.toLocaleString()}</TableCell>
+                      </TableRow>
+                      ))}
+                      {fees.length === 0 && (
+                          <TableRow>
+                              <TableCell colSpan={2} className="text-center p-1">No fees being paid with this transaction.</TableCell>
+                          </TableRow>
+                      )}
+                  </TableBody>
+              </Table>
+            </div>
             </div>
 
             <div className='flex justify-end mt-8'>
@@ -250,3 +252,5 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
 );
 
 FeeReceipt.displayName = 'FeeReceipt';
+
+    
