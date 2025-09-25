@@ -13,70 +13,81 @@ interface TeacherIdCardPrintProps {
 }
 
 export const IDCard = ({ teacher, settings, qrCode }: { teacher: Teacher, settings: SchoolSettings, qrCode?: string }) => {
-    // CR80 Portrait size: 54mm x 85.6mm.
-    // At 96 DPI for web, this is approx. 204px x 324px.
+    // CR80 Card: 85.6mm x 54mm. At 96 DPI, that's approx 323px x 204px.
+    // We'll use these dimensions and scale up for printing.
     return (
-        <div className="relative w-[204px] h-[324px] bg-white text-black shadow-xl rounded-xl overflow-hidden font-sans flex flex-col border border-gray-200">
-            {/* Header */}
-            <div className="h-24 bg-gray-800 flex flex-col items-center justify-center p-2 text-center text-white relative">
-                 <div className="absolute inset-0 bg-primary/10 opacity-20"></div>
-                 {settings.schoolLogo && <Image src={settings.schoolLogo} alt="School Logo" width={40} height={40} className="object-contain rounded-full border-2 border-white/50" />}
-                <h1 className="text-sm font-bold uppercase tracking-wider mt-2">{settings.schoolName}</h1>
+        <div className="relative w-[323px] h-[204px] bg-white text-black shadow-lg rounded-xl overflow-hidden font-sans flex flex-col">
+            
+            {/* Header SVG */}
+            <div className="absolute top-0 left-0 right-0 h-[70px] z-0">
+                <svg viewBox="0 0 323 70" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+                    <path d="M0 0H323V50C323 50 250 70 161.5 70C73 70 0 50 0 50V0Z" fill="#2563EB"/>
+                </svg>
             </div>
 
-            {/* Main Content */}
-            <div className="flex-grow flex flex-col items-center pt-12 relative bg-gray-50">
+             {/* Footer SVG */}
+            <div className="absolute bottom-0 left-0 right-0 h-[30px] z-0">
+                 <svg viewBox="0 0 323 30" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+                    <path d="M0 10C0 10 73 0 161.5 0C250 0 323 10 323 10V30H0V10Z" fill="#DC2626"/>
+                </svg>
+            </div>
+
+            <div className="relative z-10 p-3 flex flex-col h-full">
+                {/* School Info */}
+                <div className="flex items-center gap-2 mb-2">
+                    {settings.schoolLogo && <Image src={settings.schoolLogo} alt="School Logo" width={32} height={32} className="object-contain rounded-full bg-white/80 p-0.5" />}
+                    <h1 className="text-white font-bold text-sm uppercase">{settings.schoolName}</h1>
+                </div>
+
                 {/* Profile Picture */}
-                 <div className="absolute -top-12 w-24 h-24 rounded-full border-4 border-white bg-gray-200 overflow-hidden shadow-lg">
-                    <Image
+                <div className="absolute top-[40px] left-1/2 -translate-x-1/2 w-20 h-20 rounded-full border-4 border-white bg-gray-200 overflow-hidden shadow-md">
+                     <Image
                         src={teacher.photoUrl}
                         alt="Teacher Photo"
-                        width={96}
-                        height={96}
+                        width={80}
+                        height={80}
                         className="object-cover w-full h-full"
                         data-ai-hint="teacher photo"
                     />
                 </div>
 
-                 <div className="text-center mt-2">
-                    <h2 className="text-xl font-bold text-gray-800 leading-tight">{teacher.name}</h2>
-                    <p className="text-sm font-medium text-primary">Teacher</p>
+                {/* Main Content */}
+                <div className="flex-grow mt-14 text-center">
+                    <h2 className="text-lg font-bold text-gray-800 leading-tight">{teacher.name}</h2>
+                    <p className="text-xs font-medium text-gray-500">Teacher</p>
                 </div>
+                
+                <div className="flex justify-between items-end text-[9px] leading-snug">
+                    {/* Left Details */}
+                    <div className="w-1/2 space-y-0.5">
+                        <p><span className="font-bold">Contact No:</span> {teacher.phone}</p>
+                        <p><span className="font-bold">Education:</span> {teacher.education}</p>
+                        <p><span className="font-bold">Subjects:</span> {teacher.assignedSubjects?.join(', ')}</p>
+                    </div>
 
-                <div className="w-full px-4 mt-4 space-y-2 text-xs text-gray-700">
-                    <InfoRow label="ID" value={teacher.id} />
-                    <InfoRow label="Contact" value={teacher.phone} />
-                    <InfoRow label="Subjects" value={teacher.assignedSubjects?.join(', ')} />
+                    {/* Right QR/ID */}
+                    <div className="flex items-center gap-2">
+                        {qrCode && <Image src={qrCode} alt="QR Code" width={45} height={45} />}
+                        <div className="text-center">
+                            <p className="font-bold">ID No.</p>
+                            <p>{teacher.id}</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-             {/* Footer */}
-            <div className="h-16 bg-white flex items-center justify-between p-2">
-                <div className="text-left">
-                    {qrCode && <Image src={qrCode} alt="QR Code" width={50} height={50} />}
-                </div>
-                <div className="text-right">
-                    {settings.principalSignature ? (
-                        <Image src={settings.principalSignature} alt="Signature" width={80} height={30} className="object-contain" />
-                    ) : <div className="h-[30px]"></div>}
-                    <p className="text-[8px] border-t border-gray-400 pt-0.5 mt-0.5">Principal's Signature</p>
-                </div>
+            {/* Website in footer */}
+            <div className="absolute bottom-1 left-0 right-0 z-10 text-center">
+                 <p className="text-white text-[9px] font-semibold">www.thespiritschool.edu.pk</p>
             </div>
         </div>
     );
 };
 
-const InfoRow = ({ label, value }: { label: string, value?: string }) => (
-    <div className="flex justify-between border-b pb-1">
-        <span className="font-bold text-gray-500">{label}:</span>
-        <span className="font-semibold ml-2 text-right">{value || 'N/A'}</span>
-    </div>
-);
-
-
 export const TeacherIdCardPrint = React.forwardRef<HTMLDivElement, TeacherIdCardPrintProps>(
   ({ teachers, settings, qrCodes }, ref) => {
     
+    // 3 cards per A4 portrait page
     const teacherGroups: Teacher[][] = [];
     for (let i = 0; i < teachers.length; i += 3) {
       teacherGroups.push(teachers.slice(i, i + 3));
