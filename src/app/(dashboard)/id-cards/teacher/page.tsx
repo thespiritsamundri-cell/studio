@@ -7,13 +7,18 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useData } from '@/context/data-context';
 import { useToast } from '@/hooks/use-toast';
-import { Printer, Loader2, UserSquare2 } from 'lucide-react';
+import { Printer, Loader2, UserSquare2, Download } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import { renderToString } from 'react-dom/server';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { TeacherIdCardPrint } from '@/components/reports/teacher-id-card-print';
+import { TeacherIdCardPrint, IDCard } from '@/components/reports/teacher-id-card-print';
 import { generateQrCode } from '@/ai/flows/generate-qr-code';
 import Image from 'next/image';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import { createRoot } from 'react-dom/client';
+import type { Teacher } from '@/lib/types';
+
 
 export default function TeacherIdCardPage() {
   const { teachers } = useData();
@@ -22,6 +27,7 @@ export default function TeacherIdCardPage() {
 
   const [selectedTeacherIds, setSelectedTeacherIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const activeTeachers = useMemo(() => {
     return teachers.filter(t => t.status === 'Active');
@@ -39,7 +45,26 @@ export default function TeacherIdCardPage() {
   
   const isAllTeachersSelected = activeTeachers.length > 0 && selectedTeacherIds.length === activeTeachers.length;
 
-  const handlePrint = async () => {
+  const generateQrCodes = async (teachersToProcess: Teacher[]): Promise<Record<string, string>> => {
+      const qrCodes: Record<string, string> = {};
+      try {
+        await Promise.all(teachersToProcess.map(async (teacher) => {
+          const content = `${window.location.origin}/profile/teacher/${teacher.id}`;
+          const result = await generateQrCode({ content });
+          qrCodes[teacher.id] = result.qrCodeDataUri;
+        }));
+      } catch (error) {
+         console.error("Failed to generate QR codes", error);
+         toast({
+          title: 'QR Code Generation Failed',
+          description: 'Could not generate QR codes for the cards. Printing without them.',
+          variant: 'destructive',
+        });
+      }
+      return qrCodes;
+  }
+
+  const handleBulkPrint = async () => {
     if (selectedTeacherIds.length === 0) {
       toast({ title: 'No Teachers Selected', variant: 'destructive' });
       return;
@@ -49,23 +74,7 @@ export default function TeacherIdCardPage() {
     toast({ title: "Generating ID Cards..." });
 
     const teachersToPrint = teachers.filter(t => selectedTeacherIds.includes(t.id));
-    
-    // Generate QR Codes
-    const qrCodes: Record<string, string> = {};
-    try {
-      await Promise.all(teachersToPrint.map(async (teacher) => {
-        const content = `${window.location.origin}/profile/teacher/${teacher.id}`;
-        const result = await generateQrCode({ content });
-        qrCodes[teacher.id] = result.qrCodeDataUri;
-      }));
-    } catch (error) {
-       console.error("Failed to generate QR codes", error);
-       toast({
-        title: 'QR Code Generation Failed',
-        description: 'Could not generate QR codes for the cards.',
-        variant: 'destructive',
-      });
-    }
+    const qrCodes = await generateQrCodes(teachersToPrint);
 
     setTimeout(() => {
       const printContent = renderToString(
@@ -94,6 +103,63 @@ export default function TeacherIdCardPage() {
       setIsLoading(false);
     }, 500);
   };
+  
+  const handleDownloadPdf = async (teacher: Teacher) => {
+    setDownloadingId(teacher.id);
+    toast({ title: `Generating PDF for ${teacher.name}...`});
+    const qrCodes = await generateQrCodes([teacher]);
+    
+    const cardElement = (
+        <IDCard 
+            teacher={teacher}
+            settings={settings}
+            qrCode={qrCodes[teacher.id]}
+        />
+    );
+
+    const container = document.createElement('div');
+    // The card is 204px x 324px. We render it inside a container of the same size.
+    container.style.width = '204px';
+    container.style.height = '324px';
+    container.style.position = 'fixed';
+    container.style.left = '-9999px';
+    container.style.top = '0';
+    document.body.appendChild(container);
+    
+    const root = createRoot(container);
+    root.render(cardElement);
+
+    setTimeout(async () => {
+      try {
+        const canvas = await html2canvas(container, {
+            scale: 4, // Higher scale for better quality
+            useCORS: true,
+            width: 204,
+            height: 324,
+        });
+        
+        const imgData = canvas.toDataURL('image/png');
+        
+        // Card dimensions in mm: 54mm x 85.6mm (CR80 Portrait)
+        const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: [54, 85.6]
+        });
+
+        pdf.addImage(imgData, 'PNG', 0, 0, 54, 85.6);
+        pdf.save(`${teacher.name}-ID-Card.pdf`);
+
+      } catch (error) {
+        console.error('Error generating PDF:', error);
+        toast({ title: 'Download Failed', variant: 'destructive'});
+      } finally {
+        root.unmount();
+        document.body.removeChild(container);
+        setDownloadingId(null);
+      }
+    }, 500);
+  };
 
   return (
     <div className="space-y-6">
@@ -119,6 +185,7 @@ export default function TeacherIdCardPage() {
                            <TableHead className="w-[80px]">Photo</TableHead>
                            <TableHead>Teacher Name</TableHead>
                            <TableHead>Phone</TableHead>
+                           <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -136,11 +203,16 @@ export default function TeacherIdCardPage() {
                                 </TableCell>
                                 <TableCell>{teacher.name}</TableCell>
                                 <TableCell>{teacher.phone}</TableCell>
+                                <TableCell className="text-right">
+                                    <Button variant="ghost" size="sm" onClick={() => handleDownloadPdf(teacher)} disabled={downloadingId === teacher.id}>
+                                        {downloadingId === teacher.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Download className="h-4 w-4"/>}
+                                    </Button>
+                                </TableCell>
                             </TableRow>
                         ))}
                          {activeTeachers.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={4} className="h-24 text-center">
+                                <TableCell colSpan={5} className="h-24 text-center">
                                     No active teachers found.
                                 </TableCell>
                             </TableRow>
@@ -151,9 +223,9 @@ export default function TeacherIdCardPage() {
             </div>
           
            <div className="flex justify-end mt-8 pt-6 border-t">
-              <Button size="lg" onClick={handlePrint} disabled={isLoading || selectedTeacherIds.length === 0}>
+              <Button size="lg" onClick={handleBulkPrint} disabled={isLoading || selectedTeacherIds.length === 0}>
                 {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Printer className="mr-2 h-4 w-4"/>}
-                Print ID Cards ({selectedTeacherIds.length} Selected)
+                Print Selected ({selectedTeacherIds.length})
               </Button>
            </div>
         </CardContent>
