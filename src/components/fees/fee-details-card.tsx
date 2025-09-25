@@ -57,9 +57,9 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         return new Promise((resolve, reject) => {
             const container = document.createElement('div');
             container.style.position = 'absolute';
-            container.style.left = '-9999px'; // Position it off-screen
+            container.style.left = '-9999px';
             document.body.appendChild(container);
-    
+
             const receiptElement = (
                 <FeeReceipt
                     family={family}
@@ -78,19 +78,18 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
             
             const root = createRoot(container);
             root.render(receiptElement);
-    
-            // Use a short timeout to allow the component to fully render before capturing
+
             setTimeout(async () => {
                 const receiptNode = container.firstChild as HTMLElement;
                 if (!receiptNode) {
                     document.body.removeChild(container);
                     return reject(new Error("Receipt element not found for canvas generation."));
                 }
-    
+                
                 try {
                     const canvas = await html2canvas(receiptNode, {
                         useCORS: true,
-                        scale: 2, // Higher resolution
+                        scale: 2
                     });
                     const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
                     resolve(dataUrl);
@@ -100,7 +99,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                     root.unmount();
                     document.body.removeChild(container);
                 }
-            }, 500); // 500ms delay for rendering
+            }, 500);
         });
     };
 
@@ -217,7 +216,6 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         });
 
         triggerPrint(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId, qrCodeDataUri);
-        await triggerJpgDownload(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId, qrCodeDataUri);
 
         if (settings.automatedMessages?.payment.enabled) {
             const paymentTemplate = settings.messageTemplates?.find(t => t.id === settings.automatedMessages?.payment.templateId);
