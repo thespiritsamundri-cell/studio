@@ -35,7 +35,7 @@ const IDCard = ({ teacher, settings, qrCode }: { teacher: Teacher, settings: Sch
                     data-ai-hint="teacher photo"
                 />
                  <div className="mt-2 text-center">
-                     <h2 className="text-lg font-bold text-primary leading-tight">{teacher.name}</h2>
+                     <h2 className="text-lg font-bold text-primary">{teacher.name}</h2>
                      <p className="text-xs text-muted-foreground font-medium">Teacher</p>
                 </div>
             </div>
@@ -61,7 +61,7 @@ const IDCard = ({ teacher, settings, qrCode }: { teacher: Teacher, settings: Sch
 const InfoRow = ({ label, value }: { label: string, value: string }) => (
     <div className="flex justify-between border-b pb-0.5">
         <span className="font-bold text-gray-500">{label}:</span>
-        <span className="font-medium text-right truncate ml-2">{value}</span>
+        <span className="font-medium text-right ml-2">{value}</span>
     </div>
 );
 
