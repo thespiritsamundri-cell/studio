@@ -53,49 +53,78 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
     const remainingDues = totalDues - paidAmount;
 
     const generateReceiptJpg = async (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, qrCodeDataUri?: string): Promise<string> => {
-        const printContentString = renderToString(
-            <FeeReceipt
-                family={family}
-                students={students}
-                fees={paidFeesForReceipt}
-                totalDues={totalDues}
-                paidAmount={collectedAmount}
-                remainingDues={newRemainingDues}
-                settings={settings}
-                paymentMethod={method}
-                printType={printType}
-                receiptId={receiptId}
-                qrCodeDataUri={qrCodeDataUri}
-            />
-        );
+        return new Promise((resolve, reject) => {
+            const printContentString = renderToString(
+                <FeeReceipt
+                    family={family}
+                    students={students}
+                    fees={paidFeesForReceipt}
+                    totalDues={totalDues}
+                    paidAmount={collectedAmount}
+                    remainingDues={newRemainingDues}
+                    settings={settings}
+                    paymentMethod={method}
+                    printType={printType}
+                    receiptId={receiptId}
+                    qrCodeDataUri={qrCodeDataUri}
+                />
+            );
 
-        const reportElement = document.createElement('div');
-        reportElement.style.position = 'absolute';
-        reportElement.style.left = '-9999px';
-        
-        let canvasWidth: number | undefined = undefined;
-        let canvasOptions: { scale: number; useCORS: boolean; width?: number; height?: number } = {
-            scale: 2,
-            useCORS: true,
-        };
-        
-        if (printType === 'thermal') {
-            const dpi = 96; // Standard screen DPI.
-            const widthInMM = 80;
-            canvasWidth = (widthInMM / 25.4) * dpi;
-            reportElement.style.width = `${canvasWidth}px`;
-            canvasOptions.width = canvasWidth;
-        }
+            // Create an iframe to render the content
+            const iframe = document.createElement('iframe');
+            iframe.style.position = 'absolute';
+            iframe.style.left = '-9999px';
+            iframe.style.top = '-9999px';
+            iframe.style.width = '80mm'; // Set width for layout calculation
+            iframe.style.border = 'none';
 
-        reportElement.innerHTML = printContentString;
-        document.body.appendChild(reportElement);
+            document.body.appendChild(iframe);
 
-        try {
-            const canvas = await html2canvas(reportElement.firstChild as HTMLElement, canvasOptions);
-            return canvas.toDataURL('image/jpeg', 0.9);
-        } finally {
-            document.body.removeChild(reportElement);
-        }
+            const iframeDoc = iframe.contentWindow?.document;
+            if (!iframeDoc) {
+                document.body.removeChild(iframe);
+                return reject(new Error("Could not access iframe document."));
+            }
+
+            // Write the HTML and styles to the iframe
+            iframeDoc.open();
+            iframeDoc.write(`
+                <html>
+                    <head>
+                        <script src="https://cdn.tailwindcss.com"></script>
+                        <link rel="stylesheet" href="/print-styles.css">
+                    </head>
+                    <body class="bg-white">
+                        ${printContentString}
+                    </body>
+                </html>
+            `);
+            iframeDoc.close();
+
+            // Wait for the content (especially images) to load inside the iframe
+            iframe.onload = () => {
+                setTimeout(async () => {
+                    const reportElement = iframeDoc.body.firstChild as HTMLElement;
+                    if (!reportElement) {
+                        document.body.removeChild(iframe);
+                        return reject(new Error("Report element not found in iframe."));
+                    }
+                    
+                    try {
+                        const canvas = await html2canvas(reportElement, {
+                            useCORS: true,
+                            scale: 2, // Higher resolution
+                        });
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                        resolve(dataUrl);
+                    } catch (error) {
+                        reject(error);
+                    } finally {
+                        document.body.removeChild(iframe);
+                    }
+                }, 500); // Add a slight delay to ensure rendering is complete
+            };
+        });
     };
 
 
@@ -436,3 +465,5 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         </Card>
     );
 }
+
+    
