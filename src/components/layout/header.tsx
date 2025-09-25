@@ -66,7 +66,6 @@ export function Header() {
   const [dateTime, setDateTime] = useState<Date | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [openSupportDialog, setOpenSupportDialog] = useState(false);
   const [openSearchDialog, setOpenSearchDialog] = useState(false);
@@ -121,11 +120,9 @@ export function Header() {
             }
         }
 
-      setSearchResults(uniqueResults.slice(0, 7)); 
-      setIsSearchDropdownOpen(true);
+      setSearchResults(uniqueResults.slice(0, 10)); 
     } else {
       setSearchResults([]);
-      setIsSearchDropdownOpen(false);
     }
   };
 
@@ -137,7 +134,6 @@ export function Header() {
     }
     setSearchQuery('');
     setSearchResults([]);
-    setIsSearchDropdownOpen(false);
     setOpenSearchDialog(false);
   };
 
@@ -153,47 +149,73 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+      <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6">
         <div className="flex items-center gap-2">
           <SidebarTrigger />
           <h1 className="text-xl font-semibold hidden sm:block">{pageTitle}</h1>
         </div>
 
-        {/* Mobile Header Layout */}
-        <div className="flex-1 flex sm:hidden items-center justify-center gap-1">
-          <div className="relative flex-grow max-w-[200px]">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search..."
-              className="w-full rounded-lg bg-card pl-8 h-9"
-              value={searchQuery}
-              onChange={handleSearchChange}
-              onBlur={() => setTimeout(() => setIsSearchDropdownOpen(false), 150)}
-              onFocus={() => searchQuery.length > 1 && setIsSearchDropdownOpen(true)}
-            />
-          </div>
-          <Button variant="ghost" size="icon" onClick={handleLockClick} className="h-9 w-9">
-            <Lock className="h-4 w-4" />
-          </Button>
-          <ThemeToggle />
-
-        </div>
-
-        {/* Desktop Header Layout */}
-        <div className="hidden sm:flex flex-1 items-center justify-end gap-2 md:gap-4">
-          <div className="relative flex-grow-0">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search students or families..."
-              className="w-full rounded-lg bg-card pl-8 md:w-[200px] lg:w-[280px]"
-              value={searchQuery}
-              onChange={handleSearchChange}
-              onBlur={() => setTimeout(() => setIsSearchDropdownOpen(false), 150)}
-              onFocus={() => searchQuery.length > 1 && setIsSearchDropdownOpen(true)}
-            />
-          </div>
+        {/* Search */}
+        <div className="flex flex-1 items-center justify-end gap-2 md:gap-4">
+           <Dialog open={openSearchDialog} onOpenChange={setOpenSearchDialog}>
+             <DialogTrigger asChild>
+                <Button variant="outline" className="w-full justify-start text-muted-foreground sm:w-auto sm:justify-center">
+                    <Search className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline-block">Search...</span>
+                    <span className="sm:hidden">Search students or families...</span>
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-xl p-0">
+                <DialogHeader className="p-4 border-b">
+                    <DialogTitle>Global Search</DialogTitle>
+                </DialogHeader>
+                <div className="p-4">
+                     <div className="relative">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search by student, father, ID, or family ID..."
+                            className="w-full rounded-lg bg-background pl-8"
+                            value={searchQuery}
+                            onChange={handleSearchChange}
+                            autoFocus
+                        />
+                    </div>
+                    <ScrollArea className="h-72 mt-4">
+                        <ul>
+                          {searchResults.map((result, index) => (
+                              <li
+                                  key={`${result.type}-${result.type === 'student' ? result.data.id : result.data.id}-${index}`}
+                                  className="p-3 border-b last:border-b-0 hover:bg-accent cursor-pointer"
+                                  onMouseDown={() => handleResultClick(result)}
+                              >
+                                  <div className="flex items-center gap-3">
+                                      <Avatar className="h-9 w-9">
+                                          {result.type === 'student' && <AvatarImage src={result.data.photoUrl} alt={result.data.name} />}
+                                          <AvatarFallback>
+                                              {result.type === 'student' ? <User /> : <Home />}
+                                          </AvatarFallback>
+                                      </Avatar>
+                                      <div>
+                                          <p className="font-semibold text-sm">{result.data.name || result.data.fatherName}</p>
+                                          <p className="text-xs text-muted-foreground">
+                                              {result.type === 'student'
+                                                  ? `Student (ID: ${result.data.id}, Family: ${result.data.familyId})`
+                                                  : `Family (ID: ${result.data.id}, Phone: ${result.data.phone})`
+                                              }
+                                          </p>
+                                      </div>
+                                  </div>
+                              </li>
+                          ))}
+                           {searchQuery.length > 1 && searchResults.length === 0 && (
+                                <li className="p-4 text-center text-sm text-muted-foreground">No results found.</li>
+                           )}
+                        </ul>
+                    </ScrollArea>
+                </div>
+            </DialogContent>
+           </Dialog>
+            
           {dateTime && (
             <div className="hidden lg:flex items-center gap-2">
               <div className="animated-gradient-border p-0.5 rounded-lg">
@@ -212,44 +234,8 @@ export function Header() {
           <Button variant="ghost" size="icon" onClick={handleLockClick} className="hidden lg:inline-flex">
             <Lock className="h-4 w-4" />
             <span className="sr-only">Lock screen</span>
-
           </Button>
-        </div>
 
-        {/* Common elements for both layouts */}
-        <div className="flex items-center gap-2">
-          {isSearchDropdownOpen && searchResults.length > 0 && (
-              <div className="absolute top-full mt-2 w-full max-w-md left-1/2 -translate-x-1/2 md:left-auto md:right-24 md:translate-x-0 rounded-md border bg-card shadow-lg z-50">
-                  <ul>
-                      {searchResults.map((result, index) => (
-                          <li
-                              key={`${result.type}-${result.type === 'student' ? result.data.id : result.data.id}-${index}`}
-                              className="p-3 border-b last:border-b-0 hover:bg-accent cursor-pointer"
-                              onMouseDown={() => handleResultClick(result)}
-                          >
-                              <div className="flex items-center gap-3">
-                                  <Avatar className="h-9 w-9">
-                                      {result.type === 'student' && <AvatarImage src={result.data.photoUrl} alt={result.data.name} />}
-                                      <AvatarFallback>
-                                          {result.type === 'student' ? <User /> : <Home />}
-                                      </AvatarFallback>
-                                  </Avatar>
-                                  <div>
-                                      <p className="font-semibold text-sm">{result.data.name || result.data.fatherName}</p>
-                                      <p className="text-xs text-muted-foreground">
-                                          {result.type === 'student'
-                                              ? `Student (ID: ${result.data.id}, Family: ${result.data.familyId})`
-                                              : `Family (ID: ${result.data.id}, Phone: ${result.data.phone})`
-                                          }
-                                      </p>
-                                  </div>
-                              </div>
-                          </li>
-                      ))}
-                  </ul>
-              </div>
-          )}
-          
            {userRole === 'super_admin' && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -307,7 +293,6 @@ export function Header() {
         </div>
       </header>
       <SupportDialog open={openSupportDialog} onOpenChange={setOpenSupportDialog} />
-
     </>
   );
 }
