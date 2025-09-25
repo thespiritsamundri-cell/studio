@@ -29,25 +29,25 @@ interface FeeReceiptProps {
 const thermalStyles = `
     @media print {
         @page {
-            size: 80mm 80mm;
-            margin: 2mm;
+            size: 4in 6in;
+            margin: 0.15in;
         }
     }
     .receipt-container {
-        width: 80mm;
-        height: 80mm;
+        width: 4in;
+        height: 6in;
         font-size: 10px;
         color: #000;
         background-color: #fff;
-        padding: 2mm;
+        padding: 0.15in;
         box-sizing: border-box;
     }
-    .receipt-container h1 { font-size: 14px; }
-    .receipt-container h2 { font-size: 12px; }
+    .receipt-container h1 { font-size: 16px; font-weight: bold; }
+    .receipt-container h2 { font-size: 14px; font-weight: bold; }
     .receipt-container .paid-stamp-wrapper {
-        width: 120px;
-        height: 120px;
-        top: 45%;
+        width: 150px;
+        height: 150px;
+        top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
     }
@@ -61,7 +61,7 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
     
     if (isThermal) {
         return (
-             <div ref={ref} className='receipt-container font-sans relative'>
+             <div ref={ref} className='receipt-container font-sans relative flex flex-col'>
                 <style>{thermalStyles}</style>
                  {paidAmount > 0 && (
                     <div className='paid-stamp-wrapper absolute opacity-10 pointer-events-none'>
@@ -74,61 +74,61 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
                 )}
                 <div className="relative z-10">
                     <header className="text-center">
-                        {settings.schoolLogo && <Image src={settings.schoolLogo} alt="School Logo" width={40} height={40} className="mx-auto" />}
-                        <h1 className='font-bold text-black'>{settings.schoolName}</h1>
+                        {settings.schoolLogo && <Image src={settings.schoolLogo} alt="School Logo" width={50} height={50} className="mx-auto" />}
+                        <h1>{settings.schoolName}</h1>
                         <p className="text-[9px]">{settings.schoolAddress}</p>
                         <p className="text-[9px]">Phone: {settings.schoolPhone}</p>
-                        <h2 className='font-semibold mt-1'>Fee Receipt</h2>
+                        <h2 className='mt-1'>Fee Receipt</h2>
                     </header>
-                    <hr className="border-t border-dashed border-black my-1" />
-                    <section className="text-xs">
-                        <p><strong>Receipt #:</strong> {receiptId}</p>
-                        <p><strong>Date:</strong> {format(date, 'dd/MM/yyyy hh:mm a')}</p>
-                        <p><strong>Billed To:</strong> {family.fatherName} (Family: {family.id})</p>
-                        <p><strong>Students:</strong> {students.map(s => s.name).join(', ')}</p>
-                        <p><strong>Payment Method:</strong> {paymentMethod}</p>
+                    <hr className="border-t border-dashed border-black my-2" />
+                    <section className="text-xs space-y-1">
+                        <div className="flex justify-between"><span><strong>Receipt #:</strong> {receiptId}</span> <span><strong>Date:</strong> {format(date, 'dd/MM/yyyy hh:mm a')}</span></div>
+                        <div className="flex justify-between"><span><strong>Billed To:</strong> {family.fatherName}</span> <span><strong>Family ID:</strong> {family.id}</span></div>
+                        <div><strong>Students:</strong> {students.map(s => s.name).join(', ')}</div>
+                        <div><strong>Payment Method:</strong> {paymentMethod}</div>
                     </section>
-                    <hr className="border-t border-dashed border-black my-1" />
+                    <hr className="border-t border-dashed border-black my-2" />
                     <section>
                         <Table className="text-xs">
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="h-auto p-0.5 text-black font-bold">Desc.</TableHead>
-                                    <TableHead className="h-auto p-0.5 text-right text-black font-bold">Amount</TableHead>
+                                    <TableHead className="h-auto p-1 text-black font-bold">Description</TableHead>
+                                    <TableHead className="h-auto p-1 text-right text-black font-bold">Amount</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {fees.map((fee) => (
                                     <TableRow key={fee.id}>
-                                        <TableCell className="p-0.5">{fee.month} {fee.year}</TableCell>
-                                        <TableCell className="p-0.5 text-right">{fee.amount.toLocaleString()}</TableCell>
+                                        <TableCell className="p-1">{fee.month} {fee.year}</TableCell>
+                                        <TableCell className="p-1 text-right">{fee.amount.toLocaleString()}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
                         </Table>
                     </section>
-                     <hr className="border-t border-dashed border-black my-1" />
-                    <section className="text-xs space-y-0.5">
+                     <hr className="border-t border-dashed border-black my-2" />
+                    <section className="text-xs space-y-1 mt-auto">
                         <div className="flex justify-between">
                             <span>Previous Balance:</span>
-                            <span>{totalDues.toLocaleString()}</span>
+                            <span>PKR {totalDues.toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between">
                             <span>Paid Amount:</span>
-                            <span>{paidAmount.toLocaleString()}</span>
+                            <span>PKR {paidAmount.toLocaleString()}</span>
                         </div>
-                        <div className="flex justify-between font-bold">
+                        <div className="flex justify-between font-bold text-base">
                             <span>New Balance:</span>
-                            <span>{remainingDues.toLocaleString()}</span>
+                            <span>PKR {remainingDues.toLocaleString()}</span>
                         </div>
                     </section>
-                    <footer className="text-center mt-2">
+                    <footer className="text-center mt-4">
                         {qrCodeDataUri && (
-                            <div className="flex justify-center">
-                                <Image src={qrCodeDataUri} alt="Receipt QR Code" width={50} height={50} />
+                            <div className="flex justify-center my-2">
+                                <Image src={qrCodeDataUri} alt="Receipt QR Code" width={60} height={60} />
                             </div>
                         )}
-                        <p className="text-[9px]">Thank you for your payment!</p>
+                        <p className="text-xs">Thank you for your payment!</p>
+                        <p className="text-[9px] text-gray-600">This is a computer-generated receipt.</p>
                     </footer>
                 </div>
             </div>
@@ -233,7 +233,7 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
             <footer className='mt-12 pt-4 border-t border-gray-300 text-center text-xs text-gray-500'>
                 {qrCodeDataUri && (
                     <div className="flex justify-center my-2">
-                        <Image src={qrCodeDataUri} alt="Receipt QR Code" width={50} height={50} />
+                        <Image src={qrCodeDataUri} alt="Receipt QR Code" width={60} height={60} />
                     </div>
                 )}
                 <p className="mb-2">Thank you for your payment!</p>

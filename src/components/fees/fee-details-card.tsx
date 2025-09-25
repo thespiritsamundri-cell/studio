@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -73,8 +74,8 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         reportElement.style.left = '-9999px';
         
         if (printType === 'thermal') {
-            // 80mm is approx 302.4px at 96 DPI, 3x6 inches is 288x576px
-            reportElement.style.width = '288px';
+            // 4 inches is approx 384px, 6 inches is approx 576px at 96 DPI
+            reportElement.style.width = '384px';
             reportElement.style.height = '576px';
         }
 
@@ -85,6 +86,8 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
             const canvas = await html2canvas(reportElement.firstChild as HTMLElement, {
                 scale: 2,
                 useCORS: true,
+                width: printType === 'thermal' ? 384 : undefined,
+                height: printType === 'thermal' ? 576 : undefined,
             });
             return canvas.toDataURL('image/jpeg', 0.9);
         } finally {
@@ -414,7 +417,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="normal">Normal (A4)</SelectItem>
-                                <SelectItem value="thermal">Thermal (80mm)</SelectItem>
+                                <SelectItem value="thermal">Thermal</SelectItem>
                             </SelectContent>
                         </Select>
                         <Button variant="outline" onClick={() => triggerJpgDownload(unpaidFees, 0, totalDues, paymentMethod, `INV-${Date.now()}`)} disabled={isDownloadingJpg}>
