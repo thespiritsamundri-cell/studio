@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -74,10 +73,9 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         reportElement.style.left = '-9999px';
         
         if (printType === 'thermal') {
-            // 80mm is approx 302.4px at 96 DPI
-            const sizeInPx = '302px'; 
-            reportElement.style.width = sizeInPx; 
-            reportElement.style.height = sizeInPx;
+            // 80mm is approx 302.4px at 96 DPI, 3x6 inches is 288x576px
+            reportElement.style.width = '288px';
+            reportElement.style.height = '576px';
         }
 
         reportElement.innerHTML = printContentString;
@@ -430,5 +428,3 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         </Card>
     );
 }
-
-    
