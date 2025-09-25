@@ -28,31 +28,38 @@ interface FeeReceiptProps {
 const thermalStyles = `
     @media print {
         @page {
-            size: 3in 6in;
-            margin: 0.1in;
+            size: 80mm 80mm;
+            margin: 2mm;
         }
     }
     .receipt-container {
-        width: 3in;
-        height: 6in;
+        width: 80mm;
+        height: 80mm;
         font-size: 10px;
         color: #000;
         background-color: #fff;
         padding: 2mm;
         box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
     }
-    .receipt-container h1 { font-size: 16px; }
-    .receipt-container h2 { font-size: 14px; }
-    .receipt-container h3 { font-size: 12px; }
+    .receipt-container h1 { font-size: 14px; }
+    .receipt-container h2 { font-size: 12px; }
+    .receipt-container h3 { font-size: 11px; }
     .receipt-container .paid-stamp-wrapper {
         width: 120px;
         height: 120px;
-        top: 40%;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
         z-index: 0;
     }
     .receipt-container .content-wrapper {
         z-index: 1;
         position: relative;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
     }
 `;
 
@@ -115,7 +122,7 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
                 </div>
             </section>
 
-            <div className="my-4">
+            <div className={isThermal ? 'my-2 flex-grow' : 'my-4'}>
             <h3 className={isThermal ? 'font-semibold text-center' : 'text-lg font-semibold text-gray-700 mb-2'}>Fee Description</h3>
             <Table className={isThermal ? 'text-black' : 'text-black'}>
                 <TableHeader className={isThermal ? '' : 'bg-gray-100'}>
@@ -140,7 +147,7 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
             </Table>
             </div>
 
-            <div className={isThermal ? 'mt-4 border-t pt-2' : 'flex justify-end mt-8'}>
+            <div className={isThermal ? 'mt-auto border-t pt-2' : 'flex justify-end mt-8'}>
             <div className={isThermal ? 'w-full space-y-1' : 'w-full max-w-xs space-y-2 text-right'}>
                 <div className="flex justify-between">
                     <span className="font-semibold">Previous Balance:</span>
@@ -157,10 +164,10 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
             </div>
             </div>
             
-            <footer className={isThermal ? 'mt-4 pt-2 border-t text-center' : 'mt-12 pt-4 border-t border-gray-300 text-center text-xs text-gray-500'}>
+            <footer className={isThermal ? 'mt-2 pt-2 border-t text-center' : 'mt-12 pt-4 border-t border-gray-300 text-center text-xs text-gray-500'}>
                 {qrCodeDataUri && (
-                    <div className="flex justify-center my-2">
-                        <Image src={qrCodeDataUri} alt="Receipt QR Code" width={isThermal ? 48 : 60} height={isThermal ? 48 : 60} style={{imageRendering: 'pixelated'}}/>
+                    <div className="flex justify-center my-1">
+                        <Image src={qrCodeDataUri} alt="Receipt QR Code" width={isThermal ? 40 : 60} height={isThermal ? 40 : 60} style={{imageRendering: 'pixelated'}}/>
                     </div>
                 )}
                 <p className={isThermal ? 'mb-1' : 'mb-2'}>Thank you for your payment!</p>
@@ -173,3 +180,5 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
 );
 
 FeeReceipt.displayName = 'FeeReceipt';
+
+    

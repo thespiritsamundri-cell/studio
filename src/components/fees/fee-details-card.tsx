@@ -72,11 +72,14 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         const reportElement = document.createElement('div');
         reportElement.style.position = 'absolute';
         reportElement.style.left = '-9999px';
+        
         if (printType === 'thermal') {
-            // Approx 3in width and 6in height in pixels at 96 DPI
-            reportElement.style.width = '288px'; 
-            reportElement.style.height = '576px';
+            // 80mm is approx 302.4px at 96 DPI
+            const sizeInPx = '302px'; 
+            reportElement.style.width = sizeInPx; 
+            reportElement.style.height = sizeInPx;
         }
+
         reportElement.innerHTML = printContentString;
         document.body.appendChild(reportElement);
 
@@ -427,3 +430,5 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         </Card>
     );
 }
+
+    
