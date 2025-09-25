@@ -14,7 +14,7 @@ import { FeeReceipt } from '../reports/fee-receipt';
 import { useToast } from '@/hooks/use-toast';
 import { Printer, Download, Loader2 } from 'lucide-react';
 import { renderToString } from 'react-dom/server';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import type { SchoolSettings } from '@/context/settings-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useData } from '@/context/data-context';
@@ -57,9 +57,9 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         return new Promise((resolve, reject) => {
             const container = document.createElement('div');
             container.style.position = 'absolute';
-            container.style.left = '-9999px';
+            container.style.left = '-9999px'; // Position it off-screen
             document.body.appendChild(container);
-
+    
             const receiptElement = (
                 <FeeReceipt
                     family={family}
@@ -76,27 +76,31 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                 />
             );
             
-            ReactDOM.render(receiptElement, container, async () => {
+            const root = createRoot(container);
+            root.render(receiptElement);
+    
+            // Use a short timeout to allow the component to fully render before capturing
+            setTimeout(async () => {
                 const receiptNode = container.firstChild as HTMLElement;
                 if (!receiptNode) {
                     document.body.removeChild(container);
                     return reject(new Error("Receipt element not found for canvas generation."));
                 }
-                
+    
                 try {
                     const canvas = await html2canvas(receiptNode, {
                         useCORS: true,
-                        scale: 2,
+                        scale: 2, // Higher resolution
                     });
                     const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
                     resolve(dataUrl);
                 } catch (error) {
                     reject(error);
                 } finally {
-                    ReactDOM.unmountComponentAtNode(container);
+                    root.unmount();
                     document.body.removeChild(container);
                 }
-            });
+            }, 500); // 500ms delay for rendering
         });
     };
 
