@@ -27,8 +27,8 @@ interface FeeReceiptProps {
 }
 
 const thermalContainerStyle: React.CSSProperties = {
-    width: '101mm',
-    height: '153mm',
+    width: '101.6mm',
+    height: '152.4mm',
     fontSize: '10px',
     color: '#000',
     backgroundColor: '#fff',
@@ -45,75 +45,79 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
     
     if (isThermal) {
         return (
-             <div ref={ref} style={thermalContainerStyle} className='receipt-container font-sans relative flex flex-col'>
-                 {paidAmount > 0 && (
-                    <div className='paid-stamp-wrapper absolute opacity-10 pointer-events-none' style={{ width: '150px', height: '150px', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
-                        <PaidStamp
-                            schoolName={settings.schoolName}
-                            schoolPhone={settings.schoolPhone}
-                            paymentDate={date}
-                        />
+             <div ref={ref} style={thermalContainerStyle} className='receipt-container font-sans flex flex-col p-4 bg-white text-black'>
+                <header className="text-center">
+                    {settings.schoolLogo && <Image src={settings.schoolLogo} alt="School Logo" width={50} height={50} className="mx-auto" />}
+                    <h1 className="text-lg font-bold mt-1">{settings.schoolName}</h1>
+                    <p className="text-[10px]">{settings.schoolAddress}</p>
+                    <p className="text-[10px]">Phone: {settings.schoolPhone}</p>
+                </header>
+
+                <hr className="border-t border-dashed border-black my-2" />
+
+                <section className="text-xs space-y-1">
+                    <h2 className='text-center font-bold text-sm mb-2'>Fee Receipt</h2>
+                    <div className="flex justify-between"><span><strong>Receipt #:</strong> {receiptId}</span> <span><strong>Date:</strong> {format(date, 'dd/MM/yyyy')}</span></div>
+                    <div className="mt-2">
+                        <p className="font-bold">Billed To:</p>
+                        <p>{family.fatherName} (Family ID: {family.id})</p>
+                        <p>{family.phone}</p>
                     </div>
-                )}
-                <div className="relative z-10">
-                    <header className="text-center">
-                        {settings.schoolLogo && <Image src={settings.schoolLogo} alt="School Logo" width={50} height={50} className="mx-auto" />}
-                        <h1 style={{ fontSize: '16px', fontWeight: 'bold' }}>{settings.schoolName}</h1>
-                        <p className="text-[9px]">{settings.schoolAddress}</p>
-                        <p className="text-[9px]">Phone: {settings.schoolPhone}</p>
-                        <h2 className='mt-1' style={{ fontSize: '14px', fontWeight: 'bold' }}>Fee Receipt</h2>
-                    </header>
-                    <hr className="border-t border-dashed border-black my-2" />
-                    <section className="text-xs space-y-1">
-                        <div className="flex justify-between"><span><strong>Receipt #:</strong> {receiptId}</span> <span><strong>Date:</strong> {format(date, 'dd/MM/yyyy hh:mm a')}</span></div>
-                        <div className="flex justify-between"><span><strong>Billed To:</strong> {family.fatherName}</span> <span><strong>Family ID:</strong> {family.id}</span></div>
-                        <div><strong>Students:</strong> {students.map(s => s.name).join(', ')}</div>
-                        <div><strong>Payment Method:</strong> {paymentMethod}</div>
-                    </section>
-                    <hr className="border-t border-dashed border-black my-2" />
-                    <section>
-                        <Table className="text-xs">
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="h-auto p-1 text-black font-bold">Description</TableHead>
-                                    <TableHead className="h-auto p-1 text-right text-black font-bold">Amount</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {fees.map((fee) => (
-                                    <TableRow key={fee.id}>
-                                        <TableCell className="p-1">{fee.month} {fee.year}</TableCell>
-                                        <TableCell className="p-1 text-right">{fee.amount.toLocaleString()}</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </section>
-                     <hr className="border-t border-dashed border-black my-2" />
-                    <section className="text-xs space-y-1 mt-auto">
-                        <div className="flex justify-between">
-                            <span>Previous Balance:</span>
-                            <span>PKR {totalDues.toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span>Paid Amount:</span>
-                            <span>PKR {paidAmount.toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between font-bold text-base">
-                            <span>New Balance:</span>
-                            <span>PKR {remainingDues.toLocaleString()}</span>
-                        </div>
-                    </section>
-                    <footer className="text-center mt-4">
-                        {qrCodeDataUri && (
-                            <div className="flex justify-center my-2">
-                                <Image src={qrCodeDataUri} alt="Receipt QR Code" width={60} height={60} />
+                     <div className="mt-2">
+                        <p className="font-bold">Students:</p>
+                        <p>{students.map(s => `${s.name} (${s.class})`).join(', ')}</p>
+                    </div>
+                     <div className="mt-2">
+                        <p className="font-bold">Payment Details:</p>
+                        <p>Method: {paymentMethod}</p>
+                        <p>Status: {paidAmount > 0 ? (remainingDues > 0 ? 'Partially Paid' : 'Paid in Full') : 'Unpaid'}</p>
+                    </div>
+                </section>
+                
+                <hr className="border-t border-dashed border-black my-2" />
+                
+                <section className="flex-grow">
+                    <h3 className='font-bold text-center text-sm mb-1'>Fee Description</h3>
+                    <div className="flex justify-between font-bold border-b border-black pb-1">
+                        <span>Description</span>
+                        <span>Amount (PKR)</span>
+                    </div>
+                    <div className="space-y-1 mt-1 text-xs">
+                        {fees.map(fee => (
+                            <div key={fee.id} className="flex justify-between">
+                                <span>{fee.month} {fee.year}</span>
+                                <span>{fee.amount.toLocaleString()}</span>
                             </div>
-                        )}
-                        <p className="text-xs">Thank you for your payment!</p>
-                        <p className="text-[9px] text-gray-600">This is a computer-generated receipt.</p>
-                    </footer>
-                </div>
+                        ))}
+                    </div>
+                </section>
+                
+                <hr className="border-t border-dashed border-black my-2" />
+                
+                <section className="text-xs space-y-1">
+                    <div className="flex justify-between">
+                        <span>Previous Balance:</span>
+                        <span>PKR {totalDues.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span>Paid Amount:</span>
+                        <span>- PKR {paidAmount.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between font-bold text-sm">
+                        <span>New Balance Due:</span>
+                        <span>PKR {remainingDues.toLocaleString()}</span>
+                    </div>
+                </section>
+                
+                <footer className="text-center mt-4 text-xs">
+                    {qrCodeDataUri && (
+                        <div className="flex justify-center mb-2">
+                            <Image src={qrCodeDataUri} alt="Receipt QR Code" width={40} height={40} />
+                        </div>
+                    )}
+                    <p className="font-semibold">Thank you for your payment!</p>
+                    <p className="text-[9px] text-gray-600 mt-1">&copy; {new Date().getFullYear()} {settings.schoolName}. All rights reserved.</p>
+                </footer>
             </div>
         );
     }
@@ -229,5 +233,3 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
 );
 
 FeeReceipt.displayName = 'FeeReceipt';
-
-    

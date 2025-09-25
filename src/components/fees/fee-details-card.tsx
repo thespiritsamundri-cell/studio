@@ -75,24 +75,23 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         
         let canvasWidth: number | undefined = undefined;
         let canvasHeight: number | undefined = undefined;
-
+        
         if (printType === 'thermal') {
-            const dpi = 96; // Standard screen DPI
-            const widthInInches = 101 / 25.4;
-            const heightInInches = 153 / 25.4;
+            const dpi = 96; // Standard screen DPI.
+            const widthInInches = 4;
+            const heightInInches = 6;
             canvasWidth = widthInInches * dpi;
             canvasHeight = heightInInches * dpi;
             reportElement.style.width = `${canvasWidth}px`;
             reportElement.style.height = `${canvasHeight}px`;
         }
 
-
         reportElement.innerHTML = printContentString;
         document.body.appendChild(reportElement);
 
         try {
             const canvas = await html2canvas(reportElement.firstChild as HTMLElement, {
-                scale: 2, // Increase resolution for better quality
+                scale: 2,
                 useCORS: true,
                 width: canvasWidth,
                 height: canvasHeight,
@@ -441,5 +440,3 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         </Card>
     );
 }
-
-    
