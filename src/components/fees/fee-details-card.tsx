@@ -215,7 +215,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
             description: `PKR ${collectedAmount.toLocaleString()} collected for Family ${family.id}.`,
         });
 
-        // triggerPrint(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId, qrCodeDataUri);
+        triggerPrint(newlyPaidFees, collectedAmount, newDues, paymentMethod, receiptId, qrCodeDataUri);
 
         if (settings.automatedMessages?.payment.enabled) {
             const paymentTemplate = settings.messageTemplates?.find(t => t.id === settings.automatedMessages?.payment.templateId);
