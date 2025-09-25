@@ -68,8 +68,11 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
                     <hr className="border-t border-dashed border-black my-2" />
 
                     <section className="text-xs space-y-1">
-                        <h2 className='text-center font-bold text-sm mb-2'>Fee Receipt</h2>
-                        <div className="flex justify-between"><span><strong>Receipt #:</strong> {receiptId}</span> <span><strong>Date:</strong> {format(date, 'dd/MM/yyyy')}</span></div>
+                        <h2 className='text-center font-bold text-sm'>Fee Receipt</h2>
+                        <div className="flex justify-between text-center text-[10px] text-gray-700">
+                          <span>Receipt #: {receiptId}</span>
+                          <span>Date: {format(date, 'dd/MM/yyyy')}</span>
+                        </div>
                         <div className="mt-2">
                             <p className="font-bold">Billed To:</p>
                             <p>{family.fatherName} (Family ID: {family.id})</p>
@@ -128,7 +131,7 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
                             </div>
                         )}
                         <p className="font-semibold">Thank you for your payment!</p>
-                        <p className="text-[9px] text-gray-600 mt-1">&copy; {new Date().getFullYear()} {settings.schoolName}. All rights reserved.</p>
+                        <p className="text-[9px] text-gray-800 font-semibold mt-1">&copy; {new Date().getFullYear()} {settings.schoolName}. All rights reserved.</p>
                     </footer>
                 </div>
             </div>
@@ -155,7 +158,7 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
                 {settings.schoolLogo ? (
                 <Image src={settings.schoolLogo} alt="School Logo" width={64} height={64} className="object-contain" />
                 ) : (
-                <School className="w-16 h-16 text-blue-500" />
+                  <School className="w-16 h-16 text-gray-800" />
                 )}
                 <div>
                 <h1 className='text-4xl font-bold text-gray-800'>{settings.schoolName}</h1>
