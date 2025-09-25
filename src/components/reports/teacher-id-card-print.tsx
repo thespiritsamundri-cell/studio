@@ -13,67 +13,63 @@ interface TeacherIdCardPrintProps {
 }
 
 export const IDCard = ({ teacher, settings, qrCode }: { teacher: Teacher, settings: SchoolSettings, qrCode?: string }) => {
-    // Standard CR80 size: 85.6mm x 54mm. In pixels at 300dpi: ~1011px x 638px.
-    // For web display, we use a smaller size with the same aspect ratio.
-    // Let's use a width of 324px (3.375in * 96dpi) and height of 204px.
-    // The design is PORTRAIT, so we swap width and height. 54mm x 85.6mm -> ~204px x 324px
+    // CR80 Portrait size: 54mm x 85.6mm.
+    // At 96 DPI for web, this is approx. 204px x 324px.
     return (
-        <div className="relative w-[204px] h-[324px] bg-white text-black shadow-lg rounded-lg overflow-hidden font-sans flex flex-col">
+        <div className="relative w-[204px] h-[324px] bg-white text-black shadow-xl rounded-xl overflow-hidden font-sans flex flex-col border border-gray-200">
             {/* Header */}
-            <div className="h-24 bg-gray-800 flex flex-col items-center justify-center p-2 text-center text-white">
-                {settings.schoolLogo && <Image src={settings.schoolLogo} alt="School Logo" width={32} height={32} className="object-contain" />}
-                <h1 className="text-xs font-bold uppercase tracking-wider mt-1">{settings.schoolName}</h1>
-                <p className="text-[7px] opacity-80">{settings.schoolAddress}</p>
+            <div className="h-24 bg-gray-800 flex flex-col items-center justify-center p-2 text-center text-white relative">
+                 <div className="absolute inset-0 bg-primary/10 opacity-20"></div>
+                 {settings.schoolLogo && <Image src={settings.schoolLogo} alt="School Logo" width={40} height={40} className="object-contain rounded-full border-2 border-white/50" />}
+                <h1 className="text-sm font-bold uppercase tracking-wider mt-2">{settings.schoolName}</h1>
             </div>
 
-            {/* Blue accent line */}
-            <div className="h-1.5 bg-cyan-400"></div>
-
             {/* Main Content */}
-            <div className="flex-grow flex flex-col items-center pt-10 relative">
+            <div className="flex-grow flex flex-col items-center pt-12 relative bg-gray-50">
                 {/* Profile Picture */}
-                 <div className="absolute -top-10 w-20 h-20 rounded-full border-4 border-white bg-gray-200 overflow-hidden shadow-lg">
+                 <div className="absolute -top-12 w-24 h-24 rounded-full border-4 border-white bg-gray-200 overflow-hidden shadow-lg">
                     <Image
                         src={teacher.photoUrl}
                         alt="Teacher Photo"
-                        width={80}
-                        height={80}
+                        width={96}
+                        height={96}
                         className="object-cover w-full h-full"
                         data-ai-hint="teacher photo"
                     />
                 </div>
 
                  <div className="text-center mt-2">
-                    <h2 className="text-lg font-bold text-gray-800 leading-tight">{teacher.name}</h2>
-                    <p className="text-xs font-medium text-cyan-600">Teacher</p>
+                    <h2 className="text-xl font-bold text-gray-800 leading-tight">{teacher.name}</h2>
+                    <p className="text-sm font-medium text-primary">Teacher</p>
                 </div>
 
-                <div className="w-full px-4 mt-3 space-y-1 text-[10px] text-gray-600">
+                <div className="w-full px-4 mt-4 space-y-2 text-xs text-gray-700">
                     <InfoRow label="ID" value={teacher.id} />
-                    <InfoRow label="Valid Through" value={settings.academicYear.split('-')[1]} />
                     <InfoRow label="Contact" value={teacher.phone} />
+                    <InfoRow label="Subjects" value={teacher.assignedSubjects?.join(', ')} />
                 </div>
-                
-                 {qrCode && 
-                    <div className="mt-2">
-                      <Image src={qrCode} alt="QR Code" width={50} height={50} />
-                    </div>
-                }
-
             </div>
 
              {/* Footer */}
-            <div className="h-8 bg-cyan-400 flex items-center justify-center text-center p-2 text-white">
-                 <p className="text-xs font-bold">ID# {teacher.id}</p>
+            <div className="h-16 bg-white flex items-center justify-between p-2">
+                <div className="text-left">
+                    {qrCode && <Image src={qrCode} alt="QR Code" width={50} height={50} />}
+                </div>
+                <div className="text-right">
+                    {settings.principalSignature ? (
+                        <Image src={settings.principalSignature} alt="Signature" width={80} height={30} className="object-contain" />
+                    ) : <div className="h-[30px]"></div>}
+                    <p className="text-[8px] border-t border-gray-400 pt-0.5 mt-0.5">Principal's Signature</p>
+                </div>
             </div>
         </div>
     );
 };
 
 const InfoRow = ({ label, value }: { label: string, value?: string }) => (
-    <div className="flex justify-between border-b pb-0.5">
-        <span className="font-bold">{label}:</span>
-        <span className="font-medium ml-2">{value || 'N/A'}</span>
+    <div className="flex justify-between border-b pb-1">
+        <span className="font-bold text-gray-500">{label}:</span>
+        <span className="font-semibold ml-2 text-right">{value || 'N/A'}</span>
     </div>
 );
 
@@ -81,7 +77,6 @@ const InfoRow = ({ label, value }: { label: string, value?: string }) => (
 export const TeacherIdCardPrint = React.forwardRef<HTMLDivElement, TeacherIdCardPrintProps>(
   ({ teachers, settings, qrCodes }, ref) => {
     
-    // 3 cards per A4 page in portrait layout
     const teacherGroups: Teacher[][] = [];
     for (let i = 0; i < teachers.length; i += 3) {
       teacherGroups.push(teachers.slice(i, i + 3));
@@ -90,7 +85,7 @@ export const TeacherIdCardPrint = React.forwardRef<HTMLDivElement, TeacherIdCard
     return (
       <div ref={ref} className="bg-gray-200">
         {teacherGroups.map((group, pageIndex) => (
-          <div key={pageIndex} className="printable-page p-4 flex flex-col justify-around items-center bg-white" style={{ height: '297mm', width: '210mm' }}>
+          <div key={pageIndex} className="printable-page p-8 flex flex-col justify-around items-center bg-white" style={{ height: '297mm', width: '210mm' }}>
             {group.map((teacher) => (
                <IDCard 
                     key={teacher.id}
