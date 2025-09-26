@@ -6,6 +6,9 @@ import type { Teacher } from '@/lib/types';
 import type { SchoolSettings } from '@/context/settings-context';
 import Image from 'next/image';
 import { Phone, GraduationCap } from "lucide-react";
+import { createRoot } from 'react-dom/client';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface TeacherIdCardPrintProps {
   teachers: Teacher[];
@@ -59,7 +62,7 @@ export const IDCard = ({ teacher, settings, qrCode }: { teacher: Teacher, settin
         
         {qrCode && (
             <div className="mt-4 flex justify-center">
-              <Image src={qrCode} alt="QR code" className="w-24 h-24 object-contain" />
+              <Image src={qrCode} alt="QR code" width={96} height={96} className="w-24 h-24 object-contain" />
             </div>
         )}
       </div>
