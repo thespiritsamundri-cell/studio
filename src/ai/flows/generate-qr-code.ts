@@ -37,13 +37,11 @@ const generateQrCodeFlow = ai.defineFlow(
   },
   async (input) => {
     // Using barcode.tec-it.com to generate a QR Code image.
+    // The logoUrl is temporarily removed to prevent "Request-URI Too Long" errors when a data URI is passed.
+    // A more robust solution that supports POST requests for the logo might be needed.
     let qrCodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(
       input.content
-    )}&code=QRCode&dpi=96&eclevel=H`; // High error correction for logo
-    
-    if (input.logoUrl) {
-        qrCodeUrl += `&logo=${encodeURIComponent(input.logoUrl)}`;
-    }
+    )}&code=QRCode&dpi=96&eclevel=H`;
     
     const response = await fetch(qrCodeUrl);
     
