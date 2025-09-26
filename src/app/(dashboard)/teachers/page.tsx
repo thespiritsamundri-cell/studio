@@ -1,12 +1,11 @@
 
-
 'use client';
 
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2, Edit, Phone, GraduationCap, UserCheck, UserX } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, Phone, GraduationCap, UserCheck, UserX, QrCode } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +35,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { generateQrCode } from '@/ai/flows/generate-qr-code';
+
 
 export default function TeachersPage() {
   const { teachers, addTeacher, updateTeacher, deleteTeacher, classes } = useData();
@@ -47,6 +48,8 @@ export default function TeachersPage() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [assignedSubjects, setAssignedSubjects] = useState<string[]>([]);
   const [status, setStatus] = useState<'Active' | 'Inactive'>('Active');
+  const [openQrDialog, setOpenQrDialog] = useState(false);
+  const [qrCodeDataUri, setQrCodeDataUri] = useState<string>('');
   
   const allSubjects = useMemo(() => {
     const subjectSet = new Set<string>();
@@ -135,6 +138,19 @@ export default function TeachersPage() {
     setAssignedSubjects(prev => 
         prev.includes(subject) ? prev.filter(s => s !== subject) : [...prev, subject]
     );
+  }
+
+  const handleGenerateQr = async (teacher: Teacher) => {
+    try {
+        const content = `${window.location.origin}/profile/teacher/${teacher.id}`;
+        const result = await generateQrCode({ content });
+        setQrCodeDataUri(result.qrCodeDataUri);
+        setSelectedTeacher(teacher);
+        setOpenQrDialog(true);
+    } catch(e) {
+        console.error(e);
+        toast({ title: 'QR Generation Failed', variant: 'destructive'});
+    }
   }
 
   return (
@@ -261,8 +277,9 @@ export default function TeachersPage() {
                 </div>
                 <Badge variant="secondary" className="w-full justify-center text-base py-1">PKR {teacher.salary.toLocaleString()}</Badge>
             </CardContent>
-            <CardFooter className="p-2 bg-muted/50 grid grid-cols-2 gap-2">
+            <CardFooter className="p-2 bg-muted/50 grid grid-cols-3 gap-2">
                 <Button variant="outline" size="sm" onClick={() => handleEditClick(teacher)}><Edit className="mr-2 h-4 w-4" />Edit</Button>
+                <Button variant="outline" size="sm" onClick={() => handleGenerateQr(teacher)}><QrCode className="mr-2 h-4 w-4" />QR</Button>
                 <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(teacher)}><Trash2 className="mr-2 h-4 w-4" />Delete</Button>
             </CardFooter>
           </Card>
@@ -291,6 +308,21 @@ export default function TeachersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      {/* QR Code Dialog */}
+       <Dialog open={openQrDialog} onOpenChange={setOpenQrDialog}>
+          <DialogContent className="sm:max-w-xs">
+            <DialogHeader>
+              <DialogTitle className="text-center">Profile QR Code for {selectedTeacher?.name}</DialogTitle>
+              <DialogDescription className="text-center">
+                Scan this code to view the public profile for this teacher.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex items-center justify-center p-4">
+              {qrCodeDataUri ? <Image src={qrCodeDataUri} alt="Teacher QR Code" width={200} height={200} /> : <p>Generating...</p>}
+            </div>
+          </DialogContent>
+        </Dialog>
 
     </div>
   );
