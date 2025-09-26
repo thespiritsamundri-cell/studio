@@ -30,13 +30,13 @@ export async function GET(request: Request) {
     theme_color: "#6a3fdc", // same as meta theme-color
     icons: [
       {
-        src: settings.schoolLogo || "https://i.postimg.cc/3wBs967C/android-launchericon-192-192.png",
+        src: settings.schoolLogo || "https://i.postimg.cc/Ss1VdxdT/android-launchericon-192-192.png",
         sizes: "192x192",
         type: "image/png",
         purpose: "any maskable"
       },
       {
-        src: settings.schoolLogo || "https://i.postimg.cc/Y9CJP3Cc/android-launchericon-512-512.png",
+        src: settings.schoolLogo || "https://i.postimg.cc/dVc64XRY/android-launchericon-512-512.png",
         sizes: "512x512",
         type: "image/png",
         purpose: "any maskable"
