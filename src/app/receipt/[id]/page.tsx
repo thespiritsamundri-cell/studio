@@ -4,10 +4,10 @@
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useSettings } from '@/context/settings-context';
-import type { Family, Student, Fee } from '@/lib/types';
 import { FeeReceipt } from '@/components/reports/fee-receipt';
 import { Loader2, School } from 'lucide-react';
-import { getReceiptData, type ReceiptData } from '@/ai/flows/get-receipt-data';
+import type { ReceiptData } from '@/ai/flows/get-public-receipt-data';
+import { getPublicReceiptData } from '@/ai/flows/get-public-receipt-data';
 import Image from 'next/image';
 
 export default function PublicReceiptPage() {
@@ -29,7 +29,7 @@ export default function PublicReceiptPage() {
             setError(null);
             try {
                 const receiptId = id as string;
-                const data = await getReceiptData({ receiptId });
+                const data = await getPublicReceiptData({ receiptId });
                 if (!data) {
                     throw new Error(`Receipt with ID "${receiptId}" not found or could not be loaded.`);
                 }

@@ -1,19 +1,36 @@
 
 'use server';
 /**
- * @fileOverview A secure server-side flow to fetch all data required for a public fee receipt.
+ * @fileOverview A PUBLIC flow to fetch all data required for a fee receipt.
+ * This flow is designed to be called from a public-facing page and does not require authentication.
  *
- * - getReceiptData - Fetches family, student, and fee details for a given receipt ID.
- * - ReceiptDataRequest - The input type for the getReceiptData function.
- * - ReceiptData - The return type for the getReceiptData function.
+ * - getPublicReceiptData - Fetches family, student, and fee details for a given receipt ID.
+ * - ReceiptDataRequest - The input type for the getPublicReceiptData function.
+ * - ReceiptData - The return type for the getPublicReceiptData function.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import type { Family, Student, Fee } from '@/lib/types';
+import { collection, query, where, getDocs, getDoc, doc } from 'firebase/firestore';
+import type { Family, Student, Fee, SchoolSettings } from '@/lib/types';
 import { generateQrCode } from '@/ai/flows/generate-qr-code';
+
+// This is a separate, un-authenticated DB instance for public access.
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAtnV9kiSJ-NFLfI6pG4LDvvLcjpRh_jtM",
+  authDomain: "educentral-mxfgr.firebaseapp.com",
+  projectId: "educentral-mxfgr",
+  storageBucket: "educentral-mxfgr.appspot.com",
+  messagingSenderId: "93439797301",
+  appId: "1:93439797301:web:c0cd1d46e7588e4df4297c"
+};
+
+const publicApp = !getApps().some(app => app.name === 'public') ? initializeApp(firebaseConfig, 'public') : getApp('public');
+const publicDb = getFirestore(publicApp);
+
 
 const ReceiptDataRequestSchema = z.object({
   receiptId: z.string().describe('The unique identifier for the fee receipt.'),
@@ -33,22 +50,20 @@ export const ReceiptDataSchema = z.object({
 export type ReceiptDataRequest = z.infer<typeof ReceiptDataRequestSchema>;
 export type ReceiptData = z.infer<typeof ReceiptDataSchema>;
 
-
-export async function getReceiptData(input: ReceiptDataRequest): Promise<ReceiptData | null> {
-  return getReceiptDataFlow(input);
+export async function getPublicReceiptData(input: ReceiptDataRequest): Promise<ReceiptData | null> {
+  return getPublicReceiptDataFlow(input);
 }
 
-
-const getReceiptDataFlow = ai.defineFlow(
+const getPublicReceiptDataFlow = ai.defineFlow(
   {
-    name: 'getReceiptDataFlow',
+    name: 'getPublicReceiptDataFlow',
     inputSchema: ReceiptDataRequestSchema,
     outputSchema: z.nullable(ReceiptDataSchema),
   },
   async ({ receiptId }) => {
     try {
       // 1. Fetch only the fees for this specific receipt
-      const feesQuery = query(collection(db, "fees"), where("receiptId", "==", receiptId), where("status", "==", "Paid"));
+      const feesQuery = query(collection(publicDb, "fees"), where("receiptId", "==", receiptId), where("status", "==", "Paid"));
       const feesSnapshot = await getDocs(feesQuery);
 
       if (feesSnapshot.empty) {
@@ -65,39 +80,41 @@ const getReceiptDataFlow = ai.defineFlow(
       }
 
       // 2. Fetch the associated family, all students, and all fees for that family
-      const familyDoc = await getDocs(query(collection(db, "families"), where("id", "==", familyId)));
-      const studentsQuery = query(collection(db, "students"), where("familyId", "==", familyId));
-      const allFamilyFeesQuery = query(collection(db, "fees"), where("familyId", "==", familyId));
+      const familyQuery = query(collection(publicDb, "families"), where("id", "==", familyId));
+      const studentsQuery = query(collection(publicDb, "students"), where("familyId", "==", familyId));
+      const allFamilyFeesQuery = query(collection(publicDb, "fees"), where("familyId", "==", familyId));
 
-      const [studentsSnapshot, allFamilyFeesSnapshot] = await Promise.all([
+      const [familySnapshot, studentsSnapshot, allFamilyFeesSnapshot] = await Promise.all([
+          getDocs(familyQuery),
           getDocs(studentsQuery),
           getDocs(allFamilyFeesQuery)
       ]);
 
-      if (familyDoc.empty) {
+      if (familySnapshot.empty) {
         console.error(`Family with ID "${familyId}" not found.`);
         return null;
       }
 
-      const foundFamily = { id: familyDoc.docs[0].id, ...familyDoc.docs[0].data() } as Family;
+      const foundFamily = { id: familySnapshot.docs[0].id, ...familySnapshot.docs[0].data() } as Family;
       const familyStudents = studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Student));
       const allFamilyFees = allFamilyFeesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Fee));
       
       const currentPaidAmount = transactionFees.reduce((acc, fee) => acc + fee.amount, 0);
-      const currentRemainingDues = allFamilyFees.filter(f => f.status === 'Unpaid').reduce((acc, fee) => acc + fee.amount, 0);
-      const totalDuesBeforeTx = currentRemainingDues + currentPaidAmount;
       
-      // 3. Generate QR code (server-side)
+      // Calculate remaining dues based on ALL fees for the family, not just the ones in this transaction
+      const totalUnpaidAmount = allFamilyFees
+        .filter(f => f.status === 'Unpaid')
+        .reduce((acc, fee) => acc + fee.amount, 0);
+
+      const totalDuesBeforeTx = totalUnpaidAmount + currentPaidAmount;
+      
       let qrCodeDataUri = '';
-      try {
-        // Note: This relies on the environment having the correct base URL if run on a server.
-        // For local development, it will generate a localhost URL.
+       try {
         const receiptUrl = process.env.NEXT_PUBLIC_BASE_URL ? `${process.env.NEXT_PUBLIC_BASE_URL}/receipt/${receiptId}` : `http://localhost:9002/receipt/${receiptId}`;
         const qrCodeResult = await generateQrCode({ content: receiptUrl });
         qrCodeDataUri = qrCodeResult.qrCodeDataUri;
       } catch (qrError) {
         console.error("QR Code generation failed for public receipt:", qrError);
-        // Don't fail the whole flow for a QR code
       }
 
       return {
@@ -106,15 +123,13 @@ const getReceiptDataFlow = ai.defineFlow(
         paidFees: transactionFees,
         totalDues: totalDuesBeforeTx,
         paidAmount: currentPaidAmount,
-        remainingDues: currentRemainingDues,
+        remainingDues: totalUnpaidAmount,
         paymentMethod: transactionFees[0]?.paymentMethod || 'N/A',
         qrCodeDataUri: qrCodeDataUri,
       };
 
     } catch (err) {
-      console.error('Error in getReceiptDataFlow:', err);
-      // It's important to return null or throw an error that the client can handle.
-      // Returning null is often safer for public-facing pages.
+      console.error('Error in getPublicReceiptDataFlow:', err);
       return null;
     }
   }
