@@ -82,7 +82,7 @@ export default function PublicStudentProfilePage() {
                     {settings.schoolLogo && (
                         <Image src={settings.schoolLogo} alt="School Logo" width={60} height={60} className="mx-auto rounded-full mb-2"/>
                     )}
-                    <h1 className="text-2xl font-bold text-gray-800 dark:text-white">{settings.schoolName}</h1>
+                    <h1 className="text-2xl font-bold text-foreground">{settings.schoolName}</h1>
                     <p className="text-sm text-muted-foreground">{settings.schoolAddress}</p>
                 </div>
                 <div className="p-8 space-y-6">
@@ -116,7 +116,7 @@ export default function PublicStudentProfilePage() {
 
 const InfoRow = ({ icon: Icon, label, value, children }: { icon: React.ElementType, label: string, value?: string, children?: React.ReactNode }) => (
     <TableRow>
-        <TableCell className="font-semibold w-1/3 flex items-center gap-2"><Icon className="w-4 h-4 text-primary"/>{label}</TableCell>
+        <TableCell className="font-semibold w-1/3 flex items-center gap-2"><Icon className="w-5 h-5 text-primary"/>{label}</TableCell>
         <TableCell>
             {value && <p className="font-medium text-foreground">{value || 'N/A'}</p>}
             {children}
