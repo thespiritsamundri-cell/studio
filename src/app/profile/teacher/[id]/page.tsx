@@ -5,10 +5,11 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useSettings } from '@/context/settings-context';
 import type { Teacher } from '@/lib/types';
-import { Loader2, School, User, BookOpen, Briefcase, Phone, Hash } from 'lucide-react';
+import { Loader2, School, User, BookOpen, Briefcase, Phone, Hash, Activity } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import Image from 'next/image';
+import { Badge } from '@/components/ui/badge';
 
 export default function PublicTeacherProfilePage() {
     const params = useParams();
@@ -96,7 +97,14 @@ export default function PublicTeacherProfilePage() {
                         <InfoItem icon={Phone} label="Contact" value={teacher.phone} />
                         <InfoItem icon={Briefcase} label="Education" value={teacher.education} />
                         <div className="sm:col-span-2">
-                          <InfoItem icon={BookOpen} label="Assigned Subjects" value={teacher.assignedSubjects?.join(', ')} />
+                           <InfoItem icon={BookOpen} label="Assigned Subjects" value={teacher.assignedSubjects?.join(', ')} />
+                        </div>
+                         <div className="sm:col-span-2">
+                             <InfoItem icon={Activity} label="Status">
+                                <Badge variant={teacher.status === 'Active' ? 'default' : 'destructive'} className={teacher.status === 'Active' ? 'bg-green-600' : ''}>
+                                    {teacher.status}
+                                </Badge>
+                             </InfoItem>
                         </div>
                     </div>
                 </div>
@@ -105,12 +113,13 @@ export default function PublicTeacherProfilePage() {
     );
 }
 
-const InfoItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value?: string }) => (
+const InfoItem = ({ icon: Icon, label, value, children }: { icon: React.ElementType, label: string, value?: string, children?: React.ReactNode }) => (
     <div className="flex items-start gap-3 p-2 rounded-lg bg-muted/50">
         <Icon className="w-5 h-5 text-primary mt-0.5"/>
         <div>
             <p className="text-xs font-semibold text-muted-foreground">{label}</p>
-            <p className="font-medium text-foreground">{value || 'N/A'}</p>
+            {value && <p className="font-medium text-foreground">{value || 'N/A'}</p>}
+            {children}
         </div>
     </div>
 );

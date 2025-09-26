@@ -5,10 +5,11 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useSettings } from '@/context/settings-context';
 import type { Student } from '@/lib/types';
-import { Loader2, School, User, BookOpen, Calendar, Hash, Home } from 'lucide-react';
+import { Loader2, School, User, BookOpen, Calendar, Hash, Home, Activity } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import Image from 'next/image';
+import { Badge } from '@/components/ui/badge';
 
 export default function PublicStudentProfilePage() {
     const params = useParams();
@@ -97,6 +98,13 @@ export default function PublicStudentProfilePage() {
                         <InfoItem icon={Home} label="Family ID" value={student.familyId} />
                         <InfoItem icon={Calendar} label="Date of Birth" value={student.dob} />
                         <InfoItem icon={User} label="Gender" value={student.gender} />
+                        <div className="sm:col-span-2">
+                             <InfoItem icon={Activity} label="Status">
+                                <Badge variant={student.status === 'Active' ? 'default' : 'destructive'} className={student.status === 'Active' ? 'bg-green-600' : ''}>
+                                    {student.status}
+                                </Badge>
+                             </InfoItem>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -104,12 +112,13 @@ export default function PublicStudentProfilePage() {
     );
 }
 
-const InfoItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value?: string }) => (
+const InfoItem = ({ icon: Icon, label, value, children }: { icon: React.ElementType, label: string, value?: string, children?: React.ReactNode }) => (
     <div className="flex items-start gap-3 p-2 rounded-lg bg-muted/50">
         <Icon className="w-5 h-5 text-primary mt-0.5"/>
         <div>
             <p className="text-xs font-semibold text-muted-foreground">{label}</p>
-            <p className="font-medium text-foreground">{value || 'N/A'}</p>
+            {value && <p className="font-medium text-foreground">{value || 'N/A'}</p>}
+            {children}
         </div>
     </div>
 );

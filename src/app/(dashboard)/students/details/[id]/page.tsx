@@ -71,7 +71,7 @@ export default function StudentDetailsPage() {
     if (!student) return;
     try {
         const content = `${window.location.origin}/profile/student/${student.id}`;
-        const result = await generateQrCode({ content });
+        const result = await generateQrCode({ content, logoUrl: student.photoUrl });
         setQrCodeDataUri(result.qrCodeDataUri);
         setOpenQrDialog(true);
     } catch(e) {

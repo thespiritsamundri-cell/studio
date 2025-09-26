@@ -143,7 +143,7 @@ export default function TeachersPage() {
   const handleGenerateQr = async (teacher: Teacher) => {
     try {
         const content = `${window.location.origin}/profile/teacher/${teacher.id}`;
-        const result = await generateQrCode({ content });
+        const result = await generateQrCode({ content, logoUrl: teacher.photoUrl });
         setQrCodeDataUri(result.qrCodeDataUri);
         setSelectedTeacher(teacher);
         setOpenQrDialog(true);
