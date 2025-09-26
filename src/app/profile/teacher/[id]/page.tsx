@@ -10,6 +10,7 @@ import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 
 export default function PublicTeacherProfilePage() {
     const params = useParams();
@@ -80,7 +81,7 @@ export default function PublicTeacherProfilePage() {
                     {settings.schoolLogo && (
                         <Image src={settings.schoolLogo} alt="School Logo" width={60} height={60} className="mx-auto rounded-full mb-2"/>
                     )}
-                    <h1 className="text-2xl font-bold text-primary">{settings.schoolName}</h1>
+                    <h1 className="text-2xl font-bold text-gray-800 dark:text-white">{settings.schoolName}</h1>
                     <p className="text-sm text-muted-foreground">{settings.schoolAddress}</p>
                 </div>
                 <div className="p-8 space-y-6">
@@ -91,35 +92,32 @@ export default function PublicTeacherProfilePage() {
                             <p className="text-md text-muted-foreground">Teacher Profile</p>
                         </div>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm pt-4 border-t">
-                        <InfoItem icon={Hash} label="Teacher ID" value={teacher.id} />
-                        <InfoItem icon={User} label="Father's Name" value={teacher.fatherName} />
-                        <InfoItem icon={Phone} label="Contact" value={teacher.phone} />
-                        <InfoItem icon={Briefcase} label="Education" value={teacher.education} />
-                        <div className="sm:col-span-2">
-                           <InfoItem icon={BookOpen} label="Assigned Subjects" value={teacher.assignedSubjects?.join(', ')} />
-                        </div>
-                         <div className="sm:col-span-2">
-                             <InfoItem icon={Activity} label="Status">
+                    <Table>
+                       <TableBody>
+                            <InfoRow icon={Hash} label="Teacher ID" value={teacher.id} />
+                            <InfoRow icon={User} label="Father's Name" value={teacher.fatherName} />
+                            <InfoRow icon={Phone} label="Contact" value={teacher.phone} />
+                            <InfoRow icon={Briefcase} label="Education" value={teacher.education} />
+                            <InfoRow icon={BookOpen} label="Assigned Subjects" value={teacher.assignedSubjects?.join(', ')} />
+                            <InfoRow icon={Activity} label="Status">
                                 <Badge variant={teacher.status === 'Active' ? 'default' : 'destructive'} className={teacher.status === 'Active' ? 'bg-green-600' : ''}>
                                     {teacher.status}
                                 </Badge>
-                             </InfoItem>
-                        </div>
-                    </div>
+                            </InfoRow>
+                       </TableBody>
+                    </Table>
                 </div>
             </div>
         </div>
     );
 }
 
-const InfoItem = ({ icon: Icon, label, value, children }: { icon: React.ElementType, label: string, value?: string, children?: React.ReactNode }) => (
-    <div className="flex items-start gap-3 p-2 rounded-lg bg-muted/50">
-        <Icon className="w-5 h-5 text-primary mt-0.5"/>
-        <div>
-            <p className="text-xs font-semibold text-muted-foreground">{label}</p>
+const InfoRow = ({ icon: Icon, label, value, children }: { icon: React.ElementType, label: string, value?: string, children?: React.ReactNode }) => (
+    <TableRow>
+        <TableCell className="font-semibold w-1/3 flex items-center gap-2"><Icon className="w-4 h-4 text-primary"/>{label}</TableCell>
+        <TableCell>
             {value && <p className="font-medium text-foreground">{value || 'N/A'}</p>}
             {children}
-        </div>
-    </div>
+        </TableCell>
+    </TableRow>
 );
