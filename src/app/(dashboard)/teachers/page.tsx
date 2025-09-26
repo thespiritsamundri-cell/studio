@@ -170,70 +170,74 @@ export default function TeachersPage() {
                 {isEditing ? "Update the teacher's details." : "Enter the details for the new teacher."}
               </DialogDescription>
             </DialogHeader>
-            <form id="teacher-form" onSubmit={handleAddOrEditTeacher} className="grid md:grid-cols-2 gap-6 overflow-y-auto pr-4">
-               <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Name</Label>
-                    <Input id="name" name="name" defaultValue={selectedTeacher?.name} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="fatherName">Father's Name</Label>
-                    <Input id="fatherName" name="fatherName" defaultValue={selectedTeacher?.fatherName} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone</Label>
-                    <Input id="phone" name="phone" type="tel" defaultValue={selectedTeacher?.phone} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="education">Education</Label>
-                    <Input id="education" name="education" defaultValue={selectedTeacher?.education} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="salary">Salary (PKR)</Label>
-                    <Input id="salary" name="salary" type="number" defaultValue={selectedTeacher?.salary} required />
-                  </div>
-                   <div className="space-y-2">
-                    <Label htmlFor="status">Status</Label>
-                    <Select value={status} onValueChange={(value) => setStatus(value as 'Active' | 'Inactive')}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Active">Active</SelectItem>
-                        <SelectItem value="Inactive">Inactive</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="photo">Photo</Label>
-                    <Input id="photo" name="photo" type="file" onChange={handlePhotoChange} accept="image/*" />
-                  </div>
-                  {photoPreview && (
-                      <div className="space-y-2">
-                          <Label>Preview</Label>
-                          <Image src={photoPreview} alt="New photo preview" width={80} height={80} className="rounded-full aspect-square object-cover" />
-                      </div>
-                  )}
-               </div>
-               <div className="space-y-2">
-                   <Label>Assign Subjects</Label>
-                   <ScrollArea className="h-96 w-full rounded-md border p-4">
-                        <div className="grid grid-cols-2 gap-2">
-                        {allSubjects.map(subject => (
-                            <div key={subject} className="flex items-center space-x-2">
-                                <Checkbox 
-                                    id={`subject-${subject}`} 
-                                    checked={assignedSubjects.includes(subject)}
-                                    onCheckedChange={() => handleSubjectToggle(subject)}
-                                />
-                                <label htmlFor={`subject-${subject}`} className="text-sm font-medium leading-none">
-                                    {subject}
-                                </label>
-                            </div>
-                        ))}
+            <form id="teacher-form" onSubmit={handleAddOrEditTeacher} className="flex-grow overflow-y-auto">
+              <ScrollArea className="h-full pr-6">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Name</Label>
+                      <Input id="name" name="name" defaultValue={selectedTeacher?.name} required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="fatherName">Father's Name</Label>
+                      <Input id="fatherName" name="fatherName" defaultValue={selectedTeacher?.fatherName} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone</Label>
+                      <Input id="phone" name="phone" type="tel" defaultValue={selectedTeacher?.phone} required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="education">Education</Label>
+                      <Input id="education" name="education" defaultValue={selectedTeacher?.education} required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="salary">Salary (PKR)</Label>
+                      <Input id="salary" name="salary" type="number" defaultValue={selectedTeacher?.salary} required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="status">Status</Label>
+                      <Select value={status} onValueChange={(value) => setStatus(value as 'Active' | 'Inactive')}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Active">Active</SelectItem>
+                          <SelectItem value="Inactive">Inactive</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="photo">Photo</Label>
+                      <Input id="photo" name="photo" type="file" onChange={handlePhotoChange} accept="image/*" />
+                    </div>
+                    {photoPreview && (
+                        <div className="space-y-2">
+                            <Label>Preview</Label>
+                            <Image src={photoPreview} alt="New photo preview" width={80} height={80} className="rounded-full aspect-square object-cover" />
                         </div>
-                   </ScrollArea>
-               </div>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                      <Label>Assign Subjects</Label>
+                      <div className="border rounded-md p-4 max-h-96">
+                          <div className="grid grid-cols-2 gap-2">
+                          {allSubjects.map(subject => (
+                              <div key={subject} className="flex items-center space-x-2">
+                                  <Checkbox 
+                                      id={`subject-${subject}`} 
+                                      checked={assignedSubjects.includes(subject)}
+                                      onCheckedChange={() => handleSubjectToggle(subject)}
+                                  />
+                                  <label htmlFor={`subject-${subject}`} className="text-sm font-medium leading-none">
+                                      {subject}
+                                  </label>
+                              </div>
+                          ))}
+                          </div>
+                      </div>
+                  </div>
+                </div>
+              </ScrollArea>
             </form>
             <DialogFooter>
               <Button type="button" variant="ghost" onClick={() => handleDialogClose(false)}>Cancel</Button>
