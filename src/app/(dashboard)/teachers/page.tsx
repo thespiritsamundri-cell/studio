@@ -1,12 +1,11 @@
 
-
 'use client';
 
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2, Edit, Phone, GraduationCap, UserCheck, UserX } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, Phone, GraduationCap, UserCheck, UserX, QrCode } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +35,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { generateQrCode } from '@/ai/flows/generate-qr-code';
+
 
 export default function TeachersPage() {
   const { teachers, addTeacher, updateTeacher, deleteTeacher, classes } = useData();
@@ -47,6 +48,8 @@ export default function TeachersPage() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [assignedSubjects, setAssignedSubjects] = useState<string[]>([]);
   const [status, setStatus] = useState<'Active' | 'Inactive'>('Active');
+  const [openQrDialog, setOpenQrDialog] = useState(false);
+  const [qrCodeDataUri, setQrCodeDataUri] = useState<string>('');
   
   const allSubjects = useMemo(() => {
     const subjectSet = new Set<string>();
@@ -137,6 +140,19 @@ export default function TeachersPage() {
     );
   }
 
+  const handleGenerateQr = async (teacher: Teacher) => {
+    try {
+        const content = `${window.location.origin}/profile/teacher/${teacher.id}`;
+        const result = await generateQrCode({ content });
+        setQrCodeDataUri(result.qrCodeDataUri);
+        setSelectedTeacher(teacher);
+        setOpenQrDialog(true);
+    } catch(e) {
+        console.error(e);
+        toast({ title: 'QR Generation Failed', variant: 'destructive'});
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -154,70 +170,74 @@ export default function TeachersPage() {
                 {isEditing ? "Update the teacher's details." : "Enter the details for the new teacher."}
               </DialogDescription>
             </DialogHeader>
-            <form id="teacher-form" onSubmit={handleAddOrEditTeacher} className="grid md:grid-cols-2 gap-6 overflow-y-auto pr-4">
-               <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Name</Label>
-                    <Input id="name" name="name" defaultValue={selectedTeacher?.name} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="fatherName">Father's Name</Label>
-                    <Input id="fatherName" name="fatherName" defaultValue={selectedTeacher?.fatherName} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone</Label>
-                    <Input id="phone" name="phone" type="tel" defaultValue={selectedTeacher?.phone} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="education">Education</Label>
-                    <Input id="education" name="education" defaultValue={selectedTeacher?.education} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="salary">Salary (PKR)</Label>
-                    <Input id="salary" name="salary" type="number" defaultValue={selectedTeacher?.salary} required />
-                  </div>
-                   <div className="space-y-2">
-                    <Label htmlFor="status">Status</Label>
-                    <Select value={status} onValueChange={(value) => setStatus(value as 'Active' | 'Inactive')}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Active">Active</SelectItem>
-                        <SelectItem value="Inactive">Inactive</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="photo">Photo</Label>
-                    <Input id="photo" name="photo" type="file" onChange={handlePhotoChange} accept="image/*" />
-                  </div>
-                  {photoPreview && (
-                      <div className="space-y-2">
-                          <Label>Preview</Label>
-                          <Image src={photoPreview} alt="New photo preview" width={80} height={80} className="rounded-full aspect-square object-cover" />
-                      </div>
-                  )}
-               </div>
-               <div className="space-y-2">
-                   <Label>Assign Subjects</Label>
-                   <ScrollArea className="h-96 w-full rounded-md border p-4">
-                        <div className="grid grid-cols-2 gap-2">
-                        {allSubjects.map(subject => (
-                            <div key={subject} className="flex items-center space-x-2">
-                                <Checkbox 
-                                    id={`subject-${subject}`} 
-                                    checked={assignedSubjects.includes(subject)}
-                                    onCheckedChange={() => handleSubjectToggle(subject)}
-                                />
-                                <label htmlFor={`subject-${subject}`} className="text-sm font-medium leading-none">
-                                    {subject}
-                                </label>
-                            </div>
-                        ))}
+            <form id="teacher-form" onSubmit={handleAddOrEditTeacher} className="flex-grow overflow-y-auto">
+              <ScrollArea className="h-full pr-6">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Name</Label>
+                      <Input id="name" name="name" defaultValue={selectedTeacher?.name} required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="fatherName">Father's Name</Label>
+                      <Input id="fatherName" name="fatherName" defaultValue={selectedTeacher?.fatherName} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone</Label>
+                      <Input id="phone" name="phone" type="tel" defaultValue={selectedTeacher?.phone} required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="education">Education</Label>
+                      <Input id="education" name="education" defaultValue={selectedTeacher?.education} required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="salary">Salary (PKR)</Label>
+                      <Input id="salary" name="salary" type="number" defaultValue={selectedTeacher?.salary} required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="status">Status</Label>
+                      <Select value={status} onValueChange={(value) => setStatus(value as 'Active' | 'Inactive')}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Active">Active</SelectItem>
+                          <SelectItem value="Inactive">Inactive</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="photo">Photo</Label>
+                      <Input id="photo" name="photo" type="file" onChange={handlePhotoChange} accept="image/*" />
+                    </div>
+                    {photoPreview && (
+                        <div className="space-y-2">
+                            <Label>Preview</Label>
+                            <Image src={photoPreview} alt="New photo preview" width={80} height={80} className="rounded-full aspect-square object-cover" />
                         </div>
-                   </ScrollArea>
-               </div>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                      <Label>Assign Subjects</Label>
+                      <div className="border rounded-md p-4 max-h-96">
+                          <div className="grid grid-cols-2 gap-2">
+                          {allSubjects.map(subject => (
+                              <div key={subject} className="flex items-center space-x-2">
+                                  <Checkbox 
+                                      id={`subject-${subject}`} 
+                                      checked={assignedSubjects.includes(subject)}
+                                      onCheckedChange={() => handleSubjectToggle(subject)}
+                                  />
+                                  <label htmlFor={`subject-${subject}`} className="text-sm font-medium leading-none">
+                                      {subject}
+                                  </label>
+                              </div>
+                          ))}
+                          </div>
+                      </div>
+                  </div>
+                </div>
+              </ScrollArea>
             </form>
             <DialogFooter>
               <Button type="button" variant="ghost" onClick={() => handleDialogClose(false)}>Cancel</Button>
@@ -261,8 +281,9 @@ export default function TeachersPage() {
                 </div>
                 <Badge variant="secondary" className="w-full justify-center text-base py-1">PKR {teacher.salary.toLocaleString()}</Badge>
             </CardContent>
-            <CardFooter className="p-2 bg-muted/50 grid grid-cols-2 gap-2">
+            <CardFooter className="p-2 bg-muted/50 grid grid-cols-3 gap-2">
                 <Button variant="outline" size="sm" onClick={() => handleEditClick(teacher)}><Edit className="mr-2 h-4 w-4" />Edit</Button>
+                <Button variant="outline" size="sm" onClick={() => handleGenerateQr(teacher)}><QrCode className="mr-2 h-4 w-4" />QR</Button>
                 <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(teacher)}><Trash2 className="mr-2 h-4 w-4" />Delete</Button>
             </CardFooter>
           </Card>
@@ -291,6 +312,21 @@ export default function TeachersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      {/* QR Code Dialog */}
+       <Dialog open={openQrDialog} onOpenChange={setOpenQrDialog}>
+          <DialogContent className="sm:max-w-xs">
+            <DialogHeader>
+              <DialogTitle className="text-center">Profile QR Code for {selectedTeacher?.name}</DialogTitle>
+              <DialogDescription className="text-center">
+                Scan this code to view the public profile for this teacher.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex items-center justify-center p-4">
+              {qrCodeDataUri ? <Image src={qrCodeDataUri} alt="Teacher QR Code" width={200} height={200} /> : <p>Generating...</p>}
+            </div>
+          </DialogContent>
+        </Dialog>
 
     </div>
   );

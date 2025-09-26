@@ -1,5 +1,4 @@
 
-
 export interface PermissionSet {
   dashboard: boolean;
   families: boolean;
@@ -73,10 +72,6 @@ export interface Teacher {
   photoUrl: string;
   assignedSubjects?: string[];
   status: 'Active' | 'Inactive';
-  // Props for printing, not stored in DB
-  schoolName?: string;
-  schoolAddress?: string;
-  schoolLogo?: string;
 }
 
 export interface Attendance {
@@ -111,10 +106,6 @@ export interface Class {
     name: string;
     sections: string[];
     subjects: string[];
-    // Props for printing, not stored in DB
-    schoolName?: string;
-    schoolAddress?: string;
-    schoolLogo?: string;
 }
 
 export interface ExamResult {

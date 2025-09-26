@@ -99,8 +99,10 @@ export function SidebarNav() {
   const pathname = usePathname();
   const { settings } = useSettings();
   const { hasPermission, userRole } = useData();
+  
   const [isExamSystemOpen, setIsExamSystemOpen] = useState(pathname.startsWith('/exam') || pathname.startsWith('/result-cards') || pathname.startsWith('/roll-number-slips') || pathname.startsWith('/seating-plan') || pathname.startsWith('/single-subject-test'));
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(pathname.startsWith('/attendance') || pathname.startsWith('/teacher-attendance'));
+
   const { isPinned, isMobile } = useSidebar();
   
   const checkGeneralPermission = (permission: keyof PermissionSet | 'any_primary_role') => {

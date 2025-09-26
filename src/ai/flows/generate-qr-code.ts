@@ -12,6 +12,7 @@ import {z} from 'genkit';
 
 const GenerateQrCodeRequestSchema = z.object({
   content: z.string().describe('The content to encode in the QR code.'),
+  logoUrl: z.string().optional().describe('Optional URL of an image to be placed in the center of the QR code.'),
 });
 export type GenerateQrCodeRequest = z.infer<typeof GenerateQrCodeRequestSchema>;
 
@@ -36,11 +37,18 @@ const generateQrCodeFlow = ai.defineFlow(
   },
   async (input) => {
     // Using barcode.tec-it.com to generate a QR Code image.
-    const qrCodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(
+    // The logoUrl is temporarily removed to prevent "Request-URI Too Long" errors when a data URI is passed.
+    // A more robust solution that supports POST requests for the logo might be needed.
+    let qrCodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(
       input.content
-    )}&code=QRCode&dpi=96`;
+    )}&code=QRCode&dpi=96&eclevel=H`;
     
     const response = await fetch(qrCodeUrl);
+    
+    if (!response.ok) {
+        throw new Error(`Failed to fetch QR code: ${response.statusText}`);
+    }
+
     const buffer = await response.arrayBuffer();
     const base64 = Buffer.from(buffer).toString('base64');
 

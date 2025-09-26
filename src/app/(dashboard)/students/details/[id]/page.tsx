@@ -9,10 +9,13 @@ import { useEffect, useState } from 'react';
 import type { Student, Family, Alumni } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import { ArrowLeft, Printer } from 'lucide-react';
+import { ArrowLeft, Printer, QrCode } from 'lucide-react';
 import { StudentDetailsPrint } from '@/components/reports/student-details-report';
 import { renderToString } from 'react-dom/server';
 import { useSettings } from '@/context/settings-context';
+import { generateQrCode } from '@/ai/flows/generate-qr-code';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+
 
 export default function StudentDetailsPage() {
   const router = useRouter();
@@ -21,6 +24,8 @@ export default function StudentDetailsPage() {
   const { settings } = useSettings();
   const [student, setStudent] = useState<Student | Alumni | undefined>(undefined);
   const [family, setFamily] = useState<Family | undefined>(undefined);
+  const [qrCodeDataUri, setQrCodeDataUri] = useState<string>('');
+  const [openQrDialog, setOpenQrDialog] = useState(false);
   
   useEffect(() => {
     const id = params.id as string;
@@ -61,6 +66,19 @@ export default function StudentDetailsPage() {
         printWindow.focus();
     }
   };
+  
+  const handleGenerateQr = async () => {
+    if (!student) return;
+    try {
+        const content = `${window.location.origin}/profile/student/${student.id}`;
+        const result = await generateQrCode({ content, logoUrl: student.photoUrl });
+        setQrCodeDataUri(result.qrCodeDataUri);
+        setOpenQrDialog(true);
+    } catch(e) {
+        console.error(e);
+    }
+  }
+
 
   if (!student || !family) {
     return <div>Loading student details or student not found...</div>;
@@ -78,6 +96,7 @@ export default function StudentDetailsPage() {
             <h1 className="text-3xl font-bold font-headline">Student Details</h1>
         </div>
         <div className="flex gap-2">
+            <Button variant="outline" onClick={handleGenerateQr}><QrCode className="h-4 w-4 mr-2"/> Show QR Code</Button>
             <Button variant="outline" onClick={() => router.push(`/students/edit/${student.id}`)}>Edit Student</Button>
             <Button onClick={handlePrint}><Printer className="h-4 w-4 mr-2" />Print</Button>
         </div>
@@ -130,6 +149,20 @@ export default function StudentDetailsPage() {
             </div>
         </CardContent>
       </Card>
+      
+       <Dialog open={openQrDialog} onOpenChange={setOpenQrDialog}>
+          <DialogContent className="sm:max-w-xs">
+            <DialogHeader>
+              <DialogTitle className="text-center">Profile QR Code for {student.name}</DialogTitle>
+              <DialogDescription className="text-center">
+                Scan this code to view the public profile for this student.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex items-center justify-center p-4">
+              {qrCodeDataUri ? <Image src={qrCodeDataUri} alt="Student QR Code" width={200} height={200} /> : <p>Generating...</p>}
+            </div>
+          </DialogContent>
+        </Dialog>
     </div>
   );
 }
