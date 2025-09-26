@@ -82,7 +82,7 @@ export default function PublicStudentProfilePage() {
                     {settings.schoolLogo && (
                         <Image src={settings.schoolLogo} alt="School Logo" width={60} height={60} className="mx-auto rounded-full mb-2"/>
                     )}
-                    <h1 className="text-2xl font-bold text-foreground">{settings.schoolName}</h1>
+                    <h1 className="text-2xl font-bold text-foreground dark:text-white">{settings.schoolName}</h1>
                     <p className="text-sm text-muted-foreground">{settings.schoolAddress}</p>
                 </div>
                 <div className="p-8 space-y-6">
@@ -95,13 +95,13 @@ export default function PublicStudentProfilePage() {
                     </div>
                     <Table>
                         <TableBody>
-                            <InfoRow icon={Hash} label="Student ID" value={student.id} />
-                            <InfoRow icon={BookOpen} label="Class" value={`${student.class} ${student.section ? `(${student.section})` : ''}`} />
-                            <InfoRow icon={User} label="Father's Name" value={student.fatherName} />
-                            <InfoRow icon={Home} label="Family ID" value={student.familyId} />
-                            <InfoRow icon={Calendar} label="Date of Birth" value={student.dob} />
-                            <InfoRow icon={User} label="Gender" value={student.gender} />
-                            <InfoRow icon={Activity} label="Status">
+                            <InfoRow label="Student ID" value={student.id} />
+                            <InfoRow label="Class" value={`${student.class} ${student.section ? `(${student.section})` : ''}`} />
+                            <InfoRow label="Father's Name" value={student.fatherName} />
+                            <InfoRow label="Family ID" value={student.familyId} />
+                            <InfoRow label="Date of Birth" value={student.dob} />
+                            <InfoRow label="Gender" value={student.gender} />
+                            <InfoRow label="Status">
                                 <Badge variant={student.status === 'Active' ? 'default' : 'destructive'} className={student.status === 'Active' ? 'bg-green-600' : ''}>
                                     {student.status}
                                 </Badge>
@@ -114,9 +114,9 @@ export default function PublicStudentProfilePage() {
     );
 }
 
-const InfoRow = ({ icon: Icon, label, value, children }: { icon: React.ElementType, label: string, value?: string, children?: React.ReactNode }) => (
+const InfoRow = ({ label, value, children }: { label: string, value?: string, children?: React.ReactNode }) => (
     <TableRow>
-        <TableCell className="font-semibold w-1/3 flex items-center gap-2"><Icon className="w-5 h-5 text-primary"/>{label}</TableCell>
+        <TableCell className="font-semibold w-1/3">{label}</TableCell>
         <TableCell>
             {value && <p className="font-medium text-foreground">{value || 'N/A'}</p>}
             {children}
