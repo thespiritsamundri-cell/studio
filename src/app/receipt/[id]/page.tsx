@@ -29,6 +29,7 @@ export default function PublicReceiptPage() {
             setError(null);
             try {
                 const receiptId = id as string;
+                // Using the public flow directly on the client
                 const data = await getPublicReceiptData({ receiptId });
                 if (!data) {
                     throw new Error(`Receipt with ID "${receiptId}" not found or could not be loaded.`);

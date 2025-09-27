@@ -6,11 +6,24 @@ import { useEffect, useState } from 'react';
 import { useSettings } from '@/context/settings-context';
 import type { Teacher } from '@/lib/types';
 import { Loader2, School, User, BookOpen, Briefcase, Phone, Hash, Activity } from 'lucide-react';
-import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
+
+// Public Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyAtnV9kiSJ-NFLfI6pG4LDvvLcjpRh_jtM",
+  authDomain: "educentral-mxfgr.firebaseapp.com",
+  projectId: "educentral-mxfgr",
+  storageBucket: "educentral-mxfgr.appspot.com",
+  messagingSenderId: "93439797301",
+  appId: "1:93439797301:web:c0cd1d46e7588e4df4297c"
+};
+
+const publicApp = !getApps().some(app => app.name === 'public-teacher') ? initializeApp(firebaseConfig, 'public-teacher') : getApp('public-teacher');
+const publicDb = getFirestore(publicApp);
 
 export default function PublicTeacherProfilePage() {
     const params = useParams();
@@ -29,7 +42,7 @@ export default function PublicTeacherProfilePage() {
             setError(null);
             try {
                 const teacherId = id as string;
-                const teacherDocRef = doc(db, "teachers", teacherId);
+                const teacherDocRef = doc(publicDb, "teachers", teacherId);
                 const teacherDoc = await getDoc(teacherDocRef);
 
                 if (!teacherDoc.exists()) {
@@ -77,29 +90,33 @@ export default function PublicTeacherProfilePage() {
     return (
         <div className="bg-gray-100 dark:bg-gray-900 min-h-screen p-4 sm:p-8 flex items-center justify-center">
             <div className="w-full max-w-lg bg-white dark:bg-gray-800 shadow-2xl rounded-2xl overflow-hidden">
-                <div className="bg-primary/10 p-6 text-center border-b-2 border-primary">
-                    {settings.schoolLogo && (
-                        <Image src={settings.schoolLogo} alt="School Logo" width={60} height={60} className="mx-auto rounded-full mb-2"/>
-                    )}
-                    <h1 className="text-2xl font-bold text-gray-800 dark:text-white">{settings.schoolName}</h1>
-                    <p className="text-sm text-muted-foreground">{settings.schoolAddress}</p>
+                <div className="bg-primary/10 p-6 text-center border-b-2 border-primary relative h-32">
+                     <div className="absolute top-4 left-4 flex items-center gap-2">
+                        {settings.schoolLogo && (
+                            <Image src={settings.schoolLogo} alt="School Logo" width={40} height={40} className="rounded-full"/>
+                        )}
+                        <div>
+                             <h1 className="text-lg font-bold text-foreground dark:text-white text-left">{settings.schoolName}</h1>
+                             <p className="text-xs text-muted-foreground text-left">{settings.schoolAddress}</p>
+                        </div>
+                    </div>
                 </div>
-                <div className="p-8 space-y-6">
+                <div className="p-8 space-y-6 -mt-16">
                     <div className="flex flex-col items-center gap-4">
-                        <Image src={teacher.photoUrl} alt={teacher.name} width={120} height={120} className="rounded-full object-cover border-4 border-primary/20 shadow-md"/>
-                        <div className="text-center">
+                        <Image src={teacher.photoUrl} alt={teacher.name} width={128} height={128} className="rounded-full object-cover border-4 border-white shadow-lg"/>
+                        <div className="text-center mt-2">
                             <h2 className="text-3xl font-bold text-foreground">{teacher.name}</h2>
                             <p className="text-md text-muted-foreground">Teacher Profile</p>
                         </div>
                     </div>
-                    <Table>
+                     <Table>
                        <TableBody>
-                            <InfoRow icon={Hash} label="Teacher ID" value={teacher.id} />
-                            <InfoRow icon={User} label="Father's Name" value={teacher.fatherName} />
-                            <InfoRow icon={Phone} label="Contact" value={teacher.phone} />
-                            <InfoRow icon={Briefcase} label="Education" value={teacher.education} />
-                            <InfoRow icon={BookOpen} label="Assigned Subjects" value={teacher.assignedSubjects?.join(', ')} />
-                            <InfoRow icon={Activity} label="Status">
+                            <InfoRow label="Teacher ID" value={teacher.id} />
+                            <InfoRow label="Father's Name" value={teacher.fatherName} />
+                            <InfoRow label="Contact" value={teacher.phone} />
+                            <InfoRow label="Education" value={teacher.education} />
+                            <InfoRow label="Assigned Subjects" value={teacher.assignedSubjects?.join(', ')} />
+                            <InfoRow label="Status">
                                 <Badge variant={teacher.status === 'Active' ? 'default' : 'destructive'} className={teacher.status === 'Active' ? 'bg-green-600' : ''}>
                                     {teacher.status}
                                 </Badge>
@@ -112,9 +129,9 @@ export default function PublicTeacherProfilePage() {
     );
 }
 
-const InfoRow = ({ icon: Icon, label, value, children }: { icon: React.ElementType, label: string, value?: string, children?: React.ReactNode }) => (
+const InfoRow = ({ label, value, children }: { label: string, value?: string, children?: React.ReactNode }) => (
     <TableRow>
-        <TableCell className="font-semibold w-1/3 flex items-center gap-2"><Icon className="w-4 h-4 text-primary"/>{label}</TableCell>
+        <TableCell className="font-semibold w-1/3">{label}</TableCell>
         <TableCell>
             {value && <p className="font-medium text-foreground">{value || 'N/A'}</p>}
             {children}
