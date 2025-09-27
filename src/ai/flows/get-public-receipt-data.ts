@@ -1,4 +1,5 @@
 
+
 // This file is no longer used for the public receipt page,
 // as data fetching has been moved to the client-side to prevent
 // server-side authentication issues.
