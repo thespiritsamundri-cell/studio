@@ -1,4 +1,8 @@
-
+// This file is no longer used for the public receipt page,
+// as data fetching has been moved to the client-side to prevent
+// server-side authentication issues.
+// It is kept here for reference or potential future use in a different context.
+// The public receipt page now directly fetches data from Firestore on the client.
 'use server';
 /**
  * @fileOverview A PUBLIC flow to fetch all data required for a fee receipt.
@@ -62,72 +66,10 @@ const getPublicReceiptDataFlow = ai.defineFlow(
   },
   async ({ receiptId }) => {
     try {
-      // 1. Fetch only the fees for this specific receipt
-      const feesQuery = query(collection(publicDb, "fees"), where("receiptId", "==", receiptId), where("status", "==", "Paid"));
-      const feesSnapshot = await getDocs(feesQuery);
-
-      if (feesSnapshot.empty) {
-        console.warn(`No paid fee records found for receiptId: ${receiptId}`);
-        return null;
-      }
-
-      const transactionFees = feesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Fee));
-      
-      const familyId = transactionFees[0]?.familyId;
-      if (!familyId) {
-        console.error(`Family ID is missing from fee records for receiptId: ${receiptId}`);
-        return null;
-      }
-
-      // 2. Fetch the associated family, all students, and all fees for that family
-      const familyQuery = query(collection(publicDb, "families"), where("id", "==", familyId));
-      const studentsQuery = query(collection(publicDb, "students"), where("familyId", "==", familyId));
-      const allFamilyFeesQuery = query(collection(publicDb, "fees"), where("familyId", "==", familyId));
-
-      const [familySnapshot, studentsSnapshot, allFamilyFeesSnapshot] = await Promise.all([
-          getDocs(familyQuery),
-          getDocs(studentsQuery),
-          getDocs(allFamilyFeesQuery)
-      ]);
-
-      if (familySnapshot.empty) {
-        console.error(`Family with ID "${familyId}" not found.`);
-        return null;
-      }
-
-      const foundFamily = { id: familySnapshot.docs[0].id, ...familySnapshot.docs[0].data() } as Family;
-      const familyStudents = studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Student));
-      const allFamilyFees = allFamilyFeesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Fee));
-      
-      const currentPaidAmount = transactionFees.reduce((acc, fee) => acc + fee.amount, 0);
-      
-      // Calculate remaining dues based on ALL fees for the family, not just the ones in this transaction
-      const totalUnpaidAmount = allFamilyFees
-        .filter(f => f.status === 'Unpaid')
-        .reduce((acc, fee) => acc + fee.amount, 0);
-
-      const totalDuesBeforeTx = totalUnpaidAmount + currentPaidAmount;
-      
-      let qrCodeDataUri = '';
-       try {
-        const receiptUrl = process.env.NEXT_PUBLIC_BASE_URL ? `${process.env.NEXT_PUBLIC_BASE_URL}/receipt/${receiptId}` : `http://localhost:9002/receipt/${receiptId}`;
-        const qrCodeResult = await generateQrCode({ content: receiptUrl });
-        qrCodeDataUri = qrCodeResult.qrCodeDataUri;
-      } catch (qrError) {
-        console.error("QR Code generation failed for public receipt:", qrError);
-      }
-
-      return {
-        family: foundFamily,
-        students: familyStudents,
-        paidFees: transactionFees,
-        totalDues: totalDuesBeforeTx,
-        paidAmount: currentPaidAmount,
-        remainingDues: totalUnpaidAmount,
-        paymentMethod: transactionFees[0]?.paymentMethod || 'N/A',
-        qrCodeDataUri: qrCodeDataUri,
-      };
-
+      // This flow is deprecated in favor of client-side fetching for public pages.
+      // Returning null to prevent accidental use.
+      console.warn("DEPRECATED: getPublicReceiptDataFlow was called. Public data should be fetched client-side.");
+      return null;
     } catch (err) {
       console.error('Error in getPublicReceiptDataFlow:', err);
       return null;
