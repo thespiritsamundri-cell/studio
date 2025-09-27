@@ -1,4 +1,5 @@
 
+
 export interface PermissionSet {
   dashboard: boolean;
   families: boolean;
@@ -99,6 +100,20 @@ export interface Fee {
   paymentMethod?: string; // e.g., 'Cash', 'Bank Transfer'
   receiptId?: string; // Unique ID for the transaction
   transactionFeeIds?: string[]; // IDs of all other fees paid in the same transaction
+}
+
+
+export interface Receipt {
+  id: string;
+  family: Family;
+  students: Student[];
+  paidFees: Fee[];
+  totalDues: number;
+  paidAmount: number;
+  remainingDues: number;
+  paymentMethod: string;
+  qrCodeDataUri: string;
+  createdAt: string;
 }
 
 export interface Class {

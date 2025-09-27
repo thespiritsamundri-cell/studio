@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import type { Family, Student, Fee } from '@/lib/types';
+import type { Family, Student, Fee, Receipt } from '@/lib/types';
 import { Button } from '../ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Badge } from '../ui/badge';
@@ -21,6 +21,8 @@ import { useData } from '@/context/data-context';
 import { sendWhatsAppMessage } from '@/services/whatsapp-service';
 import html2canvas from 'html2canvas';
 import { generateQrCode } from '@/ai/flows/generate-qr-code';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 
 interface FeeDetailsCardProps {
@@ -200,8 +202,22 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         for (const id of feesToDeleteFromDB) {
             await onDeleteFee(id);
         }
-
         
+        // Create public receipt document
+        const publicReceiptData: Receipt = {
+            id: receiptId,
+            family: family,
+            students: students,
+            paidFees: newlyPaidFees,
+            totalDues: totalDues,
+            paidAmount: collectedAmount,
+            remainingDues: newDues,
+            paymentMethod: paymentMethod,
+            qrCodeDataUri: qrCodeDataUri,
+            createdAt: new Date().toISOString()
+        };
+        await setDoc(doc(db, "receipts", receiptId), publicReceiptData);
+
         addActivityLog({ action: 'Collect Fee', description: `Collected PKR ${collectedAmount.toLocaleString()} from family ${family.id} (${family.fatherName})`});
         
         addNotification({

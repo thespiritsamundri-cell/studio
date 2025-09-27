@@ -1,117 +1,23 @@
 
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // --- Helper Functions ---
-    function isSignedIn() {
-      return request.auth != null;
+    // Logged-in users can read/write their own data
+    match /users/{userId}/{documents=**} {
+      allow read, write: if request.auth.uid == userId;
     }
 
-    function isSuperAdmin() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
-    }
-
-    function hasPermission(permission) {
-      // Super admin has all permissions.
-      if (isSuperAdmin()) {
-        return true;
-      }
-      // For other roles, check the specific permission flag.
-      let userPermissions = get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions;
-      return permission in userPermissions && userPermissions[permission] == true;
-    }
-
-    // --- Collections ---
-    match /students/{studentId} {
-      allow read: if isSignedIn();
-      allow write: if hasPermission('students');
-      allow create: if hasPermission('admissions');
-    }
-
-    match /families/{familyId} {
-      allow read: if isSignedIn();
-      allow write: if hasPermission('families');
-    }
-
-    match /teachers/{teacherId} {
-      allow read: if isSignedIn();
-      allow write: if hasPermission('teachers');
+    // Make receipts publicly readable
+    match /receipts/{receiptId} {
+      allow get: if true;
+      allow list: if false; // Prevent listing all receipts
+      allow write: if request.auth != null; // Only authenticated users can create/update
     }
     
-    match /classes/{classId} {
-      allow read: if isSignedIn();
-      allow write: if hasPermission('classes');
-    }
-
-    match /expenses/{expenseId} {
-      allow read: if hasPermission('expenses');
-      allow create: if hasPermission('expenses');
-      allow update: if hasPermission('expenses');
-      // Allow deletion only if the user can also manage income for reversals.
-      allow delete: if hasPermission('expenses') && hasPermission('income');
-    }
-
-    match /fees/{feeId} {
-      allow read: if hasPermission('feeCollection') || hasPermission('income');
-      allow create: if hasPermission('feeCollection') || hasPermission('admissions') || hasPermission('income');
-      allow update: if hasPermission('feeCollection') || hasPermission('income');
-      // Allow deletion only if the user can also create fees (for reversal)
-      allow delete: if hasPermission('income') && hasPermission('feeCollection');
-    }
-    
-    match /alumni/{alumniId} {
-      allow read: if isSignedIn();
-      allow write: if hasPermission('alumni');
-    }
-
-    match /attendances/{attendanceId} {
-      allow read: if hasPermission('attendance');
-      allow write: if hasPermission('attendance');
-    }
-
-    match /teacherAttendances/{attendanceId} {
-        allow read: if hasPermission('attendance');
-        allow write: if hasPermission('attendance');
-    }
-    
-    match /exams/{examId} {
-      allow read: if hasPermission('examSystem');
-      allow write: if hasPermission('examSystem');
-    }
-    
-    match /timetables/{timetableId} {
-      allow read: if hasPermission('timetable');
-      allow write: if hasPermission('timetable');
-    }
-    
-    match /activityLog/{logId} {
-      allow read: if hasPermission('settings');
-      allow create: if isSignedIn(); // Logged-in users create logs
-      allow delete: if hasPermission('settings'); // Only admins can delete
-    }
-    
-    match /users/{userId} {
-      allow read: if isSignedIn();
-      allow list: if hasPermission('settings');
-      allow update: if hasPermission('settings') || request.auth.uid == userId; // Admin or the user themselves
-      allow create: if hasPermission('settings'); // Only admins can create users
-    }
-
-    match /Settings/School Settings {
-      allow read: if isSignedIn();
-      allow write: if hasPermission('settings');
-    }
-    
-    match /sessions/{sessionId} {
-      allow read: if request.auth.uid == resource.data.userId; // User can only read their own sessions
-      allow create: if request.auth.uid == request.resource.data.userId;
-      allow delete: if request.auth.uid == resource.data.userId || isSuperAdmin(); // User or admin can delete
-    }
-
-    match /notifications/{notificationId} {
-      allow read, write: if isSuperAdmin();
+    // Allow logged-in users to read/write all other collections
+    // This is a general rule and can be refined for more granular access control
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }
