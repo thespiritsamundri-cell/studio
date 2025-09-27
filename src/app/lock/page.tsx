@@ -1,5 +1,4 @@
 
-
 'use client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -123,6 +122,12 @@ export default function LockPage() {
     }
   }, [pin, router, toast]);
 
+  const handlePinInput = (value: string) => {
+    if (/^\d*$/.test(value) && value.length <= 4) {
+      setPin(value);
+    }
+  };
+
   useEffect(() => {
     if (pin.length === 4) {
       attemptUnlock();
@@ -148,12 +153,6 @@ export default function LockPage() {
     e.preventDefault();
     attemptUnlock();
   };
-  
-   useEffect(() => {
-    if (pin.length === 4) {
-      attemptUnlock();
-    }
-  }, [pin, attemptUnlock]);
 
   if (!isClient) {
     return null; // Render nothing on the server to avoid hydration mismatch
@@ -162,9 +161,9 @@ export default function LockPage() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-cover bg-center" style={{ backgroundImage: `url(${backgroundImageUrl})` }}>
         <div className="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
-        <Card className="w-full max-w-md mx-auto shadow-2xl z-10 bg-card/95 border-primary/20">
+        <Card className="w-full max-w-sm mx-auto shadow-2xl z-10 bg-card/95 border-primary/20">
             <CardHeader className="text-center">
-                 <div className="text-muted-foreground font-mono mb-4">
+                 <div className="text-muted-foreground font-mono mb-4 text-xs sm:text-sm">
                     {dateTime && (
                       <>
                         <span>{format(dateTime, 'PPPP')}</span> | <span>{format(dateTime, 'hh:mm:ss a')}</span>
@@ -183,8 +182,7 @@ export default function LockPage() {
                 <CardTitle className="text-3xl font-bold font-headline h-10">{animatedSchoolName}</CardTitle>
             </CardHeader>
             <CardContent>
-
-                <div className="space-y-2">
+                <form onSubmit={handleUnlockSubmit} className="space-y-2">
                   <Label htmlFor="pin" className="text-center block">Enter Security PIN to Unlock</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -193,16 +191,14 @@ export default function LockPage() {
                         type="password"
                         required
                         value={pin}
-                        onChange={(e) => setPin(e.target.value)}
+                        onChange={(e) => handlePinInput(e.target.value)}
                         maxLength={4}
                         className="text-center text-lg tracking-[1rem] pl-10"
-
                         autoComplete="off"
-
                         autoFocus
                     />
                   </div>
-                </div>
+                </form>
 
               <Button type="button" variant="link" size="sm" className="w-full mt-4 text-muted-foreground" onClick={handleLogoutAndRelogin}>
                 <LogOut className="mr-2 h-4 w-4" />
@@ -237,3 +233,5 @@ export default function LockPage() {
     </div>
   );
 }
+
+    
