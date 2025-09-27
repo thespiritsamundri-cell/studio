@@ -55,9 +55,9 @@ export interface SchoolSettings {
 export const defaultSettings: SchoolSettings = {
   schoolName: 'The Spirit School Samundri',
   academicYear: '2025-2026',
-  schoolAddress: 'Canal Rd, near Allied School, Samundri, Faisalabad, Punjab 37400',
-  schoolPhone: '+92 309 9969535',
-  schoolEmail: 'info@thespiritschool.edu.pk',
+  schoolAddress: 'Housing Colony 2, Samundri, Faisalabad',
+  schoolPhone: '+92 333 9114333',
+  schoolEmail: 'tss.samundri@gmail.com',
   schoolLogo: 'https://i.postimg.cc/Xv35Y5XZ/The-Spirit.jpg',
   favicon: 'https://i.postimg.cc/Xv35Y5XZ/The-Spirit.jpg',
   principalSignature: 'https://i.postimg.cc/XXXXXXX/signature.png',
