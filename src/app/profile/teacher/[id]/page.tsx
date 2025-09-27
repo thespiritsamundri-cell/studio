@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useSettings } from '@/context/settings-context';
 import type { Teacher } from '@/lib/types';
-import { Loader2, School, User, BookOpen, Briefcase, Phone, Hash, Activity } from 'lucide-react';
+import { Loader2, School } from 'lucide-react';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import Image from 'next/image';
@@ -90,20 +90,20 @@ export default function PublicTeacherProfilePage() {
     return (
         <div className="bg-gray-100 dark:bg-gray-900 min-h-screen p-4 sm:p-8 flex items-center justify-center">
             <div className="w-full max-w-lg bg-white dark:bg-gray-800 shadow-2xl rounded-2xl overflow-hidden">
-                <div className="bg-primary/10 p-6 text-center border-b-2 border-primary relative h-32">
-                     <div className="absolute top-4 left-4 flex items-center gap-2">
+                 <div className="bg-primary/10 p-6 h-40 text-center border-b-2 border-primary relative">
+                     <div className="flex items-center gap-4">
                         {settings.schoolLogo && (
-                            <Image src={settings.schoolLogo} alt="School Logo" width={40} height={40} className="rounded-full"/>
+                            <Image src={settings.schoolLogo} alt="School Logo" width={50} height={50} className="rounded-full"/>
                         )}
                         <div>
-                             <h1 className="text-lg font-bold text-foreground dark:text-white text-left">{settings.schoolName}</h1>
+                             <h1 className="text-xl font-bold text-foreground dark:text-white text-left">{settings.schoolName}</h1>
                              <p className="text-xs text-muted-foreground text-left">{settings.schoolAddress}</p>
                         </div>
                     </div>
                 </div>
-                <div className="p-8 space-y-6 -mt-16">
+                <div className="p-8 space-y-6 -mt-24">
                     <div className="flex flex-col items-center gap-4">
-                        <Image src={teacher.photoUrl} alt={teacher.name} width={128} height={128} className="rounded-full object-cover border-4 border-white shadow-lg"/>
+                        <Image src={teacher.photoUrl} alt={teacher.name} width={128} height={128} className="rounded-full object-cover border-4 border-background shadow-lg"/>
                         <div className="text-center mt-2">
                             <h2 className="text-3xl font-bold text-foreground">{teacher.name}</h2>
                             <p className="text-md text-muted-foreground">Teacher Profile</p>

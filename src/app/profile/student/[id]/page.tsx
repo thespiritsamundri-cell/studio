@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useSettings } from '@/context/settings-context';
 import type { Student } from '@/lib/types';
-import { Loader2, School, User, BookOpen, Calendar, Hash, Home, Activity } from 'lucide-react';
+import { Loader2, School } from 'lucide-react';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import Image from 'next/image';
@@ -46,8 +46,8 @@ export default function PublicStudentProfilePage() {
                 const studentDocRef = doc(publicDb, "students", studentId);
                 const alumniDocRef = doc(publicDb, "alumni", studentId);
 
-                const studentDoc = await getDoc(studentDocRef);
                 let studentData;
+                const studentDoc = await getDoc(studentDocRef);
 
                 if (studentDoc.exists()) {
                     studentData = { id: studentDoc.id, ...studentDoc.data() } as Student;
