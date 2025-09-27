@@ -90,20 +90,16 @@ export default function PublicTeacherProfilePage() {
     return (
         <div className="bg-gray-100 dark:bg-gray-900 min-h-screen p-4 sm:p-8 flex items-center justify-center">
             <div className="w-full max-w-lg bg-white dark:bg-gray-800 shadow-2xl rounded-2xl overflow-hidden">
-                 <div className="bg-primary/10 p-6 h-40 text-center border-b-2 border-primary relative">
-                     <div className="flex items-center gap-4">
-                        {settings.schoolLogo && (
-                            <Image src={settings.schoolLogo} alt="School Logo" width={50} height={50} className="rounded-full"/>
-                        )}
-                        <div>
-                             <h1 className="text-xl font-bold text-foreground dark:text-white text-left">{settings.schoolName}</h1>
-                             <p className="text-xs text-muted-foreground text-left">{settings.schoolAddress}</p>
-                        </div>
-                    </div>
+                 <div className="bg-primary/10 p-6 text-center border-b-2 border-primary">
+                    {settings.schoolLogo && (
+                        <Image src={settings.schoolLogo} alt="School Logo" width={60} height={60} className="mx-auto rounded-full mb-2"/>
+                    )}
+                    <h1 className="text-2xl font-bold text-foreground dark:text-white">{settings.schoolName}</h1>
+                    <p className="text-sm text-muted-foreground">{settings.schoolEmail}</p>
                 </div>
-                <div className="p-8 space-y-6 -mt-24">
+                <div className="p-8 space-y-6">
                     <div className="flex flex-col items-center gap-4">
-                        <Image src={teacher.photoUrl} alt={teacher.name} width={128} height={128} className="rounded-full object-cover border-4 border-background shadow-lg"/>
+                        <Image src={teacher.photoUrl} alt={teacher.name} width={120} height={120} className="rounded-full object-cover border-4 border-primary/20 shadow-md"/>
                         <div className="text-center mt-2">
                             <h2 className="text-3xl font-bold text-foreground">{teacher.name}</h2>
                             <p className="text-md text-muted-foreground">Teacher Profile</p>

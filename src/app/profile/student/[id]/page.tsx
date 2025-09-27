@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useSettings } from '@/context/settings-context';
 import type { Student } from '@/lib/types';
-import { Loader2, School } from 'lucide-react';
+import { Loader2, School, User, Calendar, Home, Phone, Hash } from 'lucide-react';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import Image from 'next/image';
@@ -108,7 +108,7 @@ export default function PublicStudentProfilePage() {
                         <Image src={settings.schoolLogo} alt="School Logo" width={60} height={60} className="mx-auto rounded-full mb-2"/>
                     )}
                     <h1 className="text-2xl font-bold text-foreground dark:text-white">{settings.schoolName}</h1>
-                    <p className="text-sm text-muted-foreground">{settings.schoolAddress}</p>
+                    <p className="text-sm text-muted-foreground">{settings.schoolEmail}</p>
                 </div>
                 <div className="p-8 space-y-6">
                     <div className="flex flex-col items-center gap-4">
