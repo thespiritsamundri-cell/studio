@@ -6,12 +6,24 @@ import { useEffect, useState } from 'react';
 import { useSettings } from '@/context/settings-context';
 import type { Student } from '@/lib/types';
 import { Loader2, School, User, BookOpen, Calendar, Hash, Home, Activity } from 'lucide-react';
-import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 
+// Public Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyAtnV9kiSJ-NFLfI6pG4LDvvLcjpRh_jtM",
+  authDomain: "educentral-mxfgr.firebaseapp.com",
+  projectId: "educentral-mxfgr",
+  storageBucket: "educentral-mxfgr.appspot.com",
+  messagingSenderId: "93439797301",
+  appId: "1:93439797301:web:c0cd1d46e7588e4df4297c"
+};
+
+const publicApp = !getApps().some(app => app.name === 'public-student') ? initializeApp(firebaseConfig, 'public-student') : getApp('public-student');
+const publicDb = getFirestore(publicApp);
 
 export default function PublicStudentProfilePage() {
     const params = useParams();
@@ -30,14 +42,27 @@ export default function PublicStudentProfilePage() {
             setError(null);
             try {
                 const studentId = id as string;
-                const studentDocRef = doc(db, "students", studentId);
-                const studentDoc = await getDoc(studentDocRef);
+                // Fetch from both students and alumni collections
+                const studentDocRef = doc(publicDb, "students", studentId);
+                const alumniDocRef = doc(publicDb, "alumni", studentId);
 
-                if (!studentDoc.exists()) {
+                const studentDoc = await getDoc(studentDocRef);
+                let studentData;
+
+                if (studentDoc.exists()) {
+                    studentData = { id: studentDoc.id, ...studentDoc.data() } as Student;
+                } else {
+                    const alumniDoc = await getDoc(alumniDocRef);
+                    if (alumniDoc.exists()) {
+                        studentData = { id: alumniDoc.id, status: 'Graduated', ...alumniDoc.data() } as Student;
+                    }
+                }
+                
+                if (!studentData) {
                    throw new Error(`Student with ID "${studentId}" not found.`);
                 }
                 
-                setStudent({ id: studentDoc.id, ...studentDoc.data() } as Student);
+                setStudent(studentData);
 
             } catch (err: any) {
                 console.error("Error loading student data:", err);
