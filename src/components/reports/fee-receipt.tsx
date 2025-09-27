@@ -252,5 +252,3 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
 );
 
 FeeReceipt.displayName = 'FeeReceipt';
-
-    

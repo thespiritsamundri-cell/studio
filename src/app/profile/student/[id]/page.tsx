@@ -108,7 +108,8 @@ export default function PublicStudentProfilePage() {
                         <Image src={settings.schoolLogo} alt="School Logo" width={60} height={60} className="mx-auto rounded-full mb-2"/>
                     )}
                     <h1 className="text-2xl font-bold text-foreground dark:text-white">{settings.schoolName}</h1>
-                    <p className="text-sm text-muted-foreground">{settings.schoolEmail}</p>
+                    <p className="text-sm text-muted-foreground">{settings.schoolAddress}</p>
+                    <p className="text-sm text-muted-foreground">Phone: {settings.schoolPhone}</p>
                 </div>
                 <div className="p-8 space-y-6">
                     <div className="flex flex-col items-center gap-4">
