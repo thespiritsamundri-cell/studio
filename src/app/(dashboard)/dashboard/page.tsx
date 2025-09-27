@@ -167,7 +167,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <Card className="bg-purple-100 border-purple-200 dark:bg-purple-900/30 dark:border-purple-700/50 transition-transform duration-300 ease-in-out hover:scale-105 hover:-translate-y-1">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium text-purple-800 dark:text-purple-200">Total Students</CardTitle>
@@ -389,5 +389,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
 
     

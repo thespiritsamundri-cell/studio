@@ -88,14 +88,14 @@ export default function StudentDetailsPage() {
 
   return (
     <div className="space-y-6">
-       <div className="flex items-center justify-between print:hidden">
+       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 print:hidden">
         <div className="flex items-center gap-4">
             <Button variant="outline" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
             </Button>
             <h1 className="text-3xl font-bold font-headline">Student Details</h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={handleGenerateQr}><QrCode className="h-4 w-4 mr-2"/> Show QR Code</Button>
             <Button variant="outline" onClick={() => router.push(`/students/edit/${student.id}`)}>Edit Student</Button>
             <Button onClick={handlePrint}><Printer className="h-4 w-4 mr-2" />Print</Button>
@@ -103,7 +103,7 @@ export default function StudentDetailsPage() {
       </div>
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-6">
+          <div className="flex flex-col sm:flex-row items-center gap-6">
             <Image
                 alt="Student image"
                 className="aspect-square rounded-lg object-cover"
@@ -112,10 +112,10 @@ export default function StudentDetailsPage() {
                 width="120"
                 data-ai-hint="student photo"
             />
-            <div className='space-y-1'>
+            <div className='space-y-1 text-center sm:text-left'>
                 <CardTitle className="text-4xl">{student.name}</CardTitle>
                 <CardDescription className="text-lg">Student ID: {student.id} | Class: {student.class} {student.section ? `(${student.section})` : ''}</CardDescription>
-                <Badge variant={status === 'Active' ? 'default' : 'destructive'} className={status === 'Active' ? 'bg-green-500/20 text-green-700 border-green-500/30 w-fit' : 'w-fit'}>{status}</Badge>
+                <Badge variant={status === 'Active' ? 'default' : 'destructive'} className={status === 'Active' ? 'bg-green-500/20 text-green-700 border-green-500/30 w-fit mx-auto sm:mx-0' : 'w-fit mx-auto sm:mx-0'}>{status}</Badge>
             </div>
           </div>
         </CardHeader>
@@ -173,3 +173,5 @@ const DetailItem = ({ label, value }: { label: string, value: string | undefined
       <p className="text-base font-semibold">{value || 'N/A'}</p>
     </div>
   );
+
+    
