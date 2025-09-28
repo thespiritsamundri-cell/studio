@@ -160,11 +160,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
             let generatedCount = 0;
 
             for (const family of families) {
-                if (family.status !== 'Active') continue;
-                
-                const familyStudents = students.filter(s => s.familyId === family.id && s.status === 'Active');
-                if (familyStudents.length === 0) continue;
+                 const familyStudents = students.filter(s => s.familyId === family.id);
+                 const hasEnrolledStudents = familyStudents.some(s => s.status === 'Active' || s.status === 'Inactive');
 
+                if (!hasEnrolledStudents) continue;
+                
                 const familyFees = fees.filter(f => f.familyId === family.id);
                 
                 const lastFee = familyFees
@@ -835,4 +835,5 @@ export function useData() {
   if (context === undefined) throw new Error('useData must be used within a DataProvider');
   return context;
 }
+
 
