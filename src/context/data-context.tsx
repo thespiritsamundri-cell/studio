@@ -9,7 +9,7 @@ import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, Act
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from './settings-context';
 import { createUserWithEmailAndPassword as createUserAuth, onAuthStateChanged } from 'firebase/auth';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachMonthOfInterval, getYear, getMonth, addMonths, subMonths } from 'date-fns';
 
 const defaultPermissions: PermissionSet = {
     dashboard: false, families: false, admissions: false, students: false, classes: false,
@@ -120,7 +120,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [isDataInitialized, setIsDataInitialized] = useState(false);
   const [currentUserName, setCurrentUserName] = useState('System');
 
-    const addActivityLog = useCallback(async (activity: Omit<ActivityLog, 'id' | 'timestamp' | 'user'>) => {
+  const addActivityLog = useCallback(async (activity: Omit<ActivityLog, 'id' | 'timestamp' | 'user'>) => {
     try {
         const newLogId = getDateTimeId();
         const newLogEntry: ActivityLog = {
@@ -133,7 +133,82 @@ export function DataProvider({ children }: { children: ReactNode }) {
     } catch(e) {
         console.error("Error adding activity log: ", e);
     }
-    }, [currentUserName]);
+  }, [currentUserName]);
+
+  const addFee = useCallback(async (feeData: Omit<Fee, 'id'>) => {
+    try {
+        const newDocRef = await addDoc(collection(db, "fees"), feeData);
+        return newDocRef.id;
+    } catch (e) {
+        console.error('Error adding fee:', e);
+        toast({ title: 'Error Adding Fee', variant: 'destructive' });
+    }
+  }, [toast]);
+
+    useEffect(() => {
+        const generateMonthlyFees = async () => {
+            if (!isDataInitialized || !families.length) return;
+
+            const currentDate = new Date();
+            const feeGenerationKey = `feesGeneratedFor_${format(currentDate, 'yyyy-MM')}`;
+
+            if (sessionStorage.getItem(feeGenerationKey)) {
+                return;
+            }
+
+            console.log(`Checking for fee generation up to ${format(currentDate, 'MMMM yyyy')}...`);
+            let generatedCount = 0;
+
+            for (const family of families) {
+                if (family.status !== 'Active') continue;
+                
+                const familyStudents = students.filter(s => s.familyId === family.id && s.status === 'Active');
+                if (familyStudents.length === 0) continue;
+
+                const familyFees = fees.filter(f => f.familyId === family.id);
+                
+                const lastFee = familyFees
+                    .filter(f => !['Registration', 'Annual', 'Admission'].some(type => f.month.includes(type)))
+                    .sort((a,b) => (b.year - a.year) || (getMonth(new Date(`${b.month} 1, 2000`)) - getMonth(new Date(`${a.month} 1, 2000`))))[0];
+                
+                if (!lastFee) continue;
+
+                const lastFeeDate = new Date(lastFee.year, getMonth(new Date(`${lastFee.month} 1, 2000`)));
+                
+                const monthsToGenerate = eachMonthOfInterval({
+                    start: addMonths(lastFeeDate, 1),
+                    end: currentDate
+                });
+                
+                for (const monthDate of monthsToGenerate) {
+                    const month = format(monthDate, 'MMMM');
+                    const year = getYear(monthDate);
+
+                    const feeAlreadyExists = familyFees.some(f => f.month === month && f.year === year);
+                    if (!feeAlreadyExists) {
+                         await addFee({
+                            familyId: family.id,
+                            amount: lastFee.amount,
+                            month: month,
+                            year: year,
+                            status: 'Unpaid',
+                            paymentDate: ''
+                        });
+                        generatedCount++;
+                    }
+                }
+            }
+            
+            if (generatedCount > 0) {
+                toast({ title: 'Fees Generated', description: `Generated ${generatedCount} new monthly fee challans.`});
+                addActivityLog({ action: 'Auto-Generate Fees', description: `Generated ${generatedCount} new monthly fee challans.` });
+            }
+            
+            sessionStorage.setItem(feeGenerationKey, 'true');
+        };
+
+        generateMonthlyFees();
+    }, [isDataInitialized, families, students, fees, addFee, addActivityLog, toast]);
 
   const addNotification = useCallback(async (notification: Omit<AppNotification, 'id' | 'timestamp' | 'isRead'>) => {
       const superAdmin = users.find(u => u.role === 'super_admin');
@@ -149,74 +224,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
           console.error("Error adding notification:", e);
       }
   }, [users]);
-  
-  const addFee = useCallback(async (feeData: Omit<Fee, 'id'>) => {
-    try {
-        const newDocRef = await addDoc(collection(db, "fees"), feeData);
-        if (userRole !== 'super_admin' && feeData.status === 'Paid') {
-            const family = families.find(f => f.id === feeData.familyId);
-            await addNotification({
-                title: 'Fee Collected',
-                description: `PKR ${feeData.amount.toLocaleString()} collected from ${family?.fatherName} (Family ID: ${feeData.familyId})`,
-                link: `/income?familyId=${feeData.familyId}`
-            });
-        }
-        return newDocRef.id;
-    } catch (e) {
-        console.error('Error adding fee:', e);
-        toast({ title: 'Error Adding Fee', variant: 'destructive' });
-    }
-  }, [userRole, families, addNotification, toast]);
-
-  useEffect(() => {
-    const generateMonthlyFees = async () => {
-        if (!isDataInitialized || !families.length || !students.length) return;
-
-        const currentMonth = format(new Date(), 'MMMM');
-        const currentYear = new Date().getFullYear();
-        const feeGenerationKey = `feesGenerated_${currentMonth}_${currentYear}`;
-
-        if (sessionStorage.getItem(feeGenerationKey)) {
-            return;
-        }
-
-        console.log(`Checking for ${currentMonth} ${currentYear} fee generation...`);
-        let generatedCount = 0;
-
-        for (const family of families) {
-            if (family.status !== 'Active') continue;
-            const studentsInFamily = students.filter(s => s.familyId === family.id && s.status === 'Active');
-            if (studentsInFamily.length === 0) continue;
-
-            const existingFee = fees.find(f => f.familyId === family.id && f.month === currentMonth && f.year === currentYear);
-            if (existingFee) continue;
-            
-            const lastTuitionFee = fees.filter(f => f.familyId === family.id && !['Registration', 'Annual', 'Admission', 'Board Reg Fee'].some(type => f.month.includes(type)))
-                                       .sort((a,b) => new Date(b.paymentDate || b.year).getTime() - new Date(a.paymentDate || a.year).getTime())[0];
-            
-            if (lastTuitionFee && lastTuitionFee.amount > 0) {
-                 await addFee({
-                    familyId: family.id,
-                    amount: lastTuitionFee.amount,
-                    month: currentMonth,
-                    year: currentYear,
-                    status: 'Unpaid',
-                    paymentDate: ''
-                });
-                generatedCount++;
-            }
-        }
-        
-        if (generatedCount > 0) {
-            toast({ title: 'Fees Generated', description: `Generated ${generatedCount} new fee challans for ${currentMonth}.`});
-            addActivityLog({ action: 'Auto-Generate Fees', description: `Generated ${generatedCount} fee challans for ${currentMonth}.` });
-        }
-        
-        sessionStorage.setItem(feeGenerationKey, 'true');
-    };
-
-    generateMonthlyFees();
-  }, [isDataInitialized, families, students, fees, addFee, addActivityLog, toast]);
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {

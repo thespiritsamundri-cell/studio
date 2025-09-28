@@ -17,6 +17,7 @@ export interface SchoolSettings {
   schoolLogo: string;
   favicon: string;
   principalSignature: string;
+  timezone: string;
 
   // 🔹 UltraMSG
   whatsappApiUrl: string;
@@ -61,6 +62,7 @@ export const defaultSettings: SchoolSettings = {
   schoolLogo: 'https://i.postimg.cc/Xv35Y5XZ/The-Spirit.jpg',
   favicon: 'https://i.postimg.cc/Xv35Y5XZ/The-Spirit.jpg',
   principalSignature: 'https://i.postimg.cc/XXXXXXX/signature.png',
+  timezone: 'Asia/Karachi',
   
   whatsappApiUrl: 'https://api.ultramsg.com/instance141491/',
   whatsappApiKey: '4e8f26fx3a2yi942',

@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Bell, BellOff, Lock, AlertTriangle, PlayCircle, Image as ImageIcon, CheckCircle, RefreshCcw, Users } from 'lucide-react';
+import { Download, Upload, KeyRound, Loader2, TestTubeDiagonal, MessageSquare, Send, Eye, EyeOff, Settings as SettingsIcon, Info, UserCog, Palette, Type, PenSquare, Trash2, PlusCircle, History, Database, ShieldAlert, Wifi, WifiOff, Bell, BellOff, Lock, AlertTriangle, PlayCircle, Image as ImageIcon, CheckCircle, RefreshCcw, Users, Globe } from 'lucide-react';
 
 import { useData } from '@/context/data-context';
 import { useState, useMemo, useEffect, useRef } from 'react';
@@ -183,6 +183,13 @@ export default function SettingsPage() {
     for (let i = -2; i <= 2; i++) years.push(`${currentYear + i}-${currentYear + i + 1}`);
     return years;
   };
+
+  const timezones = [
+      'UTC', 'GMT', 'Europe/London', 'Europe/Paris', 'Africa/Cairo', 
+      'Asia/Dubai', 'Asia/Karachi', 'Asia/Kolkata', 'Asia/Dhaka', 
+      'Asia/Bangkok', 'Asia/Hong_Kong', 'Asia/Tokyo', 'Australia/Sydney', 
+      'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles'
+  ];
   
   const handleCreateBackup = () => {
     const backupData = { students, families, fees, settings, activityLog };
@@ -460,6 +467,14 @@ export default function SettingsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2"> <Label htmlFor="schoolPhone">Phone Number</Label> <Input id="schoolPhone" value={settings.schoolPhone} onChange={handleInputChange} disabled={!canEdit}/> </div>
                     <div className="space-y-2"> <Label htmlFor="schoolEmail">School Email</Label> <Input id="schoolEmail" type="email" value={settings.schoolEmail} onChange={handleInputChange} disabled={!canEdit}/> </div>
+                    <div className="space-y-2"> <Label htmlFor="timezone">Timezone</Label> 
+                        <Select value={settings.timezone} onValueChange={handleSelectChange('timezone')} disabled={!canEdit}>
+                            <SelectTrigger id="timezone"><Globe className="mr-2 h-4 w-4 text-muted-foreground" /><SelectValue/></SelectTrigger>
+                            <SelectContent>{timezones.map(tz => <SelectItem key={tz} value={tz}>{tz}</SelectItem>)}</SelectContent>
+                        </Select>
+                     </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t">
                     <div className="space-y-2"> <Label htmlFor="schoolLogo">School Logo</Label> <Input id="schoolLogoInput" name="schoolLogo" type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'schoolLogo')} disabled={!canEdit}/> </div>
                     <div className="space-y-2"> <Label htmlFor="principalSignature">Principal's Signature</Label> <Input id="principalSignatureInput" name="principalSignature" type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'principalSignature')} disabled={!canEdit}/> </div>
                     <div className="space-y-2"> <Label htmlFor="favicon">Favicon</Label> <Input id="faviconInput" name="favicon" type="file" accept="image/x-icon,image/png,image/svg+xml" onChange={(e) => handleFileChange(e, 'favicon')} disabled={!canEdit}/> </div>
