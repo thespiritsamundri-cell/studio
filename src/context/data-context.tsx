@@ -120,7 +120,37 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [isDataInitialized, setIsDataInitialized] = useState(false);
   const [currentUserName, setCurrentUserName] = useState('System');
 
-  const addFee = async (feeData: Omit<Fee, 'id'>) => {
+    const addActivityLog = useCallback(async (activity: Omit<ActivityLog, 'id' | 'timestamp' | 'user'>) => {
+    try {
+        const newLogId = getDateTimeId();
+        const newLogEntry: ActivityLog = {
+            ...activity,
+            id: newLogId,
+            user: currentUserName,
+            timestamp: new Date().toISOString(),
+        };
+        await setDoc(doc(db, 'activityLog', newLogId), newLogEntry);
+    } catch(e) {
+        console.error("Error adding activity log: ", e);
+    }
+    }, [currentUserName]);
+
+  const addNotification = useCallback(async (notification: Omit<AppNotification, 'id' | 'timestamp' | 'isRead'>) => {
+      const superAdmin = users.find(u => u.role === 'super_admin');
+      if (!superAdmin) return;
+      try {
+          const newNotif: Omit<AppNotification, 'id'> = {
+              ...notification,
+              timestamp: new Date().toISOString(),
+              isRead: false,
+          };
+          await addDoc(collection(db, 'notifications'), newNotif);
+      } catch (e) {
+          console.error("Error adding notification:", e);
+      }
+  }, [users]);
+  
+  const addFee = useCallback(async (feeData: Omit<Fee, 'id'>) => {
     try {
         const newDocRef = await addDoc(collection(db, "fees"), feeData);
         if (userRole !== 'super_admin' && feeData.status === 'Paid') {
@@ -136,7 +166,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         console.error('Error adding fee:', e);
         toast({ title: 'Error Adding Fee', variant: 'destructive' });
     }
-  };
+  }, [userRole, families, addNotification, toast]);
 
   useEffect(() => {
     const generateMonthlyFees = async () => {
@@ -277,22 +307,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [userRole, userPermissions]);
   
 
-  const addActivityLog = async (activity: Omit<ActivityLog, 'id' | 'timestamp' | 'user'>) => {
-    try {
-        const newLogId = getDateTimeId();
-        const newLogEntry: ActivityLog = {
-            ...activity,
-            id: newLogId,
-            user: currentUserName,
-            timestamp: new Date().toISOString(),
-        };
-        await setDoc(doc(db, 'activityLog', newLogId), newLogEntry);
-    } catch(e) {
-        console.error("Error adding activity log: ", e);
-    }
-  };
-  
-  const clearActivityLog = async () => {
+  const clearActivityLog = useCallback(async () => {
     try {
       const activityLogRef = collection(db, 'activityLog');
       const snapshot = await getDocs(activityLogRef);
@@ -307,19 +322,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
       console.error('Error clearing activity log: ', e);
       toast({ title: 'Error Clearing History', description: 'Could not clear the activity log.', variant: 'destructive' });
     }
-  };
+  }, [addActivityLog, toast]);
 
-  const updateDocFactory = <T extends {}>(collectionName: string, actionName: string, descriptionFn: (doc: T & {id: string}) => string) => async (id: string, docData: Partial<T>) => {
+  const updateDocFactory = useCallback((collectionName: string, actionName: string, descriptionFn: (doc: any) => string) => async (id: string, docData: Partial<any>) => {
      try {
         await setDoc(doc(db, collectionName, id), docData, { merge: true });
-        await addActivityLog({ action: actionName, description: descriptionFn({ ...docData, id } as T & {id: string}) });
+        await addActivityLog({ action: actionName, description: descriptionFn({ ...docData, id }) });
     } catch (e) {
         console.error(`Error updating ${collectionName}:`, e);
         toast({ title: `Error updating ${collectionName}`, variant: "destructive" });
     }
-  }
+  }, [addActivityLog, toast]);
   
-  const createUser = async (email: string, pass: string, name: string, permissions: PermissionSet) => {
+  const createUser = useCallback(async (email: string, pass: string, name: string, permissions: PermissionSet) => {
       try {
         const userCredential = await createUserAuth(auth, email, pass);
         const user = userCredential.user;
@@ -342,20 +357,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
          }
          throw new Error(error.message || 'An unknown error occurred during user creation.');
       }
-  };
-  const updateUser = updateDocFactory<User>('users', 'Update User Permissions', d => `Updated permissions for ${d.email}.`);
-  const signOutSession = async (sessionId: string) => {
+  }, [addActivityLog]);
+
+  const updateUser = useCallback(updateDocFactory<User>('users', 'Update User Permissions', d => `Updated permissions for ${d.email}.`), [updateDocFactory]);
+  
+  const signOutSession = useCallback(async (sessionId: string) => {
      try {
         await deleteDoc(doc(db, 'sessions', sessionId));
         await addActivityLog({ action: 'Sign Out Session', description: `Remotely signed out session ${sessionId}.` });
      } catch (e) {
         console.error("Error signing out session: ", e);
      }
-  }
+  }, [addActivityLog]);
 
 
   // --- STUDENT ---
-  const addStudent = async (student: Student) => {
+  const addStudent = useCallback(async (student: Student) => {
     try {
       await setDoc(doc(db, "students", student.id), student);
       if (userRole !== 'super_admin') {
@@ -369,9 +386,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       console.error('Error adding student:', e);
       toast({ title: 'Error Adding Student', description: 'Could not save the new student to the database.', variant: 'destructive' });
     }
-  };
+  }, [userRole, addNotification, toast]);
 
-  const updateStudent = async (id: string, studentData: Partial<Student>) => {
+  const updateStudent = useCallback(async (id: string, studentData: Partial<Student>) => {
     const studentRef = doc(db, 'students', id);
   
     if (studentData.status === 'Graduated') {
@@ -406,9 +423,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
         toast({ title: "Error updating student", variant: "destructive" });
       }
     }
-  };
+  }, [addActivityLog, toast]);
   
-  const deleteStudent = async (studentId: string) => {
+  const deleteStudent = useCallback(async (studentId: string) => {
     const studentToArchive = students.find((s) => s.id === studentId);
     if (!studentToArchive) return;
     try {
@@ -418,10 +435,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
         console.error("Error archiving student:", e);
         toast({ title: "Archive Failed", description: "Could not archive student.", variant: "destructive" });
     }
-  };
+  }, [students, addActivityLog, toast]);
 
   // --- ALUMNI ---
-    const updateAlumni = async (id: string, alumniData: Partial<Alumni & { status?: Student['status'] }>) => {
+    const updateAlumni = useCallback(async (id: string, alumniData: Partial<Alumni & { status?: Student['status'] }>) => {
     const alumniRef = doc(db, 'alumni', id);
 
     if (alumniData.status && alumniData.status !== 'Graduated') {
@@ -461,10 +478,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
         toast({ title: "Error updating alumnus", variant: "destructive" });
       }
     }
-  };
+  }, [addActivityLog, toast]);
 
   // --- FAMILY ---
-  const addFamily = async (family: Family) => {
+  const addFamily = useCallback(async (family: Family) => {
     try {
       await setDoc(doc(db, "families", family.id), family);
       await addActivityLog({ action: 'Add Family', description: `Added new family: ${family.fatherName} (ID: ${family.id}).` });
@@ -472,9 +489,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       console.error('Error adding family:', e);
       toast({ title: 'Error Adding Family', variant: 'destructive' });
     }
-  };
-  const updateFamily = updateDocFactory<Family>('families', 'Update Family', d => `Updated details for family: ${d.fatherName || ''} (ID: ${d.id}).`);
-  const deleteFamily = async (id: string) => {
+  }, [addActivityLog, toast]);
+
+  const updateFamily = useCallback(updateDocFactory<Family>('families', 'Update Family', d => `Updated details for family: ${d.fatherName || ''} (ID: ${d.id}).`), [updateDocFactory]);
+  
+  const deleteFamily = useCallback(async (id: string) => {
     try {
       const batch = writeBatch(db);
       const familyRef = doc(db, 'families', id);
@@ -492,15 +511,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
       console.error('Error deleting family and associated data:', e);
       toast({ title: 'Error Deleting Family', variant: 'destructive' });
     }
-  };
+  }, [addActivityLog, toast]);
 
   // --- FEE ---
-  const updateFee = async (id: string, feeData: Partial<Fee>) => {
+  const updateFee = useCallback(async (id: string, feeData: Partial<Fee>) => {
     try { await setDoc(doc(db, 'fees', id), feeData, { merge: true }); } 
     catch(e) { console.error('Error updating fee', e); toast({ title: 'Error Updating Fee', variant: 'destructive' }); }
-  };
+  }, [toast]);
     
-const deleteFee = async (id: string) => {
+const deleteFee = useCallback(async (id: string) => {
     const feeToDelete = fees.find(f => f.id === id);
     if (!feeToDelete) {
         toast({ title: 'Fee record not found in local data.', variant: 'destructive' });
@@ -560,11 +579,11 @@ const deleteFee = async (id: string) => {
              toast({ title: 'Error Deleting Challan', description: e.message, variant: 'destructive' });
         }
     }
-};
+}, [fees, addActivityLog, toast]);
 
   
   // --- TEACHER ---
-  const addTeacher = async (teacher: Omit<Teacher, 'id'>) => {
+  const addTeacher = useCallback(async (teacher: Omit<Teacher, 'id'>) => {
     try {
       const newId = `T${Date.now()}`;
       await setDoc(doc(db, "teachers", newId), { ...teacher, id: newId });
@@ -573,9 +592,11 @@ const deleteFee = async (id: string) => {
       console.error('Error adding teacher:', e);
       toast({ title: 'Error Adding Teacher', variant: 'destructive' });
     }
-  };
-  const updateTeacher = updateDocFactory<Teacher>('teachers', 'Update Teacher', d => `Updated details for teacher: ${d.name || ''} (ID: ${d.id}).`);
-  const deleteTeacher = async (id: string) => {
+  }, [addActivityLog, toast]);
+
+  const updateTeacher = useCallback(updateDocFactory<Teacher>('teachers', 'Update Teacher', d => `Updated details for teacher: ${d.name || ''} (ID: ${d.id}).`), [updateDocFactory]);
+
+  const deleteTeacher = useCallback(async (id: string) => {
     const teacherToDelete = teachers.find(t => t.id === id);
     if (!teacherToDelete) return;
     try {
@@ -585,10 +606,10 @@ const deleteFee = async (id: string) => {
       console.error('Error deleting teacher:', e);
       toast({ title: 'Error Deleting Teacher', variant: 'destructive' });
     }
-  };
+  }, [teachers, addActivityLog, toast]);
   
   // --- CLASS ---
-  const addClass = async (classData: Class) => {
+  const addClass = useCallback(async (classData: Class) => {
     try {
       await setDoc(doc(db, "classes", classData.id), classData);
       await addActivityLog({ action: 'Add Class', description: `Created new class: ${classData.name}.` });
@@ -596,9 +617,11 @@ const deleteFee = async (id: string) => {
       console.error('Error adding class:', e);
       toast({ title: 'Error Adding Class', variant: 'destructive' });
     }
-  };
-  const updateClass = updateDocFactory<Class>('classes', 'Update Class', d => `Updated class: ${d.name || ''}.`);
-  const deleteClass = async (id: string) => {
+  }, [addActivityLog, toast]);
+
+  const updateClass = useCallback(updateDocFactory<Class>('classes', 'Update Class', d => `Updated class: ${d.name || ''}.`), [updateDocFactory]);
+  
+  const deleteClass = useCallback(async (id: string) => {
     const classToDelete = classes.find(c => c.id === id);
     if (!classToDelete) return;
     try {
@@ -608,10 +631,10 @@ const deleteFee = async (id: string) => {
       console.error('Error deleting class:', e);
       toast({ title: 'Error Deleting Class', variant: 'destructive' });
     }
-  };
+  }, [classes, addActivityLog, toast]);
   
   // --- EXAM ---
-  const addExam = async (exam: Exam) => {
+  const addExam = useCallback(async (exam: Exam) => {
     try {
       await setDoc(doc(db, 'exams', exam.id), exam);
       await addActivityLog({ action: 'Create Exam', description: `Created exam "${exam.name}" for class ${exam.class}.` });
@@ -619,9 +642,11 @@ const deleteFee = async (id: string) => {
       console.error('Error adding exam:', e);
       toast({ title: 'Error Creating Exam', variant: 'destructive' });
     }
-  };
-  const updateExam = updateDocFactory<Exam>('exams', 'Save Exam Results', d => `Saved results for exam: ${d.name || ''} (${d.class || ''}).`);
-  const deleteExam = async (id: string) => {
+  }, [addActivityLog, toast]);
+
+  const updateExam = useCallback(updateDocFactory<Exam>('exams', 'Save Exam Results', d => `Saved results for exam: ${d.name || ''} (${d.class || ''}).`), [updateDocFactory]);
+  
+  const deleteExam = useCallback(async (id: string) => {
     const examToDelete = exams.find(e => e.id === id);
     if (!examToDelete) return;
     try {
@@ -631,10 +656,10 @@ const deleteFee = async (id: string) => {
       console.error('Error deleting exam:', e);
       toast({ title: 'Error Deleting Exam', variant: 'destructive' });
     }
-  };
+  }, [exams, addActivityLog, toast]);
   
     // --- SINGLE SUBJECT TEST ---
-    const addSingleSubjectTest = async (test: Omit<SingleSubjectTest, 'id'>) => {
+    const addSingleSubjectTest = useCallback(async (test: Omit<SingleSubjectTest, 'id'>) => {
         try {
             const newDocRef = await addDoc(collection(db, "singleSubjectTests"), test);
             await addActivityLog({ action: 'Create Single Subject Test', description: `Created test "${test.testName}" for class ${test.class}.` });
@@ -643,9 +668,11 @@ const deleteFee = async (id: string) => {
             console.error('Error adding single subject test:', e);
             toast({ title: 'Error Creating Test', variant: 'destructive' });
         }
-    };
-    const updateSingleSubjectTest = updateDocFactory<SingleSubjectTest>('singleSubjectTests', 'Update Single Subject Test', d => `Updated results for test: ${d.testName}.`);
-    const deleteSingleSubjectTest = async (id: string) => {
+    }, [addActivityLog, toast]);
+
+    const updateSingleSubjectTest = useCallback(updateDocFactory<SingleSubjectTest>('singleSubjectTests', 'Update Single Subject Test', d => `Updated results for test: ${d.testName}.`), [updateDocFactory]);
+    
+    const deleteSingleSubjectTest = useCallback(async (id: string) => {
         const testToDelete = singleSubjectTests.find(t => t.id === id);
         if (!testToDelete) return;
         try {
@@ -655,10 +682,10 @@ const deleteFee = async (id: string) => {
             console.error('Error deleting single subject test:', e);
             toast({ title: 'Error Deleting Test', variant: 'destructive' });
         }
-    };
+    }, [singleSubjectTests, addActivityLog, toast]);
 
     // --- EXPENSE ---
-    const addExpense = async (expense: Omit<Expense, 'id'>) => {
+    const addExpense = useCallback(async (expense: Omit<Expense, 'id'>) => {
         try {
             const newId = `EXP-${Date.now()}`;
             await setDoc(doc(db, "expenses", newId), { id: newId, ...expense });
@@ -674,9 +701,9 @@ const deleteFee = async (id: string) => {
             console.error('Error adding expense:', e);
             toast({ title: 'Error Adding Expense', variant: 'destructive' });
         }
-    };
+    }, [userRole, addNotification, addActivityLog, toast]);
 
-    const updateExpense = async (id: string, expenseData: Partial<Expense>) => {
+    const updateExpense = useCallback(async (id: string, expenseData: Partial<Expense>) => {
       try {
         const expenseRef = doc(db, 'expenses', id);
         await setDoc(expenseRef, expenseData, { merge: true });
@@ -685,9 +712,9 @@ const deleteFee = async (id: string) => {
         console.error(`Error updating expense:`, e);
         toast({ title: `Error updating expense`, variant: "destructive" });
       }
-    };
+    }, [addActivityLog, toast]);
     
-const deleteExpense = async (id: string) => {
+const deleteExpense = useCallback(async (id: string) => {
     const expenseToDelete = expenses.find(exp => exp.id === id);
     if (!expenseToDelete) {
         toast({ title: 'Error', description: 'Could not find the expense to delete in local data.', variant: 'destructive' });
@@ -728,10 +755,10 @@ const deleteExpense = async (id: string) => {
         console.error("Error deleting expense:", error);
         toast({ title: "Error Deleting Expense", description: error.message, variant: "destructive" });
     }
-};
+}, [expenses, addActivityLog, toast]);
 
   // --- ATTENDANCE ---
-  const saveStudentAttendance = async (newAttendances: Attendance[], date: string, className: string) => {
+  const saveStudentAttendance = useCallback(async (newAttendances: Attendance[], date: string, className: string) => {
     if (!date || !className) return;
     try {
         const batch = writeBatch(db);
@@ -741,9 +768,9 @@ const deleteExpense = async (id: string) => {
         await batch.commit();
         await addActivityLog({ action: 'Save Student Attendance', description: `Saved attendance for class ${className} on date: ${date}.` });
     } catch (e) { console.error('Error saving student attendance: ', e); }
-};
+  }, [addActivityLog]);
 
-  const saveTeacherAttendance = async (newAttendances: TeacherAttendance[]) => {
+  const saveTeacherAttendance = useCallback(async (newAttendances: TeacherAttendance[]) => {
     const date = newAttendances[0]?.date;
     if (!date) return;
     try {
@@ -754,9 +781,9 @@ const deleteExpense = async (id: string) => {
         await batch.commit();
         await addActivityLog({ action: 'Save Teacher Attendance', description: `Saved teacher attendance for date: ${date}.` });
     } catch (e) { console.error('Error saving teacher attendance: ', e); }
-  };
+  }, [addActivityLog]);
   
-  const updateTimetable = async (classId: string, data: TimetableData, timeSlots?: string[], breakAfterPeriod?: number, breakDuration?: string) => {
+  const updateTimetable = useCallback(async (classId: string, data: TimetableData, timeSlots?: string[], breakAfterPeriod?: number, breakDuration?: string) => {
     try {
         const timetableRef = doc(db, 'timetables', classId);
         await setDoc(timetableRef, { classId, data, timeSlots, breakAfterPeriod, breakDuration }, { merge: true });
@@ -766,30 +793,15 @@ const deleteExpense = async (id: string) => {
         console.error('Error updating timetable', e);
         toast({ title: 'Error saving timetable', variant: 'destructive'});
     }
-  };
+  }, [classes, addActivityLog, toast]);
   
-  // --- NOTIFICATIONS ---
-  const addNotification = async (notification: Omit<AppNotification, 'id' | 'timestamp' | 'isRead'>) => {
-      const superAdmin = users.find(u => u.role === 'super_admin');
-      if (!superAdmin) return;
-      try {
-          const newNotif: Omit<AppNotification, 'id'> = {
-              ...notification,
-              timestamp: new Date().toISOString(),
-              isRead: false,
-          };
-          await addDoc(collection(db, 'notifications'), newNotif);
-      } catch (e) {
-          console.error("Error adding notification:", e);
-      }
-  };
-  const markNotificationAsRead = async (id: string) => {
+  const markNotificationAsRead = useCallback(async (id: string) => {
     try {
       await updateDoc(doc(db, 'notifications', id), { isRead: true });
     } catch (e) {
       console.error("Error marking notification as read:", e);
     }
-  };
+  }, []);
 
   const seedDatabase = async () => { console.log('seedDatabase called'); };
   const deleteAllData = async () => { console.log('deleteAllData called'); };
