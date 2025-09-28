@@ -687,7 +687,7 @@ const deleteFee = async (id: string) => {
       }
     };
     
-    const deleteExpense = async (id: string) => {
+const deleteExpense = async (id: string) => {
     const expenseToDelete = expenses.find(exp => exp.id === id);
     if (!expenseToDelete) {
         toast({ title: 'Error', description: 'Could not find the expense to delete in local data.', variant: 'destructive' });
@@ -816,5 +816,3 @@ export function useData() {
   if (context === undefined) throw new Error('useData must be used within a DataProvider');
   return context;
 }
-
-    

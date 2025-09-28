@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -165,7 +166,6 @@ export default function ExpensesPage() {
   const handleConfirmDelete = () => {
     if (!expenseToDelete) return;
     deleteExpense(expenseToDelete.id);
-    toast({ title: "Expense Deleted", description: "The expense record has been successfully deleted.", variant: "destructive" });
     setOpenDeleteDialog(false);
   };
   
@@ -396,5 +396,3 @@ export default function ExpensesPage() {
     </div>
   );
 }
-
-    
