@@ -351,7 +351,14 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                                     <TableCell>{student.id}</TableCell>
                                     <TableCell>{student.name}</TableCell>
                                     <TableCell>{student.class}</TableCell>
-                                    <TableCell><Badge variant={student.status === 'Active' ? 'default' : 'destructive'} className={student.status === 'Active' ? 'bg-green-500/20 text-green-700 border-green-500/30' : ''}>{student.status}</Badge></TableCell>
+                                    <TableCell>
+                                        <Badge 
+                                            variant={student.status === 'Active' ? 'default' : student.status === 'Graduated' ? 'secondary' : 'destructive'} 
+                                            className={student.status === 'Active' ? 'bg-green-500/20 text-green-700 border-green-500/30' : ''}
+                                        >
+                                            {student.status}
+                                        </Badge>
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
