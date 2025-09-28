@@ -147,7 +147,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         const generateMonthlyFees = async () => {
-            if (!isDataInitialized || !families.length) return;
+            if (!isDataInitialized || !families.length || !settings.timezone) return;
 
             const currentDate = new Date();
             const feeGenerationKey = `feesGeneratedFor_${format(currentDate, 'yyyy-MM')}`;
@@ -208,7 +208,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         };
 
         generateMonthlyFees();
-    }, [isDataInitialized, families, students, fees, addFee, addActivityLog, toast]);
+    }, [isDataInitialized, families, students, fees, addFee, addActivityLog, toast, settings.timezone]);
 
   const addNotification = useCallback(async (notification: Omit<AppNotification, 'id' | 'timestamp' | 'isRead'>) => {
       const superAdmin = users.find(u => u.role === 'super_admin');
@@ -835,5 +835,3 @@ export function useData() {
   if (context === undefined) throw new Error('useData must be used within a DataProvider');
   return context;
 }
-
-
