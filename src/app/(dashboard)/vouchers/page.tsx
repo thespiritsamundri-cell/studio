@@ -35,7 +35,6 @@ export interface VoucherData {
     lateFeeFine: number;
   };
   grandTotal: number;
-  notes: string;
   voucherId: string;
 }
 
@@ -63,11 +62,6 @@ export default function VouchersPage() {
   const [bulkLateFee, setBulkLateFee] = useState(50);
   const [bulkAnnualCharges, setBulkAnnualCharges] = useState(0);
   const [bulkBoardRegFee, setBulkBoardRegFee] = useState(0);
-  
-  const bulkNotes = '1. Dues, once paid, are not refundable in any case.\n' +
-    "2. If a student doesn't pay the dues by the due date, a fine will be charged.\n" +
-    '3. The amount of fines can only be changed within three days after display of fines on Notice Board.';
-
 
   // --- Individual Voucher Logic ---
   const handleIndividualSearch = () => {
@@ -113,7 +107,7 @@ export default function VouchersPage() {
           concession: 0, // Concession logic can be added here if needed
       };
       
-      const grandTotal = Object.values(feeItems).reduce((acc, val) => acc + val, 0) - feeItems.concession - feeItems.lateFeeFine;
+      const grandTotal = feeItems.monthlyFee + feeItems.admissionFee + feeItems.pendingDues + feeItems.annualCharges + feeItems.boardRegFee - feeItems.concession;
       const voucherId = `VCH-${family.id}-${Date.now()}`;
       
       return {
@@ -122,7 +116,6 @@ export default function VouchersPage() {
           feeMonths: feeMonths,
           feeItems,
           grandTotal,
-          notes: bulkNotes,
           voucherId,
       };
   }
@@ -130,10 +123,16 @@ export default function VouchersPage() {
   const individualVoucherData = useMemo(() => {
     if (!searchedFamily) return null;
     return generateVoucherDataForFamily(searchedFamily.id, individualIssueDate, individualDueDate, individualLateFee, individualAnnualCharges, individualBoardRegFee);
-  }, [searchedFamily, allFees, individualIssueDate, individualDueDate, individualLateFee, individualAnnualCharges, individualBoardRegFee, generateVoucherDataForFamily]);
+  }, [searchedFamily, allFees, individualIssueDate, individualDueDate, individualLateFee, individualAnnualCharges, individualBoardRegFee]);
 
   const handlePrintIndividual = async () => {
     if (!searchedFamily || !individualVoucherData) return;
+    const familyStudents = students.filter(s => s.familyId === searchedFamily.id);
+    if (familyStudents.length === 0) {
+      toast({ title: 'No Students Found', description: `Family ${searchedFamily.id} has no active students.`, variant: 'destructive' });
+      return;
+    }
+
     setIsPrintingIndividual(true);
     
     let qrCodeDataUri = '';
@@ -145,7 +144,6 @@ export default function VouchersPage() {
         toast({ title: 'QR Generation Failed', variant: 'destructive'});
     }
 
-    const familyStudents = students.filter(s => s.familyId === searchedFamily.id);
     const voucherToPrint = { family: searchedFamily, students: familyStudents, voucherData: individualVoucherData, qrCodeDataUri };
 
     setTimeout(() => {
@@ -354,3 +352,5 @@ export default function VouchersPage() {
     </div>
   );
 }
+
+    
