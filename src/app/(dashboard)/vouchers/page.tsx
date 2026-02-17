@@ -20,6 +20,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { generateQrCode } from '@/ai/flows/generate-qr-code';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export interface VoucherData {
   issueDate: string;
@@ -39,9 +41,13 @@ export interface VoucherData {
 }
 
 export default function VouchersPage() {
-  const { families, students, fees: allFees, classes } = useData();
+  const { classes } = useData();
   const { settings } = useSettings();
   const { toast } = useToast();
+
+  const [allFamilies, setAllFamilies] = useState<Family[]>([]);
+  const [allStudents, setAllStudents] = useState<Student[]>([]);
+  const [allFees, setAllFees] = useState<Fee[]>([]);
 
   // State for Individual Voucher
   const [individualFamilyId, setIndividualFamilyId] = useState('');
@@ -62,11 +68,30 @@ export default function VouchersPage() {
   const [bulkLateFee, setBulkLateFee] = useState(50);
   const [bulkAnnualCharges, setBulkAnnualCharges] = useState(0);
   const [bulkBoardRegFee, setBulkBoardRegFee] = useState(0);
+  
+  useEffect(() => {
+    const fetchInitialData = async () => {
+        const familiesQuery = query(collection(db, 'families'), where('status', '!=', 'Archived'));
+        const studentsQuery = query(collection(db, 'students'), where('status', '!=', 'Archived'));
+        const feesQuery = query(collection(db, 'fees'));
+        
+        const [familiesSnapshot, studentsSnapshot, feesSnapshot] = await Promise.all([
+            getDocs(familiesQuery),
+            getDocs(studentsQuery),
+            getDocs(feesQuery),
+        ]);
+
+        setAllFamilies(familiesSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as Family)));
+        setAllStudents(studentsSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as Student)));
+        setAllFees(feesSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as Fee)));
+    };
+    fetchInitialData();
+  }, []);
 
   // --- Individual Voucher Logic ---
   const handleIndividualSearch = () => {
     if (!individualFamilyId) return;
-    const family = families.find(f => f.id === individualFamilyId);
+    const family = allFamilies.find(f => f.id === individualFamilyId);
     if (family) {
       setSearchedFamily(family);
       toast({ title: 'Family Found', description: `Displaying details for ${family.fatherName}` });
@@ -77,7 +102,7 @@ export default function VouchersPage() {
   };
   
     const generateVoucherDataForFamily = (familyId: string, issueDate: string, dueDate: string, lateFee: number, annualCharges: number, boardRegFee: number): VoucherData | null => {
-      const family = families.find(f => f.id === familyId);
+      const family = allFamilies.find(f => f.id === familyId);
       if (!family) return null;
 
       const familyUnpaidFees = allFees.filter(fee => fee.familyId === family.id && fee.status === 'Unpaid');
@@ -123,11 +148,11 @@ export default function VouchersPage() {
   const individualVoucherData = useMemo(() => {
     if (!searchedFamily) return null;
     return generateVoucherDataForFamily(searchedFamily.id, individualIssueDate, individualDueDate, individualLateFee, individualAnnualCharges, individualBoardRegFee);
-  }, [searchedFamily, allFees, individualIssueDate, individualDueDate, individualLateFee, individualAnnualCharges, individualBoardRegFee]);
+  }, [searchedFamily, allFees, individualIssueDate, individualDueDate, individualLateFee, individualAnnualCharges, individualBoardRegFee, allFamilies]);
 
   const handlePrintIndividual = async () => {
     if (!searchedFamily || !individualVoucherData) return;
-    const familyStudents = students.filter(s => s.familyId === searchedFamily.id);
+    const familyStudents = allStudents.filter(s => s.familyId === searchedFamily.id);
     if (familyStudents.length === 0) {
       toast({ title: 'No Students Found', description: `Family ${searchedFamily.id} has no active students.`, variant: 'destructive' });
       return;
@@ -165,21 +190,21 @@ export default function VouchersPage() {
   const handleBulkClassFilter = (className: string) => {
     setBulkClassFilter(className);
     if (className === 'all') {
-        setSelectedFamilyIds(families.filter(f => f.status !== 'Archived').map(f => f.id));
+        setSelectedFamilyIds(allFamilies.filter(f => f.status !== 'Archived').map(f => f.id));
         return;
     }
-    const studentFamilyIds = students.filter(s => s.class === className).map(s => s.familyId);
+    const studentFamilyIds = allStudents.filter(s => s.class === className).map(s => s.familyId);
     const uniqueFamilyIds = [...new Set(studentFamilyIds)];
     setSelectedFamilyIds(uniqueFamilyIds);
   };
   
   useEffect(() => {
-    setSelectedFamilyIds(families.filter(f => f.status !== 'Archived').map(f => f.id));
-  }, [families]);
+    setSelectedFamilyIds(allFamilies.filter(f => f.status !== 'Archived').map(f => f.id));
+  }, [allFamilies]);
 
   const familiesForBulkSelection = useMemo(() => {
-      return families.filter(f => f.status !== 'Archived');
-  }, [families]);
+      return allFamilies.filter(f => f.status !== 'Archived');
+  }, [allFamilies]);
 
   const handleSelectFamily = (familyId: string) => {
     setSelectedFamilyIds(prev =>
@@ -202,10 +227,10 @@ export default function VouchersPage() {
     const allVouchersData: { family: Family; students: Student[]; voucherData: VoucherData, qrCodeDataUri: string }[] = [];
 
     for (const familyId of selectedFamilyIds) {
-        const family = families.find(f => f.id === familyId);
+        const family = allFamilies.find(f => f.id === familyId);
         if (!family || family.status === 'Archived') continue;
 
-        const familyStudents = students.filter(s => s.familyId === family.id && s.status === 'Active');
+        const familyStudents = allStudents.filter(s => s.familyId === family.id && s.status === 'Active');
         if (familyStudents.length === 0) continue;
 
         const voucherData = generateVoucherDataForFamily(familyId, bulkIssueDate, bulkDueDate, bulkLateFee, bulkAnnualCharges, bulkBoardRegFee);
@@ -266,7 +291,7 @@ export default function VouchersPage() {
                 {searchedFamily && individualVoucherData && (
                     <div className="mt-6 p-4 border rounded-lg bg-muted/50">
                         <h3 className="font-bold text-lg">{searchedFamily.fatherName} (ID: {searchedFamily.id})</h3>
-                        <p className="text-sm text-muted-foreground">Students: {students.filter(s => s.familyId === searchedFamily.id).map(s => s.name).join(', ')}</p>
+                        <p className="text-sm text-muted-foreground">Students: {allStudents.filter(s => s.familyId === searchedFamily.id).map(s => s.name).join(', ')}</p>
                         <p className="font-semibold mt-2">Total Dues: PKR {individualVoucherData.grandTotal}</p>
                         <Separator className="my-4"/>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
@@ -318,7 +343,7 @@ export default function VouchersPage() {
                                         <TableCell><Checkbox checked={selectedFamilyIds.includes(family.id)} onCheckedChange={() => handleSelectFamily(family.id)} /></TableCell>
                                         <TableCell>{family.id}</TableCell>
                                         <TableCell>{family.fatherName}</TableCell>
-                                        <TableCell><div className="flex items-center gap-1 text-xs"><Users className="h-3 w-3"/>{students.filter(s => s.familyId === family.id).length}</div></TableCell>
+                                        <TableCell><div className="flex items-center gap-1 text-xs"><Users className="h-3 w-3"/>{allStudents.filter(s => s.familyId === family.id).length}</div></TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
@@ -352,5 +377,3 @@ export default function VouchersPage() {
     </div>
   );
 }
-
-    

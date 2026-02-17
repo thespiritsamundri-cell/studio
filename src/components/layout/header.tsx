@@ -50,24 +50,18 @@ function getTitleFromPathname(pathname: string): string {
   return lastPart.replace(/-/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 }
 
-type SearchResult = 
-  | { type: 'student'; data: Student }
-  | { type: 'family'; data: Family };
-
 
 export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const pageTitle = getTitleFromPathname(pathname);
   const { settings } = useSettings();
-  const { students, families, userRole, notifications, markNotificationAsRead } = useData();
+  const { userRole, notifications, markNotificationAsRead } = useData();
   
   const [dateTime, setDateTime] = useState<Date | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [openSupportDialog, setOpenSupportDialog] = useState(false);
-  const [openSearchDialog, setOpenSearchDialog] = useState(false);
   
   const unreadNotifications = useMemo(() => notifications.filter(n => !n.isRead), [notifications]);
 
@@ -82,58 +76,11 @@ export function Header() {
     router.push('/lock');
   };
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const query = e.target.value.toLowerCase();
-    setSearchQuery(e.target.value);
-
-    if (query.length > 0) {
-        const studentResults: SearchResult[] = students.filter(student =>
-            student.name.toLowerCase().includes(query) ||
-            student.fatherName.toLowerCase().includes(query) ||
-            student.id.toLowerCase().includes(query) ||
-            student.familyId.toLowerCase().includes(query)
-        ).map(s => ({ type: 'student', data: s }));
-
-        const familyResults: SearchResult[] = families.filter(family =>
-            family.fatherName.toLowerCase().includes(query) ||
-            family.id.toLowerCase().includes(query)
-        ).map(f => ({ type: 'family', data: f }));
-        
-        const combinedResults = [...studentResults, ...familyResults];
-        const uniqueResults: SearchResult[] = [];
-        const seen = new Set<string>();
-
-        for (const result of combinedResults) {
-            if (result.type === 'student') {
-                const key = `student-${result.data.id}`;
-                if (!seen.has(key)) {
-                    uniqueResults.push(result);
-                    seen.add(key);
-                }
-            } else if (result.type === 'family') {
-                const key = `family-${result.data.id}`;
-                if (!seen.has(key)) {
-                    uniqueResults.push(result);
-                    seen.add(key);
-                }
-            }
-        }
-
-      setSearchResults(uniqueResults.slice(0, 10)); 
-    } else {
-      setSearchResults([]);
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/students?search=${searchQuery.trim()}`);
     }
-  };
-
-  const handleResultClick = (result: SearchResult) => {
-    if (result.type === 'student') {
-        router.push(`/students/details/${result.data.id}`);
-    } else {
-        router.push(`/students?familyId=${result.data.id}`);
-    }
-    setSearchQuery('');
-    setSearchResults([]);
-    setOpenSearchDialog(false);
   };
 
   const handleNotificationClick = (notification: AppNotification) => {
@@ -156,64 +103,16 @@ export function Header() {
 
         {/* Search */}
         <div className="flex flex-1 items-center justify-end gap-2 md:gap-4">
-           <Dialog open={openSearchDialog} onOpenChange={setOpenSearchDialog}>
-             <DialogTrigger asChild>
-                <Button variant="outline" className="w-full justify-start text-muted-foreground md:w-auto md:justify-center">
-                    <Search className="h-4 w-4 mr-2" />
-                    <span className="hidden lg:inline-block">Search...</span>
-                    <span className="lg:hidden">Search</span>
-                </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-xl p-0">
-                <DialogHeader className="p-4 border-b">
-                    <DialogTitle>Global Search</DialogTitle>
-                </DialogHeader>
-                <div className="p-4">
-                     <div className="relative">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Search by student, father, ID, or family ID..."
-                            className="w-full rounded-lg bg-background pl-8"
-                            value={searchQuery}
-                            onChange={handleSearchChange}
-                            autoFocus
-                        />
-                    </div>
-                    <ScrollArea className="h-72 mt-4">
-                        <ul>
-                          {searchResults.map((result, index) => (
-                              <li
-                                  key={`${result.type}-${result.type === 'student' ? result.data.id : result.data.id}-${index}`}
-                                  className="p-3 border-b last:border-b-0 hover:bg-accent cursor-pointer"
-                                  onMouseDown={() => handleResultClick(result)}
-                              >
-                                  <div className="flex items-center gap-3">
-                                      <Avatar className="h-9 w-9">
-                                          {result.type === 'student' && <AvatarImage src={result.data.photoUrl} alt={result.data.name} />}
-                                          <AvatarFallback>
-                                              {result.type === 'student' ? <User /> : <Home />}
-                                          </AvatarFallback>
-                                      </Avatar>
-                                      <div>
-                                          <p className="font-semibold text-sm">{result.data.name || result.data.fatherName}</p>
-                                          <p className="text-xs text-muted-foreground">
-                                              {result.type === 'student'
-                                                  ? `Student (ID: ${result.data.id}, Family: ${result.data.familyId})`
-                                                  : `Family (ID: ${result.data.id}, Phone: ${result.data.phone})`
-                                              }
-                                          </p>
-                                      </div>
-                                  </div>
-                              </li>
-                          ))}
-                           {searchQuery.length > 1 && searchResults.length === 0 && (
-                                <li className="p-4 text-center text-sm text-muted-foreground">No results found.</li>
-                           )}
-                        </ul>
-                    </ScrollArea>
-                </div>
-            </DialogContent>
-           </Dialog>
+            <form onSubmit={handleSearchSubmit} className="relative w-full md:w-auto">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                    type="search"
+                    placeholder="Search students..."
+                    className="w-full rounded-lg bg-muted pl-8 md:w-[200px] lg:w-[336px]"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                />
+            </form>
             
           {dateTime && (
             <div className="hidden lg:flex items-center gap-2">
@@ -295,5 +194,3 @@ export function Header() {
     </>
   );
 }
-
-    

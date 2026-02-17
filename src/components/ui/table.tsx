@@ -116,5 +116,3 @@ export {
   TableCell,
   TableCaption,
 }
-
-    
