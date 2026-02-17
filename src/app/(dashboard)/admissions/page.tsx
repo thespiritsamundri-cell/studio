@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -61,22 +62,15 @@ export default function AdmissionsPage() {
     
     const availableSections = classes.find(c => c.name === studentClass)?.sections || [];
 
-    const MALE_AVATAR = 'https://i.postimg.cc/x1BZ31bs/male.png';
-    const FEMALE_AVATAR = 'https://i.postimg.cc/7hgPwR8W/1487318.png';
-
     useEffect(() => {
         if (photoFile) {
             const objectUrl = URL.createObjectURL(photoFile);
             setPhotoPreview(objectUrl);
             return () => URL.revokeObjectURL(objectUrl);
-        } else if (gender === 'Male') {
-            setPhotoPreview(MALE_AVATAR);
-        } else if (gender === 'Female') {
-            setPhotoPreview(FEMALE_AVATAR);
         } else {
             setPhotoPreview(null);
         }
-    }, [photoFile, gender]);
+    }, [photoFile]);
 
     useEffect(() => {
         if (foundFamily) {
@@ -199,10 +193,6 @@ export default function AdmissionsPage() {
                 });
                 photoUrl = `https://picsum.photos/seed/${newStudentId}/100/100`;
             }
-        } else if (gender === 'Male') {
-            photoUrl = MALE_AVATAR;
-        } else if (gender === 'Female') {
-            photoUrl = FEMALE_AVATAR;
         } else {
             photoUrl = `https://picsum.photos/seed/${newStudentId}/100/100`;
         }
@@ -587,3 +577,5 @@ export default function AdmissionsPage() {
     </div>
   );
 }
+
+    
