@@ -266,10 +266,9 @@ export default function AdmissionsPage() {
               if (result.success) {
                 addActivityLog({ action: 'Send WhatsApp Message', description: `Sent admission confirmation to 1 recipient.`, recipientCount: 1 });
               } else {
-                throw new Error(result.error);
+                toast({ title: 'WhatsApp Failed', description: `Could not send admission confirmation. Error: ${result.error}`, variant: 'destructive'});
               }
             } catch (error: any) {
-              console.error("Failed to send admission WhatsApp message:", error);
               toast({ title: 'WhatsApp Failed', description: `Could not send admission confirmation. Error: ${error.message}`, variant: 'destructive'});
             }
           }

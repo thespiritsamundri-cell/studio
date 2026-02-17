@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -244,10 +245,9 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                     if (result.success) {
                         addActivityLog({ action: 'Send WhatsApp Message', description: 'Sent fee payment receipt to 1 recipient.', recipientCount: 1 });
                     } else {
-                        throw new Error(result.error);
+                        toast({ title: 'WhatsApp Failed', description: `Could not send payment receipt. Error: ${result.error}`, variant: 'destructive' });
                     }
                 } catch (error: any) {
-                    console.error("Failed to send payment receipt.", error);
                     toast({ title: 'WhatsApp Failed', description: `Could not send payment receipt. Error: ${error.message}`, variant: 'destructive' });
                 }
             }
