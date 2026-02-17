@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -22,12 +21,10 @@ const Slip = ({ student, settings, examName, dateSheet, instructions, rollNo, qr
     
     const formatDate = (dateString: string) => {
         if (!dateString) return '-';
-        // Handle cases where date might not be in ISO format but 'yyyy-mm-dd'
         try {
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) return dateString; // Return original if invalid
-            // add a day to fix timezone issues
-            date.setDate(date.getDate() + 1);
+            // Handles 'YYYY-MM-DD' and prevents timezone shifts by parsing as UTC.
+            const date = new Date(`${dateString}T00:00:00`);
+            if (isNaN(date.getTime())) return dateString;
             return format(date, 'dd-MM-yyyy');
         } catch {
             return dateString;
@@ -47,36 +44,36 @@ const Slip = ({ student, settings, examName, dateSheet, instructions, rollNo, qr
                 {/* Header */}
                 <header className="text-center mb-2">
                     {settings.schoolLogo && <Image src={settings.schoolLogo} alt="School Logo" width={50} height={50} className="object-contain mx-auto" />}
-                    <h1 className="text-xl font-bold uppercase" style={{color: '#005baa'}}>{settings.schoolName}</h1>
+                    <h1 className="text-xl font-bold uppercase text-primary">{settings.schoolName}</h1>
                     <p className="text-[10px] text-gray-700">{settings.schoolAddress}</p>
                     <p className="text-[10px] text-gray-700">Phone: {settings.schoolPhone}</p>
-                    <div className="border-b-2 border-t-2 border-blue-800 mt-1 py-0.5" style={{borderColor: '#005baa'}}>
-                        <h2 className="text-base font-semibold" style={{color: '#005baa'}}>{examName}</h2>
+                    <div className="border-b-2 border-t-2 border-primary mt-1 py-0.5">
+                        <h2 className="text-base font-semibold text-primary">{examName}</h2>
                     </div>
                 </header>
 
                 {/* Student Info & Photo */}
                 <section className="flex justify-between items-start my-2">
-                     <div className="grid grid-cols-1 gap-1.5 text-xs w-2/3">
+                     <div className="grid grid-cols-1 gap-2 text-xs w-2/3">
                         <div className="flex">
-                            <span className="font-bold w-28">ROLL NO:</span>
+                            <span className="font-bold w-28 shrink-0">ROLL NO:</span>
                             <span className="font-bold border-b border-black flex-1">{rollNo}</span>
                         </div>
                         <div className="flex">
-                           <span className="font-bold w-28">STUDENT NAME:</span>
+                           <span className="font-bold w-28 shrink-0">STUDENT NAME:</span>
                            <span className="border-b border-black flex-1">{student.name}</span>
                         </div>
                          <div className="flex">
-                           <span className="font-bold w-28">FATHER'S NAME:</span>
+                           <span className="font-bold w-28 shrink-0">FATHER'S NAME:</span>
                            <span className="border-b border-black flex-1">{student.fatherName}</span>
                         </div>
                         <div className="flex">
-                           <span className="font-bold w-28">CLASS:</span>
+                           <span className="font-bold w-28 shrink-0">CLASS:</span>
                            <span className="border-b border-black flex-1">{student.class} {student.section ? `(${student.section})` : ''}</span>
                         </div>
                     </div>
                     <div className="flex flex-col items-center w-1/3 pl-4">
-                        <div className="w-24 h-28 border-2 border-gray-400 flex items-center justify-center">
+                        <div className="w-24 h-28 border-2 border-gray-400 flex items-center justify-center p-0.5 bg-white">
                             <Image
                                 src={student.photoUrl}
                                 alt="Student Photo"
@@ -123,7 +120,7 @@ const Slip = ({ student, settings, examName, dateSheet, instructions, rollNo, qr
 
                 {/* Instructions & Footer */}
                 <footer className="mt-auto pt-2 space-y-2">
-                    <div className="p-2 border border-yellow-500 bg-yellow-100 rounded-md">
+                    <div className="p-2 border border-yellow-500 bg-yellow-100/70 rounded-md">
                         <h3 className="text-xs font-bold underline">Instructions:</h3>
                         <div className="whitespace-pre-wrap text-[9px] mt-1 font-urdu">{instructions}</div>
                     </div>
@@ -133,11 +130,11 @@ const Slip = ({ student, settings, examName, dateSheet, instructions, rollNo, qr
                          </div>
                          <div className="flex flex-col items-center">
                             <div className="h-[30px]">
-                            {settings.principalSignature && (
+                            {settings.principalSignature ? (
                                 <Image src={settings.principalSignature} alt="Principal's Signature" width={100} height={30} className="object-contain" />
-                            )}
+                            ) : null}
                             </div>
-                            <div className="border-t-2 border-gray-800 w-40 text-center pt-0.5">
+                            <div className="border-t-2 border-gray-800 w-48 text-center pt-0.5">
                                 <p className="font-bold text-[10px]">Controller of Examinations</p>
                             </div>
                         </div>
