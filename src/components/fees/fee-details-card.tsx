@@ -14,7 +14,6 @@ import { FeeReceipt } from '../reports/fee-receipt';
 import { useToast } from '@/hooks/use-toast';
 import { Printer, Download, Loader2 } from 'lucide-react';
 import { renderToString } from 'react-dom/server';
-import { createRoot } from 'react-dom/client';
 import type { SchoolSettings } from '@/context/settings-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useData } from '@/context/data-context';
@@ -35,15 +34,12 @@ interface FeeDetailsCardProps {
     settings: SchoolSettings;
 }
 
-type PrintType = 'normal' | 'thermal';
-
 export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, onDeleteFee, settings }: FeeDetailsCardProps) {
     const { toast } = useToast();
     const { addActivityLog, addNotification } = useData();
 
     const [paidAmount, setPaidAmount] = useState<number>(0);
     const [paymentMethod, setPaymentMethod] = useState('By Hand');
-    const [printType, setPrintType] = useState<PrintType>('normal');
     const [isDownloadingJpg, setIsDownloadingJpg] = useState(false);
     
     const unpaidFees = useMemo(() => fees.filter(f => f.status === 'Unpaid'), [fees]);
@@ -62,6 +58,10 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
             container.style.left = '-9999px';
             document.body.appendChild(container);
 
+            // Temporarily render the component to an off-screen div
+            const tempRoot = document.createElement('div');
+            container.appendChild(tempRoot);
+            
             const receiptElement = (
                 <FeeReceipt
                     family={family}
@@ -72,17 +72,16 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                     remainingDues={newRemainingDues}
                     settings={settings}
                     paymentMethod={method}
-                    printType={printType}
                     receiptId={receiptId}
                     qrCodeDataUri={qrCodeDataUri}
                 />
             );
-            
-            const root = createRoot(container);
-            root.render(receiptElement);
+             // Can't use createRoot with renderToString on server, so we do it this way on client
+             tempRoot.innerHTML = renderToString(receiptElement);
+
 
             setTimeout(async () => {
-                const receiptNode = container.firstChild as HTMLElement;
+                const receiptNode = tempRoot.firstChild as HTMLElement;
                 if (!receiptNode) {
                     document.body.removeChild(container);
                     return reject(new Error("Receipt element not found for canvas generation."));
@@ -98,7 +97,6 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                 } catch (error) {
                     reject(error);
                 } finally {
-                    root.unmount();
                     document.body.removeChild(container);
                 }
             }, 500);
@@ -272,14 +270,12 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                 remainingDues={newRemainingDues}
                 settings={settings}
                 paymentMethod={method}
-                printType={printType}
                 receiptId={receiptId}
                 qrCodeDataUri={qrCodeDataUri}
             />
         );
         const printWindow = window.open('', '_blank');
         if(printWindow) {
-            const bodyClass = printType === 'thermal' ? 'thermal-receipt-body' : '';
             printWindow.document.write(`
                 <html>
                     <head>
@@ -287,7 +283,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                         <script src="https://cdn.tailwindcss.com"></script>
                         <link rel="stylesheet" href="/print-styles.css">
                     </head>
-                    <body class="${bodyClass}">
+                    <body>
                         ${printContent}
                     </body>
                 </html>
@@ -436,15 +432,6 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                      </div>
                      <div className="flex justify-end gap-2">
                         <Button disabled={totalDues === 0 || paidAmount <= 0} onClick={handleCollectFee}>Collect Fee</Button>
-                        <Select value={printType} onValueChange={(value) => setPrintType(value as PrintType)}>
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Select Print Type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="normal">Normal (A4)</SelectItem>
-                                <SelectItem value="thermal">Thermal</SelectItem>
-                            </SelectContent>
-                        </Select>
                         <Button variant="outline" onClick={() => triggerJpgDownload(unpaidFees, 0, totalDues, paymentMethod, `INV-${Date.now()}`)} disabled={isDownloadingJpg}>
                             {isDownloadingJpg ? <Loader2 className="h-4 w-4 animate-spin"/> : <Download className="h-4 w-4" />}
                         </Button>
@@ -456,3 +443,5 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         </Card>
     );
 }
+
+    

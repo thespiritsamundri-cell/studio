@@ -2,11 +2,11 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Printer, Loader2, ArrowRight, Search, Users } from 'lucide-react';
+import { Printer, Loader2, Search, Users } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import { useSettings } from '@/context/settings-context';
 import { useToast } from '@/hooks/use-toast';
@@ -19,6 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { generateQrCode } from '@/ai/flows/generate-qr-code';
 
 export interface VoucherData {
   issueDate: string;
@@ -35,6 +36,7 @@ export interface VoucherData {
   };
   grandTotal: number;
   notes: string;
+  voucherId: string;
 }
 
 export default function VouchersPage() {
@@ -67,7 +69,6 @@ export default function VouchersPage() {
     "2. If a student doesn't pay the dues by the due date, a fine will be charged.\n" +
     '3. The amount of fines can only be changed within three days after display of fines on Notice Board.'
   );
-  const [bulkCopies, setBulkCopies] = useState('3');
 
   // --- Individual Voucher Logic ---
   const handleIndividualSearch = () => {
@@ -99,6 +100,7 @@ export default function VouchersPage() {
       concession: 0,
     };
     const grandTotal = Object.values(feeItems).reduce((acc, val) => acc + val, 0) - feeItems.concession;
+    const voucherId = `VCH-${searchedFamily.id}-${Date.now()}`;
 
     return {
       issueDate: individualIssueDate,
@@ -107,19 +109,29 @@ export default function VouchersPage() {
       feeItems,
       grandTotal,
       notes: bulkNotes, // Re-use notes for simplicity
+      voucherId,
     };
   }, [searchedFamily, allFees, individualIssueDate, individualDueDate, individualLateFee, individualAnnualCharges, individualBoardRegFee, bulkNotes]);
 
-  const handlePrintIndividual = () => {
+  const handlePrintIndividual = async () => {
     if (!searchedFamily || !individualVoucherData) return;
     setIsPrintingIndividual(true);
     
+    let qrCodeDataUri = '';
+    try {
+        const url = `${window.location.origin}/receipt/${individualVoucherData.voucherId}`;
+        const qrResult = await generateQrCode({ content: url });
+        qrCodeDataUri = qrResult.qrCodeDataUri;
+    } catch(e) {
+        toast({ title: 'QR Generation Failed', variant: 'destructive'});
+    }
+
     const familyStudents = students.filter(s => s.familyId === searchedFamily.id);
-    const voucherToPrint = { family: searchedFamily, students: familyStudents, voucherData: individualVoucherData };
+    const voucherToPrint = { family: searchedFamily, students: familyStudents, voucherData: individualVoucherData, qrCodeDataUri };
 
     setTimeout(() => {
         const printContent = renderToString(
-            <FeeVoucherPrint allVouchersData={[voucherToPrint]} settings={settings} copies={3} />
+            <FeeVoucherPrint allVouchersData={[voucherToPrint]} settings={settings} />
         );
         const printWindow = window.open('', '_blank');
         if (printWindow) {
@@ -136,13 +148,18 @@ export default function VouchersPage() {
   const handleBulkClassFilter = (classId: string) => {
     setBulkClassFilter(classId);
     if (classId === 'all') {
-        setSelectedFamilyIds([]);
+        setSelectedFamilyIds(families.map(f => f.id));
         return;
     }
     const studentFamilyIds = students.filter(s => s.class === classId).map(s => s.familyId);
     const uniqueFamilyIds = [...new Set(studentFamilyIds)];
     setSelectedFamilyIds(uniqueFamilyIds);
   };
+  
+  useEffect(() => {
+    setSelectedFamilyIds(families.map(f => f.id));
+  }, [families]);
+
 
   const handleSelectFamily = (familyId: string) => {
     setSelectedFamilyIds(prev =>
@@ -153,8 +170,7 @@ export default function VouchersPage() {
   const isAllSelected = families.length > 0 && selectedFamilyIds.length === families.length;
   const handleSelectAll = (checked: boolean) => setSelectedFamilyIds(checked ? families.map(f => f.id) : []);
 
-  const generateVoucherDataForFamily = (familyId: string) => {
-      //... (same as current implementation)
+  const generateVoucherDataForFamily = (familyId: string): VoucherData | null => {
       const family = families.find(f => f.id === familyId);
       if (!family) return null;
 
@@ -183,6 +199,7 @@ export default function VouchersPage() {
       };
       
       const grandTotal = Object.values(feeItems).reduce((acc, val) => acc + val, 0) - feeItems.concession;
+      const voucherId = `VCH-${family.id}-${Date.now()}`;
       
       return {
           issueDate: bulkIssueDate,
@@ -191,10 +208,11 @@ export default function VouchersPage() {
           feeItems,
           grandTotal,
           notes: bulkNotes,
+          voucherId,
       };
   }
 
-  const handleBulkPrint = () => {
+  const handleBulkPrint = async () => {
     if(selectedFamilyIds.length === 0){
       toast({title: "No families selected.", variant: "destructive"});
       return;
@@ -202,42 +220,49 @@ export default function VouchersPage() {
     setIsLoadingBulk(true);
     toast({ title: "Generating Vouchers...", description: `Please wait while we prepare vouchers for ${selectedFamilyIds.length} families.`});
 
-    setTimeout(() => {
-        const allVouchersData: { family: Family; students: Student[]; voucherData: VoucherData }[] = [];
+    const allVouchersData: { family: Family; students: Student[]; voucherData: VoucherData, qrCodeDataUri: string }[] = [];
 
-        selectedFamilyIds.forEach(familyId => {
-            const family = families.find(f => f.id === familyId);
-            if (!family) return;
+    for (const familyId of selectedFamilyIds) {
+        const family = families.find(f => f.id === familyId);
+        if (!family) continue;
 
-            const familyStudents = students.filter(s => s.familyId === family.id);
-            if (familyStudents.length === 0) return;
+        const familyStudents = students.filter(s => s.familyId === family.id);
+        if (familyStudents.length === 0) continue;
 
-            const voucherData = generateVoucherDataForFamily(familyId);
-            if (voucherData && voucherData.grandTotal > 0) {
-                 allVouchersData.push({ family, students: familyStudents, voucherData });
+        const voucherData = generateVoucherDataForFamily(familyId);
+        if (voucherData && voucherData.grandTotal > 0) {
+            let qrCodeDataUri = '';
+            try {
+                const url = `${window.location.origin}/receipt/${voucherData.voucherId}`;
+                const qrResult = await generateQrCode({ content: url });
+                qrCodeDataUri = qrResult.qrCodeDataUri;
+            } catch(e) {
+                console.error(`QR generation failed for family ${familyId}`);
             }
-        });
-
-        if (allVouchersData.length === 0) {
-            toast({ title: "No Dues Found", description: "None of the selected families have outstanding fees.", variant: "destructive"});
-            setIsLoadingBulk(false);
-            return;
+            allVouchersData.push({ family, students: familyStudents, voucherData, qrCodeDataUri });
         }
-
-        const printContent = renderToString(
-            <FeeVoucherPrint allVouchersData={allVouchersData} settings={settings} copies={parseInt(bulkCopies)} />
-        );
-
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.write(`<html><head><title>Fee Vouchers</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="/print-styles.css"></head><body>${printContent}</body></html>`);
-            printWindow.document.close();
-            printWindow.focus();
-        }
-
+    }
+    
+    if (allVouchersData.length === 0) {
+        toast({ title: "No Dues Found", description: "None of the selected families have outstanding fees.", variant: "destructive"});
         setIsLoadingBulk(false);
-        toast({ title: "Vouchers Generated!", description: `Successfully generated vouchers for ${allVouchersData.length} families.`});
-    }, 500);
+        return;
+    }
+
+    const printContent = renderToString(
+        <FeeVoucherPrint allVouchersData={allVouchersData} settings={settings} />
+    );
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+        printWindow.document.write(`<html><head><title>Fee Vouchers</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="/print-styles.css"></head><body>${printContent}</body></html>`);
+        printWindow.document.close();
+        printWindow.focus();
+    }
+
+    setIsLoadingBulk(false);
+    toast({ title: "Vouchers Generated!", description: `Successfully generated vouchers for ${allVouchersData.length} families.`});
+
   };
 
 
@@ -344,13 +369,6 @@ export default function VouchersPage() {
                 </div>
             </CardContent>
             <CardFooter className="justify-end gap-4">
-                 <div className="space-y-2 w-48">
-                    <Label>Voucher Copies</Label>
-                    <Select value={bulkCopies} onValueChange={setBulkCopies}>
-                        <SelectTrigger><SelectValue/></SelectTrigger>
-                        <SelectContent><SelectItem value="1">1 Copy</SelectItem><SelectItem value="2">2 Copies</SelectItem><SelectItem value="3">3 Copies</SelectItem></SelectContent>
-                    </Select>
-                 </div>
                 <Button size="lg" onClick={handleBulkPrint} disabled={isLoadingBulk}>
                     {isLoadingBulk ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Printer className="mr-2 h-5 w-5" />}
                     Generate & Print ({selectedFamilyIds.length})
@@ -360,3 +378,5 @@ export default function VouchersPage() {
     </div>
   );
 }
+
+    
