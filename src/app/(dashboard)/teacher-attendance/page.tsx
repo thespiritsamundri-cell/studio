@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, ChevronRight, Printer } from 'lucide-react';
 import { renderToString } from 'react-dom/server';
 import { TeacherAttendancePrintReport } from '@/components/reports/teacher-attendance-report';
+import { IndividualTeacherAttendancePrintReport } from '@/components/reports/individual-teacher-attendance-report';
 import { useSettings } from '@/context/settings-context';
 import { Input } from '@/components/ui/input';
 
@@ -121,21 +122,55 @@ export default function TeacherAttendancePage() {
   }, [teachers, teacherAttendances, selectedMonth, selectedTeacherId]);
 
   const handlePrint = () => {
-    const printContent = renderToString(
-        <TeacherAttendancePrintReport
-            teachers={monthlyReportData.filteredTeachers}
-            daysInMonth={monthlyReportData.daysInMonth}
-            attendanceData={monthlyReportData.report}
-            month={selectedMonth}
-            settings={settings}
-        />
-    );
+    let printContent = '';
+    let printTitle = `Teacher Attendance - ${format(selectedMonth, 'MMMM yyyy')}`;
+
+    if (selectedTeacherId === 'all') {
+        printContent = renderToString(
+            <TeacherAttendancePrintReport
+                teachers={monthlyReportData.filteredTeachers}
+                daysInMonth={monthlyReportData.daysInMonth}
+                attendanceData={monthlyReportData.report}
+                month={selectedMonth}
+                settings={settings}
+            />
+        );
+    } else {
+        const teacher = teachers.find(t => t.id === selectedTeacherId);
+        if (!teacher) return;
+        
+        const teacherData = monthlyReportData.report.find(r => r.teacher.id === selectedTeacherId);
+        if (!teacherData) return;
+
+        const summary = { present: 0, absent: 0, late: 0, leave: 0 };
+        Object.values(teacherData.attendanceByDate).forEach(record => {
+            if (record) {
+                if (record.status === 'Present') summary.present++;
+                else if (record.status === 'Absent') summary.absent++;
+                else if (record.status === 'Late') summary.late++;
+                else if (record.status === 'Leave') summary.leave++;
+            }
+        });
+
+        printContent = renderToString(
+            <IndividualTeacherAttendancePrintReport
+                teacher={teacher}
+                attendanceForMonth={teacherData.attendanceByDate}
+                daysInMonth={monthlyReportData.daysInMonth}
+                summary={summary}
+                month={selectedMonth}
+                settings={settings}
+            />
+        );
+        printTitle = `Attendance - ${teacher.name} - ${format(selectedMonth, 'MMMM yyyy')}`;
+    }
+
     const printWindow = window.open('', '_blank');
     if (printWindow) {
       printWindow.document.write(`
         <html>
           <head>
-            <title>Teacher Attendance Report - ${format(selectedMonth, 'MMMM yyyy')}</title>
+            <title>${printTitle}</title>
             <script src="https://cdn.tailwindcss.com"></script>
           </head>
           <body>
@@ -278,7 +313,7 @@ export default function TeacherAttendancePage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="sticky left-0 bg-background z-10 w-[120px] sm:w-[150px] lg:w-[200px] min-w-[120px]">Teacher</TableHead>
+                                    <TableHead className="sticky left-0 bg-background z-10 min-w-[120px] sm:min-w-[150px] lg:min-w-[200px]">Teacher</TableHead>
                                     {monthlyReportData.daysInMonth.map(day => (
                                         <TableHead key={day.toISOString()} className="text-center">{format(day, 'd')}</TableHead>
                                     ))}

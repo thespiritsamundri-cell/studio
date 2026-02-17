@@ -71,23 +71,43 @@ export const TeacherAttendancePrintReport = React.forwardRef<HTMLDivElement, Tea
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[150px]">Teacher</TableHead>
+                <TableHead className="w-[150px] min-w-[150px]">Teacher</TableHead>
                 {daysInMonth.map(day => (
-                    <TableHead key={day.toISOString()} className="text-center">{format(day, 'd')}</TableHead>
+                    <TableHead key={day.toISOString()} className="text-center p-1 w-10">{format(day, 'd')}</TableHead>
                 ))}
+                <TableHead className="text-center text-green-600">P</TableHead>
+                <TableHead className="text-center text-red-600">A</TableHead>
+                <TableHead className="text-center text-orange-500">LT</TableHead>
+                <TableHead className="text-center text-yellow-500">L</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {attendanceData.map(({ teacher, attendanceByDate }) => (
-                <TableRow key={teacher.id}>
-                    <TableCell className="font-medium">{teacher.name}</TableCell>
-                    {daysInMonth.map(day => (
-                        <TableCell key={day.toISOString()} className="text-center text-xs p-1 h-12">
-                            {getStatusContent(attendanceByDate[format(day, 'yyyy-MM-dd')])}
-                        </TableCell>
-                    ))}
-                </TableRow>
-              ))}
+              {attendanceData.map(({ teacher, attendanceByDate }) => {
+                const summary = { present: 0, absent: 0, late: 0, leave: 0 };
+                Object.values(attendanceByDate).forEach(record => {
+                    if (record) {
+                        if (record.status === 'Present') summary.present++;
+                        else if (record.status === 'Absent') summary.absent++;
+                        else if (record.status === 'Late') summary.late++;
+                        else if (record.status === 'Leave') summary.leave++;
+                    }
+                });
+
+                return (
+                    <TableRow key={teacher.id}>
+                        <TableCell className="font-medium">{teacher.name}</TableCell>
+                        {daysInMonth.map(day => (
+                            <TableCell key={day.toISOString()} className="text-center text-xs p-1 h-12">
+                                {getStatusContent(attendanceByDate[format(day, 'yyyy-MM-dd')])}
+                            </TableCell>
+                        ))}
+                        <TableCell className="text-center font-bold">{summary.present}</TableCell>
+                        <TableCell className="text-center font-bold">{summary.absent}</TableCell>
+                        <TableCell className="text-center font-bold">{summary.late}</TableCell>
+                        <TableCell className="text-center font-bold">{summary.leave}</TableCell>
+                    </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </main>
