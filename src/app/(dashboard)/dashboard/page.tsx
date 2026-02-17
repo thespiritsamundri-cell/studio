@@ -1,4 +1,3 @@
-
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Users, Wallet, UserCheck, UserPlus, History, Landmark, DollarSign, UserX, TrendingUp, TrendingDown, Scale, CheckCircle, XCircle, MessageSquare, Briefcase } from 'lucide-react';
@@ -61,7 +60,7 @@ export default function DashboardPage() {
         
         const unpaid = fees.filter(f => f.status === 'Unpaid').reduce((acc, fee) => acc + fee.amount, 0);
         
-        return { monthlyIncome: income, monthlyExpenses: exp, netProfitThisMonth: income - exp, totalUnpaid };
+        return { monthlyIncome: income, monthlyExpenses: exp, netProfitThisMonth: income - exp, totalUnpaid: unpaid };
     }, [fees, expenses, today]);
 
     
