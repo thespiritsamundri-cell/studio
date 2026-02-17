@@ -15,7 +15,7 @@ interface FeeVoucherPrintProps {
 
 const VoucherSlip = ({ family, students, settings, voucherData, copyType, qrCodeDataUri }: { family: Family, students: Student[], settings: SchoolSettings, voucherData: VoucherData, copyType: string, qrCodeDataUri: string }) => {
   const { issueDate, dueDate, feeMonths, feeItems, grandTotal } = voucherData;
-  const { admissionFee, monthlyFee, annualCharges, boardRegFee, pendingDues, lateFeeFine } = feeItems;
+  const { admissionFee, monthlyFee, annualCharges, boardRegFee, pendingDues, lateFeeFine, concession } = feeItems;
 
   const student = students[0];
   const parsedIssueDate = issueDate ? parseISO(issueDate) : new Date();
@@ -94,7 +94,12 @@ const VoucherSlip = ({ family, students, settings, voucherData, copyType, qrCode
                   <FeeRow label="Annual Charges" amount={annualCharges} />
                   <FeeRow label="Board Reg / Other" amount={boardRegFee} />
                   <FeeRow label="Pending Dues" amount={pendingDues} />
-                  <FeeRow label="Concession" amount={-concession} />
+                  {concession > 0 && (
+                    <tr>
+                      <td className="p-1">Concession</td>
+                      <td className="p-1 text-right font-mono">-{concession.toLocaleString()}</td>
+                    </tr>
+                  )}
               </tbody>
           </table>
           <div className="text-sm py-1 border-t-2 border-black space-y-1">
