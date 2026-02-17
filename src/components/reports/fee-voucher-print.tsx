@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -16,14 +15,14 @@ interface FeeVoucherPrintProps {
 
 const VoucherSlip = ({ family, students, settings, voucherData, copyType, qrCodeDataUri }: { family: Family, students: Student[], settings: SchoolSettings, voucherData: VoucherData, copyType: string, qrCodeDataUri: string }) => {
   const { issueDate, dueDate, feeMonths, feeItems, grandTotal } = voucherData;
-  const { admissionFee, monthlyFee, annualCharges, boardRegFee, pendingDues, lateFeeFine, concession } = feeItems;
+  const { admissionFee, monthlyFee, annualCharges, boardRegFee, pendingDues, lateFeeFine } = feeItems;
 
   const student = students[0];
-  if (!student) return null; // Don't render if no student
-  
   const parsedIssueDate = issueDate ? parseISO(issueDate) : new Date();
   const parsedDueDate = dueDate ? parseISO(dueDate) : new Date();
   
+  const amountAfterDueDate = grandTotal + lateFeeFine;
+
   const FeeRow = ({ label, amount }: { label: string, amount: number }) => (
     (amount > 0) && (
         <tr>
@@ -32,59 +31,57 @@ const VoucherSlip = ({ family, students, settings, voucherData, copyType, qrCode
         </tr>
     )
   );
-  
-  const amountAfterDueDate = grandTotal + lateFeeFine;
 
   return (
-      <div className="bg-white text-black text-sm font-sans p-2 border border-black">
-          <header className="flex justify-between items-center text-center mb-2">
-            <div className="w-1/4 flex justify-start">
-               {qrCodeDataUri && <Image src={qrCodeDataUri} alt="QR Code" width={50} height={50} />}
+      <div className="bg-white text-black text-sm font-sans p-2 border-2 border-black">
+          <header className="flex justify-between items-start text-center mb-2">
+            <div className="w-1/4 flex justify-start pt-2 pl-2">
+               {qrCodeDataUri && <Image src={qrCodeDataUri} alt="QR Code" width={70} height={70} />}
             </div>
             <div className="w-1/2">
-              {settings.schoolLogo && <Image src={settings.schoolLogo} alt="School Logo" width={40} height={40} className="object-contain mx-auto" />}
-              <h1 className="text-lg font-bold uppercase">{settings.schoolName}</h1>
-              <p className="text-[9px]">{settings.schoolAddress}</p>
+              {settings.schoolLogo && <Image src={settings.schoolLogo} alt="School Logo" width={50} height={50} className="object-contain mx-auto" />}
+              <h1 className="text-xl font-bold uppercase">{settings.schoolName}</h1>
+              <p className="text-[10px]">{settings.schoolAddress}</p>
             </div>
             <div className="w-1/4"></div>
           </header>
           
-           <div className="text-center border-y-2 border-black py-0.5">
+           <div className="text-center border-y-2 border-black py-0.5 my-2">
               <h2 className="text-xs font-semibold">FEE VOUCHER ({copyType})</h2>
            </div>
 
-          <table className="w-full text-[10px] my-1">
+          <table className="w-full text-xs my-2">
               <tbody>
                   <tr>
-                      <td className="font-bold py-0 pr-1">Voucher #</td>
+                      <td className="font-bold py-0 pr-2">Voucher #</td>
                       <td className="py-0">{voucherData.voucherId}</td>
-                      <td className="font-bold py-0 pr-1 text-right">Fee Month</td>
-                      <td className="py-0 text-right">{feeMonths || format(parsedIssueDate, 'MMMM')}</td>
+                      <td className="font-bold py-0 pl-4 pr-2 text-left">Fee Month</td>
+                      <td className="py-0 text-left" colSpan={3}>{feeMonths || format(parsedIssueDate, 'MMMM')}</td>
                   </tr>
                    <tr>
-                      <td className="font-bold py-0 pr-1">Issue Date</td>
+                      <td className="font-bold py-0 pr-2">Issue Date</td>
                       <td className="py-0">{format(parsedIssueDate, 'dd-MMM-yyyy')}</td>
-                      <td className="font-bold py-0 pr-1 text-right">Due Date</td>
-                      <td className="py-0 text-right font-bold">{format(parsedDueDate, 'dd-MMM-yyyy')}</td>
+                      <td className="font-bold py-0 pl-4 pr-2 text-left">Due Date</td>
+                      <td className="py-0 text-left font-bold">{format(parsedDueDate, 'dd-MMM-yyyy')}</td>
                   </tr>
                   <tr>
-                      <td className="font-bold py-0 pr-1">Student ID</td>
+                      <td className="font-bold py-0 pr-2">Student ID</td>
                       <td className="py-0">{student.id}</td>
-                      <td className="font-bold py-0 pr-1 text-right">Family ID</td>
-                      <td className="py-0 text-right">{family.id}</td>
+                       <td className="font-bold py-0 pl-4 pr-2 text-left">Family ID</td>
+                      <td className="py-0 text-left">{family.id}</td>
                   </tr>
                    <tr>
-                      <td className="font-bold py-0 pr-1">Student Name</td>
+                      <td className="font-bold py-0 pr-2">Student Name</td>
                       <td className="py-0" colSpan={3}>{student.name}</td>
                   </tr>
                    <tr>
-                      <td className="font-bold py-0 pr-1">Father's Name</td>
+                      <td className="font-bold py-0 pr-2">Father's Name</td>
                       <td className="py-0" colSpan={3}>{family.fatherName}</td>
                   </tr>
               </tbody>
           </table>
 
-          <table className="w-full text-[10px] my-1">
+          <table className="w-full text-xs my-2">
               <thead className="border-y-2 border-black">
                   <tr>
                       <th className="p-1 text-left font-bold">Particulars</th>
@@ -100,17 +97,17 @@ const VoucherSlip = ({ family, students, settings, voucherData, copyType, qrCode
                   <FeeRow label="Concession" amount={-concession} />
               </tbody>
           </table>
-          <div className="text-xs py-1 border-t-2 border-black space-y-1">
-              <div className="grid grid-cols-2 gap-x-4 font-bold">
+          <div className="text-sm py-1 border-t-2 border-black space-y-1">
+              <div className="flex justify-between items-center font-bold">
                   <span>Payable within Due Date</span>
-                  <span className="text-right font-mono">PKR {grandTotal.toLocaleString()}</span>
+                  <span className="font-mono">PKR {grandTotal.toLocaleString()}</span>
               </div>
-              <div className="grid grid-cols-2 gap-x-4">
+              <div className="flex justify-between items-center">
                   <span>Payable after Due Date</span>
-                  <span className="text-right font-mono">PKR {amountAfterDueDate.toLocaleString()}</span>
+                  <span className="font-mono">PKR {amountAfterDueDate.toLocaleString()}</span>
               </div>
           </div>
-          <div className="text-[8px] text-center font-semibold mt-2">
+          <div className="text-[10px] text-center font-semibold mt-2">
             Software by Mian Mudassar (0343-8775425)
           </div>
       </div>
@@ -122,9 +119,9 @@ export const FeeVoucherPrint = React.forwardRef<HTMLDivElement, FeeVoucherPrintP
   ({ allVouchersData, settings }, ref) => {
     
     return (
-      <div ref={ref} data-print-copies="1">
+      <div ref={ref}>
         {allVouchersData.map(({ family, students, voucherData, qrCodeDataUri }) => (
-            <div key={family.id} className="voucher-page w-[210mm] h-[297mm] bg-white mx-auto shadow-lg p-4 space-y-4">
+            <div key={family.id} className="voucher-page w-[210mm] h-[297mm] bg-white mx-auto p-4 flex flex-col justify-around">
                 <VoucherSlip 
                     family={family}
                     students={students}
@@ -133,7 +130,6 @@ export const FeeVoucherPrint = React.forwardRef<HTMLDivElement, FeeVoucherPrintP
                     copyType="Student Copy"
                     qrCodeDataUri={qrCodeDataUri}
                 />
-                 <div className="border-t-2 border-dashed border-black"></div>
                 <VoucherSlip 
                     family={family}
                     students={students}
@@ -150,5 +146,3 @@ export const FeeVoucherPrint = React.forwardRef<HTMLDivElement, FeeVoucherPrintP
 );
 
 FeeVoucherPrint.displayName = 'FeeVoucherPrint';
-
-    
