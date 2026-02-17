@@ -51,6 +51,7 @@ interface DataContextType {
   addFee: (feeData: Omit<Fee, 'id'>) => Promise<string | undefined>;
   updateFee: (id: string, fee: Partial<Fee>) => Promise<void>;
   deleteFee: (id: string) => void;
+  generateMonthlyFees: () => Promise<number>;
   addTeacher: (teacher: Omit<Teacher, 'id'>) => Promise<void>;
   updateTeacher: (id: string, teacher: Partial<Teacher>) => Promise<void>;
   deleteTeacher: (id: string) => Promise<void>;
@@ -168,70 +169,63 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [toast, userRole, families, addNotification]);
 
-    useEffect(() => {
-        const generateMonthlyFees = async () => {
-            if (!isDataInitialized || !families.length || !settings.timezone) return;
+  const generateMonthlyFees = useCallback(async (): Promise<number> => {
+    if (!isDataInitialized || !families.length || !students.length) {
+        toast({ title: "Data not ready", description: "Please wait for all data to load before generating fees.", variant: 'destructive' });
+        return 0;
+    }
 
-            const currentDate = new Date();
-            const feeGenerationKey = `feesGeneratedFor_${format(currentDate, 'yyyy-MM')}`;
+    const currentDate = new Date();
+    let generatedCount = 0;
+    const monthOrder = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-            if (sessionStorage.getItem(feeGenerationKey)) {
-                return;
-            }
+    for (const family of families) {
+        const hasActiveStudents = students.some(s => s.familyId === family.id && s.status === 'Active');
+        if (!hasActiveStudents) continue;
 
-            console.log(`Checking for fee generation up to ${format(currentDate, 'MMMM yyyy')}...`);
-            let generatedCount = 0;
+        const familyFees = fees.filter(f => f.familyId === family.id);
+        const lastTuitionFee = familyFees
+            .filter(f => !['Registration', 'Annual', 'Admission'].some(type => f.month.includes(type)))
+            .sort((a, b) => {
+                const dateA = new Date(a.year, monthOrder.indexOf(a.month));
+                const dateB = new Date(b.year, monthOrder.indexOf(b.month));
+                return dateB.getTime() - dateA.getTime();
+            })[0];
+        
+        if (!lastTuitionFee) continue;
 
-            for (const family of families) {
-                 const familyStudents = students.filter(s => s.familyId === family.id);
-                 const hasEnrolledStudents = familyStudents.some(s => s.status === 'Active' || s.status === 'Inactive');
+        let nextFeeDate = new Date(lastTuitionFee.year, monthOrder.indexOf(lastTuitionFee.month));
+        nextFeeDate = addMonths(nextFeeDate, 1);
+        
+        while (nextFeeDate <= currentDate) {
+            const month = format(nextFeeDate, 'MMMM');
+            const year = getYear(nextFeeDate);
 
-                if (!hasEnrolledStudents) continue;
-                
-                const familyFees = fees.filter(f => f.familyId === family.id);
-                
-                const lastFee = familyFees
-                    .filter(f => !['Registration', 'Annual', 'Admission'].some(type => f.month.includes(type)))
-                    .sort((a,b) => (b.year - a.year) || (getMonth(new Date(`${b.month} 1, 2000`)) - getMonth(new Date(`${a.month} 1, 2000`))))[0];
-                
-                if (!lastFee) continue;
-
-                const lastFeeDate = new Date(lastFee.year, getMonth(new Date(`${lastFee.month} 1, 2000`)));
-                
-                const monthsToGenerate = eachMonthOfInterval({
-                    start: addMonths(lastFeeDate, 1),
-                    end: currentDate
+            const feeAlreadyExists = familyFees.some(f => f.month === month && f.year === year);
+            if (!feeAlreadyExists) {
+                await addFee({
+                    familyId: family.id,
+                    amount: lastTuitionFee.amount,
+                    month: month,
+                    year: year,
+                    status: 'Unpaid',
+                    paymentDate: ''
                 });
-                
-                for (const monthDate of monthsToGenerate) {
-                    const month = format(monthDate, 'MMMM');
-                    const year = getYear(monthDate);
-
-                    const feeAlreadyExists = familyFees.some(f => f.month === month && f.year === year);
-                    if (!feeAlreadyExists) {
-                         await addFee({
-                            familyId: family.id,
-                            amount: lastFee.amount,
-                            month: month,
-                            year: year,
-                            status: 'Unpaid',
-                            paymentDate: ''
-                        });
-                        generatedCount++;
-                    }
-                }
+                generatedCount++;
             }
             
-            if (generatedCount > 0) {
-                toast({ title: 'Fees Generated', description: `Generated ${generatedCount} new monthly fee challans.`});
-                addActivityLog({ action: 'Auto-Generate Fees', description: `Generated ${generatedCount} new monthly fee challans.` });
-            }
-            
-            sessionStorage.setItem(feeGenerationKey, 'true');
-        };
-
-        generateMonthlyFees();
-    }, [isDataInitialized, families, students, fees, addFee, addActivityLog, toast, settings.timezone]);
+            nextFeeDate = addMonths(nextFeeDate, 1);
+        }
+    }
+    
+    if (generatedCount > 0) {
+        toast({ title: 'Fees Generated', description: `Generated ${generatedCount} new monthly fee challans.`});
+        await addActivityLog({ action: 'Generate Fees', description: `Manually generated ${generatedCount} new monthly fee challans.` });
+    } else {
+        toast({ title: 'No Fees to Generate', description: 'All fees are already up to date.' });
+    }
+    return generatedCount;
+  }, [isDataInitialized, families, students, fees, addFee, addActivityLog, toast]);
 
 
   useEffect(() => {
@@ -799,7 +793,7 @@ const deleteFee = useCallback(async (id: string) => {
       classes, exams, singleSubjectTests, activityLog, expenses, timetables, users, sessions, notifications,
       userRole, userPermissions, isDataInitialized, hasPermission,
       addStudent, updateStudent, updateAlumni, deleteStudent, addFamily, updateFamily, 
-      deleteFamily, addFee, updateFee, deleteFee, addTeacher, updateTeacher,
+      deleteFamily, addFee, updateFee, deleteFee, generateMonthlyFees, addTeacher, updateTeacher,
       deleteTeacher, saveStudentAttendance, saveTeacherAttendance, addClass,
       updateClass, deleteClass, addExam, updateExam, deleteExam, addSingleSubjectTest, updateSingleSubjectTest, deleteSingleSubjectTest, addActivityLog,
       clearActivityLog, addExpense, updateExpense, deleteExpense, updateTimetable,

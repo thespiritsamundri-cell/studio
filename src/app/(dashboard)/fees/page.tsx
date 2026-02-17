@@ -1,26 +1,44 @@
 
-
 'use client';
 
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search } from 'lucide-react';
+import { Search, PlusCircle, Loader2 } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import type { Family, Student, Fee } from '@/lib/types';
 import { FeeDetailsCard } from '@/components/fees/fee-details-card';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/context/settings-context';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+
 
 export default function FeesPage() {
-  const { families, students, fees: allFees, updateFee, addFee, deleteFee } = useData();
+  const { families, students, fees: allFees, updateFee, addFee, deleteFee, generateMonthlyFees } = useData();
   const { settings } = useSettings();
   const [familyId, setFamilyId] = useState('');
   const [searchedFamily, setSearchedFamily] = useState<Family | null>(null);
   const [familyStudents, setFamilyStudents] = useState<Student[]>([]);
   const [familyFees, setFamilyFees] = useState<Fee[]>([]);
   const { toast } = useToast();
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleGenerateFees = async () => {
+    setIsGenerating(true);
+    await generateMonthlyFees();
+    setIsGenerating(false);
+  }
 
   const handleSearch = () => {
     if (!familyId) {
@@ -53,7 +71,30 @@ export default function FeesPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold font-headline">Fee Collection</h1>
+       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <h1 className="text-3xl font-bold font-headline">Fee Collection</h1>
+        <AlertDialog>
+            <AlertDialogTrigger asChild>
+                <Button variant="outline"><PlusCircle className="mr-2 h-4 w-4"/> Generate Monthly Fees</Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Generate Monthly Fees?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This will check all active families and generate any missing monthly fee challans up to the current date. This action cannot be undone. Are you sure you want to proceed?
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleGenerateFees} disabled={isGenerating}>
+                        {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                        Yes, Generate Fees
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle>Collect Fee</CardTitle>
