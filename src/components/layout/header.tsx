@@ -1,4 +1,3 @@
-
 'use client';
 
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -78,8 +77,18 @@ export function Header() {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/students?search=${searchQuery.trim()}`);
+    const query = searchQuery.trim();
+    if (!query) return;
+
+    // Heuristic to decide where to search
+    // If it's a number, it could be a family ID or part of a CNIC.
+    // If it contains a hyphen, it's likely a CNIC.
+    if (/^\d+$/.test(query) || query.includes('-')) {
+        // Search by ID/CNIC - redirect to families page as CNIC is on family level
+        router.push(`/families?search=${query}`);
+    } else {
+        // Otherwise, assume it's a name and go to students page
+        router.push(`/students?search=${query}`);
     }
   };
 
@@ -107,7 +116,7 @@ export function Header() {
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                     type="search"
-                    placeholder="Search students..."
+                    placeholder="Search by Name, ID, or CNIC..."
                     className="w-full rounded-lg bg-muted pl-8 md:w-[200px] lg:w-[336px]"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}

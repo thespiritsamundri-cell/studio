@@ -72,10 +72,8 @@ export default function StudentsPage() {
     let students = allStudents;
 
     if (isViewingArchivedFamily && familyIdFromQuery) {
-        // If we are specifically viewing an archived family, show all their students.
         students = students.filter((student) => student.familyId === familyIdFromQuery);
     } else {
-        // Otherwise, show active students and filter normally.
         students = students.filter(s => s.status !== 'Archived');
         
         if (familyIdFromQuery) {
@@ -88,11 +86,13 @@ export default function StudentsPage() {
     }
 
     if (searchQuery) {
+       const lowercasedQuery = searchQuery.toLowerCase().replace(/-/g, '');
        students = students.filter((student) =>
         student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        student.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        student.id.toLowerCase().includes(lowercasedQuery) ||
         student.fatherName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        student.familyId.toLowerCase().includes(searchQuery.toLowerCase())
+        student.familyId.toLowerCase().includes(lowercasedQuery) ||
+        (student.cnic && student.cnic.replace(/-/g, '').includes(lowercasedQuery))
       );
     }
     
