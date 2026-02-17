@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -59,15 +60,14 @@ export default function VouchersPage() {
   const [isLoadingBulk, setIsLoadingBulk] = useState(false);
   const [bulkIssueDate, setBulkIssueDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [bulkDueDate, setBulkDueDate] = useState(format(new Date(new Date().setDate(new Date().getDate() + 10)), 'yyyy-MM-dd'));
-  const [bulkFeeMonths, setBulkFeeMonths] = useState(format(new Date(), 'MMMM'));
   const [bulkLateFee, setBulkLateFee] = useState(50);
   const [bulkAnnualCharges, setBulkAnnualCharges] = useState(0);
   const [bulkBoardRegFee, setBulkBoardRegFee] = useState(0);
-  const [bulkNotes, setBulkNotes] = useState(
-    '1. Dues, once paid, are not refundable in any case.\n' +
+  
+  const bulkNotes = '1. Dues, once paid, are not refundable in any case.\n' +
     "2. If a student doesn't pay the dues by the due date, a fine will be charged.\n" +
-    '3. The amount of fines can only be changed within three days after display of fines on Notice Board.'
-  );
+    '3. The amount of fines can only be changed within three days after display of fines on Notice Board.';
+
 
   // --- Individual Voucher Logic ---
   const handleIndividualSearch = () => {
@@ -81,36 +81,56 @@ export default function VouchersPage() {
       toast({ title: 'Not Found', description: `No family with ID "${individualFamilyId}"`, variant: 'destructive' });
     }
   };
+  
+    const generateVoucherDataForFamily = (familyId: string, issueDate: string, dueDate: string, lateFee: number, annualCharges: number, boardRegFee: number): VoucherData | null => {
+      const family = families.find(f => f.id === familyId);
+      if (!family) return null;
+
+      const familyUnpaidFees = allFees.filter(fee => fee.familyId === family.id && fee.status === 'Unpaid');
+      if (familyUnpaidFees.length === 0 && annualCharges === 0 && boardRegFee === 0) return null;
+
+      const feeMonths = [...new Set(familyUnpaidFees.map(f => f.month))].join(', ');
+            
+      const monthlyFeeTotal = familyUnpaidFees
+          .filter(fee => !['Registration', 'Annual', 'Admission'].some(type => fee.month.includes(type)))
+          .reduce((acc, fee) => acc + fee.amount, 0);
+
+      const admissionFeeTotal = familyUnpaidFees
+          .filter(fee => fee.month.includes('Registration') || fee.month.includes('Admission'))
+          .reduce((acc, fee) => acc + fee.amount, 0);
+          
+      const pendingDuesTotal = familyUnpaidFees
+          .filter(fee => !fee.month.includes('Registration') && !['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].includes(fee.month))
+          .reduce((acc, fee) => acc + fee.amount, 0);
+
+      const feeItems = {
+          monthlyFee: monthlyFeeTotal,
+          admissionFee: admissionFeeTotal,
+          pendingDues: pendingDuesTotal,
+          annualCharges: annualCharges,
+          boardRegFee: boardRegFee,
+          lateFeeFine: lateFee,
+          concession: 0, // Concession logic can be added here if needed
+      };
+      
+      const grandTotal = Object.values(feeItems).reduce((acc, val) => acc + val, 0) - feeItems.concession - feeItems.lateFeeFine;
+      const voucherId = `VCH-${family.id}-${Date.now()}`;
+      
+      return {
+          issueDate: issueDate,
+          dueDate: dueDate,
+          feeMonths: feeMonths,
+          feeItems,
+          grandTotal,
+          notes: bulkNotes,
+          voucherId,
+      };
+  }
 
   const individualVoucherData = useMemo(() => {
     if (!searchedFamily) return null;
-    const familyUnpaidFees = allFees.filter(fee => fee.familyId === searchedFamily.id && fee.status === 'Unpaid');
-    const monthlyFeeTotal = familyUnpaidFees.filter(fee => !['Registration', 'Annual', 'Admission'].some(type => fee.month.includes(type))).reduce((acc, fee) => acc + fee.amount, 0);
-    const admissionFeeTotal = familyUnpaidFees.filter(fee => fee.month.includes('Registration') || fee.month.includes('Admission')).reduce((acc, fee) => acc + fee.amount, 0);
-    const pendingDuesTotal = familyUnpaidFees.filter(fee => !fee.month.includes('Registration') && !['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].includes(fee.month)).reduce((acc, fee) => acc + fee.amount, 0);
-
-    const feeItems = {
-      monthlyFee: monthlyFeeTotal,
-      admissionFee: admissionFeeTotal,
-      pendingDues: pendingDuesTotal,
-      annualCharges: individualAnnualCharges,
-      boardRegFee: individualBoardRegFee,
-      lateFeeFine: individualLateFee,
-      concession: 0,
-    };
-    const grandTotal = Object.values(feeItems).reduce((acc, val) => acc + val, 0) - feeItems.concession;
-    const voucherId = `VCH-${searchedFamily.id}-${Date.now()}`;
-
-    return {
-      issueDate: individualIssueDate,
-      dueDate: individualDueDate,
-      feeMonths: format(new Date(), 'MMMM'),
-      feeItems,
-      grandTotal,
-      notes: bulkNotes, // Re-use notes for simplicity
-      voucherId,
-    };
-  }, [searchedFamily, allFees, individualIssueDate, individualDueDate, individualLateFee, individualAnnualCharges, individualBoardRegFee, bulkNotes]);
+    return generateVoucherDataForFamily(searchedFamily.id, individualIssueDate, individualDueDate, individualLateFee, individualAnnualCharges, individualBoardRegFee);
+  }, [searchedFamily, allFees, individualIssueDate, individualDueDate, individualLateFee, individualAnnualCharges, individualBoardRegFee, generateVoucherDataForFamily]);
 
   const handlePrintIndividual = async () => {
     if (!searchedFamily || !individualVoucherData) return;
@@ -144,21 +164,24 @@ export default function VouchersPage() {
 
 
   // --- Bulk Voucher Logic ---
-  const handleBulkClassFilter = (classId: string) => {
-    setBulkClassFilter(classId);
-    if (classId === 'all') {
-        setSelectedFamilyIds(families.map(f => f.id));
+  const handleBulkClassFilter = (className: string) => {
+    setBulkClassFilter(className);
+    if (className === 'all') {
+        setSelectedFamilyIds(families.filter(f => f.status !== 'Archived').map(f => f.id));
         return;
     }
-    const studentFamilyIds = students.filter(s => s.class === classId).map(s => s.familyId);
+    const studentFamilyIds = students.filter(s => s.class === className).map(s => s.familyId);
     const uniqueFamilyIds = [...new Set(studentFamilyIds)];
     setSelectedFamilyIds(uniqueFamilyIds);
   };
   
   useEffect(() => {
-    setSelectedFamilyIds(families.map(f => f.id));
+    setSelectedFamilyIds(families.filter(f => f.status !== 'Archived').map(f => f.id));
   }, [families]);
 
+  const familiesForBulkSelection = useMemo(() => {
+      return families.filter(f => f.status !== 'Archived');
+  }, [families]);
 
   const handleSelectFamily = (familyId: string) => {
     setSelectedFamilyIds(prev =>
@@ -166,50 +189,9 @@ export default function VouchersPage() {
     );
   };
 
-  const isAllSelected = families.length > 0 && selectedFamilyIds.length === families.length;
-  const handleSelectAll = (checked: boolean) => setSelectedFamilyIds(checked ? families.map(f => f.id) : []);
+  const isAllSelected = familiesForBulkSelection.length > 0 && selectedFamilyIds.length === familiesForBulkSelection.length;
+  const handleSelectAll = (checked: boolean) => setSelectedFamilyIds(checked ? familiesForBulkSelection.map(f => f.id) : []);
 
-  const generateVoucherDataForFamily = (familyId: string): VoucherData | null => {
-      const family = families.find(f => f.id === familyId);
-      if (!family) return null;
-
-      const familyUnpaidFees = allFees.filter(fee => fee.familyId === family.id && fee.status === 'Unpaid');
-            
-      const monthlyFeeTotal = familyUnpaidFees
-          .filter(fee => !['Registration', 'Annual', 'Admission'].some(type => fee.month.includes(type)))
-          .reduce((acc, fee) => acc + fee.amount, 0);
-
-      const admissionFeeTotal = familyUnpaidFees
-          .filter(fee => fee.month.includes('Registration') || fee.month.includes('Admission'))
-          .reduce((acc, fee) => acc + fee.amount, 0);
-          
-      const pendingDuesTotal = familyUnpaidFees
-          .filter(fee => !fee.month.includes('Registration') && !['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].includes(fee.month))
-          .reduce((acc, fee) => acc + fee.amount, 0);
-
-      const feeItems = {
-          monthlyFee: monthlyFeeTotal,
-          admissionFee: admissionFeeTotal,
-          pendingDues: pendingDuesTotal,
-          annualCharges: bulkAnnualCharges,
-          boardRegFee: bulkBoardRegFee,
-          lateFeeFine: bulkLateFee,
-          concession: 0,
-      };
-      
-      const grandTotal = Object.values(feeItems).reduce((acc, val) => acc + val, 0) - feeItems.concession;
-      const voucherId = `VCH-${family.id}-${Date.now()}`;
-      
-      return {
-          issueDate: bulkIssueDate,
-          dueDate: bulkDueDate,
-          feeMonths: bulkFeeMonths,
-          feeItems,
-          grandTotal,
-          notes: bulkNotes,
-          voucherId,
-      };
-  }
 
   const handleBulkPrint = async () => {
     if(selectedFamilyIds.length === 0){
@@ -223,12 +205,12 @@ export default function VouchersPage() {
 
     for (const familyId of selectedFamilyIds) {
         const family = families.find(f => f.id === familyId);
-        if (!family) continue;
+        if (!family || family.status === 'Archived') continue;
 
-        const familyStudents = students.filter(s => s.familyId === family.id);
+        const familyStudents = students.filter(s => s.familyId === family.id && s.status === 'Active');
         if (familyStudents.length === 0) continue;
 
-        const voucherData = generateVoucherDataForFamily(familyId);
+        const voucherData = generateVoucherDataForFamily(familyId, bulkIssueDate, bulkDueDate, bulkLateFee, bulkAnnualCharges, bulkBoardRegFee);
         if (voucherData && voucherData.grandTotal > 0) {
             let qrCodeDataUri = '';
             try {
@@ -287,7 +269,7 @@ export default function VouchersPage() {
                     <div className="mt-6 p-4 border rounded-lg bg-muted/50">
                         <h3 className="font-bold text-lg">{searchedFamily.fatherName} (ID: {searchedFamily.id})</h3>
                         <p className="text-sm text-muted-foreground">Students: {students.filter(s => s.familyId === searchedFamily.id).map(s => s.name).join(', ')}</p>
-                        <p className="font-semibold mt-2">Total Dues: PKR {individualVoucherData.feeItems.monthlyFee + individualVoucherData.feeItems.admissionFee + individualVoucherData.feeItems.pendingDues}</p>
+                        <p className="font-semibold mt-2">Total Dues: PKR {individualVoucherData.grandTotal}</p>
                         <Separator className="my-4"/>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                              <div className="space-y-2">
@@ -333,7 +315,7 @@ export default function VouchersPage() {
                         <Table>
                             <TableHeader><TableRow><TableHead className="w-[50px]"><Checkbox checked={isAllSelected} onCheckedChange={handleSelectAll} /></TableHead><TableHead>Family ID</TableHead><TableHead>Father's Name</TableHead><TableHead>Students</TableHead></TableRow></TableHeader>
                             <TableBody>
-                                {families.map(family => (
+                                {familiesForBulkSelection.map(family => (
                                     <TableRow key={family.id} data-state={selectedFamilyIds.includes(family.id) && "selected"}>
                                         <TableCell><Checkbox checked={selectedFamilyIds.includes(family.id)} onCheckedChange={() => handleSelectFamily(family.id)} /></TableCell>
                                         <TableCell>{family.id}</TableCell>
@@ -348,8 +330,7 @@ export default function VouchersPage() {
 
                 <div className="space-y-4 pt-4 border-t">
                     <Label>Step 2: Configure Voucher Details</Label>
-                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="space-y-2"><Label>Fee Month(s)</Label><Input value={bulkFeeMonths} onChange={e => setBulkFeeMonths(e.target.value)} /></div>
+                     <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                         <div className="space-y-2"><Label>Issue Date</Label><Input type="date" value={bulkIssueDate} onChange={e => setBulkIssueDate(e.target.value)} /></div>
                         <div className="space-y-2"><Label>Due Date</Label><Input type="date" value={bulkDueDate} onChange={e => setBulkDueDate(e.target.value)} /></div>
                     </div>
@@ -360,10 +341,6 @@ export default function VouchersPage() {
                             <div className="space-y-2"><Label>Board Reg / Other</Label><Input type="number" value={bulkBoardRegFee} onChange={e => setBulkBoardRegFee(Number(e.target.value))} /></div>
                             <div className="space-y-2"><Label>Late Fee Fine</Label><Input type="number" value={bulkLateFee} onChange={e => setBulkLateFee(Number(e.target.value))} /></div>
                         </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Notes Section</Label>
-                        <textarea value={bulkNotes} onChange={e => setBulkNotes(e.target.value)} className="w-full p-2 border rounded-md min-h-[100px] text-sm"/>
                     </div>
                 </div>
             </CardContent>

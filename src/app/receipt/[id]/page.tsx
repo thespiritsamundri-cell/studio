@@ -109,7 +109,6 @@ export default function PublicReceiptPage() {
                     remainingDues={receiptData.remainingDues}
                     settings={settings}
                     paymentMethod={receiptData.paymentMethod}
-                    printType="normal"
                     receiptId={id as string}
                     qrCodeDataUri={receiptData.qrCodeDataUri}
                 />
