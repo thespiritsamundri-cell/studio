@@ -24,30 +24,19 @@ export const TeacherAttendancePrintReport = React.forwardRef<HTMLDivElement, Tea
 
     const getStatusContent = (attendanceRecord: TeacherAttendance | undefined, day: Date) => {
       if (isSunday(day)) {
-        return <span style={{ fontWeight: 'bold', color: '#a1a1aa' }}>SUN</span>
+        return <span style={{ fontWeight: 'bold', color: '#a1a1aa' }}>S</span>
       }
       if (!attendanceRecord) return <span style={{ color: '#a1a1aa' }}>-</span>;
       
-      const { status, time } = attendanceRecord;
+      const { status } = attendanceRecord;
   
-      const statusChar = (() => {
-           switch(status) {
-              case 'Present': return <span style={{ color: 'green', fontWeight: 'bold' }}>P</span>;
-              case 'Absent': return <span style={{ color: 'red', fontWeight: 'bold' }}>A</span>;
-              case 'Leave': return <span style={{ color: 'orange', fontWeight: 'bold' }}>L</span>;
-              case 'Late': return <span style={{ color: '#f97316', fontWeight: 'bold' }}>LT</span>;
-              default: return <span style={{ color: '#a1a1aa' }}>-</span>;
-          }
-      })();
-  
-      return (
-          <div>
-              <div>{statusChar}</div>
-              {(status === 'Present' || status === 'Late') && time && (
-                  <div style={{ fontSize: '8px', color: '#6b7280' }}>{time}</div>
-              )}
-          </div>
-      );
+      switch(status) {
+          case 'Present': return <span style={{ color: 'green', fontWeight: 'bold' }}>P</span>;
+          case 'Absent': return <span style={{ color: 'red', fontWeight: 'bold' }}>A</span>;
+          case 'Leave': return <span style={{ color: 'orange', fontWeight: 'bold' }}>L</span>;
+          case 'Late': return <span style={{ color: '#f97316', fontWeight: 'bold' }}>LT</span>;
+          default: return <span style={{ color: '#a1a1aa' }}>-</span>;
+      }
     };
     
     return (
@@ -75,16 +64,16 @@ export const TeacherAttendancePrintReport = React.forwardRef<HTMLDivElement, Tea
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-[120px] p-1 border">Teacher</TableHead>
+                <TableHead className="min-w-[120px] p-0.5 border">Teacher</TableHead>
                 {daysInMonth.map(day => (
-                    <TableHead key={day.toISOString()} className="text-center p-1 border" style={isSunday(day) ? {backgroundColor: '#f3f4f6'} : {}}>
+                    <TableHead key={day.toISOString()} className="text-center p-0.5 border" style={isSunday(day) ? {backgroundColor: '#f3f4f6'} : {}}>
                         {format(day, 'd')}
                     </TableHead>
                 ))}
-                <TableHead className="text-center p-1 border text-green-600">P</TableHead>
-                <TableHead className="text-center p-1 border text-red-600">A</TableHead>
-                <TableHead className="text-center p-1 border text-orange-500">LT</TableHead>
-                <TableHead className="text-center p-1 border text-yellow-500">L</TableHead>
+                <TableHead className="text-center p-0.5 border text-green-600">P</TableHead>
+                <TableHead className="text-center p-0.5 border text-red-600">A</TableHead>
+                <TableHead className="text-center p-0.5 border text-orange-500">LT</TableHead>
+                <TableHead className="text-center p-0.5 border text-yellow-500">L</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -101,16 +90,16 @@ export const TeacherAttendancePrintReport = React.forwardRef<HTMLDivElement, Tea
 
                 return (
                     <TableRow key={teacher.id}>
-                        <TableCell className="font-medium p-1 border">{teacher.name}</TableCell>
+                        <TableCell className="font-medium p-0.5 border">{teacher.name}</TableCell>
                         {daysInMonth.map(day => (
-                            <TableCell key={day.toISOString()} className="text-center p-1 h-12 border" style={isSunday(day) ? {backgroundColor: '#f3f4f6'} : {}}>
+                            <TableCell key={day.toISOString()} className="text-center p-0.5 h-10 border" style={isSunday(day) ? {backgroundColor: '#f3f4f6'} : {}}>
                                 {getStatusContent(attendanceByDate[format(day, 'yyyy-MM-dd')], day)}
                             </TableCell>
                         ))}
-                        <TableCell className="text-center font-bold p-1 border">{summary.present}</TableCell>
-                        <TableCell className="text-center font-bold p-1 border">{summary.absent}</TableCell>
-                        <TableCell className="text-center font-bold p-1 border">{summary.late}</TableCell>
-                        <TableCell className="text-center font-bold p-1 border">{summary.leave}</TableCell>
+                        <TableCell className="text-center font-bold p-0.5 border">{summary.present}</TableCell>
+                        <TableCell className="text-center font-bold p-0.5 border">{summary.absent}</TableCell>
+                        <TableCell className="text-center font-bold p-0.5 border">{summary.late}</TableCell>
+                        <TableCell className="text-center font-bold p-0.5 border">{summary.leave}</TableCell>
                     </TableRow>
                 );
               })}

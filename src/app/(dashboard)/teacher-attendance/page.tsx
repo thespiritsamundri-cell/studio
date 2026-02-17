@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, subMonths, addMonths, isSunday } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Printer, CalendarOff } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Printer, CalendarOff, UserCheck, UserX, Clock, Calendar, CheckCircle, XCircle } from 'lucide-react';
 import { renderToString } from 'react-dom/server';
 import { TeacherAttendancePrintReport } from '@/components/reports/teacher-attendance-report';
 import { IndividualTeacherAttendancePrintReport } from '@/components/reports/individual-teacher-attendance-report';
@@ -23,9 +23,70 @@ import { useSettings } from '@/context/settings-context';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 type AttendanceStatus = 'Present' | 'Absent' | 'Leave' | 'Late';
+
+
+const IndividualReportView = ({ teacherData, daysInMonth }: { teacherData: any, daysInMonth: Date[] }) => {
+    if (!teacherData) {
+        return <div className="text-center p-8 text-muted-foreground">Select a teacher to view their detailed report.</div>;
+    }
+
+    const { teacher, attendanceByDate } = teacherData;
+    const summary = { present: 0, absent: 0, late: 0, leave: 0 };
+    Object.values(attendanceByDate).forEach((record: any) => {
+        if (record) {
+            if (record.status === 'Present') summary.present++;
+            else if (record.status === 'Absent') summary.absent++;
+            else if (record.status === 'Late') summary.late++;
+            else if (record.status === 'Leave') summary.leave++;
+        }
+    });
+
+    return (
+        <div className="mt-4 space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card className="bg-green-500/10 border-green-500/20"><CardHeader className="flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium text-green-700">Present</CardTitle><UserCheck className="w-4 h-4 text-green-600" /></CardHeader><CardContent><div className="text-2xl font-bold text-green-700">{summary.present}</div></CardContent></Card>
+                <Card className="bg-red-500/10 border-red-500/20"><CardHeader className="flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium text-red-700">Absent</CardTitle><UserX className="w-4 h-4 text-red-600" /></CardHeader><CardContent><div className="text-2xl font-bold text-red-700">{summary.absent}</div></CardContent></Card>
+                <Card className="bg-orange-500/10 border-orange-500/20"><CardHeader className="flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium text-orange-700">Late</CardTitle><Clock className="w-4 h-4 text-orange-600" /></CardHeader><CardContent><div className="text-2xl font-bold text-orange-700">{summary.late}</div></CardContent></Card>
+                <Card className="bg-yellow-500/10 border-yellow-500/20"><CardHeader className="flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium text-yellow-700">On Leave</CardTitle><Calendar className="w-4 h-4 text-yellow-600" /></CardHeader><CardContent><div className="text-2xl font-bold text-yellow-700">{summary.leave}</div></CardContent></Card>
+            </div>
+            <div className="border rounded-lg">
+                <ScrollArea className="h-96">
+                    <Table>
+                        <TableHeader className="sticky top-0 bg-background z-10"><TableRow><TableHead>Date</TableHead><TableHead>Day</TableHead><TableHead>Status</TableHead><TableHead>Time In</TableHead></TableRow></TableHeader>
+                        <TableBody>
+                        {daysInMonth.map(day => {
+                            const dateStr = format(day, 'yyyy-MM-dd');
+                            const record = attendanceByDate[dateStr] as TeacherAttendance | undefined;
+                            const isSun = isSunday(day);
+                            return (
+                                <TableRow key={dateStr} className={cn(isSun && "bg-muted/50")}>
+                                    <TableCell>{format(day, 'dd-MMM-yyyy')}</TableCell>
+                                    <TableCell>{format(day, 'EEEE')}</TableCell>
+                                    <TableCell>
+                                        {isSun ? ( <Badge variant="outline">Holiday</Badge> ) : record ? (
+                                            <Badge variant={
+                                                record.status === 'Present' ? 'default' : 
+                                                record.status === 'Absent' ? 'destructive' : 'secondary'
+                                            } className={cn(record.status === 'Present' && 'bg-green-600', record.status === 'Late' && 'bg-orange-500')}>
+                                                {record.status}
+                                            </Badge>
+                                        ) : <Badge variant="outline">N/A</Badge>}
+                                    </TableCell>
+                                    <TableCell>{record?.time || (isSun ? '-' : 'N/A')}</TableCell>
+                                </TableRow>
+                            );
+                        })}
+                        </TableBody>
+                    </Table>
+                </ScrollArea>
+            </div>
+        </div>
+    );
+};
+
 
 export default function TeacherAttendancePage() {
   const { teachers, teacherAttendances, saveTeacherAttendance } = useData();
@@ -326,38 +387,42 @@ export default function TeacherAttendancePage() {
                         </Button>
                     </div>
 
-                    <div className="border rounded-lg overflow-x-auto">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="sticky left-0 bg-background z-10 w-32 md:w-40 lg:w-48">Teacher</TableHead>
-                                    {monthlyReportData.daysInMonth.map(day => (
-                                        <TableHead key={day.toISOString()} className={cn("text-center w-14", isSunday(day) && "bg-muted/50")}>{format(day, 'd')}</TableHead>
-                                    ))}
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {monthlyReportData.report.map(({ teacher, attendanceByDate }) => (
-                                    <TableRow key={teacher.id}>
-                                        <TableCell className="font-medium sticky left-0 bg-background z-10">{teacher.name}</TableCell>
-                                        {monthlyReportData.daysInMonth.map(day => {
-                                            const isSun = isSunday(day);
-                                            const record = attendanceByDate[format(day, 'yyyy-MM-dd')];
-                                            return (
-                                                <TableCell key={day.toISOString()} className={cn("text-center p-1 h-14", isSun && "bg-muted/50")}>
-                                                    {isSun ? (
-                                                        <span className="font-semibold text-muted-foreground">SUN</span>
-                                                    ) : (
-                                                        getStatusBadge(record)
-                                                    )}
-                                                </TableCell>
-                                            )
-                                        })}
+                    {selectedTeacherId === 'all' ? (
+                         <div className="border rounded-lg overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="sticky left-0 bg-background z-10 min-w-[150px]">Teacher</TableHead>
+                                        {monthlyReportData.daysInMonth.map(day => (
+                                            <TableHead key={day.toISOString()} className={cn("text-center w-14", isSunday(day) && "bg-muted/50")}>{format(day, 'd')}</TableHead>
+                                        ))}
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
+                                </TableHeader>
+                                <TableBody>
+                                    {monthlyReportData.report.map(({ teacher, attendanceByDate }) => (
+                                        <TableRow key={teacher.id}>
+                                            <TableCell className="font-medium sticky left-0 bg-background z-10">{teacher.name}</TableCell>
+                                            {monthlyReportData.daysInMonth.map(day => {
+                                                const isSun = isSunday(day);
+                                                const record = attendanceByDate[format(day, 'yyyy-MM-dd')];
+                                                return (
+                                                    <TableCell key={day.toISOString()} className={cn("text-center p-1 h-14", isSun && "bg-muted/50")}>
+                                                        {isSun ? (
+                                                            <span className="font-semibold text-muted-foreground">SUN</span>
+                                                        ) : (
+                                                            getStatusBadge(record)
+                                                        )}
+                                                    </TableCell>
+                                                )
+                                            })}
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                         </div>
+                    ) : (
+                        <IndividualReportView teacherData={monthlyReportData.report[0]} daysInMonth={monthlyReportData.daysInMonth} />
+                    )}
                 </CardContent>
             </Card>
         </TabsContent>
