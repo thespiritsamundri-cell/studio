@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Lock, Search, User, Home, School, Bell } from 'lucide-react';
+import { Lock, Search, User, Home, School, Bell, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -23,15 +23,12 @@ import type { Student, Family, AppNotification } from '@/lib/types';
 import { SupportDialog } from './support-dialog';
 import { ThemeToggle } from './theme-toggle';
 import { cn } from '@/lib/utils';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
+import { SearchResultsDialog } from './search-dialog';
+import { collection, query as firestoreQuery, where, getDocs, limit } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
 
 
 function getTitleFromPathname(pathname: string): string {
@@ -56,11 +53,17 @@ export function Header() {
   const pageTitle = getTitleFromPathname(pathname);
   const { settings } = useSettings();
   const { userRole, notifications, markNotificationAsRead } = useData();
+  const { toast } = useToast();
   
   const [dateTime, setDateTime] = useState<Date | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [openSupportDialog, setOpenSupportDialog] = useState(false);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchResults, setSearchResults] = useState<{ students: Student[], families: Family[] }>({ students: [], families: [] });
   
   const unreadNotifications = useMemo(() => notifications.filter(n => !n.isRead), [notifications]);
 
@@ -75,22 +78,72 @@ export function Header() {
     router.push('/lock');
   };
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
+  const handleSearchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const query = searchQuery.trim();
-    if (!query) return;
+    const searchTerm = searchQuery.trim();
+    if (!searchTerm) return;
+    
+    setIsSearching(true);
+    
+    try {
+        const studentNameQuery = firestoreQuery(
+            collection(db, "students"), 
+            where("name", ">=", searchTerm), 
+            where("name", "<=", searchTerm + '\uf8ff'),
+            limit(10)
+        );
+        const familyNameQuery = firestoreQuery(
+            collection(db, "families"), 
+            where("fatherName", ">=", searchTerm), 
+            where("fatherName", "<=", searchTerm + '\uf8ff'),
+            limit(10)
+        );
+        const studentIdQuery = firestoreQuery(collection(db, "students"), where("id", "==", searchTerm), limit(10));
+        const familyIdQuery = firestoreQuery(collection(db, "families"), where("id", "==", searchTerm), limit(10));
+        const familyCnicQuery = firestoreQuery(collection(db, "families"), where("cnic", "==", searchTerm), limit(10));
 
-    // Heuristic to decide where to search
-    // If it's a number, it could be a family ID or part of a CNIC.
-    // If it contains a hyphen, it's likely a CNIC.
-    if (/^\d+$/.test(query) || query.includes('-')) {
-        // Search by ID/CNIC - redirect to families page as CNIC is on family level
-        router.push(`/families?search=${query}`);
-    } else {
-        // Otherwise, assume it's a name and go to students page
-        router.push(`/students?search=${query}`);
+        const [
+            studentNameSnap,
+            familyNameSnap,
+            studentIdSnap,
+            familyIdSnap,
+            familyCnicSnap
+        ] = await Promise.all([
+            getDocs(studentNameQuery),
+            getDocs(familyNameQuery),
+            getDocs(studentIdQuery),
+            getDocs(familyIdQuery),
+            getDocs(familyCnicQuery)
+        ]);
+        
+        const studentsMap = new Map<string, Student>();
+        studentNameSnap.forEach(doc => studentsMap.set(doc.id, { id: doc.id, ...doc.data() } as Student));
+        studentIdSnap.forEach(doc => studentsMap.set(doc.id, { id: doc.id, ...doc.data() } as Student));
+
+        const familiesMap = new Map<string, Family>();
+        familyNameSnap.forEach(doc => familiesMap.set(doc.id, { id: doc.id, ...doc.data() } as Family));
+        familyIdSnap.forEach(doc => familiesMap.set(doc.id, { id: doc.id, ...doc.data() } as Family));
+        familyCnicSnap.forEach(doc => familiesMap.set(doc.id, { id: doc.id, ...doc.data() } as Family));
+
+        setSearchResults({
+            students: Array.from(studentsMap.values()),
+            families: Array.from(familiesMap.values())
+        });
+
+        setIsSearchOpen(true);
+
+    } catch (error) {
+        console.error("Search failed:", error);
+        toast({
+            title: "Search Error",
+            description: "Could not perform search. Please check the console for details.",
+            variant: "destructive"
+        });
+    } finally {
+        setIsSearching(false);
     }
   };
+
 
   const handleNotificationClick = (notification: AppNotification) => {
       if (!notification.isRead) {
@@ -121,6 +174,7 @@ export function Header() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                 />
+                {isSearching && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin" />}
             </form>
             
           {dateTime && (
@@ -200,6 +254,13 @@ export function Header() {
         </div>
       </header>
       <SupportDialog open={openSupportDialog} onOpenChange={setOpenSupportDialog} />
+       <SearchResultsDialog 
+        open={isSearchOpen} 
+        onOpenChange={setIsSearchOpen} 
+        students={searchResults.students}
+        families={searchResults.families}
+        query={searchQuery}
+       />
     </>
   );
 }
