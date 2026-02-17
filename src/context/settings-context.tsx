@@ -54,7 +54,7 @@ export interface SchoolSettings {
 }
 
 export const defaultSettings: SchoolSettings = {
-  schoolName: 'SAATH Academy Samundri',
+  schoolName: 'The Spirit School Samundri',
   academicYear: '2025-2026',
   schoolAddress: 'Housing Colony 2, Samundri Faisalabad',
   schoolPhone: '03438775425',
