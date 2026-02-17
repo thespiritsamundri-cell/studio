@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -6,9 +7,10 @@ import type { Teacher, TeacherAttendance } from '@/lib/types';
 import type { SchoolSettings } from '@/context/settings-context';
 import { School } from 'lucide-react';
 import Image from 'next/image';
-import { format } from 'date-fns';
+import { format, isSunday } from 'date-fns';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '../ui/badge';
+import { cn } from '@/lib/utils';
 
 interface IndividualTeacherAttendancePrintReportProps {
   teacher: Teacher;
@@ -66,12 +68,15 @@ export const IndividualTeacherAttendancePrintReport = React.forwardRef<HTMLDivEl
               {daysInMonth.map(day => {
                 const dateStr = format(day, 'yyyy-MM-dd');
                 const record = attendanceForMonth[dateStr];
+                const isSun = isSunday(day);
                 return (
-                    <TableRow key={dateStr}>
+                    <TableRow key={dateStr} className={cn(isSun && "bg-gray-100")}>
                         <TableCell>{format(day, 'dd-MMM-yyyy')}</TableCell>
                         <TableCell>{format(day, 'EEEE')}</TableCell>
                         <TableCell>
-                            {record ? (
+                            {isSun ? (
+                                <Badge variant="outline">Holiday</Badge>
+                            ) : record ? (
                                 <Badge variant={
                                     record.status === 'Present' ? 'default' : 
                                     record.status === 'Absent' ? 'destructive' :
@@ -84,7 +89,7 @@ export const IndividualTeacherAttendancePrintReport = React.forwardRef<HTMLDivEl
                                 </Badge>
                             ) : '-'}
                         </TableCell>
-                        <TableCell>{record?.time || '-'}</TableCell>
+                        <TableCell>{record?.time || (isSun ? 'Sunday' : '-')}</TableCell>
                         <TableCell></TableCell>
                     </TableRow>
                 )

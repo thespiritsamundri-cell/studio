@@ -12,12 +12,14 @@ import { Label } from '@/components/ui/label';
 import { useData } from '@/context/data-context';
 import type { Student, Attendance } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { Send, Printer } from 'lucide-react';
+import { Send, Printer, CalendarOff } from 'lucide-react';
 import { AttendancePrintReport } from '@/components/reports/attendance-report';
 import { renderToString } from 'react-dom/server';
 import { useSettings } from '@/context/settings-context';
-import { format } from 'date-fns';
+import { format, isSunday } from 'date-fns';
 import { sendWhatsAppMessage } from '@/services/whatsapp-service';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+
 
 type AttendanceStatus = 'Present' | 'Absent' | 'Leave';
 
@@ -30,6 +32,8 @@ export default function AttendancePage() {
   const { toast } = useToast();
   const [isSending, setIsSending] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
+  
+  const isSundayToday = isSunday(currentDate);
 
   useEffect(() => {
     const todayStr = format(currentDate, 'yyyy-MM-dd');
@@ -88,7 +92,7 @@ export default function AttendancePage() {
   };
 
   const saveAttendance = () => {
-    if (!selectedClass) return;
+    if (!selectedClass || isSundayToday) return;
 
     const todayStr = format(currentDate, 'yyyy-MM-dd');
     const newAttendances: Attendance[] = students.map(student => ({
@@ -106,6 +110,7 @@ export default function AttendancePage() {
   };
 
   const handleSendWhatsapp = async () => {
+    if (isSundayToday) return;
     const absentStudents = students.filter((student) => attendance[student.id] === 'Absent');
     
     if (absentStudents.length === 0) {
@@ -169,11 +174,11 @@ export default function AttendancePage() {
         <div className="flex items-center gap-4">
           {selectedClass && (
             <>
-              <Button onClick={saveAttendance}>Save Attendance</Button>
+              <Button onClick={saveAttendance} disabled={isSundayToday}>Save Attendance</Button>
                <Button variant="outline" onClick={triggerPrint}>
                 <Printer className="w-4 h-4 mr-2" /> Print Report
               </Button>
-              <Button variant="outline" onClick={handleSendWhatsapp} disabled={isSending}>
+              <Button variant="outline" onClick={handleSendWhatsapp} disabled={isSending || isSundayToday}>
                 {isSending ? 'Sending...' : <> <Send className="w-4 h-4 mr-2" /> Notify Absentees </>}
               </Button>
             </>
@@ -201,8 +206,18 @@ export default function AttendancePage() {
               </SelectContent>
             </Select>
           </div>
+          
+           {isSundayToday && selectedClass && (
+                <Alert variant="default" className="border-orange-500/50 bg-orange-500/5 text-orange-700">
+                    <CalendarOff className="h-4 w-4 text-orange-600" />
+                    <AlertTitle>Holiday</AlertTitle>
+                    <AlertDescription>
+                        Today is Sunday. Attendance cannot be marked.
+                    </AlertDescription>
+                </Alert>
+           )}
 
-          {selectedClass && students.length > 0 && (
+          {selectedClass && !isSundayToday && students.length > 0 && (
             <div className="border rounded-lg">
               <Table>
                 <TableHeader>

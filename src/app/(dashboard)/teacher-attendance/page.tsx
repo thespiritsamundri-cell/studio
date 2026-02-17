@@ -12,15 +12,17 @@ import { useData } from '@/context/data-context';
 import type { Teacher, TeacherAttendance } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, subMonths, addMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, subMonths, addMonths, isSunday } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Printer } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Printer, CalendarOff } from 'lucide-react';
 import { renderToString } from 'react-dom/server';
 import { TeacherAttendancePrintReport } from '@/components/reports/teacher-attendance-report';
 import { IndividualTeacherAttendancePrintReport } from '@/components/reports/individual-teacher-attendance-report';
 import { useSettings } from '@/context/settings-context';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
 type AttendanceStatus = 'Present' | 'Absent' | 'Leave' | 'Late';
@@ -34,6 +36,8 @@ export default function TeacherAttendancePage() {
   useEffect(() => {
     setToday(new Date());
   }, []);
+  
+  const isSundayToday = today ? isSunday(today) : false;
 
   const [attendance, setAttendance] = useState<Record<string, { status: AttendanceStatus; time?: string }>>({});
 
@@ -79,7 +83,7 @@ export default function TeacherAttendancePage() {
   };
 
   const handleSaveAttendance = () => {
-    if (!today) return;
+    if (!today || isSundayToday) return;
     const todayStr = format(today, 'yyyy-MM-dd');
     const newAttendances: TeacherAttendance[] = teachers.map(teacher => ({
         teacherId: teacher.id,
@@ -124,6 +128,7 @@ export default function TeacherAttendancePage() {
   const handlePrint = () => {
     let printContent = '';
     let printTitle = `Teacher Attendance - ${format(selectedMonth, 'MMMM yyyy')}`;
+    let bodyClass = '';
 
     if (selectedTeacherId === 'all') {
         printContent = renderToString(
@@ -135,6 +140,7 @@ export default function TeacherAttendancePage() {
                 settings={settings}
             />
         );
+        bodyClass = 'data-layout="landscape"';
     } else {
         const teacher = teachers.find(t => t.id === selectedTeacherId);
         if (!teacher) return;
@@ -172,8 +178,9 @@ export default function TeacherAttendancePage() {
           <head>
             <title>${printTitle}</title>
             <script src="https://cdn.tailwindcss.com"></script>
+            <link rel="stylesheet" href="/print-styles.css">
           </head>
-          <body>
+          <body ${bodyClass}>
             ${printContent}
           </body>
         </html>
@@ -230,49 +237,59 @@ export default function TeacherAttendancePage() {
                         <CardTitle>Daily Attendance</CardTitle>
                         <CardDescription>Mark attendance for all teachers for today, {today ? format(today, 'PPP') : '...'}.</CardDescription>
                     </div>
-                    <Button onClick={handleSaveAttendance}>Save Attendance</Button>
+                    <Button onClick={handleSaveAttendance} disabled={isSundayToday}>Save Attendance</Button>
                 </div>
                 </CardHeader>
                 <CardContent>
-                <div className="border rounded-lg">
-                    <Table>
-                        <TableHeader>
-                        <TableRow>
-                            <TableHead>Teacher Name</TableHead>
-                            <TableHead className="text-right">Status</TableHead>
-                        </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                        {teachers.map((teacher) => (
-                            <TableRow key={teacher.id}>
-                            <TableCell className="font-medium">{teacher.name}</TableCell>
-                            <TableCell className="text-right">
-                               <div className="flex justify-end items-center gap-4">
-                                  {(attendance[teacher.id]?.status === 'Present' || attendance[teacher.id]?.status === 'Late') && (
-                                    <Input
-                                        type="time"
-                                        value={attendance[teacher.id]?.time || ''}
-                                        onChange={(e) => handleTimeChange(teacher.id, e.target.value)}
-                                        className="w-28 h-8"
-                                    />
-                                  )}
-                                  <RadioGroup
-                                    value={attendance[teacher.id]?.status}
-                                    onValueChange={(value) => handleAttendanceChange(teacher.id, value as AttendanceStatus)}
-                                    className="flex justify-end gap-4"
-                                  >
-                                    <div className="flex items-center space-x-2"><RadioGroupItem value="Present" id={`p-${teacher.id}`} /><Label htmlFor={`p-${teacher.id}`}>Present</Label></div>
-                                    <div className="flex items-center space-x-2"><RadioGroupItem value="Late" id={`lt-${teacher.id}`} /><Label htmlFor={`lt-${teacher.id}`}>Late</Label></div>
-                                    <div className="flex items-center space-x-2"><RadioGroupItem value="Absent" id={`a-${teacher.id}`} /><Label htmlFor={`a-${teacher.id}`}>Absent</Label></div>
-                                    <div className="flex items-center space-x-2"><RadioGroupItem value="Leave" id={`l-${teacher.id}`} /><Label htmlFor={`l-${teacher.id}`}>Leave</Label></div>
-                                  </RadioGroup>
-                                </div>
-                            </TableCell>
+                {isSundayToday ? (
+                     <Alert variant="default" className="border-orange-500/50 bg-orange-500/5 text-orange-700">
+                        <CalendarOff className="h-4 w-4 text-orange-600" />
+                        <AlertTitle>Holiday</AlertTitle>
+                        <AlertDescription>
+                            Today is Sunday. Attendance cannot be marked.
+                        </AlertDescription>
+                    </Alert>
+                ) : (
+                    <div className="border rounded-lg">
+                        <Table>
+                            <TableHeader>
+                            <TableRow>
+                                <TableHead>Teacher Name</TableHead>
+                                <TableHead className="text-right">Status</TableHead>
                             </TableRow>
-                        ))}
-                        </TableBody>
-                    </Table>
-                </div>
+                            </TableHeader>
+                            <TableBody>
+                            {teachers.map((teacher) => (
+                                <TableRow key={teacher.id}>
+                                <TableCell className="font-medium">{teacher.name}</TableCell>
+                                <TableCell className="text-right">
+                                <div className="flex justify-end items-center gap-4">
+                                    {(attendance[teacher.id]?.status === 'Present' || attendance[teacher.id]?.status === 'Late') && (
+                                        <Input
+                                            type="time"
+                                            value={attendance[teacher.id]?.time || ''}
+                                            onChange={(e) => handleTimeChange(teacher.id, e.target.value)}
+                                            className="w-28 h-8"
+                                        />
+                                    )}
+                                    <RadioGroup
+                                        value={attendance[teacher.id]?.status}
+                                        onValueChange={(value) => handleAttendanceChange(teacher.id, value as AttendanceStatus)}
+                                        className="flex justify-end gap-4"
+                                    >
+                                        <div className="flex items-center space-x-2"><RadioGroupItem value="Present" id={`p-${teacher.id}`} /><Label htmlFor={`p-${teacher.id}`}>Present</Label></div>
+                                        <div className="flex items-center space-x-2"><RadioGroupItem value="Late" id={`lt-${teacher.id}`} /><Label htmlFor={`lt-${teacher.id}`}>Late</Label></div>
+                                        <div className="flex items-center space-x-2"><RadioGroupItem value="Absent" id={`a-${teacher.id}`} /><Label htmlFor={`a-${teacher.id}`}>Absent</Label></div>
+                                        <div className="flex items-center space-x-2"><RadioGroupItem value="Leave" id={`l-${teacher.id}`} /><Label htmlFor={`l-${teacher.id}`}>Leave</Label></div>
+                                    </RadioGroup>
+                                    </div>
+                                </TableCell>
+                                </TableRow>
+                            ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                )}
                 </CardContent>
             </Card>
         </TabsContent>
@@ -313,9 +330,9 @@ export default function TeacherAttendancePage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="sticky left-0 bg-background z-10 min-w-[120px] sm:min-w-[150px] lg:min-w-[200px]">Teacher</TableHead>
+                                    <TableHead className="sticky left-0 bg-background z-10 w-32 md:w-40 lg:w-48">Teacher</TableHead>
                                     {monthlyReportData.daysInMonth.map(day => (
-                                        <TableHead key={day.toISOString()} className="text-center">{format(day, 'd')}</TableHead>
+                                        <TableHead key={day.toISOString()} className={cn("text-center w-14", isSunday(day) && "bg-muted/50")}>{format(day, 'd')}</TableHead>
                                     ))}
                                 </TableRow>
                             </TableHeader>
@@ -323,11 +340,19 @@ export default function TeacherAttendancePage() {
                                 {monthlyReportData.report.map(({ teacher, attendanceByDate }) => (
                                     <TableRow key={teacher.id}>
                                         <TableCell className="font-medium sticky left-0 bg-background z-10">{teacher.name}</TableCell>
-                                        {monthlyReportData.daysInMonth.map(day => (
-                                            <TableCell key={day.toISOString()} className="text-center p-1 h-14">
-                                                {getStatusBadge(attendanceByDate[format(day, 'yyyy-MM-dd')])}
-                                            </TableCell>
-                                        ))}
+                                        {monthlyReportData.daysInMonth.map(day => {
+                                            const isSun = isSunday(day);
+                                            const record = attendanceByDate[format(day, 'yyyy-MM-dd')];
+                                            return (
+                                                <TableCell key={day.toISOString()} className={cn("text-center p-1 h-14", isSun && "bg-muted/50")}>
+                                                    {isSun ? (
+                                                        <span className="font-semibold text-muted-foreground">SUN</span>
+                                                    ) : (
+                                                        getStatusBadge(record)
+                                                    )}
+                                                </TableCell>
+                                            )
+                                        })}
                                     </TableRow>
                                 ))}
                             </TableBody>
