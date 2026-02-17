@@ -97,12 +97,13 @@ export const FeeReceipt = React.forwardRef<HTMLDivElement, FeeReceiptProps>(
             
             <footer className='mt-12 pt-4 border-t border-gray-300 text-center text-xs text-gray-500'>
                 {qrCodeDataUri && (
-                    <div className="flex justify-center my-2">
+                    <div className="flex flex-col items-center justify-center my-2">
                         <Image src={qrCodeDataUri} alt="Receipt QR Code" width={60} height={60} />
+                        <p className="text-[9px] mt-1">Scan for Live Fee Status</p>
                     </div>
                 )}
                 <p className="mb-2">Thank you for your payment!</p>
-                <p>&copy; {new Date().getFullYear()} {settings.schoolName}. All rights reserved.</p>
+                <p>&copy; {new Date().getFullYear()} {settings.schoolName}. All rights reserved. | Developed by SchoolUP</p>
             </footer>
         </div>
       </div>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -24,7 +25,7 @@ const VoucherSlip = ({ family, students, settings, voucherData, copyType, qrCode
   const amountAfterDueDate = grandTotal + lateFeeFine;
 
   const FeeRow = ({ label, amount }: { label: string, amount: number }) => (
-    (amount > 0) && (
+    (amount !== 0) && ( // Also show concession if it's negative
         <tr>
             <td className="p-1">{label}</td>
             <td className="p-1 text-right font-mono">{amount.toLocaleString()}</td>
@@ -35,13 +36,15 @@ const VoucherSlip = ({ family, students, settings, voucherData, copyType, qrCode
   return (
       <div className="bg-white text-black text-sm font-sans p-2 border-2 border-black">
           <header className="flex justify-between items-start text-center mb-2">
-            <div className="w-1/4 flex justify-start pt-2 pl-2">
+            <div className="w-1/4 flex flex-col items-center justify-start pt-2 pl-2">
                {qrCodeDataUri && <Image src={qrCodeDataUri} alt="QR Code" width={70} height={70} />}
+               <p className="text-[9px] text-center mt-1">Scan for Live Fee Status</p>
             </div>
             <div className="w-1/2">
               {settings.schoolLogo && <Image src={settings.schoolLogo} alt="School Logo" width={50} height={50} className="object-contain mx-auto" />}
               <h1 className="text-xl font-bold uppercase">{settings.schoolName}</h1>
               <p className="text-[10px]">{settings.schoolAddress}</p>
+              <p className="text-[10px]">{settings.schoolPhone}</p>
             </div>
             <div className="w-1/4"></div>
           </header>
@@ -94,12 +97,7 @@ const VoucherSlip = ({ family, students, settings, voucherData, copyType, qrCode
                   <FeeRow label="Annual Charges" amount={annualCharges} />
                   <FeeRow label="Board Reg / Other" amount={boardRegFee} />
                   <FeeRow label="Pending Dues" amount={pendingDues} />
-                  {concession > 0 && (
-                    <tr>
-                      <td className="p-1">Concession</td>
-                      <td className="p-1 text-right font-mono">-{concession.toLocaleString()}</td>
-                    </tr>
-                  )}
+                  <FeeRow label="Concession" amount={-concession} />
               </tbody>
           </table>
           <div className="text-sm py-1 border-t-2 border-black space-y-1">
@@ -113,7 +111,7 @@ const VoucherSlip = ({ family, students, settings, voucherData, copyType, qrCode
               </div>
           </div>
           <div className="text-[10px] text-center font-semibold mt-2">
-            Software by Mian Mudassar (0343-8775425)
+            © {new Date().getFullYear()} {settings.schoolName} | Developed by SchoolUP
           </div>
       </div>
   );
