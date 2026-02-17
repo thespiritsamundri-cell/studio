@@ -46,8 +46,8 @@ export default function DashboardPage() {
             .reduce((total, log) => total + (log.recipientCount || 0), 0);
     }, [activityLog, today]);
 
-    const { monthlyIncome, monthlyExpenses, netProfitThisMonth } = useMemo(() => {
-        if (!today) return { monthlyIncome: 0, monthlyExpenses: 0, netProfitThisMonth: 0 };
+    const { monthlyIncome, monthlyExpenses, netProfitThisMonth, totalUnpaid } = useMemo(() => {
+        if (!today) return { monthlyIncome: 0, monthlyExpenses: 0, netProfitThisMonth: 0, totalUnpaid: 0 };
         const startDate = startOfMonth(today);
         const endDate = endOfMonth(today);
 
@@ -59,7 +59,9 @@ export default function DashboardPage() {
             .filter(e => new Date(e.date) >= startDate && new Date(e.date) <= endDate)
             .reduce((acc, exp) => acc + exp.amount, 0);
         
-        return { monthlyIncome: income, monthlyExpenses: exp, netProfitThisMonth: income - exp };
+        const unpaid = fees.filter(f => f.status === 'Unpaid').reduce((acc, fee) => acc + fee.amount, 0);
+        
+        return { monthlyIncome: income, monthlyExpenses: exp, netProfitThisMonth: income - exp, totalUnpaid };
     }, [fees, expenses, today]);
 
     
@@ -221,7 +223,17 @@ export default function DashboardPage() {
       </div>
 
        {hasPermission('accounts') && userRole !== 'coordinator' && (
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+              <Card className="bg-orange-500/5 border-orange-500/20">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium text-orange-800">Total Unpaid Dues</CardTitle>
+                    <Wallet className="w-4 h-4 text-orange-600" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold text-orange-700">PKR {totalUnpaid.toLocaleString()}</div>
+                    <p className="text-xs text-muted-foreground">Total outstanding student fees</p>
+                </CardContent>
+              </Card>
               <Card className="bg-green-500/5 border-green-500/20">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
                       <CardTitle className="text-sm font-medium text-green-800">Income (This Month)</CardTitle>
