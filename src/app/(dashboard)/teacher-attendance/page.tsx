@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, subMonths, addMonths, isSunday, getYear, getMonth } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Printer, CalendarOff, UserCheck, UserX, Clock, Calendar, CheckCircle, XCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Printer, CalendarOff, UserCheck, UserX, Clock, Calendar } from 'lucide-react';
 import { renderToString } from 'react-dom/server';
 import { TeacherAttendancePrintReport } from '@/components/reports/teacher-attendance-report';
 import { IndividualTeacherAttendancePrintReport } from '@/components/reports/individual-teacher-attendance-report';
@@ -215,83 +215,145 @@ const TeacherReportTab = () => {
 const MonthlySheetTab = () => {
     const { teachers, teacherAttendances } = useData();
     const { settings } = useSettings();
-    const [selectedMonth, setSelectedMonth] = useState(new Date());
+    const [currentDate, setCurrentDate] = useState(new Date());
+
+    const selectedYear = getYear(currentDate);
+    const selectedMonthIndex = getMonth(currentDate);
+
+    const years = useMemo(() => {
+        const allYears = new Set<number>();
+        teacherAttendances.forEach(a => allYears.add(getYear(new Date(a.date))));
+        if(allYears.size === 0) allYears.add(getYear(new Date()));
+        return Array.from(allYears).sort((a,b) => b-a);
+    }, [teacherAttendances]);
+
+    const months = Array.from({ length: 12 }, (_, i) => ({
+        value: i,
+        label: format(new Date(0, i), 'MMMM')
+    }));
     
     const monthlySheetData = useMemo(() => {
-        const start = startOfMonth(selectedMonth);
-        const end = endOfMonth(selectedMonth);
+        const start = startOfMonth(currentDate);
+        const end = endOfMonth(currentDate);
         const daysInMonth = eachDayOfInterval({ start, end });
+        
         const report = teachers.map(teacher => {
             const attendanceByDate: Record<string, TeacherAttendance | undefined> = {};
+            const summary = { present: 0, absent: 0, late: 0, leave: 0 };
+            
             daysInMonth.forEach(day => {
                 const dateStr = format(day, 'yyyy-MM-dd');
                 const record = teacherAttendances.find(a => a.teacherId === teacher.id && a.date === dateStr);
                 attendanceByDate[dateStr] = record;
+                if (record && !isSunday(day)) {
+                    if (record.status === 'Present') summary.present++;
+                    else if (record.status === 'Absent') summary.absent++;
+                    else if (record.status === 'Late') summary.late++;
+                    else if (record.status === 'Leave') summary.leave++;
+                }
             });
-            return { teacher, attendanceByDate };
+            return { teacher, attendanceByDate, summary };
         });
         return { report, daysInMonth };
-    }, [teachers, teacherAttendances, selectedMonth]);
+    }, [teachers, teacherAttendances, currentDate]);
 
-    const getStatusBadge = (attendanceRecord: TeacherAttendance | undefined, day: Date) => {
-        if (isSunday(day)) return <span style={{ fontWeight: 'bold', color: '#a1a1aa' }}>S</span>;
-        if (!attendanceRecord) return <span className="text-muted-foreground">-</span>;
-        switch(attendanceRecord.status) {
-            case 'Present': return <Badge className="bg-green-500/80 text-white">P</Badge>;
-            case 'Absent': return <Badge variant="destructive">A</Badge>;
-            case 'Leave': return <Badge variant="secondary" className="bg-yellow-500/80 text-white">L</Badge>;
-            case 'Late': return <Badge variant="secondary" className="bg-orange-500/80 text-white">LT</Badge>;
-            default: return <span className="text-muted-foreground">-</span>;
+    const getStatusCell = (status: AttendanceStatus | undefined, isSun: boolean) => {
+        if (isSun) return <TableCell className="p-0 text-center text-muted-foreground bg-muted/30">S</TableCell>;
+        if (!status) return <TableCell className="p-0 text-center text-muted-foreground">-</TableCell>;
+
+        switch(status) {
+            case 'Present': return <TableCell className="p-0 text-center font-bold text-green-800 bg-green-500/20">P</TableCell>;
+            case 'Absent': return <TableCell className="p-0 text-center font-bold text-red-800 bg-red-500/20">A</TableCell>;
+            case 'Leave': return <TableCell className="p-0 text-center font-bold text-yellow-800 bg-yellow-500/20">L</TableCell>;
+            case 'Late': return <TableCell className="p-0 text-center font-bold text-orange-800 bg-orange-500/20">LT</TableCell>;
+            default: return <TableCell className="p-0 text-center text-muted-foreground">-</TableCell>;
         }
     };
     
     const handlePrint = () => {
-        const printContent = renderToString(<TeacherAttendancePrintReport teachers={teachers} daysInMonth={monthlySheetData.daysInMonth} attendanceData={monthlySheetData.report} month={selectedMonth} settings={settings} />);
+        const printContent = renderToString(<TeacherAttendancePrintReport teachers={teachers} daysInMonth={monthlySheetData.daysInMonth} attendanceData={monthlySheetData.report} month={currentDate} settings={settings} />);
         const printWindow = window.open('', '_blank');
         if (printWindow) {
-            printWindow.document.write(`<html><head><title>Teacher Attendance - ${format(selectedMonth, 'MMMM yyyy')}</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="/print-styles.css" /></head><body data-layout="landscape">${printContent}</body></html>`);
+            printWindow.document.write(`<html><head><title>Teacher Attendance - ${format(currentDate, 'MMMM yyyy')}</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="/print-styles.css" /></head><body data-layout="landscape">${printContent}</body></html>`);
             printWindow.document.close();
             printWindow.focus();
         }
     };
 
+    const handleYearChange = (year: string) => {
+        const newYear = parseInt(year);
+        const newDate = new Date(currentDate);
+        newDate.setFullYear(newYear);
+        setCurrentDate(newDate);
+    };
+
+    const handleMonthChange = (month: string) => {
+        const newMonth = parseInt(month);
+        const newDate = new Date(currentDate);
+        newDate.setMonth(newMonth);
+        setCurrentDate(newDate);
+    }
+
     return (
         <Card>
             <CardHeader>
                 <CardTitle>Monthly Attendance Sheet</CardTitle>
-                <CardDescription>View and print the complete attendance record for all teachers for the selected month.</CardDescription>
+                <CardDescription>View the complete monthly attendance sheet for all teachers.</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="flex justify-between items-center mb-4">
-                     <div className="flex items-center gap-2">
-                        <Button variant="outline" size="icon" onClick={() => setSelectedMonth(prev => subMonths(prev, 1))}><ChevronLeft className="h-4 w-4" /></Button>
-                        <h3 className="text-lg font-semibold w-36 text-center">{format(selectedMonth, 'MMMM yyyy')}</h3>
-                        <Button variant="outline" size="icon" onClick={() => setSelectedMonth(prev => addMonths(prev, 1))}><ChevronRight className="h-4 w-4" /></Button>
+                <div className="flex flex-col md:flex-row gap-2 justify-between items-center mb-4">
+                     <div className="flex gap-2 items-center">
+                         <Select value={String(selectedMonthIndex)} onValueChange={handleMonthChange}>
+                            <SelectTrigger className="w-[150px]">
+                                <SelectValue placeholder="Month" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {months.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <Select value={String(selectedYear)} onValueChange={handleYearChange}>
+                            <SelectTrigger className="w-[120px]">
+                                <SelectValue placeholder="Year" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
                     </div>
                     <Button variant="outline" onClick={handlePrint}><Printer className="w-4 h-4 mr-2" /> Print Sheet</Button>
                 </div>
-                <div className="border rounded-lg overflow-x-auto">
-                    <Table>
+                <ScrollArea className="w-full whitespace-nowrap">
+                    <Table className="min-w-full border-collapse">
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="sticky left-0 bg-background z-10 min-w-[150px]">Teacher</TableHead>
-                                {monthlySheetData.daysInMonth.map(day => (<TableHead key={day.toISOString()} className={cn("text-center w-14", isSunday(day) && "bg-muted/50")}>{format(day, 'd')}</TableHead>))}
+                                <TableHead className="sticky left-0 bg-background z-10 w-40 min-w-[150px] p-2">Teacher Name</TableHead>
+                                {monthlySheetData.daysInMonth.map(day => (<TableHead key={day.toISOString()} className={cn("text-center w-10 p-2", isSunday(day) && "bg-muted/50")}>{format(day, 'd')}</TableHead>))}
+                                <TableHead className="text-center w-12 p-2 sticky right-[144px] bg-background z-10 text-green-600 font-bold">P</TableHead>
+                                <TableHead className="text-center w-12 p-2 sticky right-24 bg-background z-10 text-red-600 font-bold">A</TableHead>
+                                <TableHead className="text-center w-12 p-2 sticky right-12 bg-background z-10 text-orange-500 font-bold">LT</TableHead>
+                                <TableHead className="text-center w-12 p-2 sticky right-0 bg-background z-10 text-yellow-500 font-bold">L</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {monthlySheetData.report.map(({ teacher, attendanceByDate }) => (
+                            {monthlySheetData.report.map(({ teacher, attendanceByDate, summary }) => (
                                 <TableRow key={teacher.id}>
-                                    <TableCell className="font-medium sticky left-0 bg-background z-10">{teacher.name}</TableCell>
-                                    {monthlySheetData.daysInMonth.map(day => (<TableCell key={day.toISOString()} className={cn("text-center p-1 h-14", isSunday(day) && "bg-muted/50")}>{getStatusBadge(attendanceByDate[format(day, 'yyyy-MM-dd')], day)}</TableCell>))}
+                                    <TableCell className="font-medium sticky left-0 bg-background z-10 p-2">{teacher.name}</TableCell>
+                                    {monthlySheetData.daysInMonth.map(day => getStatusCell(attendanceByDate[format(day, 'yyyy-MM-dd')]?.status, isSunday(day)))}
+                                    <TableCell className="text-center font-bold sticky right-[144px] bg-background z-10 p-2">{summary.present}</TableCell>
+                                    <TableCell className="text-center font-bold sticky right-24 bg-background z-10 p-2">{summary.absent}</TableCell>
+                                    <TableCell className="text-center font-bold sticky right-12 bg-background z-10 p-2">{summary.late}</TableCell>
+                                    <TableCell className="text-center font-bold sticky right-0 bg-background z-10 p-2">{summary.leave}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
                     </Table>
-                </div>
+                 </ScrollArea>
+                 {teachers.length === 0 && <div className="text-center text-muted-foreground py-10">No teachers found.</div>}
             </CardContent>
         </Card>
     );
 };
+
 
 // -- Main Page Component --
 export default function TeacherAttendancePage() {
@@ -352,7 +414,7 @@ const IndividualReportView = ({ teacherData, daysInMonth }: { teacherData: any, 
                                             </Badge>
                                         ) : <Badge variant="outline">N/A</Badge>}
                                     </TableCell>
-                                    <TableCell>{record?.time || (isSun ? '-' : 'N/A')}</TableCell>
+                                    <TableCell>{record?.time || (isSun ? 'Sunday' : 'N/A')}</TableCell>
                                 </TableRow>
                             );
                         })}
