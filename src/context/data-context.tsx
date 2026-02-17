@@ -703,8 +703,9 @@ const deleteFee = useCallback(async (id: string) => {
     // --- EXPENSE ---
     const addExpense = useCallback(async (expense: Omit<Expense, 'id'>) => {
         try {
-            const newId = `EXP-${Date.now()}`;
-            await setDoc(doc(db, "expenses", newId), { id: newId, ...expense });
+            const docRef = await addDoc(collection(db, "expenses"), expense);
+            await updateDoc(docRef, { id: docRef.id });
+            
             if (userRole !== 'super_admin') {
                 await addNotification({
                     title: 'New Expense Added',
@@ -730,48 +731,18 @@ const deleteFee = useCallback(async (id: string) => {
       }
     }, [addActivityLog, toast]);
     
-const deleteExpense = useCallback(async (id: string) => {
-    const expenseToDelete = expenses.find(exp => exp.id === id);
-    if (!expenseToDelete) {
-        toast({ title: 'Error', description: 'Could not find the expense to delete in local data.', variant: 'destructive' });
-        return;
-    }
-
-    try {
-        await runTransaction(db, async (transaction) => {
-            const expenseRef = doc(db, "expenses", id);
-            const expenseDoc = await transaction.get(expenseRef);
-
-            if (!expenseDoc.exists()) {
-                throw new Error("Expense document not found, cannot delete.");
-            }
-            const expenseData = expenseDoc.data() as Expense;
-
-            // Create reversal income record
-            const reversalFee: Omit<Fee, 'id'> = {
-                familyId: 'SYSTEM_REVERSAL',
-                amount: expenseData.amount,
-                month: `Expense Reversal: ${expenseData.description.substring(0, 20)}`,
-                year: new Date().getFullYear(),
-                paymentDate: new Date().toISOString(),
-                status: 'Paid',
-                paymentMethod: 'Adjustment',
-            };
-            const newFeeRef = doc(collection(db, "fees"));
-            transaction.set(newFeeRef, reversalFee);
-
-            // Delete the expense document
-            transaction.delete(expenseRef);
-        });
-
-        toast({ title: "Expense Deleted", description: "The expense has been deleted and the amount reversed into income." });
-        await addActivityLog({ action: 'Delete Expense', description: `Deleted and reversed expense ID: ${id}.` });
-
-    } catch (error: any) {
-        console.error("Error deleting expense:", error);
-        toast({ title: "Error Deleting Expense", description: error.message, variant: "destructive" });
-    }
-}, [expenses, addActivityLog, toast]);
+    const deleteExpense = useCallback(async (id: string) => {
+        const expenseToDelete = expenses.find(exp => exp.id === id);
+        if (!expenseToDelete) return;
+        try {
+          await deleteDoc(doc(db, 'expenses', id));
+          await addActivityLog({ action: 'Delete Expense', description: `Deleted expense: ${expenseToDelete.description}.` });
+          toast({ title: 'Expense Deleted', description: 'The expense record has been deleted.' });
+        } catch (e) {
+          console.error('Error deleting expense:', e);
+          toast({ title: 'Error Deleting Expense', variant: 'destructive' });
+        }
+    }, [expenses, addActivityLog, toast]);
 
   // --- ATTENDANCE ---
   const saveStudentAttendance = useCallback(async (newAttendances: Attendance[], date: string, className: string) => {
