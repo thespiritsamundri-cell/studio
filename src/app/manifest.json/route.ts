@@ -20,7 +20,7 @@ export async function GET(request: Request) {
 
   const manifest = {
 
-    name: settings.schoolName || "The Spirit School Samundri",
+    name: settings.schoolName || "THE SPIRIT SCHOOL SAMUNDRI",
     short_name: settings.schoolName ? settings.schoolName.split(' ').map(n => n[0]).join('') : "TSS",
     description: "Schoolup - A Unique Platform for Smart Schools",
 
