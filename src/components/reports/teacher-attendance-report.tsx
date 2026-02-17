@@ -1,20 +1,20 @@
 
+
 'use client';
 
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { Teacher } from '@/lib/types';
+import type { Teacher, TeacherAttendance } from '@/lib/types';
 import { School } from 'lucide-react';
 import type { SchoolSettings } from '@/context/settings-context';
 import Image from 'next/image';
 import { format } from 'date-fns';
-import { Badge } from '../ui/badge';
 
 type AttendanceStatus = 'Present' | 'Absent' | 'Leave' | 'Late';
 interface TeacherAttendancePrintReportProps {
   teachers: Teacher[];
   daysInMonth: Date[];
-  attendanceData: { teacher: Teacher, attendanceByDate: Record<string, AttendanceStatus | undefined> }[];
+  attendanceData: { teacher: Teacher, attendanceByDate: Record<string, TeacherAttendance | undefined> }[];
   month: Date;
   settings: SchoolSettings;
 }
@@ -22,15 +22,28 @@ interface TeacherAttendancePrintReportProps {
 export const TeacherAttendancePrintReport = React.forwardRef<HTMLDivElement, TeacherAttendancePrintReportProps>(
   ({ teachers, daysInMonth, attendanceData, month, settings }, ref) => {
 
-    const getStatusBadge = (status: AttendanceStatus | undefined) => {
-      if (!status) return <span style={{ color: '#a1a1aa' }}>-</span>; // gray-400
-      switch(status) {
-          case 'Present': return <span style={{ color: 'green' }}>P</span>;
-          case 'Absent': return <span style={{ color: 'red' }}>A</span>;
-          case 'Leave': return <span style={{ color: 'orange' }}>L</span>;
-          case 'Late': return <span style={{ color: '#f97316' }}>LT</span>; // orange-500
-          default: return <span style={{ color: '#a1a1aa' }}>-</span>;
-      }
+    const getStatusContent = (attendanceRecord: TeacherAttendance | undefined) => {
+      if (!attendanceRecord) return <span style={{ color: '#a1a1aa' }}>-</span>;
+      const { status, time } = attendanceRecord;
+  
+      const statusChar = (() => {
+           switch(status) {
+              case 'Present': return <span style={{ color: 'green', fontWeight: 'bold' }}>P</span>;
+              case 'Absent': return <span style={{ color: 'red', fontWeight: 'bold' }}>A</span>;
+              case 'Leave': return <span style={{ color: 'orange', fontWeight: 'bold' }}>L</span>;
+              case 'Late': return <span style={{ color: '#f97316', fontWeight: 'bold' }}>LT</span>;
+              default: return <span style={{ color: '#a1a1aa' }}>-</span>;
+          }
+      })();
+  
+      return (
+          <div>
+              <div>{statusChar}</div>
+              {(status === 'Present' || status === 'Late') && time && (
+                  <div style={{ fontSize: '8px', color: '#6b7280' }}>{time}</div>
+              )}
+          </div>
+      );
     };
     
     return (
@@ -69,8 +82,8 @@ export const TeacherAttendancePrintReport = React.forwardRef<HTMLDivElement, Tea
                 <TableRow key={teacher.id}>
                     <TableCell className="font-medium">{teacher.name}</TableCell>
                     {daysInMonth.map(day => (
-                        <TableCell key={day.toISOString()} className="text-center text-xs">
-                            {getStatusBadge(attendanceByDate[format(day, 'yyyy-MM-dd')])}
+                        <TableCell key={day.toISOString()} className="text-center text-xs p-1 h-12">
+                            {getStatusContent(attendanceByDate[format(day, 'yyyy-MM-dd')])}
                         </TableCell>
                     ))}
                 </TableRow>

@@ -19,6 +19,7 @@ import { ChevronLeft, ChevronRight, Printer } from 'lucide-react';
 import { renderToString } from 'react-dom/server';
 import { TeacherAttendancePrintReport } from '@/components/reports/teacher-attendance-report';
 import { useSettings } from '@/context/settings-context';
+import { Input } from '@/components/ui/input';
 
 
 type AttendanceStatus = 'Present' | 'Absent' | 'Leave' | 'Late';
@@ -33,15 +34,18 @@ export default function TeacherAttendancePage() {
     setToday(new Date());
   }, []);
 
-  const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
+  const [attendance, setAttendance] = useState<Record<string, { status: AttendanceStatus; time?: string }>>({});
 
   useEffect(() => {
     if (today) {
-        const initialState: Record<string, AttendanceStatus> = {};
+        const initialState: Record<string, { status: AttendanceStatus; time?: string }> = {};
         const todayStr = format(today, 'yyyy-MM-dd');
         teachers.forEach((t) => {
             const todaysRecord = teacherAttendances.find(a => a.teacherId === t.id && a.date === todayStr);
-            initialState[t.id] = todaysRecord?.status || 'Present';
+            initialState[t.id] = {
+                status: todaysRecord?.status || 'Present',
+                time: todaysRecord?.time || (todaysRecord?.status === 'Present' || todaysRecord?.status === 'Late' ? format(new Date(), 'HH:mm') : undefined)
+            };
         });
         setAttendance(initialState);
     }
@@ -49,7 +53,28 @@ export default function TeacherAttendancePage() {
 
 
   const handleAttendanceChange = (teacherId: string, status: AttendanceStatus) => {
-    setAttendance((prev) => ({ ...prev, [teacherId]: status }));
+    setAttendance((prev) => {
+        const currentTime = format(new Date(), 'HH:mm');
+        const isTimeApplicable = status === 'Present' || status === 'Late';
+        return {
+            ...prev,
+            [teacherId]: {
+                status: status,
+                time: isTimeApplicable ? (prev[teacherId]?.time || currentTime) : undefined
+            }
+        };
+    });
+  };
+
+  const handleTimeChange = (teacherId: string, time: string) => {
+    setAttendance(prev => ({
+        ...prev,
+        [teacherId]: {
+            ...prev[teacherId],
+            status: prev[teacherId]?.status || 'Present',
+            time: time
+        }
+    }));
   };
 
   const handleSaveAttendance = () => {
@@ -58,7 +83,8 @@ export default function TeacherAttendancePage() {
     const newAttendances: TeacherAttendance[] = teachers.map(teacher => ({
         teacherId: teacher.id,
         date: todayStr,
-        status: attendance[teacher.id]
+        status: attendance[teacher.id].status,
+        time: attendance[teacher.id].time
     }));
 
     saveTeacherAttendance(newAttendances);
@@ -82,11 +108,11 @@ export default function TeacherAttendancePage() {
       : teachers.filter(t => t.id === selectedTeacherId);
 
     const report = filteredTeachers.map(teacher => {
-        const attendanceByDate: Record<string, AttendanceStatus | undefined> = {};
+        const attendanceByDate: Record<string, TeacherAttendance | undefined> = {};
         daysInMonth.forEach(day => {
             const dateStr = format(day, 'yyyy-MM-dd');
             const record = teacherAttendances.find(a => a.teacherId === teacher.id && a.date === dateStr);
-            attendanceByDate[dateStr] = record?.status;
+            attendanceByDate[dateStr] = record;
         });
         return { teacher, attendanceByDate };
     });
@@ -123,15 +149,28 @@ export default function TeacherAttendancePage() {
   };
 
   
-  const getStatusBadge = (status: AttendanceStatus | undefined) => {
-      if (!status) return <span className="text-muted-foreground">-</span>;
-      switch(status) {
-          case 'Present': return <Badge className="bg-green-500/80 text-white">P</Badge>
-          case 'Absent': return <Badge variant="destructive">A</Badge>
-          case 'Leave': return <Badge variant="secondary" className="bg-yellow-500/80 text-white">L</Badge>
-          case 'Late': return <Badge variant="secondary" className="bg-orange-500/80 text-white">LT</Badge>
-          default: return <span className="text-muted-foreground">-</span>;
-      }
+  const getStatusBadge = (attendanceRecord: TeacherAttendance | undefined) => {
+      if (!attendanceRecord) return <span className="text-muted-foreground">-</span>;
+      const { status, time } = attendanceRecord;
+      
+      const badge = (() => {
+           switch(status) {
+              case 'Present': return <Badge className="bg-green-500/80 text-white">P</Badge>
+              case 'Absent': return <Badge variant="destructive">A</Badge>
+              case 'Leave': return <Badge variant="secondary" className="bg-yellow-500/80 text-white">L</Badge>
+              case 'Late': return <Badge variant="secondary" className="bg-orange-500/80 text-white">LT</Badge>
+              default: return <span className="text-muted-foreground">-</span>;
+          }
+      })();
+  
+      return (
+          <div className="flex flex-col items-center gap-1">
+              {badge}
+              {(status === 'Present' || status === 'Late') && time && (
+                  <span className="text-[10px] text-muted-foreground">{time}</span>
+              )}
+          </div>
+      );
   }
 
   const handleMonthChange = (direction: 'prev' | 'next') => {
@@ -173,16 +212,26 @@ export default function TeacherAttendancePage() {
                             <TableRow key={teacher.id}>
                             <TableCell className="font-medium">{teacher.name}</TableCell>
                             <TableCell className="text-right">
-                                <RadioGroup
-                                value={attendance[teacher.id]}
-                                onValueChange={(value) => handleAttendanceChange(teacher.id, value as AttendanceStatus)}
-                                className="flex justify-end gap-4"
-                                >
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="Present" id={`p-${teacher.id}`} /><Label htmlFor={`p-${teacher.id}`}>Present</Label></div>
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="Late" id={`lt-${teacher.id}`} /><Label htmlFor={`lt-${teacher.id}`}>Late</Label></div>
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="Absent" id={`a-${teacher.id}`} /><Label htmlFor={`a-${teacher.id}`}>Absent</Label></div>
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="Leave" id={`l-${teacher.id}`} /><Label htmlFor={`l-${teacher.id}`}>Leave</Label></div>
-                                </RadioGroup>
+                               <div className="flex justify-end items-center gap-4">
+                                  {(attendance[teacher.id]?.status === 'Present' || attendance[teacher.id]?.status === 'Late') && (
+                                    <Input
+                                        type="time"
+                                        value={attendance[teacher.id]?.time || ''}
+                                        onChange={(e) => handleTimeChange(teacher.id, e.target.value)}
+                                        className="w-28 h-8"
+                                    />
+                                  )}
+                                  <RadioGroup
+                                    value={attendance[teacher.id]?.status}
+                                    onValueChange={(value) => handleAttendanceChange(teacher.id, value as AttendanceStatus)}
+                                    className="flex justify-end gap-4"
+                                  >
+                                    <div className="flex items-center space-x-2"><RadioGroupItem value="Present" id={`p-${teacher.id}`} /><Label htmlFor={`p-${teacher.id}`}>Present</Label></div>
+                                    <div className="flex items-center space-x-2"><RadioGroupItem value="Late" id={`lt-${teacher.id}`} /><Label htmlFor={`lt-${teacher.id}`}>Late</Label></div>
+                                    <div className="flex items-center space-x-2"><RadioGroupItem value="Absent" id={`a-${teacher.id}`} /><Label htmlFor={`a-${teacher.id}`}>Absent</Label></div>
+                                    <div className="flex items-center space-x-2"><RadioGroupItem value="Leave" id={`l-${teacher.id}`} /><Label htmlFor={`l-${teacher.id}`}>Leave</Label></div>
+                                  </RadioGroup>
+                                </div>
                             </TableCell>
                             </TableRow>
                         ))}
@@ -240,7 +289,7 @@ export default function TeacherAttendancePage() {
                                     <TableRow key={teacher.id}>
                                         <TableCell className="font-medium sticky left-0 bg-background z-10">{teacher.name}</TableCell>
                                         {monthlyReportData.daysInMonth.map(day => (
-                                            <TableCell key={day.toISOString()} className="text-center">
+                                            <TableCell key={day.toISOString()} className="text-center p-1 h-14">
                                                 {getStatusBadge(attendanceByDate[format(day, 'yyyy-MM-dd')])}
                                             </TableCell>
                                         ))}

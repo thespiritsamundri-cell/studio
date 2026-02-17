@@ -86,6 +86,7 @@ export interface TeacherAttendance {
   teacherId: string;
   date: string; // YYYY-MM-DD
   status: 'Present' | 'Absent' | 'Leave' | 'Late';
+  time?: string;
 }
 
 export interface Fee {
