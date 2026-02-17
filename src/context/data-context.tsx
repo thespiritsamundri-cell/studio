@@ -135,15 +135,38 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [currentUserName]);
 
+  const addNotification = useCallback(async (notification: Omit<AppNotification, 'id' | 'timestamp' | 'isRead'>) => {
+      const superAdmin = users.find(u => u.role === 'super_admin');
+      if (!superAdmin) return;
+      try {
+          const newNotif: Omit<AppNotification, 'id'> = {
+              ...notification,
+              timestamp: new Date().toISOString(),
+              isRead: false,
+          };
+          await addDoc(collection(db, 'notifications'), newNotif);
+      } catch (e) {
+          console.error("Error adding notification:", e);
+      }
+  }, [users]);
+
   const addFee = useCallback(async (feeData: Omit<Fee, 'id'>) => {
     try {
         const newDocRef = await addDoc(collection(db, "fees"), feeData);
+        if (userRole !== 'super_admin' && feeData.status === 'Paid') {
+            const family = families.find(f => f.id === feeData.familyId);
+            await addNotification({
+                title: 'Fee Collected',
+                description: `PKR ${feeData.amount.toLocaleString()} collected from ${family?.fatherName} (Family ID: ${feeData.familyId})`,
+                link: `/income?familyId=${feeData.familyId}`
+            });
+        }
         return newDocRef.id;
     } catch (e) {
         console.error('Error adding fee:', e);
         toast({ title: 'Error Adding Fee', variant: 'destructive' });
     }
-  }, [toast]);
+  }, [toast, userRole, families, addNotification]);
 
     useEffect(() => {
         const generateMonthlyFees = async () => {
@@ -210,20 +233,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
         generateMonthlyFees();
     }, [isDataInitialized, families, students, fees, addFee, addActivityLog, toast, settings.timezone]);
 
-  const addNotification = useCallback(async (notification: Omit<AppNotification, 'id' | 'timestamp' | 'isRead'>) => {
-      const superAdmin = users.find(u => u.role === 'super_admin');
-      if (!superAdmin) return;
-      try {
-          const newNotif: Omit<AppNotification, 'id'> = {
-              ...notification,
-              timestamp: new Date().toISOString(),
-              isRead: false,
-          };
-          await addDoc(collection(db, 'notifications'), newNotif);
-      } catch (e) {
-          console.error("Error adding notification:", e);
-      }
-  }, [users]);
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
