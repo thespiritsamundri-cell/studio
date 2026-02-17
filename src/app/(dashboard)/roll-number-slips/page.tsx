@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -47,7 +47,7 @@ export default function RollNumberSlipsPage() {
   }, [selectedClass, classes]);
 
   const classStudents = useMemo(() => {
-    return selectedClass ? allStudents.filter(s => s.class === selectedClass) : [];
+    return selectedClass ? allStudents.filter(s => s.class === selectedClass && s.status === 'Active') : [];
   }, [selectedClass, allStudents]);
 
   const handleClassChange = (className: string) => {
@@ -96,7 +96,7 @@ export default function RollNumberSlipsPage() {
     const qrCodes: Record<string, string> = {};
     try {
       await Promise.all(studentsToPrint.map(async (student) => {
-        const content = `ID: ${student.id}, Name: ${student.name}, Father: ${student.fatherName}, Class: ${student.class}`;
+        const content = `${window.location.origin}/profile/student/${student.id}`;
         const result = await generateQrCode({ content });
         qrCodes[student.id] = result.qrCodeDataUri;
       }));
