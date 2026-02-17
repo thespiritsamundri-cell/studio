@@ -278,7 +278,7 @@ export default function TeacherAttendancePage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="sticky left-0 bg-background z-10 w-[200px] min-w-[200px]">Teacher</TableHead>
+                                    <TableHead className="sticky left-0 bg-background z-10 w-[120px] sm:w-[150px] lg:w-[200px] min-w-[120px]">Teacher</TableHead>
                                     {monthlyReportData.daysInMonth.map(day => (
                                         <TableHead key={day.toISOString()} className="text-center">{format(day, 'd')}</TableHead>
                                     ))}
