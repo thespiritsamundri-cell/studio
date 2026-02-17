@@ -25,6 +25,8 @@ import Image from 'next/image';
 
 const MALE_AVATAR_URL = 'https://i.postimg.cc/x1BZ31bs/male.png';
 const FEMALE_AVATAR_URL = 'https://i.postimg.cc/7hgPwR8W/1487318.png';
+const NEUTRAL_AVATAR_URL = 'https://i.postimg.cc/3Jp4JMfC/avatar-placeholder.png';
+
 
 interface CustomFee {
   id: number;
@@ -74,7 +76,7 @@ export default function AdmissionsPage() {
         } else if (gender === 'Female') {
             setPhotoPreview(FEMALE_AVATAR_URL);
         } else {
-            setPhotoPreview(null);
+            setPhotoPreview(NEUTRAL_AVATAR_URL);
         }
     }, [photoFile, gender]);
 
@@ -201,12 +203,16 @@ export default function AdmissionsPage() {
                     photoUrl = MALE_AVATAR_URL;
                 } else if (gender === 'Female') {
                     photoUrl = FEMALE_AVATAR_URL;
+                } else {
+                    photoUrl = NEUTRAL_AVATAR_URL;
                 }
             }
         } else if (gender === 'Male') {
             photoUrl = MALE_AVATAR_URL;
         } else if (gender === 'Female') {
             photoUrl = FEMALE_AVATAR_URL;
+        } else {
+            photoUrl = NEUTRAL_AVATAR_URL;
         }
 
 
@@ -589,5 +595,3 @@ export default function AdmissionsPage() {
     </div>
   );
 }
-
-    

@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -39,6 +38,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
+const MALE_AVATAR_URL = 'https://i.postimg.cc/x1BZ31bs/male.png';
+const FEMALE_AVATAR_URL = 'https://i.postimg.cc/7hgPwR8W/1487318.png';
+const NEUTRAL_AVATAR_URL = 'https://i.postimg.cc/3Jp4JMfC/avatar-placeholder.png';
 
 export default function StudentsPage() {
   const { students: allStudents, families: allFamilies, classes, updateStudent } = useData();
@@ -296,7 +298,7 @@ export default function StudentsPage() {
                       alt="Student image"
                       className="aspect-square rounded-md object-cover"
                       height="64"
-                      src={student.photoUrl || `https://picsum.photos/seed/${student.id}/64/64`}
+                      src={student.photoUrl || (student.gender === 'Male' ? MALE_AVATAR_URL : student.gender === 'Female' ? FEMALE_AVATAR_URL : NEUTRAL_AVATAR_URL)}
                       width="64"
                       data-ai-hint="student photo"
                     />

@@ -16,6 +16,9 @@ import { useSettings } from '@/context/settings-context';
 import { generateQrCode } from '@/ai/flows/generate-qr-code';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
+const MALE_AVATAR_URL = 'https://i.postimg.cc/x1BZ31bs/male.png';
+const FEMALE_AVATAR_URL = 'https://i.postimg.cc/7hgPwR8W/1487318.png';
+const NEUTRAL_AVATAR_URL = 'https://i.postimg.cc/3Jp4JMfC/avatar-placeholder.png';
 
 export default function StudentDetailsPage() {
   const router = useRouter();
@@ -85,6 +88,7 @@ export default function StudentDetailsPage() {
   }
   
   const status = 'status' in student ? student.status : 'Graduated';
+  const photoUrl = student.photoUrl || (student.gender === 'Male' ? MALE_AVATAR_URL : student.gender === 'Female' ? FEMALE_AVATAR_URL : NEUTRAL_AVATAR_URL);
 
   return (
     <div className="space-y-6">
@@ -108,7 +112,7 @@ export default function StudentDetailsPage() {
                 alt="Student image"
                 className="aspect-square rounded-lg object-cover"
                 height="120"
-                src={student.photoUrl}
+                src={photoUrl}
                 width="120"
                 data-ai-hint="student photo"
             />
@@ -173,5 +177,3 @@ const DetailItem = ({ label, value }: { label: string, value: string | undefined
       <p className="text-base font-semibold">{value || 'N/A'}</p>
     </div>
   );
-
-    

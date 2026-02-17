@@ -25,6 +25,10 @@ const firebaseConfig = {
 const publicApp = !getApps().some(app => app.name === 'public-student') ? initializeApp(firebaseConfig, 'public-student') : getApp('public-student');
 const publicDb = getFirestore(publicApp);
 
+const MALE_AVATAR_URL = 'https://i.postimg.cc/x1BZ31bs/male.png';
+const FEMALE_AVATAR_URL = 'https://i.postimg.cc/7hgPwR8W/1487318.png';
+const NEUTRAL_AVATAR_URL = 'https://i.postimg.cc/3Jp4JMfC/avatar-placeholder.png';
+
 export default function PublicStudentProfilePage() {
     const params = useParams();
     const { id } = params;
@@ -100,6 +104,8 @@ export default function PublicStudentProfilePage() {
         );
     }
 
+    const photoUrl = student.photoUrl || (student.gender === 'Male' ? MALE_AVATAR_URL : student.gender === 'Female' ? FEMALE_AVATAR_URL : NEUTRAL_AVATAR_URL);
+
     return (
         <div className="bg-gray-100 dark:bg-gray-900 min-h-screen p-4 sm:p-8 flex items-center justify-center">
             <div className="w-full max-w-lg bg-white dark:bg-gray-800 shadow-2xl rounded-2xl overflow-hidden">
@@ -113,7 +119,7 @@ export default function PublicStudentProfilePage() {
                 </div>
                 <div className="p-8 space-y-6">
                     <div className="flex flex-col items-center gap-4">
-                        <Image src={student.photoUrl} alt={student.name} width={120} height={120} className="rounded-full object-cover border-4 border-primary/20 shadow-md"/>
+                        <Image src={photoUrl} alt={student.name} width={120} height={120} className="rounded-full object-cover border-4 border-primary/20 shadow-md"/>
                         <div className="text-center">
                             <h2 className="text-3xl font-bold text-foreground">{student.name}</h2>
                             <p className="text-md text-muted-foreground">Student Profile</p>

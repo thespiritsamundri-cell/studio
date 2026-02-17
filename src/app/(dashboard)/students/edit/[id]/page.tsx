@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -15,6 +14,10 @@ import type { Student, Alumni } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { uploadFile } from '@/services/storage-service';
+
+const MALE_AVATAR_URL = 'https://i.postimg.cc/x1BZ31bs/male.png';
+const FEMALE_AVATAR_URL = 'https://i.postimg.cc/7hgPwR8W/1487318.png';
+const NEUTRAL_AVATAR_URL = 'https://i.postimg.cc/3Jp4JMfC/avatar-placeholder.png';
 
 export default function EditStudentPage() {
   const router = useRouter();
@@ -116,6 +119,7 @@ export default function EditStudentPage() {
   }
   
   const currentStatus = 'status' in student ? student.status : 'Graduated';
+  const photoUrl = student.photoUrl || (student.gender === 'Male' ? MALE_AVATAR_URL : student.gender === 'Female' ? FEMALE_AVATAR_URL : NEUTRAL_AVATAR_URL);
 
 
   return (
@@ -128,7 +132,7 @@ export default function EditStudentPage() {
                 alt="Student image"
                 className="aspect-square rounded-md object-cover"
                 height="80"
-                src={student.photoUrl}
+                src={photoUrl}
                 width="80"
                 data-ai-hint="student photo"
             />
