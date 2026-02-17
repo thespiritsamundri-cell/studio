@@ -23,6 +23,8 @@ import { uploadFile } from '@/services/storage-service';
 import { format } from 'date-fns';
 import Image from 'next/image';
 
+const MALE_AVATAR_URL = 'https://i.postimg.cc/x1BZ31bs/male.png';
+const FEMALE_AVATAR_URL = 'https://i.postimg.cc/7hgPwR8W/1487318.png';
 
 interface CustomFee {
   id: number;
@@ -67,10 +69,14 @@ export default function AdmissionsPage() {
             const objectUrl = URL.createObjectURL(photoFile);
             setPhotoPreview(objectUrl);
             return () => URL.revokeObjectURL(objectUrl);
+        } else if (gender === 'Male') {
+            setPhotoPreview(MALE_AVATAR_URL);
+        } else if (gender === 'Female') {
+            setPhotoPreview(FEMALE_AVATAR_URL);
         } else {
             setPhotoPreview(null);
         }
-    }, [photoFile]);
+    }, [photoFile, gender]);
 
     useEffect(() => {
         if (foundFamily) {
@@ -188,13 +194,19 @@ export default function AdmissionsPage() {
             } catch (error) {
                 toast({
                     title: 'Photo Upload Failed',
-                    description: 'Could not upload student photo. Using a placeholder.',
+                    description: 'Could not upload student photo. Using a default.',
                     variant: 'destructive'
                 });
-                photoUrl = `https://picsum.photos/seed/${newStudentId}/100/100`;
+                 if (gender === 'Male') {
+                    photoUrl = MALE_AVATAR_URL;
+                } else if (gender === 'Female') {
+                    photoUrl = FEMALE_AVATAR_URL;
+                }
             }
-        } else {
-            photoUrl = `https://picsum.photos/seed/${newStudentId}/100/100`;
+        } else if (gender === 'Male') {
+            photoUrl = MALE_AVATAR_URL;
+        } else if (gender === 'Female') {
+            photoUrl = FEMALE_AVATAR_URL;
         }
 
 
