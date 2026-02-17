@@ -258,15 +258,16 @@ const MonthlySheetTab = () => {
     }, [teachers, teacherAttendances, currentDate]);
 
     const getStatusCell = (status: AttendanceStatus | undefined, isSun: boolean, key: string) => {
-        if (isSun) return <TableCell key={key} className="p-0 text-center text-muted-foreground bg-muted/30">S</TableCell>;
-        if (!status) return <TableCell key={key} className="p-0 text-center text-muted-foreground">-</TableCell>;
+        const baseClass = "p-1 h-10 text-center text-xs";
+        if (isSun) return <TableCell key={key} className={cn(baseClass, "text-muted-foreground bg-muted/30")}>S</TableCell>;
+        if (!status) return <TableCell key={key} className={cn(baseClass, "text-muted-foreground")}>-</TableCell>;
 
         switch(status) {
-            case 'Present': return <TableCell key={key} className="p-0 text-center font-bold text-green-800 bg-green-500/20">P</TableCell>;
-            case 'Absent': return <TableCell key={key} className="p-0 text-center font-bold text-red-800 bg-red-500/20">A</TableCell>;
-            case 'Leave': return <TableCell key={key} className="p-0 text-center font-bold text-yellow-800 bg-yellow-500/20">L</TableCell>;
-            case 'Late': return <TableCell key={key} className="p-0 text-center font-bold text-orange-800 bg-orange-500/20">LT</TableCell>;
-            default: return <TableCell key={key} className="p-0 text-center text-muted-foreground">-</TableCell>;
+            case 'Present': return <TableCell key={key} className={cn(baseClass, "font-bold text-green-900 bg-green-500/30")}>P</TableCell>;
+            case 'Absent': return <TableCell key={key} className={cn(baseClass, "font-bold text-red-900 bg-red-500/30")}>A</TableCell>;
+            case 'Leave': return <TableCell key={key} className={cn(baseClass, "font-bold text-yellow-900 bg-yellow-500/30")}>L</TableCell>;
+            case 'Late': return <TableCell key={key} className={cn(baseClass, "font-bold text-orange-900 bg-orange-500/30")}>LT</TableCell>;
+            default: return <TableCell key={key} className={cn(baseClass, "text-muted-foreground")}>-</TableCell>;
         }
     };
     
@@ -322,16 +323,16 @@ const MonthlySheetTab = () => {
                     </div>
                     <Button variant="outline" onClick={handlePrint}><Printer className="w-4 h-4 mr-2" /> Print Sheet</Button>
                 </div>
-                <ScrollArea className="w-full whitespace-nowrap">
-                    <Table className="min-w-full border-collapse">
+                <ScrollArea className="w-full whitespace-nowrap border rounded-lg">
+                    <Table className="min-w-full">
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="sticky left-0 bg-background z-10 w-40 min-w-[150px] p-2">Teacher Name</TableHead>
-                                {monthlySheetData.daysInMonth.map(day => (<TableHead key={day.toISOString()} className={cn("text-center w-10 p-2", isSunday(day) && "bg-muted/50")}>{format(day, 'd')}</TableHead>))}
-                                <TableHead className="text-center w-12 p-2 sticky right-[144px] bg-background z-10 text-green-600 font-bold">P</TableHead>
-                                <TableHead className="text-center w-12 p-2 sticky right-24 bg-background z-10 text-red-600 font-bold">A</TableHead>
-                                <TableHead className="text-center w-12 p-2 sticky right-12 bg-background z-10 text-orange-500 font-bold">LT</TableHead>
-                                <TableHead className="text-center w-12 p-2 sticky right-0 bg-background z-10 text-yellow-500 font-bold">L</TableHead>
+                                {monthlySheetData.daysInMonth.map(day => (<TableHead key={day.toISOString()} className={cn("text-center w-9 p-1", isSunday(day) && "bg-muted/50")}>{format(day, 'd')}</TableHead>))}
+                                <TableHead className="text-center w-9 p-1 sticky right-[108px] bg-background z-10 text-green-600 font-bold">P</TableHead>
+                                <TableHead className="text-center w-9 p-1 sticky right-[72px] bg-background z-10 text-red-600 font-bold">A</TableHead>
+                                <TableHead className="text-center w-9 p-1 sticky right-[36px] bg-background z-10 text-orange-500 font-bold">LT</TableHead>
+                                <TableHead className="text-center w-9 p-1 sticky right-0 bg-background z-10 text-yellow-500 font-bold">L</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -339,10 +340,10 @@ const MonthlySheetTab = () => {
                                 <TableRow key={teacher.id}>
                                     <TableCell className="font-medium sticky left-0 bg-background z-10 p-2">{teacher.name}</TableCell>
                                     {monthlySheetData.daysInMonth.map(day => getStatusCell(attendanceByDate[format(day, 'yyyy-MM-dd')]?.status, isSunday(day), day.toISOString()))}
-                                    <TableCell className="text-center font-bold sticky right-[144px] bg-background z-10 p-2">{summary.present}</TableCell>
-                                    <TableCell className="text-center font-bold sticky right-24 bg-background z-10 p-2">{summary.absent}</TableCell>
-                                    <TableCell className="text-center font-bold sticky right-12 bg-background z-10 p-2">{summary.late}</TableCell>
-                                    <TableCell className="text-center font-bold sticky right-0 bg-background z-10 p-2">{summary.leave}</TableCell>
+                                    <TableCell className="text-center font-bold sticky right-[108px] bg-background z-10 p-1">{summary.present}</TableCell>
+                                    <TableCell className="text-center font-bold sticky right-[72px] bg-background z-10 p-1">{summary.absent}</TableCell>
+                                    <TableCell className="text-center font-bold sticky right-[36px] bg-background z-10 p-1">{summary.late}</TableCell>
+                                    <TableCell className="text-center font-bold sticky right-0 bg-background z-10 p-1">{summary.leave}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -425,3 +426,5 @@ const IndividualReportView = ({ teacherData, daysInMonth }: { teacherData: any, 
         </div>
     );
 };
+
+    

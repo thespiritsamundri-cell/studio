@@ -3,14 +3,10 @@
 'use client';
 
 import React from 'react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Teacher, TeacherAttendance } from '@/lib/types';
-import { School } from 'lucide-react';
 import type { SchoolSettings } from '@/context/settings-context';
-import Image from 'next/image';
 import { format, isSunday } from 'date-fns';
 
-type AttendanceStatus = 'Present' | 'Absent' | 'Leave' | 'Late';
 interface TeacherAttendancePrintReportProps {
   teachers: Teacher[];
   daysInMonth: Date[];
@@ -19,101 +15,96 @@ interface TeacherAttendancePrintReportProps {
   settings: SchoolSettings;
 }
 
+const getStatusContent = (status: 'Present' | 'Absent' | 'Leave' | 'Late' | undefined) => {
+    if (!status) return { text: '-', color: 'transparent' };
+    switch(status) {
+        case 'Present': return { text: 'P', color: '#dcfce7' }; // green-100
+        case 'Absent': return { text: 'A', color: '#fee2e2' }; // red-100
+        case 'Leave': return { text: 'L', color: '#fef9c3' }; // yellow-100
+        case 'Late': return { text: 'P', color: '#dcfce7' }; // Late is also Present
+        default: return { text: '-', color: 'transparent' };
+    }
+};
+
 export const TeacherAttendancePrintReport = React.forwardRef<HTMLDivElement, TeacherAttendancePrintReportProps>(
   ({ teachers, daysInMonth, attendanceData, month, settings }, ref) => {
-
-    const getStatusContent = (attendanceRecord: TeacherAttendance | undefined, day: Date) => {
-      if (isSunday(day)) {
-        return <span style={{ fontWeight: 'bold', color: '#a1a1aa' }}>S</span>
-      }
-      if (!attendanceRecord) return <span style={{ color: '#a1a1aa' }}>-</span>;
-      
-      const { status } = attendanceRecord;
-  
-      switch(status) {
-          case 'Present': return <span style={{ color: 'green', fontWeight: 'bold' }}>P</span>;
-          case 'Absent': return <span style={{ color: 'red', fontWeight: 'bold' }}>A</span>;
-          case 'Leave': return <span style={{ color: 'orange', fontWeight: 'bold' }}>L</span>;
-          case 'Late': return <span style={{ color: '#f97316', fontWeight: 'bold' }}>LT</span>;
-          default: return <span style={{ color: '#a1a1aa' }}>-</span>;
-      }
+    
+    const cellStyle: React.CSSProperties = {
+        border: '1px solid #ddd',
+        padding: '2px',
+        textAlign: 'center',
+        fontSize: '10px',
+        width: '24px',
+        height: '24px'
     };
     
     return (
-      <div ref={ref} className="p-4 font-sans bg-white text-black text-xs">
-        <header className="flex items-center justify-between pb-4 border-b border-gray-300">
-          <div className="flex items-center gap-4">
-             {settings.schoolLogo ? (
-              <Image src={settings.schoolLogo} alt="School Logo" width={64} height={64} className="object-contain" />
-            ) : (
-              <School className="w-16 h-16 text-blue-500" />
-            )}
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800">{settings.schoolName}</h1>
-              <p className="text-sm text-gray-500">{settings.schoolAddress}</p>
-              <p className="text-sm text-gray-500">Phone: {settings.schoolPhone}</p>
-            </div>
-          </div>
-          <div className="text-right">
-            <h2 className="text-2xl font-semibold text-gray-700">Teacher Attendance Report</h2>
-            <p className="text-sm text-gray-500">Month: {format(month, 'MMMM yyyy')}</p>
-          </div>
+      <div ref={ref} className="p-4 font-sans bg-white text-black">
+        <header className="text-center mb-4">
+          <h1 className="text-2xl font-bold">{settings.schoolName}</h1>
+          <p className="text-sm">{settings.schoolPhone}</p>
+          <h2 className="text-lg font-semibold mt-2">Teacher Monthly Attendance Report</h2>
+          <p className="text-sm">{format(month, 'MMMM, yyyy')}</p>
         </header>
 
-        <main className="mt-4">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="min-w-[120px] p-0.5 border">Teacher</TableHead>
+        <main>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ backgroundColor: '#f3f4f6' }}>
+                <th style={{...cellStyle, textAlign: 'left', fontWeight: 'bold', width: '150px'}}>Teacher Name</th>
                 {daysInMonth.map(day => (
-                    <TableHead key={day.toISOString()} className="text-center p-0.5 border" style={isSunday(day) ? {backgroundColor: '#f3f4f6'} : {}}>
+                    <th key={day.toISOString()} style={{...cellStyle, fontWeight: 'bold', padding: '4px 2px'}}>
                         {format(day, 'd')}
-                    </TableHead>
+                    </th>
                 ))}
-                <TableHead className="text-center p-0.5 border text-green-600">P</TableHead>
-                <TableHead className="text-center p-0.5 border text-red-600">A</TableHead>
-                <TableHead className="text-center p-0.5 border text-orange-500">LT</TableHead>
-                <TableHead className="text-center p-0.5 border text-yellow-500">L</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+                <th style={{...cellStyle, fontWeight: 'bold', backgroundColor: '#dcfce7'}}>P</th>
+                <th style={{...cellStyle, fontWeight: 'bold', backgroundColor: '#fee2e2'}}>A</th>
+                <th style={{...cellStyle, fontWeight: 'bold', backgroundColor: '#fef9c3'}}>L</th>
+              </tr>
+            </thead>
+            <tbody>
               {attendanceData.map(({ teacher, attendanceByDate }) => {
-                const summary = { present: 0, absent: 0, late: 0, leave: 0 };
-                Object.values(attendanceByDate).forEach(record => {
-                    if (record) {
-                        if (record.status === 'Present') summary.present++;
+                const summary = { present: 0, absent: 0, leave: 0 };
+                Object.entries(attendanceByDate).forEach(([date, record]) => {
+                    if (record && !isSunday(new Date(date))) {
+                        if (record.status === 'Present' || record.status === 'Late') summary.present++;
                         else if (record.status === 'Absent') summary.absent++;
-                        else if (record.status === 'Late') summary.late++;
                         else if (record.status === 'Leave') summary.leave++;
                     }
                 });
 
                 return (
-                    <TableRow key={teacher.id}>
-                        <TableCell className="font-medium p-0.5 border">{teacher.name}</TableCell>
-                        {daysInMonth.map(day => (
-                            <TableCell key={day.toISOString()} className="text-center p-0.5 h-10 border" style={isSunday(day) ? {backgroundColor: '#f3f4f6'} : {}}>
-                                {getStatusContent(attendanceByDate[format(day, 'yyyy-MM-dd')], day)}
-                            </TableCell>
-                        ))}
-                        <TableCell className="text-center font-bold p-0.5 border">{summary.present}</TableCell>
-                        <TableCell className="text-center font-bold p-0.5 border">{summary.absent}</TableCell>
-                        <TableCell className="text-center font-bold p-0.5 border">{summary.late}</TableCell>
-                        <TableCell className="text-center font-bold p-0.5 border">{summary.leave}</TableCell>
-                    </TableRow>
+                    <tr key={teacher.id}>
+                        <td style={{...cellStyle, textAlign: 'left', whiteSpace: 'nowrap'}}>{teacher.name}</td>
+                        {daysInMonth.map(day => {
+                            const record = attendanceByDate[format(day, 'yyyy-MM-dd')];
+                            const { text, color } = getStatusContent(record?.status);
+                            const finalStyle = isSunday(day) 
+                                ? {...cellStyle, backgroundColor: '#f3f4f6', color: '#a1a1aa'}
+                                : {...cellStyle, backgroundColor: color};
+                            return (
+                                <td key={day.toISOString()} style={finalStyle}>
+                                    {isSunday(day) ? 'S' : text}
+                                </td>
+                            );
+                        })}
+                        <td style={cellStyle}>{summary.present}</td>
+                        <td style={cellStyle}>{summary.absent}</td>
+                        <td style={cellStyle}>{summary.leave}</td>
+                    </tr>
                 );
               })}
-            </TableBody>
-          </Table>
+            </tbody>
+          </table>
         </main>
         
-        <footer className="mt-12 pt-4 border-t border-gray-300 text-center text-xs text-gray-500">
-          <p>This is a computer-generated report.</p>
-          <p>&copy; {new Date().getFullYear()} {settings.schoolName}. All rights reserved.</p>
+        <footer className="mt-8 pt-4 text-center text-xs text-gray-500">
+          <p>Copyright © {new Date().getFullYear()} {settings.schoolName}. Developed by SchoolUP.</p>
         </footer>
       </div>
     );
   }
 );
-
 TeacherAttendancePrintReport.displayName = 'TeacherAttendancePrintReport';
+
+    
