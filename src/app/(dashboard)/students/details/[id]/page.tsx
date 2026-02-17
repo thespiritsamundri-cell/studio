@@ -48,11 +48,20 @@ export default function StudentDetailsPage() {
     }
   }, [params.id, students, families, alumni]);
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (!student || !family) return;
 
+    let familyQrCode = '';
+    try {
+        const content = `${window.location.origin}/profile/family/${family.id}`;
+        const result = await generateQrCode({ content });
+        familyQrCode = result.qrCodeDataUri;
+    } catch (e) {
+      console.error("Failed to generate family QR code for print", e);
+    }
+
     const printContent = renderToString(
-        <StudentDetailsPrint student={student as Student} family={family} settings={settings} />
+        <StudentDetailsPrint student={student as Student} family={family} settings={settings} familyQrCodeDataUri={familyQrCode} />
     );
 
     const printWindow = window.open('', '_blank');

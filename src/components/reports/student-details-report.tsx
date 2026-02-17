@@ -12,6 +12,7 @@ interface StudentDetailsPrintProps {
   student: Student;
   family: Family;
   settings: SchoolSettings;
+  familyQrCodeDataUri?: string;
 }
 
 const DetailItem = ({ label, value }: { label: string; value: string | undefined }) => (
@@ -23,7 +24,7 @@ const DetailItem = ({ label, value }: { label: string; value: string | undefined
 
 
 export const StudentDetailsPrint = React.forwardRef<HTMLDivElement, StudentDetailsPrintProps>(
-  ({ student, family, settings }, ref) => {
+  ({ student, family, settings, familyQrCodeDataUri }, ref) => {
     return (
       <div ref={ref} className="p-6 font-sans bg-white text-black max-w-4xl mx-auto border-4 border-double border-black">
         <header className="flex items-start justify-between pb-4">
@@ -92,9 +93,17 @@ export const StudentDetailsPrint = React.forwardRef<HTMLDivElement, StudentDetai
 
         </main>
         
-        <footer className="mt-12 pt-4 border-t-2 border-dashed border-gray-400 flex justify-between items-center text-xs text-gray-500">
-            <p>&copy; {new Date().getFullYear()} {settings.schoolName}. All rights reserved.</p>
-            <p>Developed by SchoolUP</p>
+        <footer className="mt-12 pt-4 border-t-2 border-dashed border-gray-400 flex justify-between items-end text-xs text-gray-500">
+            <div>
+              <p>&copy; {new Date().getFullYear()} {settings.schoolName}. All rights reserved.</p>
+              <p>Developed by SchoolUP</p>
+            </div>
+            {familyQrCodeDataUri && (
+                <div className="text-center">
+                    <Image src={familyQrCodeDataUri} alt="Family QR Code" width={72} height={72} />
+                    <p className="text-[10px] font-semibold">Scan for Family Profile</p>
+                </div>
+            )}
         </footer>
       </div>
     );
