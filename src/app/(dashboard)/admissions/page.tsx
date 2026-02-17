@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, PlusCircle, X, Users, CheckCircle, Info, AlertCircle } from 'lucide-react';
+import { Search, PlusCircle, X, Users, CheckCircle, Info, AlertCircle, User } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useData } from '@/context/data-context';
@@ -22,6 +22,7 @@ import { useSettings } from '@/context/settings-context';
 import { sendWhatsAppMessage } from '@/services/whatsapp-service';
 import { uploadFile } from '@/services/storage-service';
 import { format } from 'date-fns';
+import Image from 'next/image';
 
 
 interface CustomFee {
@@ -32,7 +33,7 @@ interface CustomFee {
 
 export default function AdmissionsPage() {
     const { toast } = useToast();
-    const { families, students, fees, addStudent, addFee, classes, addActivityLog, addNotification } = useData();
+    const { families, students, addStudent, addFee, classes, addActivityLog, addNotification, isDataInitialized } = useData();
     const { settings } = useSettings();
     const [familyId, setFamilyId] = useState('');
     const [familyExists, setFamilyExists] = useState(false);
@@ -53,6 +54,7 @@ export default function AdmissionsPage() {
     const [address, setAddress] = useState('');
     const [studentCnic, setStudentCnic] = useState('');
     const [photoFile, setPhotoFile] = useState<File | null>(null);
+    const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
     // Fee state
     const [registrationFee, setRegistrationFee] = useState<number | string>('');
@@ -60,6 +62,23 @@ export default function AdmissionsPage() {
     const [customFees, setCustomFees] = useState<CustomFee[]>([]);
     
     const availableSections = classes.find(c => c.name === studentClass)?.sections || [];
+
+    const MALE_AVATAR = 'https://i.postimg.cc/x1BZ31bs/male.png';
+    const FEMALE_AVATAR = 'https://i.postimg.cc/7hgPwR8W/1487318.png';
+
+    useEffect(() => {
+        if (photoFile) {
+            const objectUrl = URL.createObjectURL(photoFile);
+            setPhotoPreview(objectUrl);
+            return () => URL.revokeObjectURL(objectUrl);
+        } else if (gender === 'Male') {
+            setPhotoPreview(MALE_AVATAR);
+        } else if (gender === 'Female') {
+            setPhotoPreview(FEMALE_AVATAR);
+        } else {
+            setPhotoPreview(null);
+        }
+    }, [photoFile, gender]);
 
     useEffect(() => {
         if (foundFamily) {
@@ -69,8 +88,6 @@ export default function AdmissionsPage() {
             setProfession(foundFamily.profession || '');
             const children = students.filter(s => s.familyId === foundFamily.id && s.status !== 'Archived').sort((a,b) => new Date(b.admissionDate).getTime() - new Date(a.admissionDate).getTime());
             setExistingChildren(children);
-
-            // Set fees to empty by default
             setRegistrationFee('');
             setMonthlyFee('');
         } else {
@@ -172,7 +189,7 @@ export default function AdmissionsPage() {
         }, 0);
         const newStudentId = (lastStudentId + 1).toString();
         
-        let photoUrl = `https://picsum.photos/seed/${newStudentId}/100/100`;
+        let photoUrl = '';
         if (photoFile) {
             try {
                 photoUrl = await uploadFile(photoFile, `students/${newStudentId}/${photoFile.name}`);
@@ -182,7 +199,14 @@ export default function AdmissionsPage() {
                     description: 'Could not upload student photo. Using a placeholder.',
                     variant: 'destructive'
                 });
+                photoUrl = `https://picsum.photos/seed/${newStudentId}/100/100`;
             }
+        } else if (gender === 'Male') {
+            photoUrl = MALE_AVATAR;
+        } else if (gender === 'Female') {
+            photoUrl = FEMALE_AVATAR;
+        } else {
+            photoUrl = `https://picsum.photos/seed/${newStudentId}/100/100`;
         }
 
 
@@ -252,7 +276,6 @@ export default function AdmissionsPage() {
             description: `${studentName} has been successfully admitted. Printing admission form...`,
         });
         
-        // Send WhatsApp Message if enabled
         if (settings.automatedMessages?.admission.enabled) {
           const admissionTemplate = settings.messageTemplates?.find(t => t.id === settings.automatedMessages?.admission.templateId);
           if (admissionTemplate) {
@@ -266,7 +289,7 @@ export default function AdmissionsPage() {
               if (result.success) {
                 addActivityLog({ action: 'Send WhatsApp Message', description: `Sent admission confirmation to 1 recipient.`, recipientCount: 1 });
               } else {
-                toast({ title: 'WhatsApp Failed', description: `Could not send admission confirmation. Error: ${result.error}`, variant: 'destructive'});
+                 toast({ title: 'WhatsApp Failed', description: `Could not send admission confirmation. Error: ${result.error}`, variant: 'destructive'});
               }
             } catch (error: any) {
               toast({ title: 'WhatsApp Failed', description: `Could not send admission confirmation. Error: ${error.message}`, variant: 'destructive'});
@@ -333,7 +356,7 @@ export default function AdmissionsPage() {
                 <Label htmlFor="family-id">Family Number</Label>
                 <Input id="family-id" placeholder="Enter existing family number (e.g., 1)" value={familyId} onChange={(e) => setFamilyId(e.target.value)} />
               </div>
-              <Button variant="outline" type="button" onClick={handleFamilySearch} disabled={!familyId}>
+              <Button variant="outline" type="button" onClick={handleFamilySearch} disabled={!familyId || !isDataInitialized}>
                 <Search className="h-4 w-4 mr-2" />
                 Search
               </Button>
@@ -397,88 +420,100 @@ export default function AdmissionsPage() {
                 <CardDescription>Enter the personal details for the new student.</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                    <Label htmlFor="student-name">Student Name</Label>
-                    <Input id="student-name" name="student-name" placeholder="Enter full name" value={studentName} onChange={e => setStudentName(e.target.value)} required />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="father-name">Father's Name</Label>
-                    <Input id="father-name" name="father-name" placeholder="Enter father's name" value={fatherName} onChange={e => setFatherName(e.target.value)} required readOnly={familyExists} />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="profession">Father's Profession</Label>
-                    <Input id="profession" name="profession" placeholder="Father's Profession" value={profession} onChange={e => setProfession(e.target.value)} required readOnly={familyExists} />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="dob">Date of Birth</Label>
-                    <Input id="dob" name="dob" type="date" value={dob} onChange={e => setDob(e.target.value)} required />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="admissionDate">Admission Date</Label>
-                    <Input id="admissionDate" name="admissionDate" type="date" value={admissionDate} onChange={e => setAdmissionDate(e.target.value)} required />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="gender">Gender</Label>
-                    <Select name="gender" onValueChange={(value) => setGender(value as 'Male' | 'Female' | 'Other')} value={gender} required>
-                        <SelectTrigger id="gender">
-                            <SelectValue placeholder="Select gender" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="Male">Male</SelectItem>
-                            <SelectItem value="Female">Female</SelectItem>
-                            <SelectItem value="Other">Other</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="studentCnic">Student CNIC / B-Form</Label>
-                    <Input id="studentCnic" name="studentCnic" placeholder="e.g. 12345-1234567-1" value={studentCnic} onChange={e => setStudentCnic(e.target.value)} />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="class">Class to Admit</Label>
-                        <Select name="class" onValueChange={setStudentClass} value={studentClass} required>
-                        <SelectTrigger id="class">
-                            <SelectValue placeholder="Select class" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {classes.map((c) => (
-                            <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                        </Select>
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="student-name">Student Name</Label>
+                            <Input id="student-name" name="student-name" placeholder="Enter full name" value={studentName} onChange={e => setStudentName(e.target.value)} required />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="father-name">Father's Name</Label>
+                            <Input id="father-name" name="father-name" placeholder="Enter father's name" value={fatherName} onChange={e => setFatherName(e.target.value)} required readOnly={familyExists} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="profession">Father's Profession</Label>
+                            <Input id="profession" name="profession" placeholder="Father's Profession" value={profession} onChange={e => setProfession(e.target.value)} required readOnly={familyExists} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="dob">Date of Birth</Label>
+                            <Input id="dob" name="dob" type="date" value={dob} onChange={e => setDob(e.target.value)} required />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="admissionDate">Admission Date</Label>
+                            <Input id="admissionDate" name="admissionDate" type="date" value={admissionDate} onChange={e => setAdmissionDate(e.target.value)} required />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="gender">Gender</Label>
+                            <Select name="gender" onValueChange={(value) => setGender(value as 'Male' | 'Female' | 'Other')} value={gender} required>
+                                <SelectTrigger id="gender">
+                                    <SelectValue placeholder="Select gender" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Male">Male</SelectItem>
+                                    <SelectItem value="Female">Female</SelectItem>
+                                    <SelectItem value="Other">Other</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="studentCnic">Student CNIC / B-Form</Label>
+                            <Input id="studentCnic" name="studentCnic" placeholder="e.g. 12345-1234567-1" value={studentCnic} onChange={e => setStudentCnic(e.target.value)} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="class">Class to Admit</Label>
+                                <Select name="class" onValueChange={setStudentClass} value={studentClass} required>
+                                <SelectTrigger id="class">
+                                    <SelectValue placeholder="Select class" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {classes.map((c) => (
+                                    <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="section">Section</Label>
+                                <Select name="section" onValueChange={setStudentSection} value={studentSection} disabled={!studentClass || availableSections.length === 0}>
+                                    <SelectTrigger id="section">
+                                        <SelectValue placeholder="Select section" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {availableSections.map((section) => (
+                                            <SelectItem key={section} value={section}>{section}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="phone">Primary Phone</Label>
+                            <Input id="phone" name="phone" type="tel" placeholder="Enter contact number" value={phone} onChange={e => setPhone(e.target.value)} required readOnly={familyExists} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="alternate-phone">Alternate Phone (Optional)</Label>
+                            <Input id="alternate-phone" name="alternate-phone" type="tel" placeholder="Enter alternate contact" value={alternatePhone} onChange={e => setAlternatePhone(e.target.value)} />
+                        </div>
+                        <div className="space-y-2 md:col-span-2">
+                            <Label htmlFor="photo">Student Photo</Label>
+                            <Input id="photo" type="file" className="file:text-primary file:font-medium" onChange={handlePhotoChange} accept="image/*" />
+                        </div>
+                         <div className="space-y-2 md:col-span-3">
+                            <Label htmlFor="address">Address</Label>
+                            <Textarea id="address" name="address" placeholder="Enter residential address" value={address} onChange={e => setAddress(e.target.value)} required readOnly={familyExists} />
+                        </div>
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="section">Section</Label>
-                        <Select name="section" onValueChange={setStudentSection} value={studentSection} disabled={!studentClass || availableSections.length === 0}>
-                            <SelectTrigger id="section">
-                                <SelectValue placeholder="Select section" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {availableSections.map((section) => (
-                                    <SelectItem key={section} value={section}>{section}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                     <div className="flex flex-col items-center justify-center space-y-2">
+                        <Label>Photo Preview</Label>
+                         <div className="w-32 h-32 rounded-full border bg-muted flex items-center justify-center overflow-hidden">
+                             {photoPreview ? (
+                                <Image src={photoPreview} alt="Student Preview" width={128} height={128} className="object-cover w-full h-full" />
+                            ) : (
+                                <User className="w-16 h-16 text-muted-foreground" />
+                            )}
+                         </div>
                     </div>
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="phone">Primary Phone</Label>
-                    <Input id="phone" name="phone" type="tel" placeholder="Enter contact number" value={phone} onChange={e => setPhone(e.target.value)} required readOnly={familyExists} />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="alternate-phone">Alternate Phone (Optional)</Label>
-                    <Input id="alternate-phone" name="alternate-phone" type="tel" placeholder="Enter alternate contact" value={alternatePhone} onChange={e => setAlternatePhone(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="photo">Student Photo</Label>
-                    <Input id="photo" type="file" className="file:text-primary file:font-medium" onChange={handlePhotoChange} accept="image/*" />
-                </div>
-                <div className="space-y-2 lg:col-span-3">
-                    <Label htmlFor="address">Address</Label>
-                    <Textarea id="address" name="address" placeholder="Enter residential address" value={address} onChange={e => setAddress(e.target.value)} required readOnly={familyExists} />
-                </div>
                 </div>
             </CardContent>
             </Card>
@@ -552,5 +587,3 @@ export default function AdmissionsPage() {
     </div>
   );
 }
-
-    
