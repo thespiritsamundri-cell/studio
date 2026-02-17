@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -415,13 +413,26 @@ export default function AdmissionsPage() {
             </Card>
 
             <Card>
-            <CardHeader>
-                <CardTitle>Step 2: Student Information</CardTitle>
-                <CardDescription>Enter the personal details for the new student.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                    <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <CardHeader>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <CardTitle>Step 2: Student Information</CardTitle>
+                            <CardDescription>Enter the personal details for the new student.</CardDescription>
+                        </div>
+                        <div className="flex-shrink-0 flex flex-col items-center space-y-2 ml-4">
+                            <div className="w-24 h-24 rounded-full border bg-muted flex items-center justify-center overflow-hidden">
+                                {photoPreview ? (
+                                    <Image src={photoPreview} alt="Student Preview" width={96} height={96} className="object-cover w-full h-full" />
+                                ) : (
+                                    <User className="w-12 h-12 text-muted-foreground" />
+                                )}
+                            </div>
+                            <Label className="text-xs">Photo Preview</Label>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <div className="space-y-2">
                             <Label htmlFor="student-name">Student Name</Label>
                             <Input id="student-name" name="student-name" placeholder="Enter full name" value={studentName} onChange={e => setStudentName(e.target.value)} required />
@@ -499,23 +510,12 @@ export default function AdmissionsPage() {
                             <Label htmlFor="photo">Student Photo</Label>
                             <Input id="photo" type="file" className="file:text-primary file:font-medium" onChange={handlePhotoChange} accept="image/*" />
                         </div>
-                         <div className="space-y-2 md:col-span-3">
+                         <div className="space-y-2 lg:col-span-3">
                             <Label htmlFor="address">Address</Label>
                             <Textarea id="address" name="address" placeholder="Enter residential address" value={address} onChange={e => setAddress(e.target.value)} required readOnly={familyExists} />
                         </div>
                     </div>
-                     <div className="flex flex-col items-center justify-center space-y-2">
-                        <Label>Photo Preview</Label>
-                         <div className="w-32 h-32 rounded-full border bg-muted flex items-center justify-center overflow-hidden">
-                             {photoPreview ? (
-                                <Image src={photoPreview} alt="Student Preview" width={128} height={128} className="object-cover w-full h-full" />
-                            ) : (
-                                <User className="w-16 h-16 text-muted-foreground" />
-                            )}
-                         </div>
-                    </div>
-                </div>
-            </CardContent>
+                </CardContent>
             </Card>
 
             <Card>
