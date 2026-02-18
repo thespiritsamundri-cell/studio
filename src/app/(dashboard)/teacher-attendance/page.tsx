@@ -106,11 +106,11 @@ const DailyAttendanceTab = () => {
                                     <TableRow key={teacher.id}>
                                         <TableCell className="font-medium">{teacher.name}</TableCell>
                                         <TableCell className="text-right">
-                                            <div className="flex justify-end items-center gap-4">
+                                            <div className="flex justify-end items-center flex-wrap gap-4">
                                                 {(attendance[teacher.id]?.status === 'Present' || attendance[teacher.id]?.status === 'Late') && (
                                                     <Input type="time" value={attendance[teacher.id]?.time || ''} onChange={(e) => handleTimeChange(teacher.id, e.target.value)} className="w-28 h-8" />
                                                 )}
-                                                <RadioGroup value={attendance[teacher.id]?.status} onValueChange={(value) => handleAttendanceChange(teacher.id, value as AttendanceStatus)} className="flex justify-end gap-4">
+                                                <RadioGroup value={attendance[teacher.id]?.status} onValueChange={(value) => handleAttendanceChange(teacher.id, value as AttendanceStatus)} className="flex justify-end flex-wrap gap-4">
                                                     <div className="flex items-center space-x-2"><RadioGroupItem value="Present" id={`p-${teacher.id}`} /><Label htmlFor={`p-${teacher.id}`}>Present</Label></div>
                                                     <div className="flex items-center space-x-2"><RadioGroupItem value="Late" id={`lt-${teacher.id}`} /><Label htmlFor={`lt-${teacher.id}`}>Late</Label></div>
                                                     <div className="flex items-center space-x-2"><RadioGroupItem value="Absent" id={`a-${teacher.id}`} /><Label htmlFor={`a-${teacher.id}`}>Absent</Label></div>
@@ -428,5 +428,3 @@ const IndividualReportView = ({ teacherData, daysInMonth }: { teacherData: any, 
         </div>
     );
 };
-
-    

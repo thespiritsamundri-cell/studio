@@ -236,11 +236,11 @@ export default function ExpensesPage() {
                 <Table>
                 <TableHeader>
                     <TableRow>
-                    <TableHead>Voucher ID</TableHead>
+                    <TableHead className="hidden md:table-cell">Voucher ID</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead>Description</TableHead>
-                    <TableHead>Vendor</TableHead>
+                    <TableHead className="hidden lg:table-cell">Vendor</TableHead>
                     <TableHead className="text-right">Amount (PKR)</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -248,11 +248,11 @@ export default function ExpensesPage() {
                 <TableBody>
                     {filteredExpenses.map((expense) => (
                     <TableRow key={expense.id}>
-                        <TableCell>{expense.id}</TableCell>
+                        <TableCell className="hidden md:table-cell">{expense.id}</TableCell>
                         <TableCell className="font-medium">{expense.date ? format(new Date(expense.date), 'PPP') : 'N/A'}</TableCell>
                         <TableCell>{expense.category}</TableCell>
                         <TableCell>{expense.description}</TableCell>
-                        <TableCell>{expense.vendor || 'N/A'}</TableCell>
+                        <TableCell className="hidden lg:table-cell">{expense.vendor || 'N/A'}</TableCell>
                         <TableCell className="text-right font-semibold text-destructive">{expense.amount.toLocaleString()}</TableCell>
                         <TableCell className="text-right">
                             <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(expense)}>

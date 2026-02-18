@@ -236,7 +236,7 @@ export default function AttendancePage() {
                         <RadioGroup
                           value={attendance[student.id]}
                           onValueChange={(value) => handleAttendanceChange(student.id, value as AttendanceStatus)}
-                          className="flex justify-end gap-4"
+                          className="flex justify-end flex-wrap gap-4"
                         >
                           <div className="flex items-center space-x-2">
                             <RadioGroupItem value="Present" id={`present-${student.id}`} />

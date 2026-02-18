@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -209,12 +210,12 @@ export default function IncomePage() {
                 <Table>
                 <TableHeader>
                     <TableRow>
-                    <TableHead>Challan ID</TableHead>
+                    <TableHead className="hidden lg:table-cell">Challan ID</TableHead>
                     <TableHead>Family ID</TableHead>
                     <TableHead>Father's Name</TableHead>
                     <TableHead>Payment Date</TableHead>
                     <TableHead>Month/Year</TableHead>
-                    <TableHead>Method</TableHead>
+                    <TableHead className="hidden md:table-cell">Method</TableHead>
                     <TableHead className="text-right">Amount (PKR)</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -222,12 +223,12 @@ export default function IncomePage() {
                 <TableBody>
                     {filteredFees.map((fee) => (
                     <TableRow key={fee.id}>
-                        <TableCell>{fee.id}</TableCell>
+                        <TableCell className="hidden lg:table-cell">{fee.id}</TableCell>
                         <TableCell className="font-medium">{fee.familyId}</TableCell>
                         <TableCell>{fee.fatherName}</TableCell>
                         <TableCell>{fee.paymentDate && format(new Date(fee.paymentDate), 'PPP')}</TableCell>
                         <TableCell>{fee.month}, {fee.year}</TableCell>
-                        <TableCell>{fee.paymentMethod || 'N/A'}</TableCell>
+                        <TableCell className="hidden md:table-cell">{fee.paymentMethod || 'N/A'}</TableCell>
                         <TableCell className="text-right font-semibold text-green-600">{fee.amount.toLocaleString()}</TableCell>
                         <TableCell className="text-right">
                            {canManageIncome && (
