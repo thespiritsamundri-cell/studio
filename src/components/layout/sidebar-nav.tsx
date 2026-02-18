@@ -76,7 +76,6 @@ const navItems: NavItem[] = [
 
 const examSystemItems: NavItem[] = [
     { href: "/exams", icon: FileSignature, label: "Marksheets", permission: "examSystem" },
-    { href: "/single-subject-test", icon: BookText, label: "Single Subject Test", permission: "examSystem" },
     { href: "/result-cards", icon: FileBadge, label: "Result Cards", permission: "examSystem" },
     { href: "/roll-number-slips", icon: Ticket, label: "Roll No. Slips", permission: "examSystem" },
     { href: "/seating-plan", icon: Grid3x3, label: "Seating Plan", permission: "examSystem" },

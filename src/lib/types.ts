@@ -134,25 +134,17 @@ export interface ExamResult {
 export interface Exam {
     id: string;
     name: string;
+    academicSession: string;
     class: string;
-    section?: string;
-    results: ExamResult[];
+    teacherId?: string;
+    examType: 'Single Subject' | 'Full Test' | 'Manual';
+    subject?: string;
+    totalMarks: number;
     subjectTotals: {
         [subject: string]: number;
     };
-}
-
-export interface SingleSubjectTest {
-    id: string;
-    testName: string;
-    class: string;
-    section?: string;
-    subject: string;
-    date: string;
-    totalMarks: number;
-    results: {
-        [studentId: string]: number | undefined;
-    };
+    submissionDeadline?: string;
+    results: ExamResult[];
 }
 
 export interface Grade {

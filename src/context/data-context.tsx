@@ -5,7 +5,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { db, auth } from '@/lib/firebase';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, writeBatch, query, where, getDocs, setDoc, getDoc, runTransaction } from 'firebase/firestore';
-import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData, Attendance, Alumni, User, PermissionSet, AppNotification, Session, SingleSubjectTest } from '@/lib/types';
+import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData, Attendance, Alumni, User, PermissionSet, AppNotification, Session } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from './settings-context';
 import { createUserWithEmailAndPassword as createUserAuth, onAuthStateChanged } from 'firebase/auth';
@@ -30,7 +30,6 @@ interface DataContextType {
   alumni: Alumni[];
   classes: Class[];
   exams: Exam[];
-  singleSubjectTests: SingleSubjectTest[];
   activityLog: ActivityLog[];
   expenses: Expense[];
   timetables: Timetable[];
@@ -60,12 +59,9 @@ interface DataContextType {
   addClass: (newClass: Class) => Promise<void>;
   updateClass: (id: string, updatedClass: Partial<Class>) => Promise<void>;
   deleteClass: (id: string) => Promise<void>;
-  addExam: (exam: Exam) => Promise<void>;
+  addExam: (exam: Omit<Exam, 'id' | 'results'>) => Promise<string | undefined>;
   updateExam: (id: string, exam: Partial<Exam>) => Promise<void>;
   deleteExam: (id: string) => Promise<void>;
-  addSingleSubjectTest: (test: Omit<SingleSubjectTest, 'id'>) => Promise<string | undefined>;
-  updateSingleSubjectTest: (id: string, test: Partial<SingleSubjectTest>) => Promise<void>;
-  deleteSingleSubjectTest: (id: string) => Promise<void>;
   addActivityLog: (activity: Omit<ActivityLog, 'id' | 'timestamp' | 'user'>) => Promise<void>;
   clearActivityLog: () => Promise<void>;
   addExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
@@ -109,7 +105,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [classes, setClasses] = useState<Class[]>([]);
   const [alumni, setAlumni] = useState<Alumni[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
-  const [singleSubjectTests, setSingleSubjectTests] = useState<SingleSubjectTest[]>([]);
   const [activityLog, setActivityLog] = useState<ActivityLog[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [timetables, setTimetables] = useState<Timetable[]>([]);
@@ -279,14 +274,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
                 const generalCollections = [
                     'students', 'families', 'fees', 'teachers', 'attendances', 
-                    'teacherAttendances', 'alumni', 'classes', 'exams', 'singleSubjectTests', 'activityLog', 
+                    'teacherAttendances', 'alumni', 'classes', 'exams', 'activityLog', 
                     'expenses', 'timetables', 'users', 'sessions'
                 ];
                 
                 const setterMap: { [key: string]: React.Dispatch<React.SetStateAction<any[]>> } = {
                     students: setStudents, families: setFamilies, fees: setFees, teachers: setTeachers,
                     attendances: setAttendances, teacherAttendances: setTeacherAttendances, alumni: setAlumni,
-                    classes: setClasses, exams: setExams, singleSubjectTests: setSingleSubjectTests, activityLog: setActivityLog, expenses: setExpenses,
+                    classes: setClasses, exams: setExams, activityLog: setActivityLog, expenses: setExpenses,
                     timetables: setTimetables, users: setUsers, sessions: setSessions, notifications: setNotifications
                 };
             
@@ -338,7 +333,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             setUserRole(null);
             setUserPermissions(defaultPermissions);
             setCurrentUserName('System');
-            [setStudents, setFamilies, setFees, setTeachers, setAttendances, setTeacherAttendances, setAlumni, setClasses, setExams, setSingleSubjectTests, setActivityLog, setExpenses, setTimetables, setUsers, setSessions, setNotifications].forEach(setter => setter([]));
+            [setStudents, setFamilies, setFees, setTeachers, setAttendances, setTeacherAttendances, setAlumni, setClasses, setExams, setActivityLog, setExpenses, setTimetables, setUsers, setSessions, setNotifications].forEach(setter => setter([]));
         }
     });
 
@@ -672,13 +667,19 @@ const deleteFee = useCallback(async (id: string) => {
   }, [classes, addActivityLog, toast]);
   
   // --- EXAM ---
-  const addExam = useCallback(async (exam: Exam) => {
+  const addExam = useCallback(async (examData: Omit<Exam, 'id' | 'results'>) => {
     try {
-      await setDoc(doc(db, 'exams', exam.id), exam);
-      await addActivityLog({ action: 'Create Exam', description: `Created exam "${exam.name}" for class ${exam.class}.` });
+        const newExam = {
+            ...examData,
+            id: `EXAM-${Date.now()}`,
+            results: []
+        };
+        await setDoc(doc(db, 'exams', newExam.id), newExam);
+        await addActivityLog({ action: 'Create Exam', description: `Created exam "${examData.name}" for class ${examData.class}.` });
+        return newExam.id;
     } catch (e) {
-      console.error('Error adding exam:', e);
-      toast({ title: 'Error Creating Exam', variant: 'destructive' });
+        console.error('Error adding exam:', e);
+        toast({ title: 'Error Creating Exam', variant: 'destructive' });
     }
   }, [addActivityLog, toast]);
 
@@ -695,32 +696,6 @@ const deleteFee = useCallback(async (id: string) => {
       toast({ title: 'Error Deleting Exam', variant: 'destructive' });
     }
   }, [exams, addActivityLog, toast]);
-  
-    // --- SINGLE SUBJECT TEST ---
-    const addSingleSubjectTest = useCallback(async (test: Omit<SingleSubjectTest, 'id'>) => {
-        try {
-            const newDocRef = await addDoc(collection(db, "singleSubjectTests"), test);
-            await addActivityLog({ action: 'Create Single Subject Test', description: `Created test "${test.testName}" for class ${test.class}.` });
-            return newDocRef.id;
-        } catch (e) {
-            console.error('Error adding single subject test:', e);
-            toast({ title: 'Error Creating Test', variant: 'destructive' });
-        }
-    }, [addActivityLog, toast]);
-
-    const updateSingleSubjectTest = useCallback(updateDocFactory<SingleSubjectTest>('singleSubjectTests', 'Update Single Subject Test', d => `Updated results for test: ${d.testName}.`), [updateDocFactory]);
-    
-    const deleteSingleSubjectTest = useCallback(async (id: string) => {
-        const testToDelete = singleSubjectTests.find(t => t.id === id);
-        if (!testToDelete) return;
-        try {
-            await deleteDoc(doc(db, 'singleSubjectTests', id));
-            await addActivityLog({ action: 'Delete Single Subject Test', description: `Deleted test: ${testToDelete.testName}.` });
-        } catch (e) {
-            console.error('Error deleting single subject test:', e);
-            toast({ title: 'Error Deleting Test', variant: 'destructive' });
-        }
-    }, [singleSubjectTests, addActivityLog, toast]);
 
     // --- EXPENSE ---
     const addExpense = useCallback(async (expense: Omit<Expense, 'id'>) => {
@@ -818,12 +793,12 @@ const deleteFee = useCallback(async (id: string) => {
 
   const contextValue = {
       students, families, fees, teachers, attendances, teacherAttendances, alumni,
-      classes, exams, singleSubjectTests, activityLog, expenses, timetables, users, sessions, notifications,
+      classes, exams, activityLog, expenses, timetables, users, sessions, notifications,
       userRole, userPermissions, isDataInitialized, hasPermission,
       addStudent, updateStudent, updateAlumni, deleteStudent, addFamily, updateFamily, 
       deleteFamily, addFee, updateFee, deleteFee, generateMonthlyFees, addTeacher, updateTeacher,
       deleteTeacher, saveStudentAttendance, saveTeacherAttendance, addClass,
-      updateClass, deleteClass, addExam, updateExam, deleteExam, addSingleSubjectTest, updateSingleSubjectTest, deleteSingleSubjectTest, addActivityLog,
+      updateClass, deleteClass, addExam, updateExam, deleteExam, addActivityLog,
       clearActivityLog, addExpense, updateExpense, deleteExpense, updateTimetable,
       updateUser, createUser, signOutSession, addNotification, markNotificationAsRead,
       loadData, seedDatabase, deleteAllData,
