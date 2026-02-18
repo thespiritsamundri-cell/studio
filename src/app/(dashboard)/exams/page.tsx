@@ -35,7 +35,7 @@ const ExamDialog = ({
     exam: ExamType | null,
     onSave: (examData: any) => void
 }) => {
-    const { classes, teachers } = useData();
+    const { classes } = useData();
     const { settings } = useSettings();
     const { toast } = useToast();
     
@@ -44,9 +44,9 @@ const ExamDialog = ({
     const [examName, setExamName] = useState('');
     const [academicSession, setAcademicSession] = useState(settings.academicYear);
     const [selectedClass, setSelectedClass] = useState<string>('');
-    const [assignedTeacher, setAssignedTeacher] = useState<string | undefined>(undefined);
     const [examType, setExamType] = useState<'Single Subject' | 'Full Test' | 'Manual'>('Full Test');
     const [singleSubject, setSingleSubject] = useState<string | undefined>(undefined);
+    const [manualSubject, setManualSubject] = useState('');
     const [totalMarks, setTotalMarks] = useState(100);
     const [submissionDeadline, setSubmissionDeadline] = useState<string | undefined>(undefined);
     
@@ -55,18 +55,18 @@ const ExamDialog = ({
             setExamName(exam.name);
             setAcademicSession(exam.academicSession);
             setSelectedClass(exam.class);
-            setAssignedTeacher(exam.teacherId);
             setExamType(exam.examType);
-            setSingleSubject(exam.subject);
+            setSingleSubject(exam.examType === 'Single Subject' ? exam.subject : undefined);
+            setManualSubject(exam.examType === 'Manual' ? exam.subject || '' : '');
             setTotalMarks(exam.totalMarks);
             setSubmissionDeadline(exam.submissionDeadline);
         } else {
              setExamName('');
              setAcademicSession(settings.academicYear);
              setSelectedClass('');
-             setAssignedTeacher(undefined);
              setExamType('Full Test');
              setSingleSubject(undefined);
+             setManualSubject('');
              setTotalMarks(100);
              setSubmissionDeadline(undefined);
         }
@@ -94,28 +94,36 @@ const ExamDialog = ({
              toast({ title: "Missing Subject", description: "Please select a subject for the single subject test.", variant: "destructive"});
             return;
         }
+        if (examType === 'Manual' && !manualSubject.trim()) {
+            toast({ title: "Missing Subject Name", description: "Please provide a subject name for the manual test.", variant: "destructive"});
+            return;
+        }
         
         const cls = classes.find(c => c.name === selectedClass);
         if (!cls) return;
 
         let subjectTotals: { [key: string]: number } = {};
-        if (isEditing) {
-            subjectTotals = exam.subjectTotals;
-        } else if (examType === 'Single Subject' && singleSubject) {
+        let subjectName: string | undefined = undefined;
+
+        if (examType === 'Single Subject' && singleSubject) {
             subjectTotals[singleSubject] = totalMarks;
+            subjectName = singleSubject;
         } else if (examType === 'Full Test') {
             cls.subjects.forEach(sub => {
                 subjectTotals[sub] = totalMarks;
             });
+        } else if (examType === 'Manual' && manualSubject.trim()) {
+            const trimmedSubject = manualSubject.trim();
+            subjectTotals[trimmedSubject] = totalMarks;
+            subjectName = trimmedSubject;
         }
         
         const newExamData = {
             name: examName,
             academicSession,
             class: selectedClass,
-            teacherId: assignedTeacher,
             examType,
-            subject: examType === 'Single Subject' ? singleSubject : undefined,
+            subject: subjectName,
             totalMarks,
             subjectTotals,
             submissionDeadline,
@@ -143,14 +151,10 @@ const ExamDialog = ({
                             <Select value={academicSession} onValueChange={setAcademicSession}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{generateAcademicYears().map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent></Select>
                         </div>
                     </div>
-                     <div className="grid grid-cols-2 gap-4">
+                     <div className="grid grid-cols-1 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="class-select">Class</Label>
                             <Select onValueChange={setSelectedClass} value={selectedClass}><SelectTrigger><SelectValue placeholder="Select a class"/></SelectTrigger><SelectContent>{classes.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent></Select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="teacher-select">Assign Teacher</Label>
-                            <Select onValueChange={setAssignedTeacher} value={assignedTeacher}><SelectTrigger><SelectValue placeholder="Select a teacher"/></SelectTrigger><SelectContent>{teachers.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent></Select>
                         </div>
                     </div>
                      <div className="space-y-2">
@@ -165,6 +169,12 @@ const ExamDialog = ({
                         <div className="space-y-2">
                              <Label htmlFor="subject-select">Subject</Label>
                              <Select onValueChange={setSingleSubject} value={singleSubject} disabled={availableSubjects.length === 0}><SelectTrigger><SelectValue placeholder="Select subject"/></SelectTrigger><SelectContent>{availableSubjects.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select>
+                        </div>
+                    )}
+                    {examType === 'Manual' && (
+                        <div className="space-y-2">
+                            <Label htmlFor="manual-subject">Subject Name</Label>
+                            <Input id="manual-subject" placeholder="e.g., Art Competition" value={manualSubject} onChange={e => setManualSubject(e.target.value)} />
                         </div>
                     )}
                      <div className="grid grid-cols-2 gap-4">

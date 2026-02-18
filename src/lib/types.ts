@@ -136,7 +136,6 @@ export interface Exam {
     name: string;
     academicSession: string;
     class: string;
-    teacherId?: string;
     examType: 'Single Subject' | 'Full Test' | 'Manual';
     subject?: string;
     totalMarks: number;
