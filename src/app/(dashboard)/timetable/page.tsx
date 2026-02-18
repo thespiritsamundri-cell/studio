@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -147,10 +148,12 @@ export default function TimetablePage() {
   const handlePrint = (type: 'master' | 'class' | 'teacher') => {
     let printContent = '';
     let printTitle = 'Timetable';
+    let orientation = 'portrait';
 
     if (type === 'master') {
         printContent = renderToString(<MasterTimetablePrint settings={settings} teachers={teachers} classes={classes} masterTimetableData={masterTimetableData} timeSlots={timeSlots} breakAfterPeriod={breakAfterPeriod} />);
         printTitle = 'Master Timetable';
+        orientation = 'landscape';
     } else if (type === 'class') {
         const classInfo = classes.find(c => c.id === selectedClassId);
         if (!classInfo || !masterTimetableData[selectedClassId]) {
@@ -159,6 +162,7 @@ export default function TimetablePage() {
         }
         printContent = renderToString(<TimetablePrint classInfo={classInfo} timetableData={masterTimetableData[selectedClassId] || []} timeSlots={timeSlots} breakAfterPeriod={breakAfterPeriod} breakDuration="" numPeriods={numPeriods} settings={settings} teachers={teachers} />);
         printTitle = `Timetable - ${classInfo.name}`;
+        orientation = 'landscape';
     } else if (type === 'teacher') {
         const teacherInfo = teachers.find(t => t.id === selectedTeacherId);
         if (!teacherInfo || !teacherSchedule) {
@@ -167,6 +171,7 @@ export default function TimetablePage() {
         }
         printContent = renderToString(<TeacherSchedulePrint teacher={teacherInfo} schedule={teacherSchedule} settings={settings} />);
         printTitle = `Schedule - ${teacherInfo.name}`;
+        orientation = 'portrait';
     }
 
      const printWindow = window.open('', '_blank');
@@ -177,13 +182,20 @@ export default function TimetablePage() {
               <title>${printTitle}</title>
               <script src="https://cdn.tailwindcss.com"></script>
               <link rel="stylesheet" href="/print-styles.css" />
+              <style>
+                  @media print {
+                      @page {
+                          size: A4 ${orientation};
+                      }
+                  }
+              </style>
             </head>
             <body>
                 ${printContent}
             </body>
           </html>`);
         printWindow.document.close();
-        printWindow.focus();
+        printWindow.print();
      }
   };
 

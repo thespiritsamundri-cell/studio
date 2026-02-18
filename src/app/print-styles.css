@@ -1,9 +1,7 @@
 
-
-
 @media print {
   @page {
-    margin: 0.25in;
+    margin: 0.5in; /* Default margin, can be overridden by injected styles */
   }
   
   body {
@@ -11,6 +9,13 @@
     print-color-adjust: exact;
   }
 
+  .print\:hidden {
+    display: none;
+  }
+  .print\:block {
+    display: block;
+  }
+  
   body.thermal-receipt-body {
     @page {
         size: 101.6mm 152.4mm;
@@ -44,7 +49,6 @@
     font-family: "Jameel Noori Nastaleeq", "Noto Nastaliq Urdu", "Urdu Typesetting", sans-serif;
   }
 
-
   /* --- FOR VOUCHERS --- */
   .voucher-page {
     page-break-after: always;
@@ -66,7 +70,6 @@
   [data-print-copies="1"] .voucher-page:last-child .voucher-wrapper:last-child {
      page-break-after: auto;
   }
-
 
   /* --- 2 Copies per Page --- */
   [data-print-copies="2"] .voucher-page {
@@ -101,18 +104,4 @@
     width: 100%;
     box-sizing: border-box;
   }
-  
-  /* --- FOR LAYOUTS --- */
-  body[data-layout="portrait"] {
-    @page {
-        size: A4 portrait;
-    }
-  }
-  body[data-layout="landscape"] {
-    @page {
-        size: A4 landscape;
-    }
-  }
-
-
 }

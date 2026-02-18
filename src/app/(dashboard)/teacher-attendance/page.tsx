@@ -180,9 +180,25 @@ const TeacherReportTab = () => {
         );
         const printWindow = window.open('', '_blank');
         if (printWindow) {
-            printWindow.document.write(`<html><head><title>Attendance - ${teacher.name}</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="/print-styles.css"></head><body>${printContent}</body></html>`);
+            printWindow.document.write(`
+              <html>
+                <head>
+                  <title>Attendance - ${teacher.name}</title>
+                  <script src="https://cdn.tailwindcss.com"></script>
+                  <link rel="stylesheet" href="/print-styles.css" />
+                  <style>
+                    @media print {
+                      @page {
+                        size: A4 portrait;
+                      }
+                    }
+                  </style>
+                </head>
+                <body>${printContent}</body>
+              </html>
+            `);
             printWindow.document.close();
-            printWindow.focus();
+            printWindow.print();
         }
     };
     
@@ -278,9 +294,25 @@ const MonthlySheetTab = () => {
         const printContent = renderToString(<TeacherAttendancePrintReport teachers={teachers} daysInMonth={monthlySheetData.daysInMonth} attendanceData={monthlySheetData.report} month={currentDate} settings={settings} />);
         const printWindow = window.open('', '_blank');
         if (printWindow) {
-            printWindow.document.write(`<html><head><title>Teacher Attendance - ${format(currentDate, 'MMMM yyyy')}</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="/print-styles.css" /></head><body data-layout="landscape">${printContent}</body></html>`);
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Teacher Attendance - ${format(currentDate, 'MMMM yyyy')}</title>
+                        <script src="https://cdn.tailwindcss.com"></script>
+                        <link rel="stylesheet" href="/print-styles.css" />
+                        <style>
+                            @media print {
+                                @page {
+                                    size: A4 landscape;
+                                }
+                            }
+                        </style>
+                    </head>
+                    <body>${printContent}</body>
+                </html>
+            `);
             printWindow.document.close();
-            printWindow.focus();
+            printWindow.print();
         }
     };
 
@@ -431,3 +463,4 @@ const IndividualReportView = ({ teacherData, daysInMonth }: { teacherData: any, 
         </div>
     );
 };
+
