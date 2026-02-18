@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -20,8 +19,8 @@ export async function GET(request: Request) {
 
   const manifest = {
 
-    name: settings.schoolName || "THE SPIRIT SCHOOL SAMUNDRI",
-    short_name: settings.schoolName ? settings.schoolName.split(' ').map(n => n[0]).join('') : "TSS",
+    name: "THE SPIRIT SCHOOL SAMUNDRI",
+    short_name: "TSS",
     description: "Schoolup - A Unique Platform for Smart Schools",
 
     start_url: "/",
@@ -52,3 +51,5 @@ export async function GET(request: Request) {
     },
   });
 }
+
+    

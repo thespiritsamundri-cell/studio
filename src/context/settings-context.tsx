@@ -169,6 +169,9 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   useEffect(() => {
     let unsubscribeDb: (() => void) | undefined;
 
+    // Use default settings immediately to prevent flashes on login page
+    setSettingsState(defaultSettings);
+
     if (isLoggedIn) {
       const settingsDocRef = doc(db, 'Settings', 'School Settings');
       unsubscribeDb = onSnapshot(settingsDocRef, (doc) => {
@@ -176,16 +179,17 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
           const dbSettings = doc.data() as Partial<SchoolSettings>;
           setSettingsState(prev => ({ ...defaultSettings, ...prev, ...dbSettings }));
         } else {
+          // If doc doesn't exist, it means we are using defaults, but we should create it
           setDoc(settingsDocRef, defaultSettings);
         }
         setIsSettingsInitialized(true);
       }, (error) => {
         console.error("Error fetching settings from Firestore:", error);
-        setIsSettingsInitialized(true);
+        setIsSettingsInitialized(true); // Still initialize to show app with defaults
       });
     } else {
-      setSettingsState(defaultSettings);
-      setIsSettingsInitialized(true);
+        // Not logged in, but we still mark as initialized to show public pages
+        setIsSettingsInitialized(true);
     }
     
     return () => {

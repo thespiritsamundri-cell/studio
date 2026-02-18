@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -11,13 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, Scale, BookCheck, Printer, Landmark, Wallet, Banknote } from 'lucide-react';
+import { TrendingUp, TrendingDown, Scale, BookCheck, Printer, Landmark, Wallet, Banknote, Download, Loader2 } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import { FinancialsPrintReport } from '@/components/reports/financials-print-report';
 import { renderToString } from 'react-dom/server';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 export default function AccountsPage() {
     const { fees, expenses, families } = useData();
@@ -27,10 +26,11 @@ export default function AccountsPage() {
 
     const [selectedYear, setSelectedYear] = useState<number>(currentYear);
     const [selectedMonth, setSelectedMonth] = useState<number>(currentMonth);
+    const [isDownloading, setIsDownloading] = useState(false);
 
-    const handlePrint = () => {
+    const getReportComponent = () => {
         const reportDate = new Date(selectedYear, selectedMonth);
-        const printContent = renderToString(
+        return (
            <FinancialsPrintReport
                 date={reportDate}
                 incomeData={monthlyFinancialData.incomeData}
@@ -41,6 +41,11 @@ export default function AccountsPage() {
                 settings={settings}
            />
         );
+    };
+
+    const handlePrint = () => {
+        const reportDate = new Date(selectedYear, selectedMonth);
+        const printContent = renderToString(getReportComponent());
 
         const printWindow = window.open('', '_blank');
         if (printWindow) {
@@ -56,7 +61,40 @@ export default function AccountsPage() {
                 </html>
             `);
             printWindow.document.close();
-            printWindow.focus();
+        }
+    };
+
+    const handleDownloadPdf = async () => {
+        setIsDownloading(true);
+        const reportDate = new Date(selectedYear, selectedMonth);
+        const reportComponent = getReportComponent();
+        
+        const container = document.createElement('div');
+        container.style.position = 'absolute';
+        container.style.left = '-9999px';
+        container.innerHTML = renderToString(reportComponent);
+        document.body.appendChild(container);
+
+        try {
+            const canvas = await html2canvas(container.firstChild as HTMLElement, { scale: 2 });
+            const imgData = canvas.toDataURL('image/png');
+            
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const imgWidth = canvas.width;
+            const imgHeight = canvas.height;
+            const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+            const imgX = (pdfWidth - imgWidth * ratio) / 2;
+            
+            pdf.addImage(imgData, 'PNG', imgX, 0, imgWidth * ratio, imgHeight * ratio);
+            pdf.save(`financial-report-${format(reportDate, 'MMMM-yyyy')}.pdf`);
+        } catch (error) {
+            console.error("Error generating PDF:", error);
+            alert("Failed to generate PDF. See console for details.");
+        } finally {
+            document.body.removeChild(container);
+            setIsDownloading(false);
         }
     };
 
@@ -159,6 +197,10 @@ export default function AccountsPage() {
                              {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
                         </SelectContent>
                     </Select>
+                    <Button variant="outline" onClick={handleDownloadPdf} disabled={isDownloading}>
+                        {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                        PDF
+                    </Button>
                     <Button variant="outline" onClick={handlePrint}>
                         <Printer className="mr-2 h-4 w-4" /> Print P&L
                     </Button>
@@ -364,3 +406,5 @@ export default function AccountsPage() {
     );
 
 }  
+
+    

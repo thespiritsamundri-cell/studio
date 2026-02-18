@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -148,7 +147,6 @@ export default function AdmissionsPage() {
                 </html>
             `);
             printWindow.document.close();
-            printWindow.focus();
         }
     };
     
@@ -595,3 +593,5 @@ export default function AdmissionsPage() {
     </div>
   );
 }
+
+    
