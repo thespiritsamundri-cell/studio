@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -221,11 +220,14 @@ const MonthlySheetTab = () => {
     const selectedMonthIndex = getMonth(currentDate);
 
     const years = useMemo(() => {
-        const allYears = new Set<number>();
-        teacherAttendances.forEach(a => allYears.add(getYear(new Date(a.date))));
-        if(allYears.size === 0) allYears.add(getYear(new Date()));
-        return Array.from(allYears).sort((a,b) => b-a);
-    }, [teacherAttendances]);
+        const startYear = 2020;
+        const endYear = 2035;
+        const yearArray = [];
+        for (let i = endYear; i >= startYear; i--) {
+            yearArray.push(i);
+        }
+        return yearArray;
+    }, []);
 
     const months = Array.from({ length: 12 }, (_, i) => ({
         value: i,
@@ -264,7 +266,7 @@ const MonthlySheetTab = () => {
 
         switch(status) {
             case 'Present': return <TableCell key={key} className={cn(baseClass, "font-bold text-green-900 bg-green-500/30")}>P</TableCell>;
-            case 'Absent': return <TableCell key={key} className={cn(baseClass, "font-bold text-red-900 bg-red-500/30")}>A</TableCell>;
+            case 'Absent': return <TableCell key={key} className={cn(baseClass, "font-bold text-white bg-red-500")}>A</TableCell>;
             case 'Leave': return <TableCell key={key} className={cn(baseClass, "font-bold text-yellow-900 bg-yellow-500/30")}>L</TableCell>;
             case 'Late': return <TableCell key={key} className={cn(baseClass, "font-bold text-orange-900 bg-orange-500/30")}>LT</TableCell>;
             default: return <TableCell key={key} className={cn(baseClass, "text-muted-foreground")}>-</TableCell>;
