@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -8,22 +9,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useData } from '@/context/data-context';
-import type { Exam as ExamType, ExamResult, Student } from '@/lib/types';
+import type { Exam as ExamType, ExamResult, Student, Class } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { FileSignature, PlusCircle, Trash2, Printer, Edit, Save, Loader2, MoreHorizontal, FileSpreadsheet, BarChart3 } from 'lucide-react';
+import { FileSignature, PlusCircle, Trash2, Printer, Edit, Save, Loader2, MoreHorizontal, FileSpreadsheet, BarChart3, Clock, File, TestTube, ChevronsRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { MarksheetPrintReport } from '@/components/reports/marksheet-print';
 import { useSettings } from '@/context/settings-context';
 import { renderToString } from 'react-dom/server';
-import { format } from 'date-fns';
+import { format, isWithinInterval, addDays } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SubjectSummaryPrintReport } from '@/components/reports/subject-summary-report';
+import { BlankExamMarksheetPrint } from '@/components/reports/blank-exam-marksheet-print';
 
 
 const ExamDialog = ({
@@ -40,7 +42,7 @@ const ExamDialog = ({
     const { classes } = useData();
     const { settings } = useSettings();
     const { toast } = useToast();
-    
+
     const isEditing = !!exam;
 
     const [examName, setExamName] = useState('');
@@ -51,7 +53,7 @@ const ExamDialog = ({
     const [manualSubject, setManualSubject] = useState('');
     const [totalMarks, setTotalMarks] = useState(100);
     const [submissionDeadline, setSubmissionDeadline] = useState<string | undefined>(undefined);
-    
+
     useEffect(() => {
         if (exam) {
             setExamName(exam.name);
@@ -79,7 +81,7 @@ const ExamDialog = ({
         if (!selectedClass) return [];
         return classes.find(c => c.name === selectedClass)?.subjects || [];
     }, [selectedClass, classes]);
-    
+
      const generateAcademicYears = () => {
         const currentYear = new Date().getFullYear();
         const years = [];
@@ -100,7 +102,7 @@ const ExamDialog = ({
             toast({ title: "Missing Subject Name", description: "Please provide a subject name for the manual test.", variant: "destructive"});
             return;
         }
-        
+
         const cls = classes.find(c => c.name === selectedClass);
         if (!cls) return;
 
@@ -119,7 +121,7 @@ const ExamDialog = ({
             subjectTotals[trimmedSubject] = totalMarks;
             subjectName = trimmedSubject;
         }
-        
+
         const newExamData = {
             name: examName,
             academicSession,
@@ -199,6 +201,89 @@ const ExamDialog = ({
     );
 };
 
+const BlankSheetDialog = ({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) => {
+    const { classes, students } = useData();
+    const { settings } = useSettings();
+    const { toast } = useToast();
+    
+    const [selectedClass, setSelectedClass] = useState<Class | null>(null);
+    const [examName, setExamName] = useState('');
+    const [subjectMarks, setSubjectMarks] = useState<{[key: string]: number}>({});
+
+    useEffect(() => {
+        if(selectedClass) {
+            const initialMarks: {[key: string]: number} = {};
+            selectedClass.subjects.forEach(s => initialMarks[s] = 100);
+            setSubjectMarks(initialMarks);
+        } else {
+            setSubjectMarks({});
+        }
+    }, [selectedClass]);
+
+    const handlePrint = () => {
+        if (!selectedClass || !examName) {
+            toast({ title: 'Missing Information', variant: 'destructive'});
+            return;
+        }
+
+        const studentsToPrint = students.filter(s => s.class === selectedClass.name);
+        
+        const printContent = renderToString(
+            <BlankExamMarksheetPrint
+                examName={examName}
+                className={selectedClass.name}
+                subjects={selectedClass.subjects}
+                students={studentsToPrint}
+                subjectTotals={subjectMarks}
+                settings={settings}
+            />
+        );
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(`<html><head><title>Blank Marksheet - ${examName}</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="/print-styles.css" /></head><body>${printContent}</body></html>`);
+            printWindow.document.close();
+            printWindow.focus();
+        }
+        onOpenChange(false);
+    };
+
+    return (
+         <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>Print Blank Marksheet</DialogTitle>
+                    <DialogDescription>Select a class and define the test details to print a blank marksheet for manual entry.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                     <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2"><Label>Class</Label><Select onValueChange={(val) => setSelectedClass(classes.find(c => c.name === val) || null)}><SelectTrigger><SelectValue placeholder="Select class"/></SelectTrigger><SelectContent>{classes.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent></Select></div>
+                        <div className="space-y-2"><Label>Exam/Test Name</Label><Input value={examName} onChange={e => setExamName(e.target.value)} placeholder="e.g., Monthly Test"/></div>
+                     </div>
+                     {selectedClass && (
+                        <div className="space-y-2">
+                             <Label>Total Marks per Subject</Label>
+                             <ScrollArea className="h-48 border rounded-md p-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                {selectedClass.subjects.map(subject => (
+                                    <div key={subject} className="flex items-center gap-2">
+                                        <Label className="w-24 text-right">{subject}</Label>
+                                        <Input type="number" value={subjectMarks[subject] || ''} onChange={(e) => setSubjectMarks(prev => ({...prev, [subject]: Number(e.target.value)}))} />
+                                    </div>
+                                ))}
+                                </div>
+                             </ScrollArea>
+                        </div>
+                     )}
+                </div>
+                <DialogFooter>
+                    <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+                    <Button onClick={handlePrint}>Print</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
 
 export default function ExamsPage() {
   const { classes, students: allStudents, exams, addExam, updateExam, deleteExam } = useData();
@@ -207,12 +292,13 @@ export default function ExamsPage() {
 
   const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
   const [currentResults, setCurrentResults] = useState<ExamResult[]>([]);
-  
+
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
+  const [openBlankSheetDialog, setOpenBlankSheetDialog] = useState(false);
   const [examToEdit, setExamToEdit] = useState<ExamType | null>(null);
   const [examToDelete, setExamToDelete] = useState<ExamType | null>(null);
-  
+
   // State for master sheet
   const [masterSheetClass, setMasterSheetClass] = useState('');
   const [masterSheetSubject, setMasterSheetSubject] = useState('');
@@ -228,7 +314,7 @@ export default function ExamsPage() {
     return allStudents.filter(s => s.class === selectedExam.class && s.status === 'Active');
   }, [selectedExam, allStudents]);
 
-  
+
   const subjects = useMemo(() => {
     if (!selectedExam) return [];
     if (selectedExam.examType === 'Single Subject' && selectedExam.subject) {
@@ -245,7 +331,7 @@ export default function ExamsPage() {
       setCurrentResults([]);
     }
   }, [selectedExam]);
-  
+
   const handleMarksChange = (studentId: string, subject: string, value: string) => {
     const marks = parseInt(value, 10);
     const total = selectedExam?.subjectTotals[subject] || 0;
@@ -264,13 +350,13 @@ export default function ExamsPage() {
 
   const marksheetData = useMemo((): any[] => {
     if (!selectedExam) return [];
-    
+
     const data = classStudents.map(student => {
       const result = currentResults.find(r => r.studentId === student.id);
       const obtainedMarks = subjects.reduce((total, subject) => total + (result?.marks[subject] || 0), 0);
       const totalMarks = subjects.reduce((total, subject) => total + (selectedExam.subjectTotals[subject] || 0), 0);
       const percentage = totalMarks > 0 ? (obtainedMarks / totalMarks) * 100 : 0;
-      
+
       return {
         studentId: student.id,
         studentName: student.name,
@@ -298,7 +384,7 @@ export default function ExamsPage() {
     updateExam(selectedExam.id, { results: currentResults });
     toast({ title: 'Results Saved', description: `Results for ${selectedExam.name} have been saved successfully.` });
   };
-  
+
   const handlePrintMarksheet = (examId: string) => {
       const exam = exams.find(e => e.id === examId);
       if (!exam) return;
@@ -319,7 +405,7 @@ export default function ExamsPage() {
           }
           return { ...data, position: rank };
       });
-      
+
       const printSubjects = (exam.examType === 'Single Subject' && exam.subject) ? [exam.subject] : Object.keys(exam.subjectTotals);
 
       const printContent = renderToString(
@@ -352,13 +438,13 @@ export default function ExamsPage() {
     setExamToEdit(exam);
     setOpenEditDialog(true);
   }
-  
+
   const handleUpdateExam = (examData: any) => {
     if(!examToEdit) return;
     updateExam(examToEdit.id, examData);
     toast({ title: 'Exam Updated!'});
   }
-  
+
   const handleDeleteExam = (exam: ExamType) => {
     setExamToDelete(exam);
   }
@@ -370,7 +456,7 @@ export default function ExamsPage() {
     if(selectedExamId === examToDelete.id) setSelectedExamId(null);
     setExamToDelete(null);
   }
-  
+
   const sortedExams = useMemo(() => exams.sort((a, b) => new Date(b.submissionDeadline || 0).getTime() - new Date(a.submissionDeadline || 0).getTime()), [exams]);
 
   // Master Sheet Logic
@@ -395,7 +481,7 @@ export default function ExamsPage() {
       toast({ title: "Filter required", description: "Please select a class and a subject.", variant: "destructive" });
       return;
     }
-    
+
     const printContent = renderToString(<SubjectSummaryPrintReport students={masterSheetStudents} tests={masterSheetTests} subject={masterSheetSubject} className={masterSheetClass} settings={settings} />);
     const printWindow = window.open('', '_blank');
     if (printWindow) {
@@ -405,6 +491,14 @@ export default function ExamsPage() {
     }
   };
 
+  const upcomingDeadlines = useMemo(() => {
+    const today = new Date();
+    const sevenDaysLater = addDays(today, 7);
+    return exams.filter(exam =>
+        exam.submissionDeadline && isWithinInterval(new Date(exam.submissionDeadline), { start: today, end: sevenDaysLater })
+    ).sort((a, b) => new Date(a.submissionDeadline!).getTime() - new Date(b.submissionDeadline!).getTime());
+  }, [exams]);
+
 
   return (
     <div className="space-y-6">
@@ -413,22 +507,23 @@ export default function ExamsPage() {
         <Button onClick={() => setOpenCreateDialog(true)}><PlusCircle className="mr-2 h-4 w-4"/> Create New Exam</Button>
       </div>
 
-       <ExamDialog 
-        open={openCreateDialog} 
+       <ExamDialog
+        open={openCreateDialog}
         onOpenChange={setOpenCreateDialog}
         exam={null}
         onSave={handleCreateExam}
        />
-       <ExamDialog 
-        open={openEditDialog} 
+       <ExamDialog
+        open={openEditDialog}
         onOpenChange={setOpenEditDialog}
         exam={examToEdit}
         onSave={handleUpdateExam}
        />
+       <BlankSheetDialog open={openBlankSheetDialog} onOpenChange={setOpenBlankSheetDialog} />
        <AlertDialog open={!!examToDelete} onOpenChange={() => setExamToDelete(null)}>
           <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete this exam and all its results. This action cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={confirmDeleteExam} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
       </AlertDialog>
-      
+
        <Tabs defaultValue="exam-history" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -436,15 +531,37 @@ export default function ExamsPage() {
                 <TabsTrigger value="master-sheets">Master Sheets</TabsTrigger>
             </TabsList>
             <TabsContent value="overview" className="mt-6">
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><BarChart3/>Exam Overview</CardTitle>
-                        <CardDescription>A summary of exam statistics and performance.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="h-60 flex items-center justify-center">
-                        <p className="text-muted-foreground">This section will provide an overview of exam analytics. (Coming soon)</p>
-                    </CardContent>
-                </Card>
+                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <Card className="lg:col-span-1">
+                        <CardHeader><CardTitle className="flex items-center gap-2"><ChevronsRight/>Quick Actions</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                            <Button className="w-full" onClick={() => setOpenCreateDialog(true)}><TestTube className="mr-2 h-4 w-4"/>Create New Exam</Button>
+                            <Button className="w-full" variant="outline" onClick={() => setOpenBlankSheetDialog(true)}><File className="mr-2 h-4 w-4"/>Print Blank Sheet</Button>
+                        </CardContent>
+                    </Card>
+                    <Card className="lg:col-span-2">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><Clock />Upcoming Submission Deadlines</CardTitle>
+                            <CardDescription>Exams with result submission deadlines in the next 7 days.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <ScrollArea className="h-60">
+                                <Table>
+                                    <TableHeader><TableRow><TableHead>Exam</TableHead><TableHead>Class</TableHead><TableHead>Deadline</TableHead></TableRow></TableHeader>
+                                    <TableBody>
+                                        {upcomingDeadlines.length > 0 ? upcomingDeadlines.map(exam => (
+                                            <TableRow key={exam.id}>
+                                                <TableCell className="font-medium">{exam.name}</TableCell>
+                                                <TableCell>{exam.class}</TableCell>
+                                                <TableCell>{format(new Date(exam.submissionDeadline!), 'dd-MMM-yyyy')}</TableCell>
+                                            </TableRow>
+                                        )) : <TableRow><TableCell colSpan={3} className="text-center h-24 text-muted-foreground">No upcoming deadlines.</TableCell></TableRow>}
+                                    </TableBody>
+                                </Table>
+                            </ScrollArea>
+                        </CardContent>
+                    </Card>
+                 </div>
             </TabsContent>
             <TabsContent value="exam-history" className="mt-6">
                 <Card>
@@ -503,7 +620,7 @@ export default function ExamsPage() {
                     </ScrollArea>
                     </CardContent>
                 </Card>
-                
+
                 {selectedExam && (
                     <Card className="mt-4">
                     <CardHeader className="flex flex-row justify-between items-center">
