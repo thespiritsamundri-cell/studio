@@ -8,9 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useData } from '@/context/data-context';
-import type { Exam as ExamType, ExamResult } from '@/lib/types';
+import type { Exam as ExamType, ExamResult, Student } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { FileSignature, PlusCircle, Trash2, Printer, Edit, Save, Loader2, MoreHorizontal } from 'lucide-react';
+import { FileSignature, PlusCircle, Trash2, Printer, Edit, Save, Loader2, MoreHorizontal, FileSpreadsheet, BarChart3 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -22,6 +22,8 @@ import { renderToString } from 'react-dom/server';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SubjectSummaryPrintReport } from '@/components/reports/subject-summary-report';
 
 
 const ExamDialog = ({
@@ -210,6 +212,11 @@ export default function ExamsPage() {
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [examToEdit, setExamToEdit] = useState<ExamType | null>(null);
   const [examToDelete, setExamToDelete] = useState<ExamType | null>(null);
+  
+  // State for master sheet
+  const [masterSheetClass, setMasterSheetClass] = useState('');
+  const [masterSheetSubject, setMasterSheetSubject] = useState('');
+
 
   const selectedExam = useMemo(() => {
     if (!selectedExamId) return null;
@@ -334,12 +341,12 @@ export default function ExamsPage() {
   };
 
   const handleCreateExam = async (examData: any) => {
-    const newExamId = await addExam(examData);
-    if(newExamId) {
-        toast({ title: "Exam Created!", description: `${examData.name} has been created successfully.` });
-        setSelectedExamId(newExamId);
+    const newId = await addExam(examData);
+    if (newId) {
+      toast({ title: 'Exam Created!' });
+      setSelectedExamId(newId);
     }
-  }
+  };
 
   const handleEditExam = (exam: ExamType) => {
     setExamToEdit(exam);
@@ -366,6 +373,38 @@ export default function ExamsPage() {
   
   const sortedExams = useMemo(() => exams.sort((a, b) => new Date(b.submissionDeadline || 0).getTime() - new Date(a.submissionDeadline || 0).getTime()), [exams]);
 
+  // Master Sheet Logic
+  const masterSheetSubjects = useMemo(() => {
+    if (!masterSheetClass) return [];
+    return classes.find(c => c.name === masterSheetClass)?.subjects || [];
+  }, [masterSheetClass, classes]);
+
+  const masterSheetTests = useMemo(() => {
+    if (!masterSheetClass || !masterSheetSubject) return [];
+    return exams.filter(e => e.class === masterSheetClass && e.examType === 'Single Subject' && e.subject === masterSheetSubject)
+      .sort((a, b) => new Date(a.submissionDeadline || 0).getTime() - new Date(b.submissionDeadline || 0).getTime());
+  }, [masterSheetClass, masterSheetSubject, exams]);
+
+  const masterSheetStudents = useMemo(() => {
+    if (!masterSheetClass) return [];
+    return allStudents.filter(s => s.class === masterSheetClass && s.status === 'Active');
+  }, [masterSheetClass, allStudents]);
+
+  const handlePrintMasterSheet = () => {
+    if (!masterSheetClass || !masterSheetSubject) {
+      toast({ title: "Filter required", description: "Please select a class and a subject.", variant: "destructive" });
+      return;
+    }
+    
+    const printContent = renderToString(<SubjectSummaryPrintReport students={masterSheetStudents} tests={masterSheetTests} subject={masterSheetSubject} className={masterSheetClass} settings={settings} />);
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`<html><head><title>Subject Summary - ${masterSheetSubject} - ${masterSheetClass}</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="/print-styles.css" /></head><body data-layout="landscape">${printContent}</body></html>`);
+      printWindow.document.close();
+      printWindow.focus();
+    }
+  };
+
 
   return (
     <div className="space-y-6">
@@ -390,108 +429,205 @@ export default function ExamsPage() {
           <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete this exam and all its results. This action cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={confirmDeleteExam} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
       </AlertDialog>
       
-       <Card>
-        <CardHeader>
-          <CardTitle>Exam History</CardTitle>
-          <CardDescription>Manage and enter marks for all created exams.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-72 border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Exam Name</TableHead>
-                  <TableHead>Class</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedExams.map(exam => (
-                    <TableRow key={exam.id} className={exam.id === selectedExamId ? 'bg-muted' : ''}>
-                      <TableCell>{exam.submissionDeadline ? format(new Date(exam.submissionDeadline), 'dd-MMM-yy') : 'N/A'}</TableCell>
-                      <TableCell className="font-medium">{exam.name}</TableCell>
-                      <TableCell>{exam.class}</TableCell>
-                      <TableCell><Badge variant="secondary">{exam.examType}</Badge></TableCell>
-                      <TableCell className="text-right">
-                         <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4"/></Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem onSelect={() => setSelectedExamId(exam.id)}>
-                                    <FileSignature className="mr-2 h-4 w-4"/> Enter Marks
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onSelect={() => handleEditExam(exam)}>
-                                    <Edit className="mr-2 h-4 w-4"/> Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onSelect={() => handlePrintMarksheet(exam.id)}>
-                                    <Printer className="mr-2 h-4 w-4"/> Print Results
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onSelect={() => handleDeleteExam(exam)} className="text-destructive">
-                                    <Trash2 className="mr-2 h-4 w-4"/> Delete
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                         </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                ))}
-                 {sortedExams.length === 0 && (
-                    <TableRow><TableCell colSpan={5} className="text-center h-24 text-muted-foreground">No exams created yet.</TableCell></TableRow>
+       <Tabs defaultValue="exam-history" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="exam-history">Exam History</TabsTrigger>
+                <TabsTrigger value="master-sheets">Master Sheets</TabsTrigger>
+            </TabsList>
+            <TabsContent value="overview" className="mt-6">
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><BarChart3/>Exam Overview</CardTitle>
+                        <CardDescription>A summary of exam statistics and performance.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="h-60 flex items-center justify-center">
+                        <p className="text-muted-foreground">This section will provide an overview of exam analytics. (Coming soon)</p>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+            <TabsContent value="exam-history" className="mt-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Exam History</CardTitle>
+                        <CardDescription>Manage and enter marks for all created exams.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                    <ScrollArea className="h-72 border rounded-lg">
+                        <Table>
+                        <TableHeader>
+                            <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Exam Name</TableHead>
+                            <TableHead>Class</TableHead>
+                            <TableHead>Type</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {sortedExams.map(exam => (
+                                <TableRow key={exam.id} className={exam.id === selectedExamId ? 'bg-muted' : ''}>
+                                <TableCell>{exam.submissionDeadline ? format(new Date(exam.submissionDeadline), 'dd-MMM-yy') : 'N/A'}</TableCell>
+                                <TableCell className="font-medium">{exam.name}</TableCell>
+                                <TableCell>{exam.class}</TableCell>
+                                <TableCell><Badge variant="secondary">{exam.examType}</Badge></TableCell>
+                                <TableCell className="text-right">
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4"/></Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem onSelect={() => setSelectedExamId(exam.id)}>
+                                                <FileSignature className="mr-2 h-4 w-4"/> Enter Marks
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onSelect={() => handleEditExam(exam)}>
+                                                <Edit className="mr-2 h-4 w-4"/> Edit
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onSelect={() => handlePrintMarksheet(exam.id)}>
+                                                <Printer className="mr-2 h-4 w-4"/> Print Results
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem onSelect={() => handleDeleteExam(exam)} className="text-destructive">
+                                                <Trash2 className="mr-2 h-4 w-4"/> Delete
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </TableCell>
+                                </TableRow>
+                            ))}
+                            {sortedExams.length === 0 && (
+                                <TableRow><TableCell colSpan={5} className="text-center h-24 text-muted-foreground">No exams created yet.</TableCell></TableRow>
+                            )}
+                        </TableBody>
+                        </Table>
+                    </ScrollArea>
+                    </CardContent>
+                </Card>
+                
+                {selectedExam && (
+                    <Card className="mt-4">
+                    <CardHeader className="flex flex-row justify-between items-center">
+                        <div>
+                        <CardTitle>Marksheet: {selectedExam.name}</CardTitle>
+                        <CardDescription>Enter marks for each student. Totals and positions will be calculated automatically.</CardDescription>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <Button onClick={handleSaveResults}><Save className="mr-2 h-4 w-4"/>Save Results</Button>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <ScrollArea className="h-[500px] w-full border rounded-lg">
+                        <Table>
+                            <TableHeader className="sticky top-0 bg-secondary z-20">
+                            <TableRow>
+                                <TableHead className="sticky left-0 bg-secondary z-30 min-w-[150px]">Student</TableHead>
+                                {subjects.map(subject => <TableHead key={subject} className="text-center min-w-[120px]">{subject} ({selectedExam.subjectTotals[subject] || 0})</TableHead>)}
+                                <TableHead className="text-center font-bold">Obtained</TableHead>
+                                <TableHead className="text-center font-bold">Total</TableHead>
+                                <TableHead className="text-center font-bold">%</TableHead>
+                                <TableHead className="text-center font-bold">Position</TableHead>
+                            </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                            {marksheetData.map(row => (
+                                <TableRow key={row.studentId}>
+                                <TableCell className="font-medium sticky left-0 bg-background z-10">{row.studentName}</TableCell>
+                                {subjects.map(subject => (
+                                    <TableCell key={subject}><Input type="number" className="text-center" placeholder="-" value={row.marks[subject] || ''} onChange={(e) => handleMarksChange(row.studentId, subject, e.target.value)} max={selectedExam.subjectTotals[subject]}/></TableCell>
+                                ))}
+                                <TableCell className="text-center font-semibold">{row.obtainedMarks}</TableCell>
+                                <TableCell className="text-center">{row.totalMarks}</TableCell>
+                                <TableCell className="text-center font-semibold">{row.percentage.toFixed(2)}%</TableCell>
+                                <TableCell className="text-center font-bold"><Badge variant={row.position === 1 ? 'default' : row.position === 2 ? 'secondary' : 'outline'}>{row.position}</Badge></TableCell>
+                                </TableRow>
+                            ))}
+                            </TableBody>
+                        </Table>
+                        </ScrollArea>
+                        {classStudents.length === 0 && ( <p className="text-center text-muted-foreground py-10">No students found in this class/section.</p>)}
+                    </CardContent>
+                    </Card>
                 )}
-              </TableBody>
-            </Table>
-          </ScrollArea>
-        </CardContent>
-      </Card>
-      
-      {selectedExam && (
-        <Card className="mt-4">
-          <CardHeader className="flex flex-row justify-between items-center">
-            <div>
-              <CardTitle>Marksheet: {selectedExam.name}</CardTitle>
-              <CardDescription>Enter marks for each student. Totals and positions will be calculated automatically.</CardDescription>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-                <Button onClick={handleSaveResults}><Save className="mr-2 h-4 w-4"/>Save Results</Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[500px] w-full border rounded-lg">
-              <Table>
-                <TableHeader className="sticky top-0 bg-secondary z-20">
-                  <TableRow>
-                    <TableHead className="sticky left-0 bg-secondary z-30 min-w-[150px]">Student</TableHead>
-                    {subjects.map(subject => <TableHead key={subject} className="text-center min-w-[120px]">{subject} ({selectedExam.subjectTotals[subject] || 0})</TableHead>)}
-                    <TableHead className="text-center font-bold">Obtained</TableHead>
-                    <TableHead className="text-center font-bold">Total</TableHead>
-                    <TableHead className="text-center font-bold">%</TableHead>
-                    <TableHead className="text-center font-bold">Position</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {marksheetData.map(row => (
-                    <TableRow key={row.studentId}>
-                      <TableCell className="font-medium sticky left-0 bg-background z-10">{row.studentName}</TableCell>
-                      {subjects.map(subject => (
-                        <TableCell key={subject}><Input type="number" className="text-center" placeholder="-" value={row.marks[subject] || ''} onChange={(e) => handleMarksChange(row.studentId, subject, e.target.value)} max={selectedExam.subjectTotals[subject]}/></TableCell>
-                      ))}
-                      <TableCell className="text-center font-semibold">{row.obtainedMarks}</TableCell>
-                      <TableCell className="text-center">{row.totalMarks}</TableCell>
-                      <TableCell className="text-center font-semibold">{row.percentage.toFixed(2)}%</TableCell>
-                      <TableCell className="text-center font-bold"><Badge variant={row.position === 1 ? 'default' : row.position === 2 ? 'secondary' : 'outline'}>{row.position}</Badge></TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </ScrollArea>
-            {classStudents.length === 0 && ( <p className="text-center text-muted-foreground py-10">No students found in this class/section.</p>)}
-          </CardContent>
-        </Card>
-      )}
+            </TabsContent>
+            <TabsContent value="master-sheets" className="mt-6">
+                <Card>
+                    <CardHeader>
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <CardTitle>Master Sheets</CardTitle>
+                                <CardDescription>View a consolidated summary of all single subject tests for a class.</CardDescription>
+                            </div>
+                            <Button onClick={handlePrintMasterSheet} variant="outline" disabled={!masterSheetClass || !masterSheetSubject}>
+                                <FileSpreadsheet className="mr-2 h-4 w-4"/> Print Master Sheet
+                            </Button>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex gap-4 p-4 border rounded-lg">
+                             <div className="w-full md:w-1/3">
+                                <Label>Class</Label>
+                                <Select value={masterSheetClass} onValueChange={setMasterSheetClass}>
+                                    <SelectTrigger><SelectValue placeholder="Select Class"/></SelectTrigger>
+                                    <SelectContent>{classes.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
+                                </Select>
+                             </div>
+                             <div className="w-full md:w-1/3">
+                                <Label>Subject</Label>
+                                <Select value={masterSheetSubject} onValueChange={setMasterSheetSubject} disabled={masterSheetSubjects.length === 0}>
+                                    <SelectTrigger><SelectValue placeholder="Select Subject"/></SelectTrigger>
+                                    <SelectContent>{masterSheetSubjects.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                                </Select>
+                             </div>
+                        </div>
+                        <ScrollArea className="h-[600px] border rounded-lg">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Student Name</TableHead>
+                                        {masterSheetTests.map(test => (
+                                            <TableHead key={test.id} className="text-center">{test.name}<br/>({format(new Date(test.submissionDeadline!), 'dd-MMM')})</TableHead>
+                                        ))}
+                                        <TableHead className="text-right font-bold">Overall %</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {masterSheetStudents.map(student => {
+                                        let grandTotal = 0;
+                                        let grandObtained = 0;
+                                        masterSheetTests.forEach(test => {
+                                            grandTotal += test.totalMarks;
+                                            grandObtained += test.results.find(r => r.studentId === student.id)?.marks[masterSheetSubject] || 0;
+                                        });
+                                        const overallPercentage = grandTotal > 0 ? ((grandObtained / grandTotal) * 100) : 0;
 
+                                        return (
+                                            <TableRow key={student.id}>
+                                                <TableCell className="font-medium">{student.name}</TableCell>
+                                                {masterSheetTests.map(test => {
+                                                    const result = test.results.find(r => r.studentId === student.id);
+                                                    const marks = result?.marks[masterSheetSubject];
+                                                    return (
+                                                        <TableCell key={test.id} className="text-center">{marks ?? '-'}</TableCell>
+                                                    )
+                                                })}
+                                                <TableCell className="text-right font-bold">{overallPercentage.toFixed(1)}%</TableCell>
+                                            </TableRow>
+                                        )
+                                    })}
+                                     {masterSheetStudents.length === 0 && (
+                                        <TableRow>
+                                            <TableCell colSpan={masterSheetTests.length + 2} className="text-center h-24">
+                                                Select a class and subject to view the master sheet.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </ScrollArea>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+      </Tabs>
     </div>
   );
 }
