@@ -7,6 +7,17 @@ import type { Teacher, TeacherAttendance } from '@/lib/types';
 import type { SchoolSettings } from '@/context/settings-context';
 import { format, isSunday } from 'date-fns';
 
+const getStatusContent = (status: 'Present' | 'Absent' | 'Leave' | 'Late' | undefined) => {
+    if (!status) return { text: '-', color: 'transparent', textColor: '#000' };
+    switch(status) {
+        case 'Present': return { text: 'P', color: '#dcfce7', textColor: '#14532d' }; // green-100, green-900
+        case 'Absent': return { text: 'A', color: '#dc2626', textColor: '#ffffff' }; // red-500, white
+        case 'Leave': return { text: 'L', color: '#fef08a', textColor: '#713f12' }; // yellow-200, yellow-900
+        case 'Late': return { text: 'LT', color: '#ffedd5', textColor: '#9a3412' }; // orange-100, orange-900
+        default: return { text: '-', color: 'transparent', textColor: '#000' };
+    }
+};
+
 interface TeacherAttendancePrintReportProps {
   teachers: Teacher[];
   daysInMonth: Date[];
@@ -14,17 +25,6 @@ interface TeacherAttendancePrintReportProps {
   month: Date;
   settings: SchoolSettings;
 }
-
-const getStatusContent = (status: 'Present' | 'Absent' | 'Leave' | 'Late' | undefined) => {
-    if (!status) return { text: '-', color: 'transparent' };
-    switch(status) {
-        case 'Present': return { text: 'P', color: '#dcfce7' }; // green-100
-        case 'Absent': return { text: 'A', color: '#fee2e2' }; // red-100
-        case 'Leave': return { text: 'L', color: '#fef9c3' }; // yellow-100
-        case 'Late': return { text: 'P', color: '#dcfce7' }; // Late is also Present
-        default: return { text: '-', color: 'transparent' };
-    }
-};
 
 export const TeacherAttendancePrintReport = React.forwardRef<HTMLDivElement, TeacherAttendancePrintReportProps>(
   ({ teachers, daysInMonth, attendanceData, month, settings }, ref) => {
@@ -59,16 +59,18 @@ export const TeacherAttendancePrintReport = React.forwardRef<HTMLDivElement, Tea
                 ))}
                 <th style={{...cellStyle, fontWeight: 'bold', backgroundColor: '#dcfce7'}}>P</th>
                 <th style={{...cellStyle, fontWeight: 'bold', backgroundColor: '#fee2e2'}}>A</th>
+                <th style={{...cellStyle, fontWeight: 'bold', backgroundColor: '#ffedd5'}}>LT</th>
                 <th style={{...cellStyle, fontWeight: 'bold', backgroundColor: '#fef9c3'}}>L</th>
               </tr>
             </thead>
             <tbody>
               {attendanceData.map(({ teacher, attendanceByDate }) => {
-                const summary = { present: 0, absent: 0, leave: 0 };
+                const summary = { present: 0, absent: 0, late: 0, leave: 0 };
                 Object.entries(attendanceByDate).forEach(([date, record]) => {
                     if (record && !isSunday(new Date(date))) {
-                        if (record.status === 'Present' || record.status === 'Late') summary.present++;
+                        if (record.status === 'Present') summary.present++;
                         else if (record.status === 'Absent') summary.absent++;
+                        else if (record.status === 'Late') summary.late++;
                         else if (record.status === 'Leave') summary.leave++;
                     }
                 });
@@ -78,10 +80,10 @@ export const TeacherAttendancePrintReport = React.forwardRef<HTMLDivElement, Tea
                         <td style={{...cellStyle, textAlign: 'left', whiteSpace: 'nowrap'}}>{teacher.name}</td>
                         {daysInMonth.map(day => {
                             const record = attendanceByDate[format(day, 'yyyy-MM-dd')];
-                            const { text, color } = getStatusContent(record?.status);
-                            const finalStyle = isSunday(day) 
-                                ? {...cellStyle, backgroundColor: '#f3f4f6', color: '#a1a1aa'}
-                                : {...cellStyle, backgroundColor: color};
+                            const { text, color, textColor } = getStatusContent(record?.status);
+                            const finalStyle: React.CSSProperties = isSunday(day) 
+                                ? {...cellStyle, backgroundColor: '#f3f4f6', color: '#ef4444', fontWeight: 'bold'}
+                                : {...cellStyle, backgroundColor: color, color: textColor, fontWeight: 'bold'};
                             return (
                                 <td key={day.toISOString()} style={finalStyle}>
                                     {isSunday(day) ? 'S' : text}
@@ -90,6 +92,7 @@ export const TeacherAttendancePrintReport = React.forwardRef<HTMLDivElement, Tea
                         })}
                         <td style={cellStyle}>{summary.present}</td>
                         <td style={cellStyle}>{summary.absent}</td>
+                        <td style={cellStyle}>{summary.late}</td>
                         <td style={cellStyle}>{summary.leave}</td>
                     </tr>
                 );

@@ -75,7 +75,7 @@ export const IndividualTeacherAttendancePrintReport = React.forwardRef<HTMLDivEl
                         <TableCell>{format(day, 'EEEE')}</TableCell>
                         <TableCell>
                             {isSun ? (
-                                <Badge variant="outline">Holiday</Badge>
+                                <Badge variant="outline" className="text-red-500 border-red-500/50">Holiday</Badge>
                             ) : record ? (
                                 <Badge variant={
                                     record.status === 'Present' ? 'default' : 

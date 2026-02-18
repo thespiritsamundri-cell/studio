@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -261,7 +262,7 @@ const MonthlySheetTab = () => {
 
     const getStatusCell = (status: AttendanceStatus | undefined, isSun: boolean, key: string) => {
         const baseClass = "p-0 h-9 text-center text-xs";
-        if (isSun) return <TableCell key={key} className={cn(baseClass, "text-muted-foreground bg-muted/30")}>S</TableCell>;
+        if (isSun) return <TableCell key={key} className={cn(baseClass, "font-bold text-red-500 bg-muted/30")}>S</TableCell>;
         if (!status) return <TableCell key={key} className={cn(baseClass, "text-muted-foreground")}>-</TableCell>;
 
         switch(status) {
@@ -413,7 +414,7 @@ const IndividualReportView = ({ teacherData, daysInMonth }: { teacherData: any, 
                                     <TableCell>{format(day, 'dd-MMM-yyyy')}</TableCell>
                                     <TableCell>{format(day, 'EEEE')}</TableCell>
                                     <TableCell>
-                                        {isSun ? ( <Badge variant="outline">Holiday</Badge> ) : record ? (
+                                        {isSun ? ( <Badge variant="outline" className="text-red-500 border-red-500/50">Holiday</Badge> ) : record ? (
                                             <Badge variant={ record.status === 'Present' ? 'default' : record.status === 'Absent' ? 'destructive' : 'secondary' } className={cn(record.status === 'Present' && 'bg-green-600', record.status === 'Late' && 'bg-orange-500')}>
                                                 {record.status}
                                             </Badge>
