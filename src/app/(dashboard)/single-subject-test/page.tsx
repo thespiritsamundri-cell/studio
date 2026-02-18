@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -530,7 +529,7 @@ export default function SingleSubjectTestPage() {
                  {filterClass && filterSubject && (
                     <div className="mb-4 flex gap-2">
                         <Button variant="secondary" className="w-full" onClick={handlePrintSubjectSummary}>
-                            <Printer className="mr-2 h-4 w-4"/>
+                            <FileSpreadsheet className="mr-2 h-4 w-4"/>
                             Print Summary
                         </Button>
                         <Button variant="outline" className="w-full" onClick={handleDownloadSummaryJpg} disabled={isDownloading && downloadingTestId === 'summary'}>
@@ -591,3 +590,5 @@ export default function SingleSubjectTestPage() {
   );
 
 }
+
+    

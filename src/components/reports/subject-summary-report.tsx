@@ -14,22 +14,10 @@ interface SubjectSummaryPrintReportProps {
   subject: string;
   className: string;
   settings: SchoolSettings;
-  fontSize: number;
 }
 
 export const SubjectSummaryPrintReport = React.forwardRef<HTMLDivElement, SubjectSummaryPrintReportProps>(
-  ({ students, tests, subject, className, settings, fontSize }, ref) => {
-    
-    const cellStyle: React.CSSProperties = {
-      border: '1px solid #999',
-      padding: '4px',
-      textAlign: 'center',
-      whiteSpace: 'nowrap',
-    };
-    const headerCellStyle: React.CSSProperties = { ...cellStyle, fontWeight: 'bold', backgroundColor: '#f2f2f2' };
-    const nameCellStyle: React.CSSProperties = { ...cellStyle, textAlign: 'left', minWidth: '150px' };
-
-    const sortedTests = tests.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  ({ students, tests, subject, className, settings }, ref) => {
     
     const printStyles = `
       body {
@@ -59,6 +47,8 @@ export const SubjectSummaryPrintReport = React.forwardRef<HTMLDivElement, Subjec
         white-space: nowrap;
       }
     `;
+    
+    const sortedTests = tests.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     return (
       <div ref={ref} className="p-8 font-sans bg-white text-black">
@@ -145,3 +135,5 @@ export const SubjectSummaryPrintReport = React.forwardRef<HTMLDivElement, Subjec
 );
 
 SubjectSummaryPrintReport.displayName = 'SubjectSummaryPrintReport';
+
+    
