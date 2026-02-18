@@ -216,6 +216,7 @@ const MonthlySheetTab = () => {
     const { teachers, teacherAttendances } = useData();
     const { settings } = useSettings();
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [printLayout, setPrintLayout] = useState<'portrait' | 'landscape'>('landscape');
 
     const selectedYear = getYear(currentDate);
     const selectedMonthIndex = getMonth(currentDate);
@@ -258,7 +259,7 @@ const MonthlySheetTab = () => {
     }, [teachers, teacherAttendances, currentDate]);
 
     const getStatusCell = (status: AttendanceStatus | undefined, isSun: boolean, key: string) => {
-        const baseClass = "p-1 h-10 text-center text-xs";
+        const baseClass = "p-0 h-9 text-center text-xs";
         if (isSun) return <TableCell key={key} className={cn(baseClass, "text-muted-foreground bg-muted/30")}>S</TableCell>;
         if (!status) return <TableCell key={key} className={cn(baseClass, "text-muted-foreground")}>-</TableCell>;
 
@@ -275,7 +276,7 @@ const MonthlySheetTab = () => {
         const printContent = renderToString(<TeacherAttendancePrintReport teachers={teachers} daysInMonth={monthlySheetData.daysInMonth} attendanceData={monthlySheetData.report} month={currentDate} settings={settings} />);
         const printWindow = window.open('', '_blank');
         if (printWindow) {
-            printWindow.document.write(`<html><head><title>Teacher Attendance - ${format(currentDate, 'MMMM yyyy')}</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="/print-styles.css" /></head><body data-layout="landscape">${printContent}</body></html>`);
+            printWindow.document.write(`<html><head><title>Teacher Attendance - ${format(currentDate, 'MMMM yyyy')}</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="/print-styles.css" /></head><body data-layout="${printLayout}">${printContent}</body></html>`);
             printWindow.document.close();
             printWindow.focus();
         }
@@ -321,28 +322,39 @@ const MonthlySheetTab = () => {
                             </SelectContent>
                         </Select>
                     </div>
-                    <Button variant="outline" onClick={handlePrint}><Printer className="w-4 h-4 mr-2" /> Print Sheet</Button>
+                     <div className="flex gap-2 items-center">
+                        <Select value={printLayout} onValueChange={(v) => setPrintLayout(v as any)}>
+                            <SelectTrigger className="w-[120px]">
+                                <SelectValue placeholder="Layout" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="landscape">Landscape</SelectItem>
+                                <SelectItem value="portrait">Portrait</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Button variant="outline" onClick={handlePrint}><Printer className="w-4 h-4 mr-2" /> Print Sheet</Button>
+                    </div>
                 </div>
                 <ScrollArea className="w-full whitespace-nowrap border rounded-lg">
                     <Table className="min-w-full">
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="sticky left-0 bg-background z-10 w-40 min-w-[150px] p-2">Teacher Name</TableHead>
-                                {monthlySheetData.daysInMonth.map(day => (<TableHead key={day.toISOString()} className={cn("text-center w-9 p-1", isSunday(day) && "bg-muted/50")}>{format(day, 'd')}</TableHead>))}
-                                <TableHead className="text-center w-9 p-1 sticky right-[108px] bg-background z-10 text-green-600 font-bold">P</TableHead>
-                                <TableHead className="text-center w-9 p-1 sticky right-[72px] bg-background z-10 text-red-600 font-bold">A</TableHead>
-                                <TableHead className="text-center w-9 p-1 sticky right-[36px] bg-background z-10 text-orange-500 font-bold">LT</TableHead>
-                                <TableHead className="text-center w-9 p-1 sticky right-0 bg-background z-10 text-yellow-500 font-bold">L</TableHead>
+                                <TableHead className="sticky left-0 bg-background z-10 w-36 min-w-[144px] p-1">Teacher Name</TableHead>
+                                {monthlySheetData.daysInMonth.map(day => (<TableHead key={day.toISOString()} className={cn("text-center w-8 p-0", isSunday(day) && "bg-muted/50")}>{format(day, 'd')}</TableHead>))}
+                                <TableHead className="text-center w-8 p-0 sticky right-[96px] bg-background z-10 text-green-600 font-bold">P</TableHead>
+                                <TableHead className="text-center w-8 p-0 sticky right-[64px] bg-background z-10 text-red-600 font-bold">A</TableHead>
+                                <TableHead className="text-center w-8 p-0 sticky right-[32px] bg-background z-10 text-orange-500 font-bold">LT</TableHead>
+                                <TableHead className="text-center w-8 p-0 sticky right-0 bg-background z-10 text-yellow-500 font-bold">L</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {monthlySheetData.report.map(({ teacher, attendanceByDate, summary }) => (
                                 <TableRow key={teacher.id}>
-                                    <TableCell className="font-medium sticky left-0 bg-background z-10 p-2">{teacher.name}</TableCell>
+                                    <TableCell className="font-medium sticky left-0 bg-background z-10 p-1">{teacher.name}</TableCell>
                                     {monthlySheetData.daysInMonth.map(day => getStatusCell(attendanceByDate[format(day, 'yyyy-MM-dd')]?.status, isSunday(day), day.toISOString()))}
-                                    <TableCell className="text-center font-bold sticky right-[108px] bg-background z-10 p-1">{summary.present}</TableCell>
-                                    <TableCell className="text-center font-bold sticky right-[72px] bg-background z-10 p-1">{summary.absent}</TableCell>
-                                    <TableCell className="text-center font-bold sticky right-[36px] bg-background z-10 p-1">{summary.late}</TableCell>
+                                    <TableCell className="text-center font-bold sticky right-[96px] bg-background z-10 p-1">{summary.present}</TableCell>
+                                    <TableCell className="text-center font-bold sticky right-[64px] bg-background z-10 p-1">{summary.absent}</TableCell>
+                                    <TableCell className="text-center font-bold sticky right-[32px] bg-background z-10 p-1">{summary.late}</TableCell>
                                     <TableCell className="text-center font-bold sticky right-0 bg-background z-10 p-1">{summary.leave}</TableCell>
                                 </TableRow>
                             ))}
