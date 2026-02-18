@@ -8,45 +8,70 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useData } from '@/context/data-context';
-import type { Student, Exam as ExamType, ExamResult } from '@/lib/types';
+import type { Exam as ExamType, ExamResult } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { FileSignature, PlusCircle, Trash2, Printer, File, Edit, Save, Download, Loader2, Calendar as CalendarIcon } from 'lucide-react';
+import { FileSignature, PlusCircle, Trash2, Printer, Edit, Save, Loader2, MoreHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { MarksheetPrintReport } from '@/components/reports/marksheet-print';
 import { useSettings } from '@/context/settings-context';
 import { renderToString } from 'react-dom/server';
-import { BlankExamMarksheetPrint } from '@/components/reports/blank-exam-marksheet-print';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import html2canvas from 'html2canvas';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 
-interface MarksheetData {
-  studentId: string;
-  studentName: string;
-  marks: { [subject: string]: number };
-  obtainedMarks: number;
-  totalMarks: number;
-  percentage: number;
-  position?: number;
-}
-
-const CreateExamDialog = ({ open, onOpenChange, onExamCreated }: { open: boolean, onOpenChange: (open: boolean) => void, onExamCreated: (examId: string) => void }) => {
-    const { classes, teachers, addExam } = useData();
+const ExamDialog = ({
+    open,
+    onOpenChange,
+    exam,
+    onSave
+} : {
+    open: boolean,
+    onOpenChange: (open: boolean) => void,
+    exam: ExamType | null,
+    onSave: (examData: any) => void
+}) => {
+    const { classes, teachers } = useData();
     const { settings } = useSettings();
     const { toast } = useToast();
+    
+    const isEditing = !!exam;
+
     const [examName, setExamName] = useState('');
     const [academicSession, setAcademicSession] = useState(settings.academicYear);
-    const [selectedClass, setSelectedClass] = useState<string | null>(null);
+    const [selectedClass, setSelectedClass] = useState<string>('');
     const [assignedTeacher, setAssignedTeacher] = useState<string | undefined>(undefined);
     const [examType, setExamType] = useState<'Single Subject' | 'Full Test' | 'Manual'>('Full Test');
     const [singleSubject, setSingleSubject] = useState<string | undefined>(undefined);
     const [totalMarks, setTotalMarks] = useState(100);
     const [submissionDeadline, setSubmissionDeadline] = useState<string | undefined>(undefined);
+    
+    useEffect(() => {
+        if (exam) {
+            setExamName(exam.name);
+            setAcademicSession(exam.academicSession);
+            setSelectedClass(exam.class);
+            setAssignedTeacher(exam.teacherId);
+            setExamType(exam.examType);
+            setSingleSubject(exam.subject);
+            setTotalMarks(exam.totalMarks);
+            setSubmissionDeadline(exam.submissionDeadline);
+        } else {
+             setExamName('');
+             setAcademicSession(settings.academicYear);
+             setSelectedClass('');
+             setAssignedTeacher(undefined);
+             setExamType('Full Test');
+             setSingleSubject(undefined);
+             setTotalMarks(100);
+             setSubmissionDeadline(undefined);
+        }
+    }, [exam, settings.academicYear]);
+
 
     const availableSubjects = useMemo(() => {
         if (!selectedClass) return [];
@@ -60,7 +85,7 @@ const CreateExamDialog = ({ open, onOpenChange, onExamCreated }: { open: boolean
         return years;
      };
 
-    const handleCreate = async () => {
+    const handleSave = async () => {
         if (!examName || !academicSession || !selectedClass || !examType) {
             toast({ title: "Missing fields", description: "Please fill all required fields.", variant: "destructive"});
             return;
@@ -74,7 +99,9 @@ const CreateExamDialog = ({ open, onOpenChange, onExamCreated }: { open: boolean
         if (!cls) return;
 
         let subjectTotals: { [key: string]: number } = {};
-        if (examType === 'Single Subject' && singleSubject) {
+        if (isEditing) {
+            subjectTotals = exam.subjectTotals;
+        } else if (examType === 'Single Subject' && singleSubject) {
             subjectTotals[singleSubject] = totalMarks;
         } else if (examType === 'Full Test') {
             cls.subjects.forEach(sub => {
@@ -82,7 +109,7 @@ const CreateExamDialog = ({ open, onOpenChange, onExamCreated }: { open: boolean
             });
         }
         
-        const newExamData: Omit<ExamType, 'id' | 'results'> = {
+        const newExamData = {
             name: examName,
             academicSession,
             class: selectedClass,
@@ -94,19 +121,15 @@ const CreateExamDialog = ({ open, onOpenChange, onExamCreated }: { open: boolean
             submissionDeadline,
         };
 
-        const newExamId = await addExam(newExamData);
-        if (newExamId) {
-            toast({ title: "Exam Created!", description: `${examName} has been created successfully.` });
-            onExamCreated(newExamId);
-            onOpenChange(false);
-        }
+        onSave(newExamData);
+        onOpenChange(false);
     };
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
-                    <DialogTitle>Create New Exam</DialogTitle>
+                    <DialogTitle>{isEditing ? 'Edit Exam' : 'Create New Exam'}</DialogTitle>
                     <DialogDescription>Fill in the details to set up a new exam.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
@@ -123,11 +146,11 @@ const CreateExamDialog = ({ open, onOpenChange, onExamCreated }: { open: boolean
                      <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="class-select">Class</Label>
-                            <Select onValueChange={setSelectedClass}><SelectTrigger><SelectValue placeholder="Select a class"/></SelectTrigger><SelectContent>{classes.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent></Select>
+                            <Select onValueChange={setSelectedClass} value={selectedClass}><SelectTrigger><SelectValue placeholder="Select a class"/></SelectTrigger><SelectContent>{classes.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent></Select>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="teacher-select">Assign Teacher</Label>
-                            <Select onValueChange={setAssignedTeacher}><SelectTrigger><SelectValue placeholder="Select a teacher"/></SelectTrigger><SelectContent>{teachers.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent></Select>
+                            <Select onValueChange={setAssignedTeacher} value={assignedTeacher}><SelectTrigger><SelectValue placeholder="Select a teacher"/></SelectTrigger><SelectContent>{teachers.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent></Select>
                         </div>
                     </div>
                      <div className="space-y-2">
@@ -141,7 +164,7 @@ const CreateExamDialog = ({ open, onOpenChange, onExamCreated }: { open: boolean
                     {examType === 'Single Subject' && (
                         <div className="space-y-2">
                              <Label htmlFor="subject-select">Subject</Label>
-                             <Select onValueChange={setSingleSubject} disabled={availableSubjects.length === 0}><SelectTrigger><SelectValue placeholder="Select subject"/></SelectTrigger><SelectContent>{availableSubjects.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select>
+                             <Select onValueChange={setSingleSubject} value={singleSubject} disabled={availableSubjects.length === 0}><SelectTrigger><SelectValue placeholder="Select subject"/></SelectTrigger><SelectContent>{availableSubjects.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select>
                         </div>
                     )}
                      <div className="grid grid-cols-2 gap-4">
@@ -157,7 +180,7 @@ const CreateExamDialog = ({ open, onOpenChange, onExamCreated }: { open: boolean
                 </div>
                 <DialogFooter>
                     <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-                    <Button onClick={handleCreate}>Create Exam</Button>
+                    <Button onClick={handleSave}>{isEditing ? 'Save Changes' : 'Create Exam'}</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -170,20 +193,14 @@ export default function ExamsPage() {
   const { settings } = useSettings();
   const { toast } = useToast();
 
-  const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
-  
   const [currentResults, setCurrentResults] = useState<ExamResult[]>([]);
-  const [fontSize, setFontSize] = useState('text-sm');
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadingTestId, setDownloadingTestId] = useState<string | null>(null);
   
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [openCreateDialog, setOpenCreateDialog] = useState(false);
+  const [openEditDialog, setOpenEditDialog] = useState(false);
+  const [examToEdit, setExamToEdit] = useState<ExamType | null>(null);
+  const [examToDelete, setExamToDelete] = useState<ExamType | null>(null);
 
-  // Filters for saved exams
-  const [filterClass, setFilterClass] = useState<string | null>(null);
-  const [filterSection, setFilterSection] = useState<string | null>(null);
-  
   const selectedExam = useMemo(() => {
     if (!selectedExamId) return null;
     return exams.find(e => e.id === selectedExamId);
@@ -211,16 +228,6 @@ export default function ExamsPage() {
       setCurrentResults([]);
     }
   }, [selectedExam]);
-
-
-  const handleExamChange = (examId: string) => {
-    setSelectedExamId(examId);
-    const exam = exams.find(e => e.id === examId);
-    if (exam) {
-      setSelectedClass(exam.class);
-      setCurrentResults(exam.results || []);
-    }
-  };
   
   const handleMarksChange = (studentId: string, subject: string, value: string) => {
     const marks = parseInt(value, 10);
@@ -238,7 +245,7 @@ export default function ExamsPage() {
     });
   };
 
-  const marksheetData = useMemo((): MarksheetData[] => {
+  const marksheetData = useMemo((): any[] => {
     if (!selectedExam) return [];
     
     const data = classStudents.map(student => {
@@ -271,10 +278,7 @@ export default function ExamsPage() {
 
   const handleSaveResults = () => {
     if (!selectedExam) return;
-    const updatedExam: Partial<ExamType> = {
-      results: currentResults,
-    };
-    updateExam(selectedExam.id, updatedExam);
+    updateExam(selectedExam.id, { results: currentResults });
     toast({ title: 'Results Saved', description: `Results for ${selectedExam.name} have been saved successfully.` });
   };
   
@@ -308,7 +312,7 @@ export default function ExamsPage() {
               subjects={printSubjects}
               marksheetData={finalMarksheetData}
               settings={settings}
-              fontSize={fontSize}
+              fontSize={'text-sm'}
           />
       );
       const printWindow = window.open('', '_blank');
@@ -318,58 +322,119 @@ export default function ExamsPage() {
         printWindow.focus();
       }
   };
+
+  const handleCreateExam = async (examData: any) => {
+    const newExamId = await addExam(examData);
+    if(newExamId) {
+        toast({ title: "Exam Created!", description: `${examData.name} has been created successfully.` });
+        setSelectedExamId(newExamId);
+    }
+  }
+
+  const handleEditExam = (exam: ExamType) => {
+    setExamToEdit(exam);
+    setOpenEditDialog(true);
+  }
   
-  const handleDownloadJpg = async (examId: string) => {
-      // This is a simplified version. For a full implementation, refer to the previous logic.
-      toast({ title: 'Download functionality is being updated.' });
-  };
+  const handleUpdateExam = (examData: any) => {
+    if(!examToEdit) return;
+    updateExam(examToEdit.id, examData);
+    toast({ title: 'Exam Updated!'});
+  }
   
-  const filteredExams = useMemo(() => {
-    return exams.filter(exam => {
-        if(filterClass && exam.class !== filterClass) return false;
-        return true;
-    }).sort((a, b) => new Date(b.submissionDeadline || 0).getTime() - new Date(a.submissionDeadline || 0).getTime());
-  }, [exams, filterClass]);
+  const handleDeleteExam = (exam: ExamType) => {
+    setExamToDelete(exam);
+  }
+
+  const confirmDeleteExam = () => {
+    if(!examToDelete) return;
+    deleteExam(examToDelete.id);
+    toast({ title: 'Exam Deleted', variant: 'destructive'});
+    if(selectedExamId === examToDelete.id) setSelectedExamId(null);
+    setExamToDelete(null);
+  }
+  
+  const sortedExams = useMemo(() => exams.sort((a, b) => new Date(b.submissionDeadline || 0).getTime() - new Date(a.submissionDeadline || 0).getTime()), [exams]);
+
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><FileSignature /> Exam Marksheets</h1>
-        <Button onClick={() => setIsCreateDialogOpen(true)}><PlusCircle className="mr-2 h-4 w-4"/> Create New Exam</Button>
+        <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><FileSignature /> Exam</h1>
+        <Button onClick={() => setOpenCreateDialog(true)}><PlusCircle className="mr-2 h-4 w-4"/> Create New Exam</Button>
       </div>
 
-      <CreateExamDialog 
-        open={isCreateDialogOpen} 
-        onOpenChange={setIsCreateDialogOpen}
-        onExamCreated={(newExamId) => {
-            setSelectedExamId(newExamId);
-        }}
+       <ExamDialog 
+        open={openCreateDialog} 
+        onOpenChange={setOpenCreateDialog}
+        exam={null}
+        onSave={handleCreateExam}
        />
+       <ExamDialog 
+        open={openEditDialog} 
+        onOpenChange={setOpenEditDialog}
+        exam={examToEdit}
+        onSave={handleUpdateExam}
+       />
+       <AlertDialog open={!!examToDelete} onOpenChange={() => setExamToDelete(null)}>
+          <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete this exam and all its results. This action cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={confirmDeleteExam} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+      </AlertDialog>
       
-      <Card>
+       <Card>
         <CardHeader>
-          <CardTitle>Select Exam</CardTitle>
-          <CardDescription>Select a class and then choose an exam to view or enter marks.</CardDescription>
-          <div className="flex flex-col md:flex-row gap-2 pt-2">
-            <Select onValueChange={(value) => { setSelectedClass(value); setSelectedExamId(null); }}>
-                <SelectTrigger className="w-full md:w-[200px]">
-                <SelectValue placeholder="Select a class" />
-                </SelectTrigger>
-                <SelectContent>
-                {classes.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
-                </SelectContent>
-            </Select>
-
-            <Select onValueChange={handleExamChange} value={selectedExamId || ''} disabled={!selectedClass}>
-                <SelectTrigger className="w-full md:w-[250px]">
-                <SelectValue placeholder="Select an exam" />
-                </SelectTrigger>
-                <SelectContent>
-                {exams.filter(e => e.class === selectedClass).map((e) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
-                </SelectContent>
-            </Select>
-          </div>
+          <CardTitle>Exam History</CardTitle>
+          <CardDescription>Manage and enter marks for all created exams.</CardDescription>
         </CardHeader>
+        <CardContent>
+          <ScrollArea className="h-72 border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Exam Name</TableHead>
+                  <TableHead>Class</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sortedExams.map(exam => (
+                    <TableRow key={exam.id} className={exam.id === selectedExamId ? 'bg-muted' : ''}>
+                      <TableCell>{exam.submissionDeadline ? format(new Date(exam.submissionDeadline), 'dd-MMM-yy') : 'N/A'}</TableCell>
+                      <TableCell className="font-medium">{exam.name}</TableCell>
+                      <TableCell>{exam.class}</TableCell>
+                      <TableCell><Badge variant="secondary">{exam.examType}</Badge></TableCell>
+                      <TableCell className="text-right">
+                         <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4"/></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onSelect={() => setSelectedExamId(exam.id)}>
+                                    <FileSignature className="mr-2 h-4 w-4"/> Enter Marks
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => handleEditExam(exam)}>
+                                    <Edit className="mr-2 h-4 w-4"/> Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => handlePrintMarksheet(exam.id)}>
+                                    <Printer className="mr-2 h-4 w-4"/> Print Results
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onSelect={() => handleDeleteExam(exam)} className="text-destructive">
+                                    <Trash2 className="mr-2 h-4 w-4"/> Delete
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                         </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                ))}
+                 {sortedExams.length === 0 && (
+                    <TableRow><TableCell colSpan={5} className="text-center h-24 text-muted-foreground">No exams created yet.</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        </CardContent>
       </Card>
       
       {selectedExam && (
@@ -381,7 +446,6 @@ export default function ExamsPage() {
             </div>
             <div className="flex items-center gap-2 flex-wrap">
                 <Button onClick={handleSaveResults}><Save className="mr-2 h-4 w-4"/>Save Results</Button>
-                <Button variant="outline" onClick={() => handlePrintMarksheet(selectedExamId!)}><Printer className="mr-2 h-4 w-4"/>Print</Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -418,55 +482,6 @@ export default function ExamsPage() {
         </Card>
       )}
 
-      
-       <Card>
-        <CardHeader>
-          <CardTitle>Saved Exams</CardTitle>
-          <CardDescription>View, edit, or print previously created exams.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row gap-2 mb-4">
-            <Select onValueChange={(val) => setFilterClass(val)}>
-              <SelectTrigger className="w-full md:w-[200px]"><SelectValue placeholder="Filter by class" /></SelectTrigger>
-              <SelectContent>{classes.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <ScrollArea className="h-72 border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Exam Name</TableHead>
-                  <TableHead>Class</TableHead>
-                  <TableHead>Type</TableHead>
-                   <TableHead>Date</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredExams.map(exam => (
-                    <TableRow key={exam.id}>
-                      <TableCell className="font-medium">{exam.name}</TableCell>
-                      <TableCell>{exam.class}</TableCell>
-                      <TableCell><Badge variant="secondary">{exam.examType}</Badge></TableCell>
-                       <TableCell>{exam.submissionDeadline ? format(new Date(exam.submissionDeadline), 'dd-MMM-yy') : 'N/A'}</TableCell>
-                      <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" onClick={() => setSelectedExamId(exam.id)}><Edit className="h-4 w-4"/></Button>
-                          <Button variant="ghost" size="icon" onClick={() => handlePrintMarksheet(exam.id)}><Printer className="h-4 w-4"/></Button>
-                          <AlertDialog>
-                              <AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger>
-                              <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete this exam and all its results. This action cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => {deleteExam(exam.id);}} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
-                          </AlertDialog>
-                      </TableCell>
-                    </TableRow>
-                ))}
-                 {filteredExams.length === 0 && (
-                    <TableRow><TableCell colSpan={5} className="text-center h-24 text-muted-foreground">No saved exams match filters.</TableCell></TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </ScrollArea>
-        </CardContent>
-      </Card>
     </div>
   );
 }
