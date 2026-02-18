@@ -216,7 +216,6 @@ const MonthlySheetTab = () => {
     const { teachers, teacherAttendances } = useData();
     const { settings } = useSettings();
     const [currentDate, setCurrentDate] = useState(new Date());
-    const [printLayout, setPrintLayout] = useState<'portrait' | 'landscape'>('landscape');
 
     const selectedYear = getYear(currentDate);
     const selectedMonthIndex = getMonth(currentDate);
@@ -276,7 +275,7 @@ const MonthlySheetTab = () => {
         const printContent = renderToString(<TeacherAttendancePrintReport teachers={teachers} daysInMonth={monthlySheetData.daysInMonth} attendanceData={monthlySheetData.report} month={currentDate} settings={settings} />);
         const printWindow = window.open('', '_blank');
         if (printWindow) {
-            printWindow.document.write(`<html><head><title>Teacher Attendance - ${format(currentDate, 'MMMM yyyy')}</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="/print-styles.css" /></head><body data-layout="${printLayout}">${printContent}</body></html>`);
+            printWindow.document.write(`<html><head><title>Teacher Attendance - ${format(currentDate, 'MMMM yyyy')}</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="/print-styles.css" /></head><body data-layout="landscape">${printContent}</body></html>`);
             printWindow.document.close();
             printWindow.focus();
         }
@@ -323,15 +322,6 @@ const MonthlySheetTab = () => {
                         </Select>
                     </div>
                      <div className="flex gap-2 items-center">
-                        <Select value={printLayout} onValueChange={(v) => setPrintLayout(v as any)}>
-                            <SelectTrigger className="w-[120px]">
-                                <SelectValue placeholder="Layout" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="landscape">Landscape</SelectItem>
-                                <SelectItem value="portrait">Portrait</SelectItem>
-                            </SelectContent>
-                        </Select>
                         <Button variant="outline" onClick={handlePrint}><Printer className="w-4 h-4 mr-2" /> Print Sheet</Button>
                     </div>
                 </div>
