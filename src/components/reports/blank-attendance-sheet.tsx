@@ -29,15 +29,16 @@ export const BlankAttendanceSheet = React.forwardRef<HTMLDivElement, BlankAttend
     return (
       <div ref={ref} className="p-4 font-sans bg-white text-black">
         <header className="text-center mb-4">
-          <h1 className="text-2xl font-bold">{settings.schoolName}</h1>
+          <h1 className="text-2xl font-bold uppercase">{settings.schoolName}</h1>
           <p className="text-sm">{settings.schoolPhone}</p>
-          <h2 className="text-lg font-semibold mt-2">Blank Monthly Attendance Sheet</h2>
-          <div className="flex justify-between items-center text-sm mt-1 px-2">
+          <h2 className="text-lg font-semibold mt-2">Blank Attendance Sheet</h2>
+        </header>
+
+        <div className="flex justify-between items-center text-sm mt-1 mb-4 px-2">
             <span><strong>Class:</strong> {classInfo.name}</span>
             <span><strong>Month:</strong> {format(month, 'MMMM, yyyy')}</span>
             <span><strong>Teacher's Name:</strong> ........................................</span>
-          </div>
-        </header>
+        </div>
 
         <main>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
