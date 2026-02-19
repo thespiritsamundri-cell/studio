@@ -5,7 +5,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { db, auth } from '@/lib/firebase';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, writeBatch, query, where, getDocs, setDoc, getDoc, runTransaction } from 'firebase/firestore';
-import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData, Attendance, Alumni, User, PermissionSet, AppNotification, Session } from '@/lib/types';
+import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData, Attendance, Alumni, User, PermissionSet, AppNotification, Session, SingleSubjectTest } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from './settings-context';
 import { createUserWithEmailAndPassword as createUserAuth, onAuthStateChanged } from 'firebase/auth';
@@ -30,6 +30,7 @@ interface DataContextType {
   alumni: Alumni[];
   classes: Class[];
   exams: Exam[];
+  singleSubjectTests: SingleSubjectTest[];
   activityLog: ActivityLog[];
   expenses: Expense[];
   timetables: Timetable[];
@@ -62,6 +63,9 @@ interface DataContextType {
   addExam: (exam: Omit<Exam, 'id' | 'results'>) => Promise<string | undefined>;
   updateExam: (id: string, exam: Partial<Exam>) => Promise<void>;
   deleteExam: (id: string) => Promise<void>;
+  addSingleSubjectTest: (test: Omit<SingleSubjectTest, 'id'>) => Promise<string | undefined>;
+  updateSingleSubjectTest: (id: string, test: Partial<SingleSubjectTest>) => Promise<void>;
+  deleteSingleSubjectTest: (id: string) => Promise<void>;
   addActivityLog: (activity: Omit<ActivityLog, 'id' | 'timestamp' | 'user'>) => Promise<void>;
   clearActivityLog: () => Promise<void>;
   addExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
@@ -105,6 +109,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [classes, setClasses] = useState<Class[]>([]);
   const [alumni, setAlumni] = useState<Alumni[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
+  const [singleSubjectTests, setSingleSubjectTests] = useState<SingleSubjectTest[]>([]);
   const [activityLog, setActivityLog] = useState<ActivityLog[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [timetables, setTimetables] = useState<Timetable[]>([]);
@@ -263,7 +268,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             const userDocRef = doc(db, 'users', user.uid);
             const userUnsubscribe = onSnapshot(userDocRef, (userDocSnap) => {
                  if (!userDocSnap.exists()) {
-                    console.error("User document not found in Firestore!");
+                    console.error("User document not found in Firestore! Signing out.");
                     auth.signOut();
                     return;
                 }
@@ -272,23 +277,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 setUserPermissions(userData.permissions || defaultPermissions);
                 setCurrentUserName(userData.name || 'Unknown User');
 
-                const generalCollections = [
+                // The app is "initialized" once we have the user's identity and permissions.
+                // The main app shell can now render safely.
+                setIsDataInitialized(true);
+
+                // Set up listeners for all other collections. The data will flow in
+                // and update the UI reactively in the background.
+                const collectionsToListen = [
                     'students', 'families', 'fees', 'teachers', 'attendances', 
-                    'teacherAttendances', 'alumni', 'classes', 'exams', 'activityLog', 
+                    'teacherAttendances', 'alumni', 'classes', 'exams', 'singleSubjectTests', 'activityLog', 
                     'expenses', 'timetables', 'users', 'sessions'
                 ];
                 
                 const setterMap: { [key: string]: React.Dispatch<React.SetStateAction<any[]>> } = {
                     students: setStudents, families: setFamilies, fees: setFees, teachers: setTeachers,
                     attendances: setAttendances, teacherAttendances: setTeacherAttendances, alumni: setAlumni,
-                    classes: setClasses, exams: setExams, activityLog: setActivityLog, expenses: setExpenses,
-                    timetables: setTimetables, users: setUsers, sessions: setSessions, notifications: setNotifications
+                    classes: setClasses, exams: setExams, singleSubjectTests: setSingleSubjectTests, activityLog: setActivityLog, expenses: setExpenses,
+                    timetables: setTimetables, users: setUsers, sessions: setSessions
                 };
             
-                const listeners = generalCollections.map(collectionName => {
+                const listeners = collectionsToListen.map(collectionName => {
                     const setter = setterMap[collectionName];
                     let q = collection(db, collectionName);
-                    // For sessions, only fetch for the current user
                     if (collectionName === 'sessions') {
                        q = query(q, where('userId', '==', user.uid));
                     }
@@ -306,23 +316,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 });
     
                 if (userData.role === 'super_admin') {
-                    const adminCollections = ['notifications'];
-                    adminCollections.forEach(collectionName => {
-                        const setter = setterMap[collectionName];
-                        const unsub = onSnapshot(collection(db, collectionName), (snapshot) => {
-                            const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                             if (collectionName === 'notifications') {
-                                data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-                            }
-                            setter(data as any);
-                        }, (error) => console.error(`Error fetching ${collectionName}:`, error));
-                        listeners.push(unsub);
-                    });
+                    const unsub = onSnapshot(collection(db, "notifications"), (snapshot) => {
+                        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+                        setNotifications(data as any);
+                    }, (error) => console.error(`Error fetching notifications:`, error));
+                    listeners.push(unsub);
                 } else {
                     setNotifications([]);
                 }
-                
-                setIsDataInitialized(true);
                 
                 return () => listeners.forEach(unsub => unsub());
             });
@@ -333,7 +335,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             setUserRole(null);
             setUserPermissions(defaultPermissions);
             setCurrentUserName('System');
-            [setStudents, setFamilies, setFees, setTeachers, setAttendances, setTeacherAttendances, setAlumni, setClasses, setExams, setActivityLog, setExpenses, setTimetables, setUsers, setSessions, setNotifications].forEach(setter => setter([]));
+            [setStudents, setFamilies, setFees, setTeachers, setAttendances, setTeacherAttendances, setAlumni, setClasses, setExams, setSingleSubjectTests, setActivityLog, setExpenses, setTimetables, setUsers, setSessions, setNotifications].forEach(setter => setter([]));
         }
     });
 
@@ -529,17 +531,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const deleteFamily = useCallback(async (id: string) => {
     try {
       const batch = writeBatch(db);
+      
+      // Delete family doc
       const familyRef = doc(db, 'families', id);
       batch.delete(familyRef);
+      
+      // Delete associated students
       const studentsQuery = query(collection(db, 'students'), where('familyId', '==', id));
       const studentsSnapshot = await getDocs(studentsQuery);
       studentsSnapshot.forEach((doc) => batch.delete(doc.ref));
+      
+      // Delete associated fees
       const feesQuery = query(collection(db, 'fees'), where('familyId', '==', id));
       const feesSnapshot = await getDocs(feesQuery);
       feesSnapshot.forEach((doc) => batch.delete(doc.ref));
+
       await batch.commit();
-      await addActivityLog({ action: 'Delete Family', description: `Deleted family ID: ${id} and associated records.`});
-      toast({ title: 'Family Deleted', description: 'The family and all associated records have been permanently deleted.' });
+      
+      await addActivityLog({ action: 'Delete Family', description: `Deleted family ID: ${id} and all associated records.`});
+      toast({ title: 'Family Deleted', description: 'The family and all associated student and fee records have been permanently deleted.' });
     } catch (e) {
       console.error('Error deleting family and associated data:', e);
       toast({ title: 'Error Deleting Family', variant: 'destructive' });
@@ -696,6 +706,32 @@ const deleteFee = useCallback(async (id: string) => {
       toast({ title: 'Error Deleting Exam', variant: 'destructive' });
     }
   }, [exams, addActivityLog, toast]);
+  
+    // --- SINGLE SUBJECT TEST ---
+    const addSingleSubjectTest = useCallback(async (test: Omit<SingleSubjectTest, 'id'>) => {
+        try {
+            const newDocRef = await addDoc(collection(db, "singleSubjectTests"), test);
+            await addActivityLog({ action: 'Create Single Subject Test', description: `Created test "${test.testName}" for class ${test.class}.` });
+            return newDocRef.id;
+        } catch (e) {
+            console.error('Error adding single subject test:', e);
+            toast({ title: 'Error Creating Test', variant: 'destructive' });
+        }
+    }, [addActivityLog, toast]);
+
+    const updateSingleSubjectTest = useCallback(updateDocFactory<SingleSubjectTest>('singleSubjectTests', 'Update Single Subject Test', d => `Updated results for test: ${d.testName}.`), [updateDocFactory]);
+    
+    const deleteSingleSubjectTest = useCallback(async (id: string) => {
+        const testToDelete = singleSubjectTests.find(t => t.id === id);
+        if (!testToDelete) return;
+        try {
+            await deleteDoc(doc(db, 'singleSubjectTests', id));
+            await addActivityLog({ action: 'Delete Single Subject Test', description: `Deleted test: ${testToDelete.testName}.` });
+        } catch (e) {
+            console.error('Error deleting single subject test:', e);
+            toast({ title: 'Error Deleting Test', variant: 'destructive' });
+        }
+    }, [singleSubjectTests, addActivityLog, toast]);
 
     // --- EXPENSE ---
     const addExpense = useCallback(async (expense: Omit<Expense, 'id'>) => {
@@ -793,12 +829,12 @@ const deleteFee = useCallback(async (id: string) => {
 
   const contextValue = {
       students, families, fees, teachers, attendances, teacherAttendances, alumni,
-      classes, exams, activityLog, expenses, timetables, users, sessions, notifications,
+      classes, exams, singleSubjectTests, activityLog, expenses, timetables, users, sessions, notifications,
       userRole, userPermissions, isDataInitialized, hasPermission,
       addStudent, updateStudent, updateAlumni, deleteStudent, addFamily, updateFamily, 
       deleteFamily, addFee, updateFee, deleteFee, generateMonthlyFees, addTeacher, updateTeacher,
       deleteTeacher, saveStudentAttendance, saveTeacherAttendance, addClass,
-      updateClass, deleteClass, addExam, updateExam, deleteExam, addActivityLog,
+      updateClass, deleteClass, addExam, updateExam, deleteExam, addSingleSubjectTest, updateSingleSubjectTest, deleteSingleSubjectTest, addActivityLog,
       clearActivityLog, addExpense, updateExpense, deleteExpense, updateTimetable,
       updateUser, createUser, signOutSession, addNotification, markNotificationAsRead,
       loadData, seedDatabase, deleteAllData,

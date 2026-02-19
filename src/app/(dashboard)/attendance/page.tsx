@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -160,7 +161,7 @@ const DailyAttendanceTab = () => {
                                                         placeholder="Add remarks..."
                                                         value={attendance[student.id]?.remarks || ''}
                                                         onChange={(e) => handleRemarksChange(student.id, e.target.value)}
-                                                        className="w-40 h-8"
+                                                        className="w-full sm:w-40 h-8"
                                                     />
                                                 )}
                                                 <RadioGroup value={attendance[student.id]?.status} onValueChange={(value) => handleAttendanceChange(student.id, value as AttendanceStatus)} className="flex justify-end flex-wrap gap-4">
@@ -471,6 +472,11 @@ const ClassReportTab = () => {
                             </TableBody>
                         </Table>
                     </ScrollArea>
+                )}
+                 {!reportData && !isLoading && (
+                    <div className="flex items-center justify-center h-96 border rounded-lg bg-muted/30">
+                        <p className="text-muted-foreground">Select a class and month, then click "Generate Report".</p>
+                    </div>
                 )}
             </CardContent>
         </Card>
