@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Lock, Search, User, Home, School, Bell, Loader2 } from 'lucide-react';
+import { Lock, Search, User, Home, School, Bell, Loader2, Database, Settings, LogOut, LifeBuoy } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -243,12 +243,27 @@ export function Header({ className }: { className?: string }) {
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/settings">Settings</Link>
+                <Link href="/data-management">
+                  <Database className="mr-2 h-4 w-4" />
+                  <span>Data Management</span>
+                </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setOpenSupportDialog(true)}>Support</DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/settings">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setOpenSupportDialog(true)}>
+                <LifeBuoy className="mr-2 h-4 w-4" />
+                <span>Support</span>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/">Logout</Link>
+                <Link href="/">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Logout</span>
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

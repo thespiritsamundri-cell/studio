@@ -112,7 +112,6 @@ const mainNavStructure: NavElement[] = [
   { type: 'link', href: '/accounts', icon: BookCheck, label: 'Accounts', permission: 'accounts' },
   { type: 'link', href: '/reports', icon: FileText, label: 'Reports', permission: 'reports' },
   { type: 'link', href: '/yearbook', icon: Archive, label: 'Yearbook', permission: 'yearbook' },
-  { type: 'link', href: '/data-management', icon: Database, label: 'Data Management', permission: 'any_primary_role' },
 ];
 
 
