@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -124,7 +125,7 @@ export default function RollNumberSlipsPage() {
         />
       );
 
-      openPrintWindow(printContent, `Roll Number Slips - ${selectedClass}`, '/print/slips.css');
+      openPrintWindow(printContent, `Roll Number Slips - ${selectedClass}`);
       setIsLoading(false);
     }, 500);
   };

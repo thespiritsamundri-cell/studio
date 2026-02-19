@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -23,6 +24,7 @@ import { generateQrCode } from '@/ai/flows/generate-qr-code';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import jsPDF from 'jspdf';
+import { openPrintWindow } from '@/lib/print-helper';
 
 
 interface FeeDetailsCardProps {
@@ -225,22 +227,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         }
         
         const printContent = generateReceiptContent(paidFeesForReceipt, collectedAmount, newRemainingDues, method, receiptId, qrCodeDataUri);
-        const printWindow = window.open('', '_blank');
-        if(printWindow) {
-            printWindow.document.write(`
-                <html>
-                    <head>
-                        <title>Fee Receipt - Family ${family.id}</title>
-                        <script src="https://cdn.tailwindcss.com"></script>
-                        <link rel="stylesheet" href="/print-styles.css">
-                    </head>
-                    <body>
-                        ${printContent}
-                    </body>
-                </html>
-            `);
-            printWindow.document.close();
-        }
+        openPrintWindow(printContent, `Fee Receipt - Family ${family.id}`);
     };
     
      const triggerPdfDownload = async (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, qrCodeDataUri?: string) => {

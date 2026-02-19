@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -74,7 +75,7 @@ export default function SeatingPlanPage() {
         />
       );
 
-      openPrintWindow(printContent, `Seating Plan - ${selectedClass}`, '/print/slips.css');
+      openPrintWindow(printContent, `Seating Plan - ${selectedClass}`);
       setIsLoading(false);
     }, 500);
   };

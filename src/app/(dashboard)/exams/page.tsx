@@ -29,6 +29,7 @@ import { BlankExamMarksheetPrint } from '@/components/reports/blank-exam-markshe
 import { BlankMarksheetPrint } from '@/components/reports/blank-marksheet-print';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { openPrintWindow } from '@/lib/print-helper';
 
 
 const ExamDialog = ({
@@ -265,14 +266,8 @@ const BlankSheetDialog = ({ open, onOpenChange }: { open: boolean, onOpenChange:
             toast({ title: 'Missing Information', description: "Please fill out all required fields.", variant: 'destructive' });
             return;
         }
-
         const printContent = renderToString(component);
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.write(`<html><head><title>Blank Marksheet - ${examName}</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="/print-styles.css" /></head><body>${printContent}</body></html>`);
-            printWindow.document.close();
-            printWindow.focus();
-        }
+        openPrintWindow(printContent, `Blank Marksheet - ${examName}`);
         onOpenChange(false);
     };
 
@@ -512,12 +507,7 @@ export default function ExamsPage() {
               fontSize={'text-sm'}
           />
       );
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-        printWindow.document.write(`<html><head><title>${exam.name} - Marksheet</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="/print-styles.css"></head><body>${printContent}</body></html>`);
-        printWindow.document.close();
-        printWindow.focus();
-      }
+      openPrintWindow(printContent, `${exam.name} - Marksheet`);
   };
 
   const handleCreateExam = async (examData: any) => {
@@ -575,14 +565,8 @@ export default function ExamsPage() {
       toast({ title: "Filter required", description: "Please select a class and a subject.", variant: "destructive" });
       return;
     }
-
     const printContent = renderToString(<SubjectSummaryPrintReport students={masterSheetStudents} tests={masterSheetTests} subject={masterSheetSubject} className={masterSheetClass} settings={settings} />);
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(`<html><head><title>Subject Summary - ${masterSheetSubject} - ${masterSheetClass}</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="/print-styles.css" /></head><body data-layout="landscape">${printContent}</body></html>`);
-      printWindow.document.close();
-      printWindow.focus();
-    }
+    openPrintWindow(printContent, `Subject Summary - ${masterSheetSubject} - ${masterSheetClass}`);
   };
 
   const upcomingDeadlines = useMemo(() => {

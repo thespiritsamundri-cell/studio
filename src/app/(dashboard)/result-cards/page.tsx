@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -87,7 +88,7 @@ export default function ResultCardsPage() {
         />
       );
 
-      openPrintWindow(printContent, `Result Cards - ${selectedClass}`, '/print/exam.css');
+      openPrintWindow(printContent, `Result Cards - ${selectedClass}`);
       setIsLoading(false);
     }, 500);
   };

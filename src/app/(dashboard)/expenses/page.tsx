@@ -174,7 +174,7 @@ export default function ExpensesPage() {
     const printContent = renderToString(
       <ExpenseVoucherPrint expense={expense} settings={settings} />
     );
-    openPrintWindow(printContent, `Expense Voucher - ${expense.id}`, '/print/expense.css');
+    openPrintWindow(printContent, `Expense Voucher - ${expense.id}`);
   };
 
   return (

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -65,7 +66,7 @@ export default function StudentDetailsPage() {
         <StudentDetailsPrint student={student as Student} family={family} settings={settings} familyQrCodeDataUri={familyQrCode} />
     );
 
-    openPrintWindow(printContent, `Student Details - ${student.name}`, '/print/profile.css');
+    openPrintWindow(printContent, `Student Details - ${student.name}`);
   };
   
   const handleGenerateQr = async () => {

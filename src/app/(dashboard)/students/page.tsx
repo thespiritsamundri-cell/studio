@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -114,7 +115,7 @@ export default function StudentsPage() {
         <AllStudentsPrintReport students={studentsToExport} date={reportDate} settings={settings} />
     );
 
-    openPrintWindow(printContent, 'Selected Students Report', '/print/reports.css');
+    openPrintWindow(printContent, 'Selected Students Report');
   };
 
 

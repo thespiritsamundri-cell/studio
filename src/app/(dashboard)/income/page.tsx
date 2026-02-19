@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -155,7 +156,7 @@ export default function IncomePage() {
 
   const handlePrint = () => {
     const printContent = renderToString(getReportComponent());
-    openPrintWindow(printContent, 'Income Report', '/print/reports.css');
+    openPrintWindow(printContent, 'Income Report');
   };
   
   const handleDownloadPdf = async () => {

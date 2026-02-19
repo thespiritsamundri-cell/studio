@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -114,7 +115,7 @@ export default function ReportsPage() {
                 settings={settings}
             />
         );
-        openPrintWindow(printContent, 'Student Financial Report', '/print/reports.css');
+        openPrintWindow(printContent, 'Student Financial Report');
         toast({ title: 'Report Generated', description: 'The student financial report is ready for printing.' });
     } catch (error) {
         toast({ title: 'Error Generating Report', variant: 'destructive' });
@@ -128,7 +129,6 @@ export default function ReportsPage() {
     setIsLoading(type);
     let printContent = '';
     let reportTitle = 'Report';
-    let stylesheet = '/print/reports.css';
 
     setTimeout(() => {
       const currentDate = new Date();
@@ -178,7 +178,6 @@ export default function ReportsPage() {
           />
         );
         reportTitle = `Attendance Report - ${selectedClass}`;
-        stylesheet = '/print/attendance.css';
       } else if (type === 'unpaid-fees') {
         const unpaidFeesByFamily: Record<string, Fee[]> = allFees
           .filter(f => f.status === 'Unpaid')
@@ -225,7 +224,7 @@ export default function ReportsPage() {
       }
 
       if (printContent) {
-        openPrintWindow(printContent, reportTitle, stylesheet);
+        openPrintWindow(printContent, reportTitle);
       }
 
       setIsLoading(null);
