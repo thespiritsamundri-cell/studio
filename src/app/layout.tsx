@@ -1,5 +1,4 @@
 import './globals.css'
-import './print-styles.css'
 import AppClientLayout from '@/app/app-client-layout'
 
 export const metadata = {

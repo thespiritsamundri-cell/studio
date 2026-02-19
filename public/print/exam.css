@@ -1,0 +1,17 @@
+@page {
+    size: A4 landscape;
+    margin: 0.5in;
+}
+
+.printable-page {
+    page-break-after: always;
+    display: flex;
+    flex-direction: column;
+    height: 98vh;
+    justify-content: space-between;
+    box-sizing: border-box;
+}
+
+.printable-page:last-child {
+    page-break-after: auto;
+}

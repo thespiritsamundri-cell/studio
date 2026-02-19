@@ -20,6 +20,7 @@ import { sendWhatsAppMessage } from '@/services/whatsapp-service';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { openPrintWindow } from '@/lib/print-helper';
 
 type AttendanceStatus = 'Present' | 'Absent' | 'Leave';
 
@@ -76,22 +77,7 @@ export default function AttendancePage() {
     }
     
     const printContent = renderToString(reportComponent);
-    const printWindow = window.open('', '_blank');
-    if(printWindow) {
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Attendance Report - ${selectedClass}</title>
-            <script src="https://cdn.tailwindcss.com"></script>
-            <link rel="stylesheet" href="/print-styles.css">
-          </head>
-          <body>
-            ${printContent}
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-    }
+    openPrintWindow(printContent, `Attendance Report - ${selectedClass}`, '/print/attendance.css');
   };
 
   const handleDownloadPdf = async () => {

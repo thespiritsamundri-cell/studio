@@ -22,6 +22,7 @@ import { sendWhatsAppMessage } from '@/services/whatsapp-service';
 import { uploadFile } from '@/services/storage-service';
 import { format } from 'date-fns';
 import Image from 'next/image';
+import { openPrintWindow } from '@/lib/print-helper';
 
 const MALE_AVATAR_URL = 'https://i.postimg.cc/x1BZ31bs/male.png';
 const FEMALE_AVATAR_URL = 'https://i.postimg.cc/7hgPwR8W/1487318.png';
@@ -133,23 +134,7 @@ export default function AdmissionsPage() {
         const printContent = renderToString(
             <StudentDetailsPrint student={student} family={family} settings={settings} />
         );
-
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.write(`
-                <html>
-                    <head>
-                        <title>Student Admission Form - ${student.name}</title>
-                        <script src="https://cdn.tailwindcss.com"></script>
-                        <link rel="stylesheet" href="/print-styles.css">
-                    </head>
-                    <body>
-                        ${printContent}
-                    </body>
-                </html>
-            `);
-            printWindow.document.close();
-        }
+        openPrintWindow(printContent, `Student Admission Form - ${student.name}`, '/print/profile.css');
     };
     
     const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {

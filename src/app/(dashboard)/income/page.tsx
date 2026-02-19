@@ -33,6 +33,7 @@ import { renderToString } from 'react-dom/server';
 import { useSearchParams } from 'next/navigation';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { openPrintWindow } from '@/lib/print-helper';
 
 export default function IncomePage() {
   const { fees, families, updateFee, deleteFee, hasPermission } = useData();
@@ -154,22 +155,7 @@ export default function IncomePage() {
 
   const handlePrint = () => {
     const printContent = renderToString(getReportComponent());
-    const printWindow = window.open('', '_blank');
-    if(printWindow) {
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Income Report</title>
-            <script src="https://cdn.tailwindcss.com"></script>
-            <link rel="stylesheet" href="/print-styles.css">
-          </head>
-          <body>
-            ${printContent}
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-    }
+    openPrintWindow(printContent, 'Income Report', '/print/reports.css');
   };
   
   const handleDownloadPdf = async () => {

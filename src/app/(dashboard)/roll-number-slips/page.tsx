@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label';
 import { RollNumberSlipPrint } from '@/components/reports/roll-number-slip-print';
 import type { Student } from '@/lib/types';
 import { generateQrCode } from '@/ai/flows/generate-qr-code';
+import { openPrintWindow } from '@/lib/print-helper';
 
 
 export interface DateSheetItem {
@@ -123,21 +124,7 @@ export default function RollNumberSlipsPage() {
         />
       );
 
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-        printWindow.document.write(`
-          <html>
-            <head>
-              <title>Roll Number Slips - ${selectedClass}</title>
-              <script src="https://cdn.tailwindcss.com"></script>
-               <link rel="stylesheet" href="/print-styles.css">
-            </head>
-            <body>${printContent}</body>
-          </html>
-        `);
-        printWindow.document.close();
-        printWindow.focus();
-      }
+      openPrintWindow(printContent, `Roll Number Slips - ${selectedClass}`, '/print/slips.css');
       setIsLoading(false);
     }, 500);
   };

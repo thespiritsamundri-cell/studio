@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { openPrintWindow } from '@/lib/print-helper';
 
 export default function AccountsPage() {
     const { fees, expenses, families } = useData();
@@ -47,23 +48,7 @@ export default function AccountsPage() {
     const handlePrint = () => {
         const reportDate = new Date(selectedYear, selectedMonth);
         const printContent = renderToString(getReportComponent());
-
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.write(`
-                <html>
-                    <head>
-                        <title>Financial Report - ${format(reportDate, 'MMMM yyyy')}</title>
-                        <script src="https://cdn.tailwindcss.com"></script>
-                        <link rel="stylesheet" href="/print-styles.css">
-                    </head>
-                    <body>
-                        ${printContent}
-                    </body>
-                </html>
-            `);
-            printWindow.document.close();
-        }
+        openPrintWindow(printContent, `Financial Report - ${format(reportDate, 'MMMM yyyy')}`, '/print/reports.css');
     };
 
     const handleDownloadPdf = async () => {

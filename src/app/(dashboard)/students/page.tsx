@@ -37,6 +37,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { openPrintWindow } from '@/lib/print-helper';
 
 const MALE_AVATAR_URL = 'https://i.postimg.cc/x1BZ31bs/male.png';
 const FEMALE_AVATAR_URL = 'https://i.postimg.cc/7hgPwR8W/1487318.png';
@@ -113,22 +114,7 @@ export default function StudentsPage() {
         <AllStudentsPrintReport students={studentsToExport} date={reportDate} settings={settings} />
     );
 
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-        printWindow.document.write(`
-            <html>
-                <head>
-                    <title>Selected Students Report</title>
-                    <script src="https://cdn.tailwindcss.com"></script>
-                </head>
-                <body>
-                    ${printContent}
-                </body>
-            </html>
-        `);
-        printWindow.document.close();
-        printWindow.focus();
-    }
+    openPrintWindow(printContent, 'Selected Students Report', '/print/reports.css');
   };
 
 

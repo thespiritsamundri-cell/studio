@@ -16,6 +16,7 @@ import { useSettings } from '@/context/settings-context';
 import { generateQrCode } from '@/ai/flows/generate-qr-code';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
+import { openPrintWindow } from '@/lib/print-helper';
 
 const MALE_AVATAR_URL = 'https://i.postimg.cc/x1BZ31bs/male.png';
 const FEMALE_AVATAR_URL = 'https://i.postimg.cc/7hgPwR8W/1487318.png';
@@ -64,22 +65,7 @@ export default function StudentDetailsPage() {
         <StudentDetailsPrint student={student as Student} family={family} settings={settings} familyQrCodeDataUri={familyQrCode} />
     );
 
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-        printWindow.document.write(`
-            <html>
-                <head>
-                    <title>Student Details - ${student.name}</title>
-                    <script src="https://cdn.tailwindcss.com"></script>
-                </head>
-                <body>
-                    ${printContent}
-                </body>
-            </html>
-        `);
-        printWindow.document.close();
-        printWindow.focus();
-    }
+    openPrintWindow(printContent, `Student Details - ${student.name}`, '/print/profile.css');
   };
   
   const handleGenerateQr = async () => {

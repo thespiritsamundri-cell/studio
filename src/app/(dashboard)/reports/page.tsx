@@ -20,6 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { renderToString } from 'react-dom/server';
 import { useSettings } from '@/context/settings-context';
 import type { Family, Student, Fee } from '@/lib/types';
+import { openPrintWindow } from '@/lib/print-helper';
 
 interface UnpaidFamilyData {
   family: Family;
@@ -113,17 +114,7 @@ export default function ReportsPage() {
                 settings={settings}
             />
         );
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.write(`
-                <html>
-                <head><title>Student Financial Report</title><script src="https://cdn.tailwindcss.com"></script></head>
-                <body>${printContent}</body>
-                </html>
-            `);
-            printWindow.document.close();
-            printWindow.focus();
-        }
+        openPrintWindow(printContent, 'Student Financial Report', '/print/reports.css');
         toast({ title: 'Report Generated', description: 'The student financial report is ready for printing.' });
     } catch (error) {
         toast({ title: 'Error Generating Report', variant: 'destructive' });
@@ -137,6 +128,7 @@ export default function ReportsPage() {
     setIsLoading(type);
     let printContent = '';
     let reportTitle = 'Report';
+    let stylesheet = '/print/reports.css';
 
     setTimeout(() => {
       const currentDate = new Date();
@@ -186,6 +178,7 @@ export default function ReportsPage() {
           />
         );
         reportTitle = `Attendance Report - ${selectedClass}`;
+        stylesheet = '/print/attendance.css';
       } else if (type === 'unpaid-fees') {
         const unpaidFeesByFamily: Record<string, Fee[]> = allFees
           .filter(f => f.status === 'Unpaid')
@@ -232,23 +225,7 @@ export default function ReportsPage() {
       }
 
       if (printContent) {
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-          printWindow.document.write(`
-            <html>
-              <head>
-                <title>${reportTitle}</title>
-                <script src="https://cdn.tailwindcss.com"></script>
-                <link rel="stylesheet" href="/print-styles.css">
-              </head>
-              <body>
-                ${printContent}
-              </body>
-            </html>
-          `);
-          printWindow.document.close();
-          printWindow.focus();
-        }
+        openPrintWindow(printContent, reportTitle, stylesheet);
       }
 
       setIsLoading(null);

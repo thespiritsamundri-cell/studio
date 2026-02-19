@@ -15,6 +15,7 @@ import { useSettings } from '@/context/settings-context';
 import { renderToString } from 'react-dom/server';
 import type { Student } from '@/lib/types';
 import { Textarea } from '@/components/ui/textarea';
+import { openPrintWindow } from '@/lib/print-helper';
 
 
 export default function SeatingPlanPage() {
@@ -30,7 +31,7 @@ export default function SeatingPlanPage() {
   const [instructions, setInstructions] = useState('1. Reach the examination hall 15 minutes before the start time.\n2. Mobile phones are strictly prohibited.\n3. Bring your own stationery. Sharing is not allowed.');
 
   const classStudents = useMemo(() => {
-    return selectedClass ? allStudents.filter(s => s.class === selectedClass) : [];
+    return selectedClass ? allStudents.filter(s => s.class === selectedClass && s.status === 'Active') : [];
   }, [selectedClass, allStudents]);
 
   const handlePrint = () => {
@@ -73,21 +74,7 @@ export default function SeatingPlanPage() {
         />
       );
 
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-        printWindow.document.write(`
-          <html>
-            <head>
-              <title>Seating Plan - ${selectedClass}</title>
-              <script src="https://cdn.tailwindcss.com"></script>
-               <link rel="stylesheet" href="/print-styles.css">
-            </head>
-            <body>${printContent}</body>
-          </html>
-        `);
-        printWindow.document.close();
-        printWindow.focus();
-      }
+      openPrintWindow(printContent, `Seating Plan - ${selectedClass}`, '/print/slips.css');
       setIsLoading(false);
     }, 500);
   };

@@ -15,6 +15,7 @@ import { useSettings } from '@/context/settings-context';
 import { renderToString } from 'react-dom/server';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
+import { openPrintWindow } from '@/lib/print-helper';
 
 export default function ResultCardsPage() {
   const { classes, students: allStudents, exams: allExams } = useData();
@@ -86,21 +87,7 @@ export default function ResultCardsPage() {
         />
       );
 
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-        printWindow.document.write(`
-          <html>
-            <head>
-              <title>Result Cards - ${selectedClass}</title>
-              <script src="https://cdn.tailwindcss.com"></script>
-              <link rel="stylesheet" href="/print-styles.css">
-            </head>
-            <body>${printContent}</body>
-          </html>
-        `);
-        printWindow.document.close();
-        printWindow.focus();
-      }
+      openPrintWindow(printContent, `Result Cards - ${selectedClass}`, '/print/exam.css');
       setIsLoading(false);
     }, 500);
   };
