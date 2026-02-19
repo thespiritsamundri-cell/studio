@@ -77,7 +77,7 @@ export default function AttendancePage() {
     }
     
     const printContent = renderToString(reportComponent);
-    openPrintWindow(printContent, `Attendance Report - ${selectedClass}`, '/print/attendance.css');
+    openPrintWindow(printContent, `Attendance Report - ${selectedClass}`);
   };
 
   const handleDownloadPdf = async () => {

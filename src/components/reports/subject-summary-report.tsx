@@ -19,40 +19,10 @@ interface SubjectSummaryPrintReportProps {
 export const SubjectSummaryPrintReport = React.forwardRef<HTMLDivElement, SubjectSummaryPrintReportProps>(
   ({ students, tests, subject, className, settings }, ref) => {
     
-    const printStyles = `
-      body {
-        font-size: 14px !important;
-      }
-      @page {
-        size: A4 landscape;
-        margin: 0.5in;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-      }
-      th, td {
-        border: 1px solid #ccc;
-        padding: 4px 6px;
-        text-align: center;
-        white-space: normal;
-        word-break: break-word;
-      }
-      th {
-        background-color: #f2f2f2;
-        font-weight: bold;
-      }
-       .student-name {
-        text-align: left;
-        white-space: nowrap;
-      }
-    `;
-    
     const sortedTests = tests.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     return (
       <div ref={ref} className="p-8 font-sans bg-white text-black">
-        <style>{printStyles}</style>
         <header className="flex items-start justify-between pb-4 border-b border-gray-400">
           <div className="flex items-center gap-4">
             {settings.schoolLogo && <Image src={settings.schoolLogo} alt="School Logo" width={64} height={64} className="object-contain" />}
@@ -135,5 +105,3 @@ export const SubjectSummaryPrintReport = React.forwardRef<HTMLDivElement, Subjec
 );
 
 SubjectSummaryPrintReport.displayName = 'SubjectSummaryPrintReport';
-
-    

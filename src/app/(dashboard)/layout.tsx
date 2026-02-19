@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import type { ReactNode } from 'react';
@@ -168,11 +167,11 @@ function DashboardContent({ children }: { children: ReactNode }) {
         <SidebarProvider>
             <InactivityDetector />
             <div className="flex min-h-screen w-full bg-muted/40">
-                <Sidebar>
+                <Sidebar className="no-print">
                     <SidebarNav />
                 </Sidebar>
                 <div className="flex flex-1 flex-col">
-                    <Header />
+                    <Header className="no-print" />
                     <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6 lg:p-8">
                         {!isDataInitialized ? (
                             <div className="flex flex-1 items-center justify-center">

@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React from 'react';
@@ -74,22 +73,13 @@ export const IndividualTeacherAttendancePrintReport = React.forwardRef<HTMLDivEl
                         <TableCell>{format(day, 'dd-MMM-yyyy')}</TableCell>
                         <TableCell>{format(day, 'EEEE')}</TableCell>
                         <TableCell>
-                            {isSun ? (
-                                <Badge variant="outline" className="text-red-500 border-red-500/50">Holiday</Badge>
-                            ) : record ? (
-                                <Badge variant={
-                                    record.status === 'Present' ? 'default' : 
-                                    record.status === 'Absent' ? 'destructive' :
-                                    'secondary'
-                                } className={
-                                    record.status === 'Present' ? 'bg-green-600' :
-                                    record.status === 'Late' ? 'bg-orange-500' : ''
-                                }>
+                            {isSun ? ( <Badge variant="outline" className="text-red-500 border-red-500/50">Holiday</Badge> ) : record ? (
+                                <Badge variant={ record.status === 'Present' ? 'default' : record.status === 'Absent' ? 'destructive' : 'secondary' } className={cn(record.status === 'Present' && 'bg-green-600', record.status === 'Late' && 'bg-orange-500')}>
                                     {record.status}
                                 </Badge>
-                            ) : '-'}
+                            ) : <Badge variant="outline">N/A</Badge>}
                         </TableCell>
-                        <TableCell>{record?.time || (isSun ? 'Sunday' : '-')}</TableCell>
+                        <TableCell>{record?.time || (isSun ? 'Sunday' : 'N/A')}</TableCell>
                         <TableCell></TableCell>
                     </TableRow>
                 )

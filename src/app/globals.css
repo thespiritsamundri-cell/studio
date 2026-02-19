@@ -80,3 +80,13 @@
     font-family: 'Inter', sans-serif;
   }
 }
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

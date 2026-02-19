@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React from 'react';
@@ -109,5 +108,3 @@ export const TeacherAttendancePrintReport = React.forwardRef<HTMLDivElement, Tea
   }
 );
 TeacherAttendancePrintReport.displayName = 'TeacherAttendancePrintReport';
-
-    

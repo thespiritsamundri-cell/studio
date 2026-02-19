@@ -1,3 +1,4 @@
+
 'use client';
 
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -47,7 +48,7 @@ function getTitleFromPathname(pathname: string): string {
 }
 
 
-export function Header() {
+export function Header({ className }: { className?: string }) {
   const pathname = usePathname();
   const router = useRouter();
   const pageTitle = getTitleFromPathname(pathname);
@@ -113,7 +114,7 @@ export function Header() {
             getDocs(familyNameQuery),
             getDocs(studentIdQuery),
             getDocs(familyIdQuery),
-            getDocs(familyCnicQuery)
+            getDocs(familyCnicSnap)
         ]);
         
         const studentsMap = new Map<string, Student>();
@@ -157,7 +158,7 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6">
+      <header className={cn("sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6", className)}>
         <div className="flex items-center gap-2">
           <SidebarTrigger />
           <h1 className="text-xl font-semibold hidden md:block">{pageTitle}</h1>

@@ -134,7 +134,7 @@ export default function AdmissionsPage() {
         const printContent = renderToString(
             <StudentDetailsPrint student={student} family={family} settings={settings} />
         );
-        openPrintWindow(printContent, `Student Admission Form - ${student.name}`, '/print/profile.css');
+        openPrintWindow(printContent, `Student Admission Form - ${student.name}`);
     };
     
     const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
