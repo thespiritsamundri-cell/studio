@@ -11,10 +11,11 @@ import { Label } from '@/components/ui/label';
 import { useData } from '@/context/data-context';
 import type { Student, Attendance } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { Send, Printer, CalendarOff, UserCheck, UserX, Clock, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Send, Printer, CalendarOff, UserCheck, UserX, Clock, Calendar, ChevronLeft, ChevronRight, BarChart3, Loader2 } from 'lucide-react';
 import { DailyAttendancePrintReport } from '@/components/reports/daily-attendance-report';
 import { IndividualStudentAttendancePrintReport } from '@/components/reports/individual-student-attendance-report';
 import { ClassAttendancePrintReport } from '@/components/reports/class-attendance-report';
+import { BlankAttendanceSheet } from '@/components/reports/blank-attendance-sheet';
 import { renderToString } from 'react-dom/server';
 import { useSettings } from '@/context/settings-context';
 import { format, isSunday, startOfMonth, endOfMonth, eachDayOfInterval, subMonths, addMonths, getYear, getMonth } from 'date-fns';
@@ -109,12 +110,6 @@ const DailyAttendanceTab = () => {
       setIsSending(false);
       toast({ title: 'Notifications Sent', description: `Sent to ${successCount} of ${absentStudents.length} parents.` });
     };
-    
-    const handlePrint = () => {
-        if (!selectedClass) { toast({ title: "No Class Selected", variant: "destructive" }); return; }
-        const printContent = renderToString(<DailyAttendancePrintReport className={selectedClass} date={currentDate} students={students} attendance={attendance} settings={settings} />);
-        openPrintWindow(printContent, `Daily Attendance - ${selectedClass}`);
-    };
   
     return (
         <Card>
@@ -128,7 +123,6 @@ const DailyAttendanceTab = () => {
                       {selectedClass && (
                         <>
                           <Button onClick={saveAttendance} disabled={isSundayToday}>Save Attendance</Button>
-                          <Button variant="outline" onClick={handlePrint}><Printer className="w-4 h-4 mr-2" /> Print</Button>
                           <Button variant="outline" onClick={handleSendWhatsapp} disabled={isSending || isSundayToday}>{isSending ? 'Sending...' : <> <Send className="w-4 h-4 mr-2" /> Notify Absentees </>}</Button>
                         </>
                       )}
@@ -297,43 +291,88 @@ const StudentReportTab = () => {
 const ClassReportTab = () => {
     const { students: allStudents, attendances: allAttendances, classes } = useData();
     const { settings } = useSettings();
+    const { toast } = useToast();
+
     const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [reportData, setReportData] = useState<any | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
     const selectedYear = getYear(currentDate);
     const selectedMonthIndex = getMonth(currentDate);
     
     const years = useMemo(() => Array.from({ length: 10 }, (_, i) => getYear(new Date()) - i), []);
     const months = Array.from({ length: 12 }, (_, i) => ({ value: i, label: format(new Date(0, i), 'MMMM') }));
+    
+    useEffect(() => {
+        setReportData(null);
+    }, [selectedClassId, currentDate]);
 
-    const classReportData = useMemo(() => {
-        if (!selectedClassId) return null;
-        
-        const studentsInClass = allStudents.filter(s => s.class === selectedClassId && s.status === 'Active');
+    const handleGenerateReport = () => {
+        if (!selectedClassId) {
+            toast({ title: "Please select a class.", variant: "destructive" });
+            return;
+        }
+        setIsLoading(true);
+        setTimeout(() => {
+            const studentsInClass = allStudents.filter(s => s.class === selectedClassId && s.status === 'Active');
+            const start = startOfMonth(currentDate);
+            const end = endOfMonth(currentDate);
+            const daysInMonth = eachDayOfInterval({ start, end });
+
+            const report = studentsInClass.map(student => {
+                const attendanceByDate: Record<string, Attendance | undefined> = {};
+                const summary = { present: 0, absent: 0, leave: 0 };
+                
+                daysInMonth.forEach(day => {
+                    const dateStr = format(day, 'yyyy-MM-dd');
+                    const record = allAttendances.find(a => a.studentId === student.id && a.date === dateStr);
+                    attendanceByDate[dateStr] = record;
+                    if (record && !isSunday(day)) {
+                        if (record.status === 'Present') summary.present++;
+                        else if (record.status === 'Absent') summary.absent++;
+                        else if (record.status === 'Leave') summary.leave++;
+                    }
+                });
+                return { student, attendanceByDate, summary };
+            });
+            
+            setReportData({ students: studentsInClass, report, daysInMonth });
+            setIsLoading(false);
+        }, 300);
+    };
+
+    const handlePrintReport = () => {
+        if (!reportData || !selectedClassId) return;
+        const printContent = renderToString(<ClassAttendancePrintReport students={reportData.students} daysInMonth={reportData.daysInMonth} attendanceData={reportData.report} month={currentDate} settings={settings} />);
+        openPrintWindow(printContent, `Class Attendance - ${selectedClassId} - ${format(currentDate, 'MMMM yyyy')}`);
+    };
+
+    const handlePrintBlankSheet = () => {
+        if (!selectedClassId) {
+            toast({ title: "Please select a class.", variant: "destructive" });
+            return;
+        }
+        const classInfo = classes.find(c => c.name === selectedClassId);
+        if (!classInfo) return;
+
+        const studentsForSheet = allStudents.filter(s => s.class === selectedClassId && s.status === 'Active');
         const start = startOfMonth(currentDate);
         const end = endOfMonth(currentDate);
         const daysInMonth = eachDayOfInterval({ start, end });
 
-        const report = studentsInClass.map(student => {
-            const attendanceByDate: Record<string, Attendance | undefined> = {};
-            const summary = { present: 0, absent: 0, leave: 0 };
-            
-            daysInMonth.forEach(day => {
-                const dateStr = format(day, 'yyyy-MM-dd');
-                const record = allAttendances.find(a => a.studentId === student.id && a.date === dateStr);
-                attendanceByDate[dateStr] = record;
-                if (record && !isSunday(day)) {
-                    if (record.status === 'Present') summary.present++;
-                    else if (record.status === 'Absent') summary.absent++;
-                    else if (record.status === 'Leave') summary.leave++;
-                }
-            });
-            return { student, attendanceByDate, summary };
-        });
-        
-        return { students: studentsInClass, report, daysInMonth };
-    }, [selectedClassId, currentDate, allStudents, allAttendances]);
-
+        const printContent = renderToString(
+            <BlankAttendanceSheet 
+                classInfo={classInfo}
+                students={studentsForSheet}
+                daysInMonth={daysInMonth}
+                month={currentDate}
+                settings={settings}
+            />
+        );
+        openPrintWindow(printContent, `Blank Attendance Sheet - ${selectedClassId}`);
+    };
+    
     const getStatusCell = (status: AttendanceStatus | undefined, isSun: boolean, key: string) => {
         const baseClass = "p-0 h-9 text-center text-xs";
         if (isSun) return <TableCell key={key} className={cn(baseClass, "font-bold text-red-500 bg-muted/30")}>S</TableCell>;
@@ -347,20 +386,14 @@ const ClassReportTab = () => {
         }
     };
     
-    const handlePrint = () => {
-        if (!classReportData || !selectedClassId) return;
-        const printContent = renderToString(<ClassAttendancePrintReport students={classReportData.students} daysInMonth={classReportData.daysInMonth} attendanceData={classReportData.report} month={currentDate} settings={settings} />);
-        openPrintWindow(printContent, `Class Attendance - ${selectedClassId} - ${format(currentDate, 'MMMM yyyy')}`);
-    };
-
     return (
         <Card>
             <CardHeader>
                 <CardTitle>Monthly Class Attendance Sheet</CardTitle>
-                <CardDescription>View the complete monthly attendance sheet for a class.</CardDescription>
+                <CardDescription>Generate a monthly attendance sheet for a class, or print a blank one for manual use.</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="flex flex-col md:flex-row gap-2 justify-between items-center mb-4">
+                 <div className="flex flex-col md:flex-row gap-2 justify-between items-center mb-4">
                     <div className="flex gap-2 items-center">
                         <Select onValueChange={setSelectedClassId} value={selectedClassId || ''}>
                             <SelectTrigger className="w-[180px]"><SelectValue placeholder="Select Class" /></SelectTrigger>
@@ -375,35 +408,60 @@ const ClassReportTab = () => {
                             <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
                         </Select>
                     </div>
-                    <Button variant="outline" onClick={handlePrint} disabled={!selectedClassId}><Printer className="w-4 h-4 mr-2" /> Print Sheet</Button>
+                     <div className="flex items-center gap-2">
+                        <Button onClick={handleGenerateReport} disabled={!selectedClassId || isLoading}>
+                            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BarChart3 className="mr-2 h-4 w-4" />}
+                            Generate Report
+                        </Button>
+                        <Button variant="outline" onClick={handlePrintBlankSheet} disabled={!selectedClassId}>
+                            <Printer className="mr-2 h-4 w-4" /> Print Blank Sheet
+                        </Button>
+                    </div>
                 </div>
 
-                {selectedClassId ? (
-                    <ScrollArea className="w-full whitespace-nowrap border rounded-lg">
-                        <Table className="min-w-full">
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="sticky left-0 bg-background z-10 w-36 min-w-[144px] p-1">Student</TableHead>
-                                    {classReportData?.daysInMonth.map(day => (<TableHead key={day.toISOString()} className={cn("text-center w-8 p-0", isSunday(day) && "bg-muted/50")}>{format(day, 'd')}</TableHead>))}
-                                    <TableHead className="text-center w-8 p-0 sticky right-[64px] bg-background z-10 text-green-600 font-bold">P</TableHead>
-                                    <TableHead className="text-center w-8 p-0 sticky right-[32px] bg-background z-10 text-red-600 font-bold">A</TableHead>
-                                    <TableHead className="text-center w-8 p-0 sticky right-0 bg-background z-10 text-yellow-500 font-bold">L</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {classReportData?.report.map(({ student, attendanceByDate, summary }) => (
-                                    <TableRow key={student.id}>
-                                        <TableCell className="font-medium sticky left-0 bg-background z-10 p-1 text-xs">{student.name}</TableCell>
-                                        {classReportData.daysInMonth.map(day => getStatusCell(attendanceByDate[format(day, 'yyyy-MM-dd')]?.status, isSunday(day), day.toISOString()))}
-                                        <TableCell className="text-center font-bold sticky right-[64px] bg-background z-10 p-1">{summary.present}</TableCell>
-                                        <TableCell className="text-center font-bold sticky right-[32px] bg-background z-10 p-1">{summary.absent}</TableCell>
-                                        <TableCell className="text-center font-bold sticky right-0 bg-background z-10 p-1">{summary.leave}</TableCell>
+                {isLoading && (
+                    <div className="flex items-center justify-center h-96 border rounded-lg bg-muted/30">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                    </div>
+                )}
+
+                {reportData && !isLoading && (
+                    <>
+                        <div className="flex justify-end mb-2">
+                             <Button variant="outline" onClick={handlePrintReport}><Printer className="w-4 h-4 mr-2" /> Print Report</Button>
+                        </div>
+                        <ScrollArea className="w-full whitespace-nowrap border rounded-lg h-[60vh]">
+                            <Table className="min-w-full">
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="sticky left-0 bg-background z-10 w-36 min-w-[144px] p-1">Student</TableHead>
+                                        {reportData.daysInMonth.map((day:Date) => (<TableHead key={day.toISOString()} className={cn("text-center w-8 p-0", isSunday(day) && "bg-muted/50")}>{format(day, 'd')}</TableHead>))}
+                                        <TableHead className="text-center w-8 p-0 sticky right-[64px] bg-background z-10 text-green-600 font-bold">P</TableHead>
+                                        <TableHead className="text-center w-8 p-0 sticky right-[32px] bg-background z-10 text-red-600 font-bold">A</TableHead>
+                                        <TableHead className="text-center w-8 p-0 sticky right-0 bg-background z-10 text-yellow-500 font-bold">L</TableHead>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </ScrollArea>
-                ) : <div className="text-center p-8 text-muted-foreground">Select a class to view the monthly sheet.</div>}
+                                </TableHeader>
+                                <TableBody>
+                                    {reportData.report.map(({ student, attendanceByDate, summary }: any) => (
+                                        <TableRow key={student.id}>
+                                            <TableCell className="font-medium sticky left-0 bg-background z-10 p-1 text-xs">{student.name}</TableCell>
+                                            {reportData.daysInMonth.map((day: Date) => getStatusCell(attendanceByDate[format(day, 'yyyy-MM-dd')]?.status, isSunday(day), day.toISOString()))}
+                                            <TableCell className="text-center font-bold sticky right-[64px] bg-background z-10 p-1">{summary.present}</TableCell>
+                                            <TableCell className="text-center font-bold sticky right-[32px] bg-background z-10 p-1">{summary.absent}</TableCell>
+                                            <TableCell className="text-center font-bold sticky right-0 bg-background z-10 p-1">{summary.leave}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </ScrollArea>
+                    </>
+                )}
+                
+                {!reportData && !isLoading && (
+                    <div className="text-center p-8 text-muted-foreground border rounded-lg bg-muted/30 h-96 flex items-center justify-center">
+                        <p>Select filters and click "Generate Report" to view the attendance sheet.</p>
+                    </div>
+                )}
             </CardContent>
         </Card>
     );
