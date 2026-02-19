@@ -5,6 +5,7 @@ import React from 'react';
 import type { Teacher, TeacherAttendance } from '@/lib/types';
 import type { SchoolSettings } from '@/context/settings-context';
 import { format, isSunday } from 'date-fns';
+import Image from 'next/image';
 
 const getStatusContent = (status: 'Present' | 'Absent' | 'Leave' | 'Late' | undefined) => {
     if (!status) return { text: '-', color: 'transparent', textColor: '#000' };
@@ -40,10 +41,14 @@ export const TeacherAttendancePrintReport = React.forwardRef<HTMLDivElement, Tea
     return (
       <div ref={ref} className="p-4 font-sans bg-white text-black">
         <header className="text-center mb-4">
-          <h1 className="text-2xl font-bold">{settings.schoolName}</h1>
+          {settings.schoolLogo && (
+            <Image src={settings.schoolLogo} alt="School Logo" width={60} height={60} className="object-contain mx-auto mb-2" />
+          )}
+          <h1 className="text-2xl font-bold uppercase">{settings.schoolName}</h1>
+          <p className="text-sm">{settings.schoolAddress}</p>
           <p className="text-sm">{settings.schoolPhone}</p>
           <h2 className="text-lg font-semibold mt-2">Teacher Monthly Attendance Report</h2>
-          <p className="text-sm">{format(month, 'MMMM, yyyy')}</p>
+          <p className="text-sm text-gray-500">{format(month, 'MMMM, yyyy')}</p>
         </header>
 
         <main>
