@@ -33,16 +33,17 @@ const DailyAttendanceTab = () => {
     const { toast } = useToast();
     const [today, setToday] = useState(new Date());
     const isSundayToday = isSunday(today);
-    const [attendance, setAttendance] = useState<Record<string, { status: AttendanceStatus; time?: string }>>({});
+    const [attendance, setAttendance] = useState<Record<string, { status: AttendanceStatus; time?: string; remarks?: string }>>({});
 
     useEffect(() => {
-        const initialState: Record<string, { status: AttendanceStatus; time?: string }> = {};
+        const initialState: Record<string, { status: AttendanceStatus; time?: string; remarks?: string }> = {};
         const todayStr = format(today, 'yyyy-MM-dd');
         teachers.forEach((t) => {
             const todaysRecord = teacherAttendances.find(a => a.teacherId === t.id && a.date === todayStr);
             initialState[t.id] = {
                 status: todaysRecord?.status || 'Present',
-                time: todaysRecord?.time || (todaysRecord?.status === 'Present' || todaysRecord?.status === 'Late' ? format(new Date(), 'HH:mm') : undefined)
+                time: todaysRecord?.time || (todaysRecord?.status === 'Present' || todaysRecord?.status === 'Late' ? format(new Date(), 'HH:mm') : undefined),
+                remarks: todaysRecord?.remarks || ''
             };
         });
         setAttendance(initialState);
@@ -55,11 +56,19 @@ const DailyAttendanceTab = () => {
             return {
                 ...prev,
                 [teacherId]: {
+                    ...prev[teacherId],
                     status: status,
                     time: isTimeApplicable ? (prev[teacherId]?.time || currentTime) : undefined
                 }
             };
         });
+    };
+    
+    const handleRemarksChange = (teacherId: string, remarks: string) => {
+        setAttendance(prev => ({
+            ...prev,
+            [teacherId]: { ...prev[teacherId], status: prev[teacherId]?.status || 'Present', remarks: remarks }
+        }));
     };
 
     const handleTimeChange = (teacherId: string, time: string) => {
@@ -73,7 +82,8 @@ const DailyAttendanceTab = () => {
             teacherId: teacher.id,
             date: todayStr,
             status: attendance[teacher.id].status,
-            time: attendance[teacher.id].time
+            time: attendance[teacher.id].time,
+            remarks: attendance[teacher.id].remarks || ''
         }));
         saveTeacherAttendance(newAttendances);
         toast({ title: 'Attendance Saved', description: `Teacher attendance for ${format(today, 'PPP')} has been saved.` });
@@ -107,6 +117,14 @@ const DailyAttendanceTab = () => {
                                         <TableCell className="font-medium">{teacher.name}</TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex justify-end items-center flex-wrap gap-4">
+                                                {(attendance[teacher.id]?.status === 'Absent' || attendance[teacher.id]?.status === 'Leave') && (
+                                                    <Input
+                                                        placeholder="Add remarks..."
+                                                        value={attendance[teacher.id]?.remarks || ''}
+                                                        onChange={(e) => handleRemarksChange(teacher.id, e.target.value)}
+                                                        className="w-40 h-8"
+                                                    />
+                                                )}
                                                 {(attendance[teacher.id]?.status === 'Present' || attendance[teacher.id]?.status === 'Late') && (
                                                     <Input type="time" value={attendance[teacher.id]?.time || ''} onChange={(e) => handleTimeChange(teacher.id, e.target.value)} className="w-28 h-8" />
                                                 )}
@@ -405,7 +423,7 @@ const IndividualReportView = ({ teacherData, daysInMonth }: { teacherData: any, 
             <div className="border rounded-lg">
                 <ScrollArea className="h-96">
                     <Table>
-                        <TableHeader className="sticky top-0 bg-background z-10"><TableRow><TableHead>Date</TableHead><TableHead>Day</TableHead><TableHead>Status</TableHead><TableHead>Time In</TableHead></TableRow></TableHeader>
+                        <TableHeader className="sticky top-0 bg-background z-10"><TableRow><TableHead>Date</TableHead><TableHead>Day</TableHead><TableHead>Status</TableHead><TableHead>Time In</TableHead><TableHead>Remarks</TableHead></TableRow></TableHeader>
                         <TableBody>
                         {daysInMonth.map(day => {
                             const dateStr = format(day, 'yyyy-MM-dd');
@@ -423,6 +441,7 @@ const IndividualReportView = ({ teacherData, daysInMonth }: { teacherData: any, 
                                         ) : <Badge variant="outline">N/A</Badge>}
                                     </TableCell>
                                     <TableCell>{record?.time || (isSun ? 'Sunday' : 'N/A')}</TableCell>
+                                    <TableCell>{record?.remarks || 'N/A'}</TableCell>
                                 </TableRow>
                             );
                         })}

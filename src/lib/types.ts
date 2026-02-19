@@ -79,6 +79,7 @@ export interface Attendance {
   studentId: string;
   date: string;
   status: 'Present' | 'Absent' | 'Leave';
+  remarks?: string;
 }
 
 export interface TeacherAttendance {
@@ -87,6 +88,7 @@ export interface TeacherAttendance {
   date: string; // YYYY-MM-DD
   status: 'Present' | 'Absent' | 'Leave' | 'Late';
   time?: string;
+  remarks?: string;
 }
 
 export interface Fee {
@@ -145,6 +147,20 @@ export interface Exam {
     submissionDeadline?: string;
     results: ExamResult[];
 }
+
+export interface SingleSubjectTest {
+    id: string;
+    testName: string;
+    class: string;
+    section: string;
+    subject: string;
+    date: string;
+    totalMarks: number;
+    results: {
+        [studentId: string]: number | undefined;
+    };
+}
+
 
 export interface Grade {
     name: string;

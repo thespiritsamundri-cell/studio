@@ -25,6 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 
 
 type AttendanceStatus = 'Present' | 'Absent' | 'Leave';
@@ -35,7 +36,7 @@ const DailyAttendanceTab = () => {
     const { settings } = useSettings();
     const [selectedClass, setSelectedClass] = useState<string | null>(null);
     const [students, setStudents] = useState<Student[]>([]);
-    const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
+    const [attendance, setAttendance] = useState<Record<string, { status: AttendanceStatus; remarks?: string }>>({});
     const { toast } = useToast();
     const [isSending, setIsSending] = useState(false);
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -48,10 +49,13 @@ const DailyAttendanceTab = () => {
             const classStudents = allStudents.filter((s) => s.class === selectedClass && s.status === 'Active');
             setStudents(classStudents);
 
-            const initialAttendance: Record<string, AttendanceStatus> = {};
+            const initialAttendance: Record<string, { status: AttendanceStatus; remarks?: string }> = {};
             classStudents.forEach((student) => {
                 const todaysRecord = allAttendances.find(a => a.studentId === student.id && a.date === todayStr);
-                initialAttendance[student.id] = todaysRecord?.status || 'Present';
+                initialAttendance[student.id] = {
+                    status: todaysRecord?.status || 'Present',
+                    remarks: todaysRecord?.remarks || ''
+                };
             });
             setAttendance(initialAttendance);
         } else {
@@ -62,7 +66,8 @@ const DailyAttendanceTab = () => {
 
     const handleClassChange = (classValue: string) => setSelectedClass(classValue);
     
-    const handleAttendanceChange = (studentId: string, status: AttendanceStatus) => setAttendance((prev) => ({ ...prev, [studentId]: status }));
+    const handleAttendanceChange = (studentId: string, status: AttendanceStatus) => setAttendance((prev) => ({ ...prev, [studentId]: { ...prev[studentId], status } }));
+    const handleRemarksChange = (studentId: string, remarks: string) => setAttendance((prev) => ({ ...prev, [studentId]: { ...prev[studentId], status: prev[studentId]?.status || 'Present', remarks } }));
 
     const saveAttendance = () => {
         if (!selectedClass || isSundayToday) return;
@@ -70,7 +75,8 @@ const DailyAttendanceTab = () => {
         const newAttendances: Attendance[] = students.map(student => ({
             studentId: student.id,
             date: todayStr,
-            status: attendance[student.id],
+            status: attendance[student.id].status,
+            remarks: attendance[student.id].remarks || '',
         }));
         saveStudentAttendance(newAttendances, todayStr, selectedClass);
         toast({ title: 'Attendance Saved', description: `Attendance for class ${selectedClass} has been saved.` });
@@ -78,7 +84,7 @@ const DailyAttendanceTab = () => {
 
     const handleSendWhatsapp = async () => {
       if (isSundayToday) return;
-      const absentStudents = students.filter((student) => attendance[student.id] === 'Absent');
+      const absentStudents = students.filter((student) => attendance[student.id].status === 'Absent');
       if (absentStudents.length === 0) { toast({ title: 'No Absentees' }); return; }
       if(!settings.automatedMessages?.absentee.enabled) {
           toast({ title: 'Messaging Disabled', variant: 'destructive'});
@@ -153,11 +159,21 @@ const DailyAttendanceTab = () => {
                                         <TableCell className="font-medium">{student.id}</TableCell>
                                         <TableCell>{student.name}</TableCell>
                                         <TableCell className="text-right">
-                                            <RadioGroup value={attendance[student.id]} onValueChange={(value) => handleAttendanceChange(student.id, value as AttendanceStatus)} className="flex justify-end flex-wrap gap-4">
-                                                <div className="flex items-center space-x-2"><RadioGroupItem value="Present" id={`p-${student.id}`} /><Label htmlFor={`p-${student.id}`}>Present</Label></div>
-                                                <div className="flex items-center space-x-2"><RadioGroupItem value="Absent" id={`a-${student.id}`} /><Label htmlFor={`a-${student.id}`}>Absent</Label></div>
-                                                <div className="flex items-center space-x-2"><RadioGroupItem value="Leave" id={`l-${student.id}`} /><Label htmlFor={`l-${student.id}`}>Leave</Label></div>
-                                            </RadioGroup>
+                                            <div className="flex justify-end items-center flex-wrap gap-4">
+                                                 {(attendance[student.id]?.status === 'Absent' || attendance[student.id]?.status === 'Leave') && (
+                                                    <Input
+                                                        placeholder="Add remarks..."
+                                                        value={attendance[student.id]?.remarks || ''}
+                                                        onChange={(e) => handleRemarksChange(student.id, e.target.value)}
+                                                        className="w-40 h-8"
+                                                    />
+                                                )}
+                                                <RadioGroup value={attendance[student.id]?.status} onValueChange={(value) => handleAttendanceChange(student.id, value as AttendanceStatus)} className="flex justify-end flex-wrap gap-4">
+                                                    <div className="flex items-center space-x-2"><RadioGroupItem value="Present" id={`p-${student.id}`} /><Label htmlFor={`p-${student.id}`}>Present</Label></div>
+                                                    <div className="flex items-center space-x-2"><RadioGroupItem value="Absent" id={`a-${student.id}`} /><Label htmlFor={`a-${student.id}`}>Absent</Label></div>
+                                                    <div className="flex items-center space-x-2"><RadioGroupItem value="Leave" id={`l-${student.id}`} /><Label htmlFor={`l-${student.id}`}>Leave</Label></div>
+                                                </RadioGroup>
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -425,7 +441,7 @@ const IndividualReportView = ({ studentData, daysInMonth }: { studentData: any, 
             <div className="border rounded-lg">
                 <ScrollArea className="h-96">
                     <Table>
-                        <TableHeader className="sticky top-0 bg-background z-10"><TableRow><TableHead>Date</TableHead><TableHead>Day</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+                        <TableHeader className="sticky top-0 bg-background z-10"><TableRow><TableHead>Date</TableHead><TableHead>Day</TableHead><TableHead>Status</TableHead><TableHead>Remarks</TableHead></TableRow></TableHeader>
                         <TableBody>
                         {daysInMonth.map(day => {
                             const dateStr = format(day, 'yyyy-MM-dd');
@@ -442,6 +458,7 @@ const IndividualReportView = ({ studentData, daysInMonth }: { studentData: any, 
                                             </Badge>
                                         ) : <Badge variant="outline">N/A</Badge>}
                                     </TableCell>
+                                    <TableCell>{record?.remarks || 'N/A'}</TableCell>
                                 </TableRow>
                             );
                         })}
