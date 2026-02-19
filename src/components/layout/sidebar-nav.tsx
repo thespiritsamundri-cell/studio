@@ -81,11 +81,6 @@ const examSystemItems: Omit<NavLink, 'type'>[] = [
     { href: "/seating-plan", icon: Grid3x3, label: "Seating Plan", permission: "examSystem" },
 ];
 
-const dataManagementItems: Omit<NavLink, 'type'>[] = [
-    { href: "/alumni", icon: Medal, label: "Alumni Records", permission: "alumni" },
-    { href: "/archived", icon: Archive, label: "Archived Records", permission: "archived" },
-];
-
 const mainNavStructure: NavElement[] = [
   { type: 'link', href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', permission: 'dashboard' },
   { type: 'link', href: '/families', icon: Home, label: 'Families', permission: 'families' },
@@ -117,14 +112,7 @@ const mainNavStructure: NavElement[] = [
   { type: 'link', href: '/accounts', icon: BookCheck, label: 'Accounts', permission: 'accounts' },
   { type: 'link', href: '/reports', icon: FileText, label: 'Reports', permission: 'reports' },
   { type: 'link', href: '/yearbook', icon: Archive, label: 'Yearbook', permission: 'yearbook' },
-  { 
-    type: 'group',
-    label: 'Data Management',
-    icon: Database,
-    permission: 'dashboard', // Placeholder permission, actual logic is handled below
-    items: dataManagementItems,
-    pathPrefixes: ['/alumni', '/archived']
-  },
+  { type: 'link', href: '/data-management', icon: Database, label: 'Data Management', permission: 'any_primary_role' },
 ];
 
 
@@ -184,9 +172,9 @@ export function SidebarNav() {
         <SidebarMenu>
           {mainNavStructure.map((item) => {
             let hasAccess = false;
-            // Special check for Data Management group to ensure it shows if user has *any* of its sub-item permissions
-            if (item.type === 'group' && item.label === 'Data Management') {
-                hasAccess = item.items.some(subItem => checkGeneralPermission(subItem.permission));
+            
+            if (item.type === 'link' && item.href === '/data-management') {
+                hasAccess = checkGeneralPermission('alumni') || checkGeneralPermission('archived');
             } else {
                 hasAccess = checkGeneralPermission(item.permission);
             }
