@@ -38,6 +38,7 @@ import {
   CalendarClock,
   Archive,
   Medal,
+  Database,
 } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import Image from 'next/image';
@@ -61,7 +62,7 @@ type NavGroup = {
   type: 'group';
   label: string;
   icon: React.ElementType;
-  permission: keyof PermissionSet;
+  permission: keyof PermissionSet | 'any_primary_role';
   items: Omit<NavLink, 'type'>[];
   pathPrefixes: string[];
 };
@@ -78,6 +79,11 @@ const examSystemItems: Omit<NavLink, 'type'>[] = [
     { href: "/result-cards", icon: FileBadge, label: "Result Cards", permission: "examSystem" },
     { href: "/roll-number-slips", icon: Ticket, label: "Roll No. Slips", permission: "examSystem" },
     { href: "/seating-plan", icon: Grid3x3, label: "Seating Plan", permission: "examSystem" },
+];
+
+const dataManagementItems: Omit<NavLink, 'type'>[] = [
+    { href: "/alumni", icon: Medal, label: "Alumni Records", permission: "alumni" },
+    { href: "/archived", icon: Archive, label: "Archived Records", permission: "archived" },
 ];
 
 const mainNavStructure: NavElement[] = [
@@ -111,13 +117,19 @@ const mainNavStructure: NavElement[] = [
   { type: 'link', href: '/accounts', icon: BookCheck, label: 'Accounts', permission: 'accounts' },
   { type: 'link', href: '/reports', icon: FileText, label: 'Reports', permission: 'reports' },
   { type: 'link', href: '/yearbook', icon: Archive, label: 'Yearbook', permission: 'yearbook' },
+  { 
+    type: 'group',
+    label: 'Data Management',
+    icon: Database,
+    permission: 'dashboard', // Placeholder permission, actual logic is handled below
+    items: dataManagementItems,
+    pathPrefixes: ['/alumni', '/archived']
+  },
 ];
 
 
 const footerItems: NavLink[] = [
-   { type: 'link', href: '/alumni', icon: Medal, label: 'Alumni', permission: 'alumni' },
    { type: 'link', href: '/settings', icon: Settings, label: 'Settings', permission: 'any_primary_role' },
-   { type: 'link', href: '/archived', icon: Archive, label: 'Archived', permission: 'archived' },
    { type: 'link', href: '/', icon: LogOut, label: 'Logout', permission: 'dashboard' }, // Anyone with dashboard access can logout
 ];
 
@@ -171,7 +183,15 @@ export function SidebarNav() {
       <SidebarContent>
         <SidebarMenu>
           {mainNavStructure.map((item) => {
-            if (!checkGeneralPermission(item.permission)) return null;
+            let hasAccess = false;
+            // Special check for Data Management group to ensure it shows if user has *any* of its sub-item permissions
+            if (item.type === 'group' && item.label === 'Data Management') {
+                hasAccess = item.items.some(subItem => checkGeneralPermission(subItem.permission));
+            } else {
+                hasAccess = checkGeneralPermission(item.permission);
+            }
+            
+            if (!hasAccess) return null;
 
             if (item.type === 'link') {
               return (
@@ -210,7 +230,7 @@ export function SidebarNav() {
                             </CollapsibleTrigger>
                             <CollapsibleContent asChild>
                                 <ul className={cn("space-y-1 ml-4 pl-5 py-1 border-l border-sidebar-border/50 transition-all", (isPinned || isMobile) ? "block" : "hidden group-hover/sidebar:block")}>
-                                    {item.items.map(subItem => (
+                                    {item.items.filter(subItem => checkGeneralPermission(subItem.permission)).map(subItem => (
                                         <li key={subItem.label}>
                                             <SidebarMenuButton asChild size="sm" isActive={pathname.startsWith(subItem.href)} tooltip={subItem.label}>
                                                 <Link href={subItem.href}>
