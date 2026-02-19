@@ -11,14 +11,14 @@ import { Label } from '@/components/ui/label';
 import { useData } from '@/context/data-context';
 import type { Student, Attendance } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { Send, Printer, CalendarOff, UserCheck, UserX, Clock, Calendar, ChevronLeft, ChevronRight, BarChart3, Loader2 } from 'lucide-react';
+import { Send, Printer, CalendarOff, UserCheck, UserX, Clock, Calendar, BarChart3, Loader2 } from 'lucide-react';
 import { DailyAttendancePrintReport } from '@/components/reports/daily-attendance-report';
 import { IndividualStudentAttendancePrintReport } from '@/components/reports/individual-student-attendance-report';
 import { ClassAttendancePrintReport } from '@/components/reports/class-attendance-report';
 import { BlankAttendanceSheet } from '@/components/reports/blank-attendance-sheet';
 import { renderToString } from 'react-dom/server';
 import { useSettings } from '@/context/settings-context';
-import { format, isSunday, startOfMonth, endOfMonth, eachDayOfInterval, subMonths, addMonths, getYear, getMonth } from 'date-fns';
+import { format, isSunday, startOfMonth, endOfMonth, eachDayOfInterval, getYear, getMonth } from 'date-fns';
 import { sendWhatsAppMessage } from '@/services/whatsapp-service';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { openPrintWindow } from '@/lib/print-helper';
@@ -27,6 +27,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
 
 
 type AttendanceStatus = 'Present' | 'Absent' | 'Leave';
@@ -389,78 +390,87 @@ const ClassReportTab = () => {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Monthly Class Attendance Sheet</CardTitle>
-                <CardDescription>Generate a monthly attendance sheet for a class, or print a blank one for manual use.</CardDescription>
+                <CardTitle>Class Attendance Report</CardTitle>
+                <CardDescription>Select a class and month to view the full attendance sheet.</CardDescription>
             </CardHeader>
             <CardContent>
-                 <div className="flex flex-col md:flex-row gap-2 justify-between items-center mb-4">
-                    <div className="flex gap-2 items-center">
-                        <Select onValueChange={setSelectedClassId} value={selectedClassId || ''}>
-                            <SelectTrigger className="w-[180px]"><SelectValue placeholder="Select Class" /></SelectTrigger>
-                            <SelectContent>{classes.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
-                        </Select>
-                        <Select value={String(selectedMonthIndex)} onValueChange={(m) => setCurrentDate(new Date(selectedYear, parseInt(m)))}>
-                            <SelectTrigger className="w-[150px]"><SelectValue placeholder="Month" /></SelectTrigger>
-                            <SelectContent>{months.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}</SelectContent>
-                        </Select>
-                        <Select value={String(selectedYear)} onValueChange={(y) => setCurrentDate(new Date(parseInt(y), selectedMonthIndex))}>
-                            <SelectTrigger className="w-[120px]"><SelectValue placeholder="Year" /></SelectTrigger>
-                            <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
-                        </Select>
+                 <div className="flex flex-col lg:flex-row lg:items-end gap-4 mb-4">
+                    {/* Filters */}
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="space-y-2">
+                            <Label>Class</Label>
+                            <Select onValueChange={setSelectedClassId} value={selectedClassId || ''}>
+                                <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Select a class" /></SelectTrigger>
+                                <SelectContent>{classes.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Month</Label>
+                            <Select value={String(selectedMonthIndex)} onValueChange={(m) => setCurrentDate(new Date(selectedYear, parseInt(m)))}>
+                                <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="Month" /></SelectTrigger>
+                                <SelectContent>{months.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}</SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Year</Label>
+                            <Select value={String(selectedYear)} onValueChange={(y) => setCurrentDate(new Date(parseInt(y), selectedMonthIndex))}>
+                                <SelectTrigger className="w-full sm:w-[120px]"><SelectValue placeholder="Year" /></SelectTrigger>
+                                <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+                            </Select>
+                        </div>
                     </div>
-                     <div className="flex items-center gap-2">
-                        <Button onClick={handleGenerateReport} disabled={!selectedClassId || isLoading}>
-                            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BarChart3 className="mr-2 h-4 w-4" />}
+                    {/* Spacer */}
+                    <div className="flex-grow"></div>
+                    {/* Buttons */}
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        <Button className="w-full" onClick={handleGenerateReport} disabled={!selectedClassId || isLoading}>
+                            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                             Generate Report
                         </Button>
-                        <Button variant="outline" onClick={handlePrintBlankSheet} disabled={!selectedClassId}>
-                            <Printer className="mr-2 h-4 w-4" /> Print Blank Sheet
+                        <Button className="w-full" variant="outline" onClick={handlePrintBlankSheet} disabled={!selectedClassId}>
+                            <Printer className="mr-2 h-4 w-4" />
+                            Print Blank Sheet
+                        </Button>
+                        <Button className="w-full" variant="outline" onClick={handlePrintReport} disabled={!reportData}>
+                            <Printer className="mr-2 h-4 w-4" />
+                            Print Report
                         </Button>
                     </div>
                 </div>
 
+                <Separator className="my-6" />
+
                 {isLoading && (
-                    <div className="flex items-center justify-center h-96 border rounded-lg bg-muted/30">
-                        <Loader2 className="h-8 w-8 animate-spin" />
+                    <div className="flex items-center justify-center h-96">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
                 )}
 
                 {reportData && !isLoading && (
-                    <>
-                        <div className="flex justify-end mb-2">
-                             <Button variant="outline" onClick={handlePrintReport}><Printer className="w-4 h-4 mr-2" /> Print Report</Button>
-                        </div>
-                        <ScrollArea className="w-full whitespace-nowrap border rounded-lg h-[60vh]">
-                            <Table className="min-w-full">
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="sticky left-0 bg-background z-10 w-36 min-w-[144px] p-1">Student</TableHead>
-                                        {reportData.daysInMonth.map((day:Date) => (<TableHead key={day.toISOString()} className={cn("text-center w-8 p-0", isSunday(day) && "bg-muted/50")}>{format(day, 'd')}</TableHead>))}
-                                        <TableHead className="text-center w-8 p-0 sticky right-[64px] bg-background z-10 text-green-600 font-bold">P</TableHead>
-                                        <TableHead className="text-center w-8 p-0 sticky right-[32px] bg-background z-10 text-red-600 font-bold">A</TableHead>
-                                        <TableHead className="text-center w-8 p-0 sticky right-0 bg-background z-10 text-yellow-500 font-bold">L</TableHead>
+                    <ScrollArea className="w-full whitespace-nowrap border rounded-lg h-[60vh]">
+                        <Table className="min-w-full">
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="sticky left-0 bg-background z-10 w-36 min-w-[144px] p-1">Student</TableHead>
+                                    {reportData.daysInMonth.map((day:Date) => (<TableHead key={day.toISOString()} className={cn("text-center w-8 p-0", isSunday(day) && "bg-muted/50")}>{format(day, 'd')}</TableHead>))}
+                                    <TableHead className="text-center w-8 p-0 sticky right-[64px] bg-background z-10 text-green-600 font-bold">P</TableHead>
+                                    <TableHead className="text-center w-8 p-0 sticky right-[32px] bg-background z-10 text-red-600 font-bold">A</TableHead>
+                                    <TableHead className="text-center w-8 p-0 sticky right-0 bg-background z-10 text-yellow-500 font-bold">L</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {reportData.report.map(({ student, attendanceByDate, summary }: any) => (
+                                    <TableRow key={student.id}>
+                                        <TableCell className="font-medium sticky left-0 bg-background z-10 p-1 text-xs">{student.name}</TableCell>
+                                        {reportData.daysInMonth.map((day: Date) => getStatusCell(attendanceByDate[format(day, 'yyyy-MM-dd')]?.status, isSunday(day), day.toISOString()))}
+                                        <TableCell className="text-center font-bold sticky right-[64px] bg-background z-10 p-1">{summary.present}</TableCell>
+                                        <TableCell className="text-center font-bold sticky right-[32px] bg-background z-10 p-1">{summary.absent}</TableCell>
+                                        <TableCell className="text-center font-bold sticky right-0 bg-background z-10 p-1">{summary.leave}</TableCell>
                                     </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {reportData.report.map(({ student, attendanceByDate, summary }: any) => (
-                                        <TableRow key={student.id}>
-                                            <TableCell className="font-medium sticky left-0 bg-background z-10 p-1 text-xs">{student.name}</TableCell>
-                                            {reportData.daysInMonth.map((day: Date) => getStatusCell(attendanceByDate[format(day, 'yyyy-MM-dd')]?.status, isSunday(day), day.toISOString()))}
-                                            <TableCell className="text-center font-bold sticky right-[64px] bg-background z-10 p-1">{summary.present}</TableCell>
-                                            <TableCell className="text-center font-bold sticky right-[32px] bg-background z-10 p-1">{summary.absent}</TableCell>
-                                            <TableCell className="text-center font-bold sticky right-0 bg-background z-10 p-1">{summary.leave}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </ScrollArea>
-                    </>
-                )}
-                
-                {!reportData && !isLoading && (
-                    <div className="text-center p-8 text-muted-foreground border rounded-lg bg-muted/30 h-96 flex items-center justify-center">
-                        <p>Select filters and click "Generate Report" to view the attendance sheet.</p>
-                    </div>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </ScrollArea>
                 )}
             </CardContent>
         </Card>
@@ -516,7 +526,7 @@ const IndividualReportView = ({ studentData, daysInMonth }: { studentData: any, 
                                             </Badge>
                                         ) : <Badge variant="outline">N/A</Badge>}
                                     </TableCell>
-                                    <TableCell>{record?.remarks || 'N/A'}</TableCell>
+                                    <TableCell>{record?.remarks || ''}</TableCell>
                                 </TableRow>
                             );
                         })}
