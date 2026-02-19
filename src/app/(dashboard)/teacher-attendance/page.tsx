@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -24,6 +23,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { openPrintWindow } from '@/lib/print-helper';
 
 type AttendanceStatus = 'Present' | 'Absent' | 'Leave' | 'Late';
 
@@ -135,7 +135,14 @@ const TeacherReportTab = () => {
     const { teachers, teacherAttendances } = useData();
     const { settings } = useSettings();
     const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null);
-    const [selectedMonth, setSelectedMonth] = useState(new Date());
+
+    const [selectedYear, setSelectedYear] = useState(getYear(new Date()));
+    const [selectedMonthIndex, setSelectedMonthIndex] = useState(getMonth(new Date()));
+    
+    const selectedMonth = useMemo(() => new Date(selectedYear, selectedMonthIndex), [selectedYear, selectedMonthIndex]);
+
+    const years = useMemo(() => Array.from({ length: 10 }, (_, i) => getYear(new Date()) - i), []);
+    const months = useMemo(() => Array.from({ length: 12 }, (_, i) => ({ value: i, label: format(new Date(0, i), 'MMMM') })), []);
 
     const teacherReportData = useMemo(() => {
         if (!selectedTeacherId) return null;
@@ -178,28 +185,7 @@ const TeacherReportTab = () => {
                 settings={settings}
             />
         );
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.write(`
-              <html>
-                <head>
-                  <title>Attendance - ${teacher.name}</title>
-                  <script src="https://cdn.tailwindcss.com"></script>
-                  <link rel="stylesheet" href="/print-styles.css" />
-                  <style>
-                    @media print {
-                      @page {
-                        size: A4 portrait;
-                      }
-                    }
-                  </style>
-                </head>
-                <body>${printContent}</body>
-              </html>
-            `);
-            printWindow.document.close();
-            printWindow.print();
-        }
+        openPrintWindow(printContent, `Attendance - ${teacher.name}`);
     };
     
     return (
@@ -214,10 +200,15 @@ const TeacherReportTab = () => {
                         <SelectTrigger className="md:w-1/3"><SelectValue placeholder="Select a teacher" /></SelectTrigger>
                         <SelectContent>{teachers.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
                     </Select>
-                    <div className="flex items-center gap-2">
-                        <Button variant="outline" size="icon" onClick={() => setSelectedMonth(prev => subMonths(prev, 1))}><ChevronLeft className="h-4 w-4" /></Button>
-                        <h3 className="text-lg font-semibold w-36 text-center">{format(selectedMonth, 'MMMM yyyy')}</h3>
-                        <Button variant="outline" size="icon" onClick={() => setSelectedMonth(prev => addMonths(prev, 1))}><ChevronRight className="h-4 w-4" /></Button>
+                     <div className="flex items-center gap-2">
+                         <Select value={String(selectedMonthIndex)} onValueChange={(m) => setSelectedMonthIndex(parseInt(m))}>
+                            <SelectTrigger className="w-[150px]"><SelectValue placeholder="Month" /></SelectTrigger>
+                            <SelectContent>{months.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                        <Select value={String(selectedYear)} onValueChange={(y) => setSelectedYear(parseInt(y))}>
+                            <SelectTrigger className="w-[120px]"><SelectValue placeholder="Year" /></SelectTrigger>
+                            <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+                        </Select>
                     </div>
                     <Button variant="outline" onClick={handlePrint} disabled={!selectedTeacherId}><Printer className="w-4 h-4 mr-2" /> Print Report</Button>
                 </div>
@@ -292,28 +283,7 @@ const MonthlySheetTab = () => {
     
     const handlePrint = () => {
         const printContent = renderToString(<TeacherAttendancePrintReport teachers={teachers} daysInMonth={monthlySheetData.daysInMonth} attendanceData={monthlySheetData.report} month={currentDate} settings={settings} />);
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.write(`
-                <html>
-                    <head>
-                        <title>Teacher Attendance - ${format(currentDate, 'MMMM yyyy')}</title>
-                        <script src="https://cdn.tailwindcss.com"></script>
-                        <link rel="stylesheet" href="/print-styles.css" />
-                        <style>
-                            @media print {
-                                @page {
-                                    size: A4 landscape;
-                                }
-                            }
-                        </style>
-                    </head>
-                    <body>${printContent}</body>
-                </html>
-            `);
-            printWindow.document.close();
-            printWindow.print();
-        }
+        openPrintWindow(printContent, `Teacher Attendance - ${format(currentDate, 'MMMM yyyy')}`);
     };
 
     const handleYearChange = (year: string) => {
@@ -463,4 +433,3 @@ const IndividualReportView = ({ teacherData, daysInMonth }: { teacherData: any, 
         </div>
     );
 };
-

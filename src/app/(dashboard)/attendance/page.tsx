@@ -177,7 +177,18 @@ const StudentReportTab = () => {
     const { settings } = useSettings();
     const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
     const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
-    const [selectedMonth, setSelectedMonth] = useState(new Date());
+    
+    const [selectedYear, setSelectedYear] = useState(getYear(new Date()));
+    const [selectedMonthIndex, setSelectedMonthIndex] = useState(getMonth(new Date()));
+
+    const selectedMonth = useMemo(() => new Date(selectedYear, selectedMonthIndex), [selectedYear, selectedMonthIndex]);
+
+    const years = useMemo(() => Array.from({ length: 10 }, (_, i) => getYear(new Date()) - i), []);
+    const months = useMemo(() => Array.from({ length: 12 }, (_, i) => ({
+        value: i,
+        label: format(new Date(0, i), 'MMMM')
+    })), []);
+
 
     const studentsInClass = useMemo(() => {
         if (!selectedClassId) return [];
@@ -249,9 +260,14 @@ const StudentReportTab = () => {
                         <SelectContent>{studentsInClass.map(s => <SelectItem key={s.id} value={s.id}>{s.name} (ID: {s.id})</SelectItem>)}</SelectContent>
                     </Select>
                     <div className="flex items-center gap-2">
-                        <Button variant="outline" size="icon" onClick={() => setSelectedMonth(prev => subMonths(prev, 1))}><ChevronLeft className="h-4 w-4" /></Button>
-                        <h3 className="text-lg font-semibold w-36 text-center">{format(selectedMonth, 'MMMM yyyy')}</h3>
-                        <Button variant="outline" size="icon" onClick={() => setSelectedMonth(prev => addMonths(prev, 1))}><ChevronRight className="h-4 w-4" /></Button>
+                         <Select value={String(selectedMonthIndex)} onValueChange={(m) => setSelectedMonthIndex(parseInt(m))}>
+                            <SelectTrigger className="w-[150px]"><SelectValue placeholder="Month" /></SelectTrigger>
+                            <SelectContent>{months.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                        <Select value={String(selectedYear)} onValueChange={(y) => setSelectedYear(parseInt(y))}>
+                            <SelectTrigger className="w-[120px]"><SelectValue placeholder="Year" /></SelectTrigger>
+                            <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+                        </Select>
                     </div>
                     <Button variant="outline" onClick={handlePrint} disabled={!selectedStudentId}><Printer className="w-4 h-4 mr-2" /> Print Report</Button>
                 </div>
