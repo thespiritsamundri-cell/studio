@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useData } from '@/context/data-context';
 import type { Exam as ExamType, ExamResult, Student, Class } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { FileSignature, PlusCircle, Trash2, Printer, Edit, Save, Loader2, MoreHorizontal, FileSpreadsheet, BarChart3, Clock, File, TestTube, ChevronsRight } from 'lucide-react';
+import { FileSignature, PlusCircle, Trash2, Printer, Edit, Save, Loader2, MoreHorizontal, FileSpreadsheet, BarChart3, Clock, File, TestTube, ChevronsRight, Download } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -26,6 +26,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SubjectSummaryPrintReport } from '@/components/reports/subject-summary-report';
 import { BlankExamMarksheetPrint } from '@/components/reports/blank-exam-marksheet-print';
+import { BlankMarksheetPrint } from '@/components/reports/blank-marksheet-print';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 
 const ExamDialog = ({
@@ -205,39 +208,65 @@ const BlankSheetDialog = ({ open, onOpenChange }: { open: boolean, onOpenChange:
     const { classes, students } = useData();
     const { settings } = useSettings();
     const { toast } = useToast();
-    
+
+    const [sheetType, setSheetType] = useState<'full' | 'single'>('full');
     const [selectedClass, setSelectedClass] = useState<Class | null>(null);
     const [examName, setExamName] = useState('');
-    const [subjectMarks, setSubjectMarks] = useState<{[key: string]: number}>({});
+    const [subjectMarks, setSubjectMarks] = useState<{ [key: string]: number }>({});
+    const [singleSubject, setSingleSubject] = useState('');
+    const [singleSubjectTotalMarks, setSingleSubjectTotalMarks] = useState(100);
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    const availableSubjects = useMemo(() => selectedClass?.subjects || [], [selectedClass]);
 
     useEffect(() => {
-        if(selectedClass) {
-            const initialMarks: {[key: string]: number} = {};
-            selectedClass.subjects.forEach(s => initialMarks[s] = 100);
-            setSubjectMarks(initialMarks);
+        if (selectedClass) {
+            setSubjectMarks(selectedClass.subjects.reduce((acc, s) => ({ ...acc, [s]: 100 }), {}));
+            setSingleSubject('');
         } else {
             setSubjectMarks({});
+            setSingleSubject('');
         }
     }, [selectedClass]);
 
+    const getPrintComponent = () => {
+        if (!selectedClass || !examName) return null;
+        const studentsToPrint = students.filter(s => s.class === selectedClass.name && s.status === 'Active');
+
+        if (sheetType === 'single') {
+            if (!singleSubject) return null;
+            return (
+                <BlankMarksheetPrint
+                    testName={examName}
+                    className={selectedClass.name}
+                    subject={singleSubject}
+                    students={studentsToPrint}
+                    totalMarks={singleSubjectTotalMarks}
+                    settings={settings}
+                />
+            );
+        } else { // 'full'
+            return (
+                <BlankExamMarksheetPrint
+                    examName={examName}
+                    className={selectedClass.name}
+                    subjects={selectedClass.subjects}
+                    students={studentsToPrint}
+                    subjectTotals={subjectMarks}
+                    settings={settings}
+                />
+            );
+        }
+    };
+
     const handlePrint = () => {
-        if (!selectedClass || !examName) {
-            toast({ title: 'Missing Information', variant: 'destructive'});
+        const component = getPrintComponent();
+        if (!component) {
+            toast({ title: 'Missing Information', description: "Please fill out all required fields.", variant: 'destructive' });
             return;
         }
 
-        const studentsToPrint = students.filter(s => s.class === selectedClass.name);
-        
-        const printContent = renderToString(
-            <BlankExamMarksheetPrint
-                examName={examName}
-                className={selectedClass.name}
-                subjects={selectedClass.subjects}
-                students={studentsToPrint}
-                subjectTotals={subjectMarks}
-                settings={settings}
-            />
-        );
+        const printContent = renderToString(component);
         const printWindow = window.open('', '_blank');
         if (printWindow) {
             printWindow.document.write(`<html><head><title>Blank Marksheet - ${examName}</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="/print-styles.css" /></head><body>${printContent}</body></html>`);
@@ -247,37 +276,99 @@ const BlankSheetDialog = ({ open, onOpenChange }: { open: boolean, onOpenChange:
         onOpenChange(false);
     };
 
+    const handleDownloadPdf = async () => {
+        const component = getPrintComponent();
+        if (!component) {
+            toast({ title: 'Missing Information', description: "Please fill out all required fields.", variant: 'destructive' });
+            return;
+        }
+
+        setIsProcessing(true);
+        const printContent = renderToString(component);
+        const container = document.createElement('div');
+        container.style.position = 'absolute';
+        container.style.left = '-9999px';
+        container.innerHTML = printContent;
+        document.body.appendChild(container);
+
+        try {
+            const canvas = await html2canvas(container.firstChild as HTMLElement, { scale: 2, useCORS: true });
+            const imgData = canvas.toDataURL('image/png');
+            
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const ratio = Math.min(pdfWidth / canvas.width, pdfHeight / canvas.height);
+            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width * ratio, canvas.height * ratio);
+            pdf.save(`blank-marksheet-${examName.replace(/ /g, '_')}.pdf`);
+        } catch (error) {
+            console.error("PDF generation failed", error);
+            toast({ title: 'PDF Generation Failed', variant: 'destructive'});
+        } finally {
+            document.body.removeChild(container);
+            setIsProcessing(false);
+            onOpenChange(false);
+        }
+    };
+
     return (
-         <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>Print Blank Marksheet</DialogTitle>
-                    <DialogDescription>Select a class and define the test details to print a blank marksheet for manual entry.</DialogDescription>
+                    <DialogDescription>Generate a blank marksheet for manual entry.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
-                     <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2"><Label>Class</Label><Select onValueChange={(val) => setSelectedClass(classes.find(c => c.name === val) || null)}><SelectTrigger><SelectValue placeholder="Select class"/></SelectTrigger><SelectContent>{classes.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent></Select></div>
-                        <div className="space-y-2"><Label>Exam/Test Name</Label><Input value={examName} onChange={e => setExamName(e.target.value)} placeholder="e.g., Monthly Test"/></div>
-                     </div>
-                     {selectedClass && (
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2"><Label>Class</Label><Select onValueChange={(val) => setSelectedClass(classes.find(c => c.name === val) || null)}><SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger><SelectContent>{classes.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent></Select></div>
+                        <div className="space-y-2"><Label>Exam/Test Name</Label><Input value={examName} onChange={e => setExamName(e.target.value)} placeholder="e.g., Monthly Test" /></div>
+                    </div>
+                     <div className="space-y-2">
+                        <Label>Marksheet Type</Label>
+                        <RadioGroup value={sheetType} onValueChange={(v) => setSheetType(v as any)} className="flex gap-4">
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="full" id="type-full" /> <Label htmlFor="type-full">Full Exam</Label></div>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="single" id="type-single" /> <Label htmlFor="type-single">Single Subject</Label></div>
+                        </RadioGroup>
+                    </div>
+
+                    {selectedClass && sheetType === 'full' && (
                         <div className="space-y-2">
-                             <Label>Total Marks per Subject</Label>
-                             <ScrollArea className="h-48 border rounded-md p-4">
+                            <Label>Total Marks per Subject</Label>
+                            <ScrollArea className="h-48 border rounded-md p-4">
                                 <div className="grid grid-cols-2 gap-4">
-                                {selectedClass.subjects.map(subject => (
-                                    <div key={subject} className="flex items-center gap-2">
-                                        <Label className="w-24 text-right">{subject}</Label>
-                                        <Input type="number" value={subjectMarks[subject] || ''} onChange={(e) => setSubjectMarks(prev => ({...prev, [subject]: Number(e.target.value)}))} />
-                                    </div>
-                                ))}
+                                    {availableSubjects.map(subject => (
+                                        <div key={subject} className="flex items-center gap-2">
+                                            <Label className="w-24 text-right">{subject}</Label>
+                                            <Input type="number" value={subjectMarks[subject] || ''} onChange={(e) => setSubjectMarks(prev => ({ ...prev, [subject]: Number(e.target.value) }))} />
+                                        </div>
+                                    ))}
                                 </div>
-                             </ScrollArea>
+                            </ScrollArea>
                         </div>
-                     )}
+                    )}
+                    {selectedClass && sheetType === 'single' && (
+                         <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Subject</Label>
+                                <Select onValueChange={setSingleSubject} value={singleSubject}><SelectTrigger><SelectValue placeholder="Select subject"/></SelectTrigger><SelectContent>{availableSubjects.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Total Marks</Label>
+                                <Input type="number" value={singleSubjectTotalMarks} onChange={e => setSingleSubjectTotalMarks(Number(e.target.value))}/>
+                            </div>
+                        </div>
+                    )}
                 </div>
                 <DialogFooter>
                     <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-                    <Button onClick={handlePrint}>Print</Button>
+                    <Button onClick={handleDownloadPdf} disabled={isProcessing}>
+                        {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Download className="mr-2 h-4 w-4"/>}
+                        PDF
+                    </Button>
+                    <Button onClick={handlePrint} disabled={isProcessing}>
+                        {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Printer className="mr-2 h-4 w-4"/>}
+                        Print
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -318,6 +409,9 @@ export default function ExamsPage() {
   const subjects = useMemo(() => {
     if (!selectedExam) return [];
     if (selectedExam.examType === 'Single Subject' && selectedExam.subject) {
+        return [selectedExam.subject];
+    }
+    if (selectedExam.examType === 'Manual' && selectedExam.subject) {
         return [selectedExam.subject];
     }
     return Object.keys(selectedExam.subjectTotals);
@@ -467,8 +561,8 @@ export default function ExamsPage() {
 
   const masterSheetTests = useMemo(() => {
     if (!masterSheetClass || !masterSheetSubject) return [];
-    return exams.filter(e => e.class === masterSheetClass && e.examType === 'Single Subject' && e.subject === masterSheetSubject)
-      .sort((a, b) => new Date(a.submissionDeadline || 0).getTime() - new Date(b.submissionDeadline || 0).getTime());
+    return exams.filter(e => e.class === masterSheetClass && (e.examType === 'Single Subject' || e.examType === 'Manual') && e.subject === masterSheetSubject)
+      .sort((a, b) => new Date(a.submissionDeadline || a.id).getTime() - new Date(b.submissionDeadline || b.id).getTime());
   }, [masterSheetClass, masterSheetSubject, exams]);
 
   const masterSheetStudents = useMemo(() => {
@@ -524,7 +618,7 @@ export default function ExamsPage() {
           <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete this exam and all its results. This action cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={confirmDeleteExam} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
       </AlertDialog>
 
-       <Tabs defaultValue="exam-history" className="w-full">
+       <Tabs defaultValue="overview" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="exam-history">Exam History</TabsTrigger>
@@ -702,7 +796,7 @@ export default function ExamsPage() {
                                     <TableRow>
                                         <TableHead>Student Name</TableHead>
                                         {masterSheetTests.map(test => (
-                                            <TableHead key={test.id} className="text-center">{test.name}<br/>({format(new Date(test.submissionDeadline!), 'dd-MMM')})</TableHead>
+                                            <TableHead key={test.id} className="text-center">{test.name}<br/>({test.submissionDeadline ? format(new Date(test.submissionDeadline), 'dd-MMM') : 'N/A'})</TableHead>
                                         ))}
                                         <TableHead className="text-right font-bold">Overall %</TableHead>
                                     </TableRow>
@@ -713,7 +807,8 @@ export default function ExamsPage() {
                                         let grandObtained = 0;
                                         masterSheetTests.forEach(test => {
                                             grandTotal += test.totalMarks;
-                                            grandObtained += test.results.find(r => r.studentId === student.id)?.marks[masterSheetSubject] || 0;
+                                            const marks = test.results.find(r => r.studentId === student.id)?.marks[masterSheetSubject];
+                                            grandObtained += (typeof marks === 'number' ? marks : 0);
                                         });
                                         const overallPercentage = grandTotal > 0 ? ((grandObtained / grandTotal) * 100) : 0;
 
