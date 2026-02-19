@@ -51,6 +51,7 @@ interface DataContextType {
   addFee: (feeData: Omit<Fee, 'id'>) => Promise<string | undefined>;
   updateFee: (id: string, fee: Partial<Fee>) => Promise<void>;
   deleteFee: (id: string) => void;
+  generateMonthlyFees: () => Promise<number>;
   addTeacher: (teacher: Omit<Teacher, 'id'>) => Promise<void>;
   updateTeacher: (id: string, teacher: Partial<Teacher>) => Promise<void>;
   deleteTeacher: (id: string) => Promise<void>;
@@ -59,7 +60,7 @@ interface DataContextType {
   addClass: (newClass: Class) => Promise<void>;
   updateClass: (id: string, updatedClass: Partial<Class>) => Promise<void>;
   deleteClass: (id: string) => Promise<void>;
-  addExam: (exam: Exam) => Promise<void>;
+  addExam: (exam: Omit<Exam, 'id' | 'results'>) => Promise<string | undefined>;
   updateExam: (id: string, exam: Partial<Exam>) => Promise<void>;
   deleteExam: (id: string) => Promise<void>;
   addSingleSubjectTest: (test: Omit<SingleSubjectTest, 'id'>) => Promise<string | undefined>;
@@ -135,81 +136,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [currentUserName]);
 
-  const addFee = useCallback(async (feeData: Omit<Fee, 'id'>) => {
-    try {
-        const newDocRef = await addDoc(collection(db, "fees"), feeData);
-        return newDocRef.id;
-    } catch (e) {
-        console.error('Error adding fee:', e);
-        toast({ title: 'Error Adding Fee', variant: 'destructive' });
-    }
-  }, [toast]);
-
-    useEffect(() => {
-        const generateMonthlyFees = async () => {
-            if (!isDataInitialized || !families.length || !settings.timezone) return;
-
-            const currentDate = new Date();
-            const feeGenerationKey = `feesGeneratedFor_${format(currentDate, 'yyyy-MM')}`;
-
-            if (sessionStorage.getItem(feeGenerationKey)) {
-                return;
-            }
-
-            console.log(`Checking for fee generation up to ${format(currentDate, 'MMMM yyyy')}...`);
-            let generatedCount = 0;
-
-            for (const family of families) {
-                 const familyStudents = students.filter(s => s.familyId === family.id);
-                 const hasEnrolledStudents = familyStudents.some(s => s.status === 'Active' || s.status === 'Inactive');
-
-                if (!hasEnrolledStudents) continue;
-                
-                const familyFees = fees.filter(f => f.familyId === family.id);
-                
-                const lastFee = familyFees
-                    .filter(f => !['Registration', 'Annual', 'Admission'].some(type => f.month.includes(type)))
-                    .sort((a,b) => (b.year - a.year) || (getMonth(new Date(`${b.month} 1, 2000`)) - getMonth(new Date(`${a.month} 1, 2000`))))[0];
-                
-                if (!lastFee) continue;
-
-                const lastFeeDate = new Date(lastFee.year, getMonth(new Date(`${lastFee.month} 1, 2000`)));
-                
-                const monthsToGenerate = eachMonthOfInterval({
-                    start: addMonths(lastFeeDate, 1),
-                    end: currentDate
-                });
-                
-                for (const monthDate of monthsToGenerate) {
-                    const month = format(monthDate, 'MMMM');
-                    const year = getYear(monthDate);
-
-                    const feeAlreadyExists = familyFees.some(f => f.month === month && f.year === year);
-                    if (!feeAlreadyExists) {
-                         await addFee({
-                            familyId: family.id,
-                            amount: lastFee.amount,
-                            month: month,
-                            year: year,
-                            status: 'Unpaid',
-                            paymentDate: ''
-                        });
-                        generatedCount++;
-                    }
-                }
-            }
-            
-            if (generatedCount > 0) {
-                toast({ title: 'Fees Generated', description: `Generated ${generatedCount} new monthly fee challans.`});
-                addActivityLog({ action: 'Auto-Generate Fees', description: `Generated ${generatedCount} new monthly fee challans.` });
-            }
-            
-            sessionStorage.setItem(feeGenerationKey, 'true');
-        };
-
-        generateMonthlyFees();
-    }, [isDataInitialized, families, students, fees, addFee, addActivityLog, toast, settings.timezone]);
-
   const addNotification = useCallback(async (notification: Omit<AppNotification, 'id' | 'timestamp' | 'isRead'>) => {
       const superAdmin = users.find(u => u.role === 'super_admin');
       if (!superAdmin) return;
@@ -225,13 +151,124 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
   }, [users]);
 
+  const addFee = useCallback(async (feeData: Omit<Fee, 'id'>) => {
+    try {
+        const newDocRef = await addDoc(collection(db, "fees"), feeData);
+        if (userRole !== 'super_admin' && feeData.status === 'Paid') {
+            const family = families.find(f => f.id === feeData.familyId);
+            await addNotification({
+                title: 'Fee Collected',
+                description: `PKR ${feeData.amount.toLocaleString()} collected from ${family?.fatherName} (Family ID: ${feeData.familyId})`,
+                link: `/income?familyId=${feeData.familyId}`
+            });
+        }
+        return newDocRef.id;
+    } catch (e) {
+        console.error('Error adding fee:', e);
+        toast({ title: 'Error Adding Fee', variant: 'destructive' });
+    }
+  }, [toast, userRole, families, addNotification]);
+
+  const generateMonthlyFees = useCallback(async (): Promise<number> => {
+    const currentDate = new Date();
+    let generatedCount = 0;
+    const monthOrder = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+    try {
+        for (const family of families) {
+            const hasActiveStudents = students.some(s => s.familyId === family.id && s.status === 'Active');
+            if (!hasActiveStudents) continue;
+
+            const familyFees = fees.filter(f => f.familyId === family.id);
+            const lastTuitionFee = familyFees
+                .filter(f => !['Registration', 'Annual', 'Admission'].some(type => f.month.includes(type)))
+                .sort((a, b) => {
+                    const dateA = new Date(a.year, monthOrder.indexOf(a.month));
+                    const dateB = new Date(b.year, monthOrder.indexOf(b.month));
+                    return dateB.getTime() - dateA.getTime();
+                })[0];
+            
+            if (!lastTuitionFee) continue;
+
+            let nextFeeDate = new Date(lastTuitionFee.year, monthOrder.indexOf(lastTuitionFee.month));
+            nextFeeDate = addMonths(nextFeeDate, 1);
+            
+            while (nextFeeDate <= currentDate) {
+                const month = format(nextFeeDate, 'MMMM');
+                const year = getYear(nextFeeDate);
+
+                const feeAlreadyExists = familyFees.some(f => f.month === month && f.year === year);
+                if (!feeAlreadyExists) {
+                    await addFee({
+                        familyId: family.id,
+                        amount: lastTuitionFee.amount,
+                        month: month,
+                        year: year,
+                        status: 'Unpaid',
+                        paymentDate: ''
+                    });
+                    generatedCount++;
+                }
+                
+                nextFeeDate = addMonths(nextFeeDate, 1);
+            }
+        }
+        
+        if (generatedCount > 0) {
+            toast({ title: 'Fees Generated', description: `Automatically generated ${generatedCount} new monthly fee challans.`});
+            await addActivityLog({ action: 'Auto-Generate Fees', description: `Automatically generated ${generatedCount} new monthly fee challans.` });
+        }
+        return generatedCount;
+    } catch (error) {
+        console.error("Error during automatic fee generation:", error);
+        toast({ title: 'Fee Generation Failed', description: 'An error occurred during automatic fee generation.', variant: 'destructive' });
+        return 0;
+    }
+  }, [families, students, fees, addFee, addActivityLog, toast]);
+
+  const hasPermission = useCallback((permission: keyof PermissionSet) => {
+    if (userRole === 'super_admin') return true;
+    return userPermissions[permission] || false;
+  }, [userRole, userPermissions]);
+
+  useEffect(() => {
+    if (!isDataInitialized || !hasPermission('feeCollection')) return;
+
+    const runAutoFeeGeneration = async () => {
+      const today = new Date();
+      const isFirstDay = today.getDate() === 1;
+
+      if (!isFirstDay) {
+        return;
+      }
+      
+      const currentMonthKey = `feeGeneration-${format(today, 'yyyy-MM')}`;
+      const hasRunThisMonth = localStorage.getItem(currentMonthKey);
+
+      if (hasRunThisMonth) {
+        return;
+      }
+
+      console.log('Running automatic monthly fee generation...');
+      const count = await generateMonthlyFees();
+      
+      if (count >= 0) {
+        localStorage.setItem(currentMonthKey, 'true');
+      }
+    };
+
+    runAutoFeeGeneration();
+
+  }, [isDataInitialized, generateMonthlyFees, hasPermission]);
+
+
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
         if (user) {
             const userDocRef = doc(db, 'users', user.uid);
             const userUnsubscribe = onSnapshot(userDocRef, (userDocSnap) => {
                  if (!userDocSnap.exists()) {
-                    console.error("User document not found in Firestore!");
+                    console.error("User document not found in Firestore! Signing out.");
                     auth.signOut();
                     return;
                 }
@@ -240,7 +277,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 setUserPermissions(userData.permissions || defaultPermissions);
                 setCurrentUserName(userData.name || 'Unknown User');
 
-                const generalCollections = [
+                // The app is "initialized" once we have the user's identity and permissions.
+                // The main app shell can now render safely.
+                setIsDataInitialized(true);
+
+                // Set up listeners for all other collections. The data will flow in
+                // and update the UI reactively in the background.
+                const collectionsToListen = [
                     'students', 'families', 'fees', 'teachers', 'attendances', 
                     'teacherAttendances', 'alumni', 'classes', 'exams', 'singleSubjectTests', 'activityLog', 
                     'expenses', 'timetables', 'users', 'sessions'
@@ -250,13 +293,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
                     students: setStudents, families: setFamilies, fees: setFees, teachers: setTeachers,
                     attendances: setAttendances, teacherAttendances: setTeacherAttendances, alumni: setAlumni,
                     classes: setClasses, exams: setExams, singleSubjectTests: setSingleSubjectTests, activityLog: setActivityLog, expenses: setExpenses,
-                    timetables: setTimetables, users: setUsers, sessions: setSessions, notifications: setNotifications
+                    timetables: setTimetables, users: setUsers, sessions: setSessions
                 };
             
-                const listeners = generalCollections.map(collectionName => {
+                const listeners = collectionsToListen.map(collectionName => {
                     const setter = setterMap[collectionName];
                     let q = collection(db, collectionName);
-                    // For sessions, only fetch for the current user
                     if (collectionName === 'sessions') {
                        q = query(q, where('userId', '==', user.uid));
                     }
@@ -274,23 +316,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 });
     
                 if (userData.role === 'super_admin') {
-                    const adminCollections = ['notifications'];
-                    adminCollections.forEach(collectionName => {
-                        const setter = setterMap[collectionName];
-                        const unsub = onSnapshot(collection(db, collectionName), (snapshot) => {
-                            const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                             if (collectionName === 'notifications') {
-                                data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-                            }
-                            setter(data as any);
-                        }, (error) => console.error(`Error fetching ${collectionName}:`, error));
-                        listeners.push(unsub);
-                    });
+                    const unsub = onSnapshot(collection(db, "notifications"), (snapshot) => {
+                        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+                        setNotifications(data as any);
+                    }, (error) => console.error(`Error fetching notifications:`, error));
+                    listeners.push(unsub);
                 } else {
                     setNotifications([]);
                 }
-                
-                setIsDataInitialized(true);
                 
                 return () => listeners.forEach(unsub => unsub());
             });
@@ -308,12 +342,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return () => unsubscribeAuth();
   }, []);
   
-  const hasPermission = useCallback((permission: keyof PermissionSet) => {
-    if (userRole === 'super_admin') return true;
-    return userPermissions[permission] || false;
-  }, [userRole, userPermissions]);
-  
-
   const clearActivityLog = useCallback(async () => {
     try {
       const activityLogRef = collection(db, 'activityLog');
@@ -503,17 +531,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const deleteFamily = useCallback(async (id: string) => {
     try {
       const batch = writeBatch(db);
+      
+      // Delete family doc
       const familyRef = doc(db, 'families', id);
       batch.delete(familyRef);
+      
+      // Delete associated students
       const studentsQuery = query(collection(db, 'students'), where('familyId', '==', id));
       const studentsSnapshot = await getDocs(studentsQuery);
       studentsSnapshot.forEach((doc) => batch.delete(doc.ref));
+      
+      // Delete associated fees
       const feesQuery = query(collection(db, 'fees'), where('familyId', '==', id));
       const feesSnapshot = await getDocs(feesQuery);
       feesSnapshot.forEach((doc) => batch.delete(doc.ref));
+
       await batch.commit();
-      await addActivityLog({ action: 'Delete Family', description: `Deleted family ID: ${id} and associated records.`});
-      toast({ title: 'Family Deleted', description: 'The family and all associated records have been permanently deleted.' });
+      
+      await addActivityLog({ action: 'Delete Family', description: `Deleted family ID: ${id} and all associated records.`});
+      toast({ title: 'Family Deleted', description: 'The family and all associated student and fee records have been permanently deleted.' });
     } catch (e) {
       console.error('Error deleting family and associated data:', e);
       toast({ title: 'Error Deleting Family', variant: 'destructive' });
@@ -641,13 +677,19 @@ const deleteFee = useCallback(async (id: string) => {
   }, [classes, addActivityLog, toast]);
   
   // --- EXAM ---
-  const addExam = useCallback(async (exam: Exam) => {
+  const addExam = useCallback(async (examData: Omit<Exam, 'id' | 'results'>) => {
     try {
-      await setDoc(doc(db, 'exams', exam.id), exam);
-      await addActivityLog({ action: 'Create Exam', description: `Created exam "${exam.name}" for class ${exam.class}.` });
+        const newExam = {
+            ...examData,
+            id: `EXAM-${Date.now()}`,
+            results: []
+        };
+        await setDoc(doc(db, 'exams', newExam.id), newExam);
+        await addActivityLog({ action: 'Create Exam', description: `Created exam "${examData.name}" for class ${examData.class}.` });
+        return newExam.id;
     } catch (e) {
-      console.error('Error adding exam:', e);
-      toast({ title: 'Error Creating Exam', variant: 'destructive' });
+        console.error('Error adding exam:', e);
+        toast({ title: 'Error Creating Exam', variant: 'destructive' });
     }
   }, [addActivityLog, toast]);
 
@@ -694,8 +736,9 @@ const deleteFee = useCallback(async (id: string) => {
     // --- EXPENSE ---
     const addExpense = useCallback(async (expense: Omit<Expense, 'id'>) => {
         try {
-            const newId = `EXP-${Date.now()}`;
-            await setDoc(doc(db, "expenses", newId), { id: newId, ...expense });
+            const docRef = await addDoc(collection(db, "expenses"), expense);
+            await updateDoc(docRef, { id: docRef.id });
+            
             if (userRole !== 'super_admin') {
                 await addNotification({
                     title: 'New Expense Added',
@@ -721,48 +764,18 @@ const deleteFee = useCallback(async (id: string) => {
       }
     }, [addActivityLog, toast]);
     
-const deleteExpense = useCallback(async (id: string) => {
-    const expenseToDelete = expenses.find(exp => exp.id === id);
-    if (!expenseToDelete) {
-        toast({ title: 'Error', description: 'Could not find the expense to delete in local data.', variant: 'destructive' });
-        return;
-    }
-
-    try {
-        await runTransaction(db, async (transaction) => {
-            const expenseRef = doc(db, "expenses", id);
-            const expenseDoc = await transaction.get(expenseRef);
-
-            if (!expenseDoc.exists()) {
-                throw new Error("Expense document not found, cannot delete.");
-            }
-            const expenseData = expenseDoc.data() as Expense;
-
-            // Create reversal income record
-            const reversalFee: Omit<Fee, 'id'> = {
-                familyId: 'SYSTEM_REVERSAL',
-                amount: expenseData.amount,
-                month: `Expense Reversal: ${expenseData.description.substring(0, 20)}`,
-                year: new Date().getFullYear(),
-                paymentDate: new Date().toISOString(),
-                status: 'Paid',
-                paymentMethod: 'Adjustment',
-            };
-            const newFeeRef = doc(collection(db, "fees"));
-            transaction.set(newFeeRef, reversalFee);
-
-            // Delete the expense document
-            transaction.delete(expenseRef);
-        });
-
-        toast({ title: "Expense Deleted", description: "The expense has been deleted and the amount reversed into income." });
-        await addActivityLog({ action: 'Delete Expense', description: `Deleted and reversed expense ID: ${id}.` });
-
-    } catch (error: any) {
-        console.error("Error deleting expense:", error);
-        toast({ title: "Error Deleting Expense", description: error.message, variant: "destructive" });
-    }
-}, [expenses, addActivityLog, toast]);
+    const deleteExpense = useCallback(async (id: string) => {
+        const expenseToDelete = expenses.find(exp => exp.id === id);
+        if (!expenseToDelete) return;
+        try {
+          await deleteDoc(doc(db, 'expenses', id));
+          await addActivityLog({ action: 'Delete Expense', description: `Deleted expense: ${expenseToDelete.description}.` });
+          toast({ title: 'Expense Deleted', description: 'The expense record has been deleted.' });
+        } catch (e) {
+          console.error('Error deleting expense:', e);
+          toast({ title: 'Error Deleting Expense', variant: 'destructive' });
+        }
+    }, [expenses, addActivityLog, toast]);
 
   // --- ATTENDANCE ---
   const saveStudentAttendance = useCallback(async (newAttendances: Attendance[], date: string, className: string) => {
@@ -819,7 +832,7 @@ const deleteExpense = useCallback(async (id: string) => {
       classes, exams, singleSubjectTests, activityLog, expenses, timetables, users, sessions, notifications,
       userRole, userPermissions, isDataInitialized, hasPermission,
       addStudent, updateStudent, updateAlumni, deleteStudent, addFamily, updateFamily, 
-      deleteFamily, addFee, updateFee, deleteFee, addTeacher, updateTeacher,
+      deleteFamily, addFee, updateFee, deleteFee, generateMonthlyFees, addTeacher, updateTeacher,
       deleteTeacher, saveStudentAttendance, saveTeacherAttendance, addClass,
       updateClass, deleteClass, addExam, updateExam, deleteExam, addSingleSubjectTest, updateSingleSubjectTest, deleteSingleSubjectTest, addActivityLog,
       clearActivityLog, addExpense, updateExpense, deleteExpense, updateTimetable,

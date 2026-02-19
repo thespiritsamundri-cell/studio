@@ -38,7 +38,11 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { openPrintWindow } from '@/lib/print-helper';
 
+const MALE_AVATAR_URL = 'https://i.postimg.cc/x1BZ31bs/male.png';
+const FEMALE_AVATAR_URL = 'https://i.postimg.cc/7hgPwR8W/1487318.png';
+const NEUTRAL_AVATAR_URL = 'https://i.postimg.cc/3Jp4JMfC/avatar-placeholder.png';
 
 export default function StudentsPage() {
   const { students: allStudents, families: allFamilies, classes, updateStudent } = useData();
@@ -70,10 +74,8 @@ export default function StudentsPage() {
     let students = allStudents;
 
     if (isViewingArchivedFamily && familyIdFromQuery) {
-        // If we are specifically viewing an archived family, show all their students.
         students = students.filter((student) => student.familyId === familyIdFromQuery);
     } else {
-        // Otherwise, show active students and filter normally.
         students = students.filter(s => s.status !== 'Archived');
         
         if (familyIdFromQuery) {
@@ -86,11 +88,13 @@ export default function StudentsPage() {
     }
 
     if (searchQuery) {
+       const lowercasedQuery = searchQuery.toLowerCase().replace(/-/g, '');
        students = students.filter((student) =>
         student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        student.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        student.id.toLowerCase().includes(lowercasedQuery) ||
         student.fatherName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        student.familyId.toLowerCase().includes(searchQuery.toLowerCase())
+        student.familyId.toLowerCase().includes(lowercasedQuery) ||
+        (student.cnic && student.cnic.replace(/-/g, '').includes(lowercasedQuery))
       );
     }
     
@@ -111,22 +115,7 @@ export default function StudentsPage() {
         <AllStudentsPrintReport students={studentsToExport} date={reportDate} settings={settings} />
     );
 
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-        printWindow.document.write(`
-            <html>
-                <head>
-                    <title>Selected Students Report</title>
-                    <script src="https://cdn.tailwindcss.com"></script>
-                </head>
-                <body>
-                    ${printContent}
-                </body>
-            </html>
-        `);
-        printWindow.document.close();
-        printWindow.focus();
-    }
+    openPrintWindow(printContent, 'Selected Students Report');
   };
 
 
@@ -296,7 +285,7 @@ export default function StudentsPage() {
                       alt="Student image"
                       className="aspect-square rounded-md object-cover"
                       height="64"
-                      src={student.photoUrl || `https://picsum.photos/seed/${student.id}/64/64`}
+                      src={student.photoUrl || (student.gender === 'Male' ? MALE_AVATAR_URL : student.gender === 'Female' ? FEMALE_AVATAR_URL : NEUTRAL_AVATAR_URL)}
                       width="64"
                       data-ai-hint="student photo"
                     />

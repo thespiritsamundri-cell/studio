@@ -1,0 +1,67 @@
+@page {
+    size: A4 portrait;
+    margin: 0.25in;
+}
+
+body.thermal-receipt-body {
+    @page {
+        size: 101.6mm 152.4mm;
+        margin: 0;
+    }
+}
+
+.voucher-page {
+    page-break-after: always;
+}
+
+.voucher-page:last-child {
+    page-break-after: auto;
+}
+
+[data-print-copies="1"] .voucher-page {
+    page-break-inside: avoid;
+}
+
+[data-print-copies="1"] .voucher-wrapper {
+    page-break-after: always;
+    height: 98vh;
+    width: 100%;
+}
+
+[data-print-copies="1"] .voucher-page:last-child .voucher-wrapper:last-child {
+    page-break-after: auto;
+}
+
+[data-print-copies="2"] .voucher-page {
+    page-break-inside: avoid;
+    display: flex;
+    flex-direction: column;
+    height: 98vh;
+    justify-content: space-between;
+    gap: 0.25in;
+}
+
+[data-print-copies="2"] .voucher-wrapper {
+    height: 48%;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+[data-print-copies="2"] .voucher-wrapper:nth-child(3) {
+    page-break-before: always;
+}
+
+[data-print-copies="3"] .voucher-page {
+    page-break-inside: avoid;
+    display: flex;
+    flex-direction: column;
+    height: 98vh;
+    justify-content: space-between;
+    gap: 0.25in;
+}
+
+[data-print-copies="3"] .voucher-wrapper {
+    height: 32%;
+    width: 100%;
+    box-sizing: border-box;
+}

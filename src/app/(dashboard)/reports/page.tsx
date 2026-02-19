@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -20,6 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { renderToString } from 'react-dom/server';
 import { useSettings } from '@/context/settings-context';
 import type { Family, Student, Fee } from '@/lib/types';
+import { openPrintWindow } from '@/lib/print-helper';
 
 interface UnpaidFamilyData {
   family: Family;
@@ -38,6 +40,9 @@ export default function ReportsPage() {
   // Attendance states
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [attendanceDate, setAttendanceDate] = useState<Date | undefined>(new Date());
+  
+  // Unpaid Fees state
+  const [unpaidClassFilter, setUnpaidClassFilter] = useState('all');
 
   const getStudentFinancialData = (): StudentFinancialData[] => {
       return allStudents.map(student => {
@@ -110,17 +115,7 @@ export default function ReportsPage() {
                 settings={settings}
             />
         );
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.write(`
-                <html>
-                <head><title>Student Financial Report</title><script src="https://cdn.tailwindcss.com"></script></head>
-                <body>${printContent}</body>
-                </html>
-            `);
-            printWindow.document.close();
-            printWindow.focus();
-        }
+        openPrintWindow(printContent, 'Student Financial Report');
         toast({ title: 'Report Generated', description: 'The student financial report is ready for printing.' });
     } catch (error) {
         toast({ title: 'Error Generating Report', variant: 'destructive' });
@@ -194,18 +189,26 @@ export default function ReportsPage() {
             return acc;
           }, {} as Record<string, Fee[]>);
 
-        const unpaidData: UnpaidFamilyData[] = Object.keys(unpaidFeesByFamily)
+        let unpaidData: UnpaidFamilyData[] = Object.keys(unpaidFeesByFamily)
           .map(familyId => {
             const family = families.find(f => f.id === familyId);
-            if (!family) return null;
+            if (!family || family.status === 'Archived') return null;
 
-            const students = allStudents.filter(s => s.familyId === familyId);
+            const students = allStudents.filter(s => s.familyId === familyId && s.status !== 'Archived');
+            if (students.length === 0) return null;
+
             const unpaidFees = unpaidFeesByFamily[familyId];
             const totalDue = unpaidFees.reduce((sum, fee) => sum + fee.amount, 0);
 
             return { family, students, unpaidFees, totalDue };
           })
           .filter((item): item is UnpaidFamilyData => item !== null);
+          
+        if (unpaidClassFilter !== 'all') {
+            unpaidData = unpaidData.filter(item => 
+                item.students.some(student => student.class === unpaidClassFilter)
+            );
+        }
 
         const grandTotalDue = unpaidData.reduce((sum, item) => sum + item.totalDue, 0);
 
@@ -221,23 +224,7 @@ export default function ReportsPage() {
       }
 
       if (printContent) {
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-          printWindow.document.write(`
-            <html>
-              <head>
-                <title>${reportTitle}</title>
-                <script src="https://cdn.tailwindcss.com"></script>
-                <link rel="stylesheet" href="/print-styles.css">
-              </head>
-              <body>
-                ${printContent}
-              </body>
-            </html>
-          `);
-          printWindow.document.close();
-          printWindow.focus();
-        }
+        openPrintWindow(printContent, reportTitle);
       }
 
       setIsLoading(null);
@@ -331,11 +318,23 @@ export default function ReportsPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            <Select onValueChange={setUnpaidClassFilter} value={unpaidClassFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by class..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Classes</SelectItem>
+                {classes.map(c => (
+                  <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button
               variant="destructive"
               onClick={() => generateReport('unpaid-fees')}
               disabled={isLoading === 'unpaid-fees'}
+              className="w-full"
             >
               {isLoading === 'unpaid-fees'
                 ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -405,5 +404,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-
-    

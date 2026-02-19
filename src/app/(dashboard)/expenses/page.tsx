@@ -32,6 +32,7 @@ import { Label } from '@/components/ui/label';
 import { ExpenseVoucherPrint } from '@/components/reports/expense-voucher-print';
 import { renderToString } from 'react-dom/server';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { openPrintWindow } from '@/lib/print-helper';
 
 export default function ExpensesPage() {
   const { expenses, addExpense, updateExpense, deleteExpense } = useData();
@@ -173,22 +174,7 @@ export default function ExpensesPage() {
     const printContent = renderToString(
       <ExpenseVoucherPrint expense={expense} settings={settings} />
     );
-    const printWindow = window.open('', '_blank');
-    if(printWindow) {
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Expense Voucher - ${expense.id}</title>
-            <script src="https://cdn.tailwindcss.com"></script>
-          </head>
-          <body>
-            ${printContent}
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.focus();
-    }
+    openPrintWindow(printContent, `Expense Voucher - ${expense.id}`);
   };
 
   return (
@@ -236,11 +222,11 @@ export default function ExpensesPage() {
                 <Table>
                 <TableHeader>
                     <TableRow>
-                    <TableHead>Voucher ID</TableHead>
+                    <TableHead className="hidden md:table-cell">Voucher ID</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead>Description</TableHead>
-                    <TableHead>Vendor</TableHead>
+                    <TableHead className="hidden lg:table-cell">Vendor</TableHead>
                     <TableHead className="text-right">Amount (PKR)</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -248,11 +234,11 @@ export default function ExpensesPage() {
                 <TableBody>
                     {filteredExpenses.map((expense) => (
                     <TableRow key={expense.id}>
-                        <TableCell>{expense.id}</TableCell>
+                        <TableCell className="hidden md:table-cell">{expense.id}</TableCell>
                         <TableCell className="font-medium">{expense.date ? format(new Date(expense.date), 'PPP') : 'N/A'}</TableCell>
                         <TableCell>{expense.category}</TableCell>
                         <TableCell>{expense.description}</TableCell>
-                        <TableCell>{expense.vendor || 'N/A'}</TableCell>
+                        <TableCell className="hidden lg:table-cell">{expense.vendor || 'N/A'}</TableCell>
                         <TableCell className="text-right font-semibold text-destructive">{expense.amount.toLocaleString()}</TableCell>
                         <TableCell className="text-right">
                             <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(expense)}>

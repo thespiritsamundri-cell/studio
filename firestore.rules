@@ -7,6 +7,25 @@ service cloud.firestore {
       allow read, write: if request.auth.uid == userId;
     }
 
+    // --- Public Profile Rules ---
+    // These allow anyone to read specific documents needed for the public profiles.
+    match /students/{studentId} {
+      allow get: if true;
+      allow list: if true; // For family profile page that queries students by familyId
+    }
+    match /alumni/{alumniId} {
+      allow get: if true;
+    }
+    match /families/{familyId} {
+      allow get: if true;
+    }
+     match /teachers/{teacherId} {
+      allow get: if true;
+    }
+     match /fees/{feeId} {
+      allow list: if true; // For family profile page that queries fees by familyId
+    }
+     
     // Make receipts publicly readable
     match /receipts/{receiptId} {
       allow get: if true;

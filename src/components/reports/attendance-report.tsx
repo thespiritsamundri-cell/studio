@@ -9,7 +9,7 @@ import type { SchoolSettings } from '@/context/settings-context';
 import Image from 'next/image';
 import { format } from 'date-fns';
 
-interface AttendancePrintReportProps {
+interface DailyAttendancePrintReportProps {
   className: string;
   date: Date;
   students: Student[];
@@ -17,7 +17,7 @@ interface AttendancePrintReportProps {
   settings: SchoolSettings;
 }
 
-export const AttendancePrintReport = React.forwardRef<HTMLDivElement, AttendancePrintReportProps>(
+export const DailyAttendancePrintReport = React.forwardRef<HTMLDivElement, DailyAttendancePrintReportProps>(
   ({ className, date, students, attendance, settings }, ref) => {
     const presentCount = Object.values(attendance).filter(s => s === 'Present').length;
     const absentCount = Object.values(attendance).filter(s => s === 'Absent').length;
@@ -39,7 +39,7 @@ export const AttendancePrintReport = React.forwardRef<HTMLDivElement, Attendance
             </div>
           </div>
           <div className="text-right">
-            <h2 className="text-2xl font-semibold">Attendance Report</h2>
+            <h2 className="text-2xl font-semibold">Daily Attendance Report</h2>
             <p className="text-sm">Date: {date ? format(date, 'PPP') : ''}</p>
           </div>
         </header>
@@ -90,4 +90,4 @@ export const AttendancePrintReport = React.forwardRef<HTMLDivElement, Attendance
   }
 );
 
-AttendancePrintReport.displayName = 'AttendancePrintReport';
+DailyAttendancePrintReport.displayName = 'DailyAttendancePrintReport';

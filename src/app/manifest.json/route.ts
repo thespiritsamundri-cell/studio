@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -20,8 +19,8 @@ export async function GET(request: Request) {
 
   const manifest = {
 
-    name: settings.schoolName || "The Spirit School Samundri",
-    short_name: settings.schoolName || "TSS",
+    name: "THE SPIRIT SCHOOL SAMUNDRI",
+    short_name: "TSS",
     description: "Schoolup - A Unique Platform for Smart Schools",
 
     start_url: "/",
@@ -30,13 +29,13 @@ export async function GET(request: Request) {
     theme_color: "#6a3fdc", // same as meta theme-color
     icons: [
       {
-        src: settings.schoolLogo || "https://i.postimg.cc/Ss1VdxdT/android-launchericon-192-192.png",
+        src: settings.schoolLogo || "https://i.postimg.cc/Xv35Y5XZ/The-Spirit.jpg",
         sizes: "192x192",
         type: "image/png",
         purpose: "any maskable"
       },
       {
-        src: settings.schoolLogo || "https://i.postimg.cc/dVc64XRY/android-launchericon-512-512.png",
+        src: settings.schoolLogo || "https://i.postimg.cc/Xv35Y5XZ/The-Spirit.jpg",
         sizes: "512x512",
         type: "image/png",
         purpose: "any maskable"
@@ -52,3 +51,5 @@ export async function GET(request: Request) {
     },
   });
 }
+
+    

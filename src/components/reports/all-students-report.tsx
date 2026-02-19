@@ -4,7 +4,6 @@
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Student } from '@/lib/types';
-import { School } from 'lucide-react';
 import type { SchoolSettings } from '@/context/settings-context';
 import Image from 'next/image';
 import { format } from 'date-fns';
@@ -19,24 +18,15 @@ export const AllStudentsPrintReport = React.forwardRef<HTMLDivElement, AllStuden
   ({ students, date, settings }, ref) => {
     return (
       <div ref={ref} className="p-8 font-sans bg-white text-black">
-        <header className="flex items-center justify-between pb-4 border-b border-gray-300">
-          <div className="flex items-center gap-4">
-             {settings.schoolLogo ? (
-              <Image src={settings.schoolLogo} alt="School Logo" width={64} height={64} className="object-contain" />
-            ) : (
-              <School className="w-16 h-16 text-blue-500" />
-            )}
-            <div>
-              <h1 className="text-4xl font-bold text-gray-800">{settings.schoolName}</h1>
-              <p className="text-sm text-gray-500">{settings.schoolAddress}</p>
-              <p className="text-sm text-gray-500">Phone: {settings.schoolPhone}</p>
-            </div>
-          </div>
-          <div className="text-right">
-            <h2 className="text-2xl font-semibold text-gray-700">All Students Report</h2>
-            <p className="text-sm text-gray-500">Date: {date ? format(date, 'PPP') : ''}</p>
-            <p className="text-sm text-gray-500">Total Students: {students.length}</p>
-          </div>
+        <header className="text-center mb-6">
+          {settings.schoolLogo && (
+            <Image src={settings.schoolLogo} alt="School Logo" width={60} height={60} className="object-contain mx-auto mb-2" />
+          )}
+          <h1 className="text-2xl font-bold uppercase">{settings.schoolName}</h1>
+          <p className="text-sm text-gray-500">{settings.schoolAddress}</p>
+          <p className="text-sm text-gray-500">Phone: {settings.schoolPhone}</p>
+          <h2 className="text-xl font-semibold mt-4">All Students Report</h2>
+          <p className="text-sm text-gray-500">Date: {date ? format(date, 'PPP') : ''} | Total Students: {students.length}</p>
         </header>
 
         <main className="mt-8">
