@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -13,15 +12,15 @@ interface DailyAttendancePrintReportProps {
   className: string;
   date: Date;
   students: Student[];
-  attendance: Record<string, 'Present' | 'Absent' | 'Leave'>;
+  attendance: Record<string, { status: 'Present' | 'Absent' | 'Leave'; remarks?: string }>;
   settings: SchoolSettings;
 }
 
 export const DailyAttendancePrintReport = React.forwardRef<HTMLDivElement, DailyAttendancePrintReportProps>(
   ({ className, date, students, attendance, settings }, ref) => {
-    const presentCount = Object.values(attendance).filter(s => s === 'Present').length;
-    const absentCount = Object.values(attendance).filter(s => s === 'Absent').length;
-    const leaveCount = Object.values(attendance).filter(s => s === 'Leave').length;
+    const presentCount = Object.values(attendance).filter(s => s.status === 'Present').length;
+    const absentCount = Object.values(attendance).filter(s => s.status === 'Absent').length;
+    const leaveCount = Object.values(attendance).filter(s => s.status === 'Leave').length;
 
     return (
       <div ref={ref} className="p-8 font-sans bg-white text-black">
@@ -62,6 +61,7 @@ export const DailyAttendancePrintReport = React.forwardRef<HTMLDivElement, Daily
               <TableHead className="w-[100px]">Roll No.</TableHead>
               <TableHead>Student Name</TableHead>
               <TableHead>Father Name</TableHead>
+              <TableHead>Remarks</TableHead>
               <TableHead className="text-right">Status</TableHead>
             </TableRow>
           </TableHeader>
@@ -71,11 +71,12 @@ export const DailyAttendancePrintReport = React.forwardRef<HTMLDivElement, Daily
                 <TableCell className="font-medium">{student.id}</TableCell>
                 <TableCell>{student.name}</TableCell>
                 <TableCell>{student.fatherName}</TableCell>
+                <TableCell>{attendance[student.id]?.remarks || ''}</TableCell>
                 <TableCell className="text-right font-medium"
                   style={{
-                      color: attendance[student.id] === 'Present' ? 'green' : attendance[student.id] === 'Absent' ? 'red' : 'orange'
+                      color: attendance[student.id]?.status === 'Present' ? 'green' : attendance[student.id]?.status === 'Absent' ? 'red' : 'orange'
                   }}
-                >{attendance[student.id]}</TableCell>
+                >{attendance[student.id]?.status}</TableCell>
               </TableRow>
             ))}
           </TableBody>
