@@ -12,16 +12,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Lock, Search, User, Home, School, Bell, Loader2, Database, Settings, LogOut, LifeBuoy } from 'lucide-react';
+import { Lock, Search, School, Bell, Loader2, Settings, LogOut } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useSettings } from '@/context/settings-context';
 import { useData } from '@/context/data-context';
 import type { Student, Family, AppNotification } from '@/lib/types';
-import { SupportDialog } from './support-dialog';
 import { ThemeToggle } from './theme-toggle';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
@@ -58,7 +57,6 @@ export function Header({ className }: { className?: string }) {
   
   const [dateTime, setDateTime] = useState<Date | null>(null);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
-  const [openSupportDialog, setOpenSupportDialog] = useState(false);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -243,23 +241,6 @@ export function Header({ className }: { className?: string }) {
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/data-management">
-                  <Database className="mr-2 h-4 w-4" />
-                  <span>Data Management</span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/settings">
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setOpenSupportDialog(true)}>
-                <LifeBuoy className="mr-2 h-4 w-4" />
-                <span>Support</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
                 <Link href="/">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Logout</span>
@@ -269,7 +250,6 @@ export function Header({ className }: { className?: string }) {
           </DropdownMenu>
         </div>
       </header>
-      <SupportDialog open={openSupportDialog} onOpenChange={setOpenSupportDialog} />
        <SearchResultsDialog 
         open={isSearchOpen} 
         onOpenChange={setIsSearchOpen} 

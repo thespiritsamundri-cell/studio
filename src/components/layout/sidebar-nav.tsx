@@ -39,6 +39,7 @@ import {
   Archive,
   Medal,
   Database,
+  LifeBuoy,
 } from 'lucide-react';
 import { useSettings } from '@/context/settings-context';
 import Image from 'next/image';
@@ -48,6 +49,7 @@ import { cn } from '@/lib/utils';
 import { useState, useMemo, useEffect } from 'react';
 import { useData } from '@/context/data-context';
 import type { PermissionSet } from '@/lib/types';
+import { SupportDialog } from './support-dialog';
 
 
 type NavLink = {
@@ -112,11 +114,13 @@ const mainNavStructure: NavElement[] = [
   { type: 'link', href: '/accounts', icon: BookCheck, label: 'Accounts', permission: 'accounts' },
   { type: 'link', href: '/reports', icon: FileText, label: 'Reports', permission: 'reports' },
   { type: 'link', href: '/yearbook', icon: Archive, label: 'Yearbook', permission: 'yearbook' },
+  { type: 'link', href: '/data-management', icon: Database, label: 'Data Management', permission: 'any_primary_role' },
 ];
 
 
 const footerItems: NavLink[] = [
    { type: 'link', href: '/settings', icon: Settings, label: 'Settings', permission: 'any_primary_role' },
+   { type: 'link', href: '#support', icon: LifeBuoy, label: 'Support', permission: 'any_primary_role' },
    { type: 'link', href: '/', icon: LogOut, label: 'Logout', permission: 'dashboard' }, // Anyone with dashboard access can logout
 ];
 
@@ -128,6 +132,7 @@ export function SidebarNav() {
   const { isPinned, isMobile } = useSidebar();
   
   const [openCollapsibles, setOpenCollapsibles] = useState<Record<string, boolean>>({});
+  const [openSupportDialog, setOpenSupportDialog] = useState(false);
 
   useEffect(() => {
     const activeGroups: Record<string, boolean> = {};
@@ -150,6 +155,13 @@ export function SidebarNav() {
       return hasPermission(permission);
   }
 
+  const filteredMainNav = useMemo(() => mainNavStructure.filter(item => {
+     if (item.href === '/data-management') {
+         return hasPermission('alumni') || hasPermission('archived');
+     }
+     return checkGeneralPermission(item.permission)
+  }), [hasPermission, userRole]);
+  
   const filteredFooterItems = useMemo(() => footerItems.filter(item => checkGeneralPermission(item.permission)), [hasPermission, userRole]);
 
 
@@ -169,17 +181,7 @@ export function SidebarNav() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
-          {mainNavStructure.map((item) => {
-            let hasAccess = false;
-            
-            if (item.type === 'link' && item.href === '/data-management') {
-                hasAccess = checkGeneralPermission('alumni') || checkGeneralPermission('archived');
-            } else {
-                hasAccess = checkGeneralPermission(item.permission);
-            }
-            
-            if (!hasAccess) return null;
-
+          {filteredMainNav.map((item) => {
             if (item.type === 'link') {
               return (
                 <SidebarMenuItem key={item.label}>
@@ -239,22 +241,38 @@ export function SidebarNav() {
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
-          {filteredFooterItems.map((item) => (
-             <SidebarMenuItem key={item.label}>
-             <SidebarMenuButton
-                asChild
-                isActive={pathname.startsWith(item.href) && item.href !== '/'}
-                tooltip={item.label}
-              >
-                <Link href={item.href}>
-                  <item.icon />
-                  <span className={cn("truncate min-w-0 transition-opacity duration-200", (isPinned || isMobile) ? "opacity-100" : "opacity-0 group-hover/sidebar:opacity-100")}>{item.label}</span>
-                </Link>
-              </SidebarMenuButton>
-          </SidebarMenuItem>
-          ))}
+          {filteredFooterItems.map((item) => {
+            if (item.href === '#support') {
+              return (
+                 <SidebarMenuItem key={item.label}>
+                    <SidebarMenuButton
+                        onClick={() => setOpenSupportDialog(true)}
+                        tooltip={item.label}
+                    >
+                        <item.icon />
+                        <span className={cn("truncate min-w-0 transition-opacity duration-200", (isPinned || isMobile) ? "opacity-100" : "opacity-0 group-hover/sidebar:opacity-100")}>{item.label}</span>
+                    </SidebarMenuButton>
+                 </SidebarMenuItem>
+              )
+            }
+            return (
+              <SidebarMenuItem key={item.label}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname.startsWith(item.href) && item.href !== '/'}
+                  tooltip={item.label}
+                >
+                  <Link href={item.href}>
+                    <item.icon />
+                    <span className={cn("truncate min-w-0 transition-opacity duration-200", (isPinned || isMobile) ? "opacity-100" : "opacity-0 group-hover/sidebar:opacity-100")}>{item.label}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )
+          })}
         </SidebarMenu>
       </SidebarFooter>
+      <SupportDialog open={openSupportDialog} onOpenChange={setOpenSupportDialog} />
     </>
   );
 }
