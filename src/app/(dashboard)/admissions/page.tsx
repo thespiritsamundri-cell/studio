@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -140,6 +141,7 @@ export default function AdmissionsPage() {
                     <head>
                         <title>Student Admission Form - ${student.name}</title>
                         <script src="https://cdn.tailwindcss.com"></script>
+                        <link rel="stylesheet" href="/print-styles.css">
                     </head>
                     <body>
                         ${printContent}
@@ -277,7 +279,7 @@ export default function AdmissionsPage() {
         
         toast({
             title: 'Student Admitted!',
-            description: `${studentName} has been successfully admitted. Printing admission form...`,
+            description: `${studentName} has been successfully admitted. Opening admission form for printing...`,
         });
         
         if (settings.automatedMessages?.admission.enabled) {

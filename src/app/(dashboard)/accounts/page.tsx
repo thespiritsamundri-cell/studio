@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -54,6 +55,7 @@ export default function AccountsPage() {
                     <head>
                         <title>Financial Report - ${format(reportDate, 'MMMM yyyy')}</title>
                         <script src="https://cdn.tailwindcss.com"></script>
+                        <link rel="stylesheet" href="/print-styles.css">
                     </head>
                     <body>
                         ${printContent}
@@ -76,7 +78,7 @@ export default function AccountsPage() {
         document.body.appendChild(container);
 
         try {
-            const canvas = await html2canvas(container.firstChild as HTMLElement, { scale: 2 });
+            const canvas = await html2canvas(container.firstChild as HTMLElement, { scale: 2, useCORS: true });
             const imgData = canvas.toDataURL('image/png');
             
             const pdf = new jsPDF('p', 'mm', 'a4');
@@ -186,13 +188,13 @@ export default function AccountsPage() {
                 </div>
                  <div className="flex flex-wrap items-center gap-2">
                     <Select value={String(selectedMonth)} onValueChange={(val) => setSelectedMonth(Number(val))}>
-                        <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="w-full sm:w-[150px]"><SelectValue /></SelectTrigger>
                         <SelectContent>
                             {months.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}
                         </SelectContent>
                     </Select>
                     <Select value={String(selectedYear)} onValueChange={(val) => setSelectedYear(Number(val))}>
-                        <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="w-full sm:w-[120px]"><SelectValue /></SelectTrigger>
                         <SelectContent>
                              {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
                         </SelectContent>

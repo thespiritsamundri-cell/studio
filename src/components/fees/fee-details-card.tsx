@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -23,6 +22,7 @@ import html2canvas from 'html2canvas';
 import { generateQrCode } from '@/ai/flows/generate-qr-code';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import jsPDF from 'jspdf';
 
 
 interface FeeDetailsCardProps {
@@ -41,7 +41,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
 
     const [paidAmount, setPaidAmount] = useState<number>(0);
     const [paymentMethod, setPaymentMethod] = useState('By Hand');
-    const [isDownloadingJpg, setIsDownloadingJpg] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
     
     const unpaidFees = useMemo(() => fees.filter(f => f.status === 'Unpaid'), [fees]);
     const totalDues = useMemo(() => unpaidFees.reduce((acc, fee) => acc + fee.amount, 0), [unpaidFees]);
@@ -51,59 +51,23 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
     }, [totalDues]);
 
     const remainingDues = totalDues - paidAmount;
-
-    const generateReceiptJpg = async (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, qrCodeDataUri?: string): Promise<string> => {
-        return new Promise((resolve, reject) => {
-            const container = document.createElement('div');
-            container.style.position = 'absolute';
-            container.style.left = '-9999px';
-            document.body.appendChild(container);
-
-            // Temporarily render the component to an off-screen div
-            const tempRoot = document.createElement('div');
-            container.appendChild(tempRoot);
-            
-            const receiptElement = (
-                <FeeReceipt
-                    family={family}
-                    students={students}
-                    fees={paidFeesForReceipt}
-                    totalDues={totalDues}
-                    paidAmount={collectedAmount}
-                    remainingDues={newRemainingDues}
-                    settings={settings}
-                    paymentMethod={method}
-                    receiptId={receiptId}
-                    qrCodeDataUri={qrCodeDataUri}
-                />
-            );
-             // Can't use createRoot with renderToString on server, so we do it this way on client
-             tempRoot.innerHTML = renderToString(receiptElement);
-
-
-            setTimeout(async () => {
-                const receiptNode = tempRoot.firstChild as HTMLElement;
-                if (!receiptNode) {
-                    document.body.removeChild(container);
-                    return reject(new Error("Receipt element not found for canvas generation."));
-                }
-                
-                try {
-                    const canvas = await html2canvas(receiptNode, {
-                        useCORS: true,
-                        scale: 2
-                    });
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-                    resolve(dataUrl);
-                } catch (error) {
-                    reject(error);
-                } finally {
-                    document.body.removeChild(container);
-                }
-            }, 500);
-        });
+    
+    const generateReceiptContent = (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, qrCodeDataUri?: string) => {
+        return renderToString(
+            <FeeReceipt
+                family={family}
+                students={students}
+                fees={paidFeesForReceipt}
+                totalDues={totalDues}
+                paidAmount={collectedAmount}
+                remainingDues={newRemainingDues}
+                settings={settings}
+                paymentMethod={method}
+                receiptId={receiptId}
+                qrCodeDataUri={qrCodeDataUri}
+            />
+        );
     };
-
 
     const handleCollectFee = async () => {
         if (paidAmount <= 0) {
@@ -260,20 +224,7 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
             return;
         }
         
-        const printContent = renderToString(
-            <FeeReceipt
-                family={family}
-                students={students}
-                fees={paidFeesForReceipt}
-                totalDues={totalDues}
-                paidAmount={collectedAmount}
-                remainingDues={newRemainingDues}
-                settings={settings}
-                paymentMethod={method}
-                receiptId={receiptId}
-                qrCodeDataUri={qrCodeDataUri}
-            />
-        );
+        const printContent = generateReceiptContent(paidFeesForReceipt, collectedAmount, newRemainingDues, method, receiptId, qrCodeDataUri);
         const printWindow = window.open('', '_blank');
         if(printWindow) {
             printWindow.document.write(`
@@ -289,28 +240,41 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                 </html>
             `);
             printWindow.document.close();
-            printWindow.focus();
         }
     };
     
-     const triggerJpgDownload = async (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, qrCodeDataUri?: string) => {
+     const triggerPdfDownload = async (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, qrCodeDataUri?: string) => {
         if (collectedAmount === 0 && totalDues === 0) {
              return;
         }
 
-        setIsDownloadingJpg(true);
+        setIsDownloading(true);
+        const printContent = generateReceiptContent(paidFeesForReceipt, collectedAmount, newRemainingDues, method, receiptId, qrCodeDataUri);
+        
+        const container = document.createElement('div');
+        container.style.position = 'absolute';
+        container.style.left = '-9999px';
+        container.innerHTML = printContent;
+        document.body.appendChild(container);
+        
         try {
-            const jpgDataUri = await generateReceiptJpg(paidFeesForReceipt, collectedAmount, newRemainingDues, method, receiptId, qrCodeDataUri);
-            const link = document.createElement('a');
-            link.download = `${receiptId}.jpg`;
-            link.href = jpgDataUri;
-            link.click();
-            toast({ title: 'Download Started', description: `Fee receipt ${receiptId}.jpg is downloading.` });
+            const canvas = await html2canvas(container.firstChild as HTMLElement, { scale: 2, useCORS: true });
+            const imgData = canvas.toDataURL('image/png');
+            
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const ratio = Math.min(pdfWidth / canvas.width, pdfHeight / canvas.height);
+            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width * ratio, canvas.height * ratio);
+            pdf.save(`${receiptId}.pdf`);
+            
+            toast({ title: 'Download Started', description: `Fee receipt ${receiptId}.pdf is downloading.` });
         } catch (error) {
-            console.error('Error generating JPG:', error);
-            toast({ title: 'Download Failed', description: 'Could not generate the image file.', variant: 'destructive' });
+            console.error('Error generating PDF:', error);
+            toast({ title: 'Download Failed', description: 'Could not generate the PDF file.', variant: 'destructive' });
         } finally {
-            setIsDownloadingJpg(false);
+            document.body.removeChild(container);
+            setIsDownloading(false);
         }
     };
 
@@ -432,8 +396,9 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                      </div>
                      <div className="flex justify-end gap-2">
                         <Button disabled={totalDues === 0 || paidAmount <= 0} onClick={handleCollectFee}>Collect Fee</Button>
-                        <Button variant="outline" onClick={() => triggerJpgDownload(unpaidFees, 0, totalDues, paymentMethod, `INV-${Date.now()}`)} disabled={isDownloadingJpg}>
-                            {isDownloadingJpg ? <Loader2 className="h-4 w-4 animate-spin"/> : <Download className="h-4 w-4" />}
+                        <Button variant="outline" onClick={() => triggerPdfDownload(unpaidFees, 0, totalDues, paymentMethod, `INV-${Date.now()}`)} disabled={isDownloading}>
+                            {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Download className="h-4 w-4 mr-2" />}
+                            PDF
                         </Button>
                         <Button variant="outline" onClick={() => triggerPrint(unpaidFees, 0, totalDues, paymentMethod, `INV-${Date.now()}`)}><Printer className="h-4 w-4" /></Button>
                      </div>
@@ -443,5 +408,3 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
         </Card>
     );
 }
-
-    

@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -12,14 +11,15 @@ import { Label } from '@/components/ui/label';
 import { useData } from '@/context/data-context';
 import type { Student, Attendance } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { Send, Printer, CalendarOff } from 'lucide-react';
+import { Send, Printer, CalendarOff, Download, Loader2 } from 'lucide-react';
 import { AttendancePrintReport } from '@/components/reports/attendance-report';
 import { renderToString } from 'react-dom/server';
 import { useSettings } from '@/context/settings-context';
 import { format, isSunday } from 'date-fns';
 import { sendWhatsAppMessage } from '@/services/whatsapp-service';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 type AttendanceStatus = 'Present' | 'Absent' | 'Leave';
 
@@ -31,6 +31,7 @@ export default function AttendancePage() {
   const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
   const { toast } = useToast();
   const [isSending, setIsSending] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   
   const isSundayToday = isSunday(currentDate);
@@ -54,21 +55,27 @@ export default function AttendancePage() {
     setSelectedClass(classValue);
   };
   
-  const triggerPrint = () => {
-    if (!selectedClass) {
-        toast({ title: "No Class Selected", description: "Please select a class to print a report.", variant: "destructive" });
-        return;
-    }
-    const reportDate = new Date();
-    const printContent = renderToString(
+  const getReportComponent = () => {
+    if (!selectedClass) return null;
+    return (
       <AttendancePrintReport
-        className={selectedClass || ''}
-        date={reportDate}
+        className={selectedClass}
+        date={currentDate}
         students={students}
         attendance={attendance}
         settings={settings}
       />
     );
+  };
+
+  const handlePrint = () => {
+    const reportComponent = getReportComponent();
+    if (!reportComponent) {
+      toast({ title: "No Class Selected", description: "Please select a class to print a report.", variant: "destructive" });
+      return;
+    }
+    
+    const printContent = renderToString(reportComponent);
     const printWindow = window.open('', '_blank');
     if(printWindow) {
       printWindow.document.write(`
@@ -76,6 +83,7 @@ export default function AttendancePage() {
           <head>
             <title>Attendance Report - ${selectedClass}</title>
             <script src="https://cdn.tailwindcss.com"></script>
+            <link rel="stylesheet" href="/print-styles.css">
           </head>
           <body>
             ${printContent}
@@ -83,7 +91,38 @@ export default function AttendancePage() {
         </html>
       `);
       printWindow.document.close();
-      printWindow.focus();
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    const reportComponent = getReportComponent();
+    if (!reportComponent) {
+      toast({ title: "No Class Selected", variant: "destructive" });
+      return;
+    }
+    setIsDownloading(true);
+
+    const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.innerHTML = renderToString(reportComponent);
+    document.body.appendChild(container);
+
+    try {
+        const canvas = await html2canvas(container.firstChild as HTMLElement, { scale: 2, useCORS: true });
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        const ratio = Math.min(pdfWidth / canvas.width, pdfHeight / canvas.height);
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width * ratio, canvas.height * ratio);
+        pdf.save(`attendance-report-${selectedClass}-${format(currentDate, 'yyyy-MM-dd')}.pdf`);
+    } catch (error) {
+        console.error("Error generating PDF:", error);
+        toast({ title: "Error Generating PDF", variant: "destructive" });
+    } finally {
+        document.body.removeChild(container);
+        setIsDownloading(false);
     }
   };
 
@@ -169,14 +208,18 @@ export default function AttendancePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
         <h1 className="text-3xl font-bold font-headline">Attendance</h1>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 flex-wrap">
           {selectedClass && (
             <>
               <Button onClick={saveAttendance} disabled={isSundayToday}>Save Attendance</Button>
-               <Button variant="outline" onClick={triggerPrint}>
-                <Printer className="w-4 h-4 mr-2" /> Print Report
+               <Button variant="outline" onClick={handlePrint}>
+                <Printer className="w-4 h-4 mr-2" /> Print
+              </Button>
+              <Button variant="outline" onClick={handleDownloadPdf} disabled={isDownloading}>
+                {isDownloading ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : <Download className="w-4 h-4 mr-2" />}
+                PDF
               </Button>
               <Button variant="outline" onClick={handleSendWhatsapp} disabled={isSending || isSundayToday}>
                 {isSending ? 'Sending...' : <> <Send className="w-4 h-4 mr-2" /> Notify Absentees </>}
