@@ -85,21 +85,21 @@ const VoucherSlip = ({
                       <td className="font-bold py-0.5 pr-2">Issue Date:</td>
                       <td className="py-0.5">{format(parsedIssueDate, 'dd-MMM-yyyy')}</td>
                       <td className="font-bold py-0.5 pl-4 pr-2 text-left">Due Date:</td>
-                      <td className="py-0.5 text-left font-bold">{format(parsedDueDate, 'dd-MMM-yyyy')}</td>
+                      <td className="py-0.5 text-left">{format(parsedDueDate, 'dd-MMM-yyyy')}</td>
                   </tr>
                    <tr>
                       <td className="font-bold py-0.5 pr-2 align-top">Student(s):</td>
-                      <td className="py-0.5 font-extrabold text-base" colSpan={3}>{students.map(s => s.name).join(', ')}</td>
+                      <td className="py-0.5" colSpan={3}>{students.map(s => s.name).join(', ')}</td>
                   </tr>
                    <tr>
                         <td className="font-bold py-0.5 pr-2">Father's Name:</td>
-                        <td className="py-0.5 font-extrabold text-base" colSpan={3}>{family.fatherName}</td>
+                        <td className="py-0.5" colSpan={3}>{family.fatherName}</td>
                    </tr>
                   <tr>
                       <td className="font-bold py-0.5 pr-2">Family ID:</td>
-                      <td className="py-0.5 font-extrabold text-base">{family.id}</td>
+                      <td className="py-0.5">{family.id}</td>
                        <td className="font-bold py-0.5 pl-4 pr-2 text-left">Class(es):</td>
-                      <td className="py-0.5 text-left font-bold">{[...new Set(students.map(s => s.class))].join(', ')}</td>
+                      <td className="py-0.5 text-left">{[...new Set(students.map(s => s.class))].join(', ')}</td>
                   </tr>
               </tbody>
           </table>
@@ -155,3 +155,5 @@ export const FeeVoucherPrint = React.forwardRef<HTMLDivElement, FeeVoucherPrintP
 );
 
 FeeVoucherPrint.displayName = 'FeeVoucherPrint';
+
+    

@@ -17,7 +17,9 @@ import { renderToString } from 'react-dom/server';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { generateQrCode } from '@/ai/flows/generate-qr-code';
 import { openPrintWindow } from '@/lib/print-helper';
-import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
+
 
 export default function VouchersPage() {
   const { families, students, fees } = useData();
@@ -34,11 +36,48 @@ export default function VouchersPage() {
   // State for Single Family Generation
   const [familySearchId, setFamilySearchId] = useState('');
   const [searchedFamily, setSearchedFamily] = useState<Family | null>(null);
+  const [familyStudents, setFamilyStudents] = useState<Student[]>([]);
+  const [unpaidFees, setUnpaidFees] = useState<Fee[]>([]);
+  const [selectedFeeIds, setSelectedFeeIds] = useState<string[]>([]);
+  
+  // Memo for All Families Tab
+  const familiesWithDues = useMemo(() => {
+    const familiesWithUnpaidFees = new Set(fees.filter(f => f.status === 'Unpaid').map(f => f.familyId));
+    return families.filter(f => familiesWithUnpaidFees.has(f.id) && f.status === 'Active');
+  }, [fees, families]);
+  
+  
+  useEffect(() => {
+    if (searchedFamily) {
+        const familyStudents = students.filter(s => s.familyId === searchedFamily.id && s.status === 'Active');
+        setFamilyStudents(familyStudents);
 
-  const searchedFamilyFees = useMemo(() => {
-    if (!searchedFamily) return [];
-    return fees.filter(f => f.familyId === searchedFamily.id && f.status === 'Unpaid');
-  }, [searchedFamily, fees]);
+        const monthOrder = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        const specialFeeOrder = ['Registration', 'Admission', 'Annual'];
+        
+        const familyUnpaid = fees
+            .filter(f => f.familyId === searchedFamily.id && f.status === 'Unpaid')
+            .sort((a, b) => {
+                const aIsSpecial = specialFeeOrder.some(prefix => a.month.startsWith(prefix));
+                const bIsSpecial = specialFeeOrder.some(prefix => b.month.startsWith(prefix));
+
+                if (aIsSpecial && !bIsSpecial) return -1;
+                if (!aIsSpecial && bIsSpecial) return 1;
+                if (aIsSpecial && bIsSpecial) {
+                    return specialFeeOrder.indexOf(a.month) - specialFeeOrder.indexOf(b.month);
+                }
+                const dateA = new Date(a.year, monthOrder.indexOf(a.month));
+                const dateB = new Date(b.year, monthOrder.indexOf(b.month));
+                return dateA.getTime() - dateB.getTime();
+            });
+        setUnpaidFees(familyUnpaid);
+        setSelectedFeeIds(familyUnpaid.map(f => f.id)); // Auto-select all by default
+    } else {
+        setFamilyStudents([]);
+        setUnpaidFees([]);
+        setSelectedFeeIds([]);
+    }
+  }, [searchedFamily, students, fees]);
 
 
   const handleSearch = () => {
@@ -55,16 +94,32 @@ export default function VouchersPage() {
     }
   };
 
-  // Generic Print Handler
+  const handleFeeSelection = (feeId: string, checked: boolean) => {
+    const feeIndex = unpaidFees.findIndex(f => f.id === feeId);
+    if (feeIndex === -1) return;
+
+    if (checked) {
+        const idsToSelect = unpaidFees.slice(0, feeIndex + 1).map(f => f.id);
+        setSelectedFeeIds(prev => [...new Set([...prev, ...idsToSelect])]);
+    } else {
+        const idsToDeselect = unpaidFees.slice(feeIndex).map(f => f.id);
+        setSelectedFeeIds(prev => prev.filter(id => !idsToDeselect.includes(id)));
+    }
+  };
+
   const handlePrint = async (mode: 'single' | 'all') => {
     setIsLoading(true);
 
     let familiesToProcess: Family[] = [];
     if (mode === 'single' && searchedFamily) {
+        if (selectedFeeIds.length === 0) {
+            toast({ title: 'No Fees Selected', description: 'Please select at least one fee challan to include in the voucher.', variant: 'destructive' });
+            setIsLoading(false);
+            return;
+        }
         familiesToProcess = [searchedFamily];
     } else if (mode === 'all') {
-        const familiesWithUnpaidDues = new Set(fees.filter(f => f.status === 'Unpaid').map(f => f.familyId));
-        familiesToProcess = families.filter(f => familiesWithUnpaidDues.has(f.id) && f.status === 'Active');
+        familiesToProcess = familiesWithDues;
     }
 
     if (familiesToProcess.length === 0) {
@@ -81,13 +136,18 @@ export default function VouchersPage() {
       const familyStudents = students.filter(s => s.familyId === family.id && s.status === 'Active');
       if (familyStudents.length === 0) continue;
 
-      const familyUnpaidFees = fees.filter(f => f.familyId === family.id && f.status === 'Unpaid');
+      let familyUnpaidFees;
+      if (mode === 'single') {
+          familyUnpaidFees = unpaidFees.filter(f => selectedFeeIds.includes(f.id));
+      } else {
+          familyUnpaidFees = fees.filter(f => f.familyId === family.id && f.status === 'Unpaid');
+      }
+
       if (familyUnpaidFees.length === 0) continue;
 
       const totalForVoucher = familyUnpaidFees.reduce((sum, fee) => sum + fee.amount, 0);
       const voucherId = `VCH-${family.id}-${format(new Date(issueDate), 'yyyy-MM')}`;
 
-      // Point QR to the family's public profile page for live status
       const qrContent = `${window.location.origin}/profile/family/${family.id}`;
       let qrCodeDataUri = '';
       try {
@@ -114,6 +174,14 @@ export default function VouchersPage() {
     openPrintWindow(printContent, 'Fee Vouchers');
     setIsLoading(false);
   };
+  
+  const getStudentCountForFamily = (familyId: string) => {
+    return students.filter(student => student.familyId === familyId && student.status !== 'Archived').length;
+  };
+  
+  const getStudentNamesForFamily = (familyId: string) => {
+      return students.filter(s => s.familyId === familyId && s.status !== 'Archived').map(s => s.name).join(', ');
+  }
 
   return (
     <div className="space-y-6">
@@ -121,53 +189,104 @@ export default function VouchersPage() {
         <h1 className="text-3xl font-bold font-headline">Fee Vouchers</h1>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Fee Voucher Generator</CardTitle>
-          <CardDescription>Generate fee vouchers for a single family or for all families with outstanding dues.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-            <div className="p-4 border rounded-lg bg-muted/30">
-                <h3 className="font-semibold mb-2">Generate for a Single Family</h3>
-                <div className="flex w-full max-w-sm items-center space-x-2">
-                    <Input placeholder="Enter Family ID" value={familySearchId} onChange={e => setFamilySearchId(e.target.value)} />
-                    <Button onClick={handleSearch}><Search className="mr-2 h-4 w-4" />Search</Button>
-                </div>
-            </div>
-             {searchedFamily && (
-                <div className="pt-4 border-t">
-                    <h3 className="font-semibold mb-2">Unpaid Fees for <span className="font-bold">{searchedFamily.fatherName} (ID: {searchedFamily.id})</span></h3>
-                     <div className="border rounded-md">
-                        <Table>
-                            <TableHeader><TableRow><TableHead>Challan</TableHead><TableHead className="text-right">Amount</TableHead></TableRow></TableHeader>
-                            <TableBody>
-                                {searchedFamilyFees.length > 0 ? searchedFamilyFees.map(fee => (
-                                    <TableRow key={fee.id}>
-                                        <TableCell>{fee.month}, {fee.year}</TableCell>
-                                        <TableCell className="text-right">{fee.amount.toLocaleString()}</TableCell>
+       <Tabs defaultValue="single" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="single">Single Family Voucher</TabsTrigger>
+                <TabsTrigger value="all">All Families Vouchers</TabsTrigger>
+            </TabsList>
+            <TabsContent value="single" className="mt-4">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Generate for a Single Family</CardTitle>
+                        <CardDescription>Search for a family, select their dues, and generate a consolidated voucher.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="flex w-full max-w-sm items-center space-x-2">
+                            <Input placeholder="Enter Family ID" value={familySearchId} onChange={e => setFamilySearchId(e.target.value)} />
+                            <Button onClick={handleSearch}><Search className="mr-2 h-4 w-4" />Search</Button>
+                        </div>
+                        {searchedFamily && (
+                            <div className="pt-4 border-t">
+                                <h3 className="font-semibold mb-2">Details for <span className="font-bold">{searchedFamily.fatherName} (ID: {searchedFamily.id})</span></h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <h4 className="font-medium mb-2">Enrolled Students</h4>
+                                        <div className="border rounded-md p-2">
+                                            {familyStudents.length > 0 ? familyStudents.map(s => <p key={s.id} className="text-sm">{s.name} ({s.class})</p>) : <p className="text-sm text-muted-foreground">No active students.</p>}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-medium mb-2">Unpaid Fee Challans</h4>
+                                        <div className="border rounded-md">
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead className="w-12"><Checkbox checked={unpaidFees.length > 0 && selectedFeeIds.length === unpaidFees.length} onCheckedChange={(checked) => setSelectedFeeIds(checked ? unpaidFees.map(f => f.id) : [])} /></TableHead>
+                                                        <TableHead>Challan</TableHead>
+                                                        <TableHead className="text-right">Amount</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {unpaidFees.length > 0 ? unpaidFees.map(fee => (
+                                                        <TableRow key={fee.id}>
+                                                            <TableCell><Checkbox checked={selectedFeeIds.includes(fee.id)} onCheckedChange={(checked) => handleFeeSelection(fee.id, !!checked)} /></TableCell>
+                                                            <TableCell>{fee.month}, {fee.year}</TableCell>
+                                                            <TableCell className="text-right">{fee.amount.toLocaleString()}</TableCell>
+                                                        </TableRow>
+                                                    )) : <TableRow><TableCell colSpan={3} className="text-center h-24">No unpaid fees.</TableCell></TableRow>}
+                                                </TableBody>
+                                            </Table>
+                                        </div>
+                                    </div>
+                                </div>
+                                <Button size="lg" onClick={() => handlePrint('single')} disabled={isLoading || selectedFeeIds.length === 0} className="w-full mt-6">
+                                    {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Printer className="mr-2 h-5 w-5" />}
+                                    Generate Voucher for {searchedFamily.fatherName}
+                                </Button>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </TabsContent>
+             <TabsContent value="all" className="mt-4">
+                 <Card>
+                    <CardHeader>
+                        <div className="flex justify-between items-center">
+                            <div>
+                               <CardTitle>Generate for All Families</CardTitle>
+                               <CardDescription>Generate a voucher for every family with outstanding dues.</CardDescription>
+                            </div>
+                            <Button size="lg" onClick={() => handlePrint('all')} disabled={isLoading} variant="secondary">
+                                {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Users className="mr-2 h-5 w-5" />}
+                                Generate Vouchers for All ({familiesWithDues.length})
+                            </Button>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="border rounded-md max-h-96 overflow-y-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Family ID</TableHead>
+                                        <TableHead>Father's Name</TableHead>
+                                        <TableHead>Students</TableHead>
                                     </TableRow>
-                                )) : <TableRow><TableCell colSpan={2} className="text-center h-24">No unpaid fees found for this family.</TableCell></TableRow>}
-                            </TableBody>
-                        </Table>
-                     </div>
-                     <Button size="lg" onClick={() => handlePrint('single')} disabled={isLoading || searchedFamilyFees.length === 0} className="w-full mt-4">
-                        {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Printer className="mr-2 h-5 w-5" />}
-                        Generate Voucher for {searchedFamily.fatherName}
-                    </Button>
-                </div>
-            )}
-             <Separator />
-             <div className="p-4 border rounded-lg bg-muted/30">
-                 <h3 className="font-semibold mb-2">Generate for All Families</h3>
-                 <p className="text-sm text-muted-foreground mb-4">This will generate a fee voucher for every active family that has at least one unpaid fee challan.</p>
-                 <Button size="lg" onClick={() => handlePrint('all')} disabled={isLoading} variant="secondary" className="w-full">
-                    {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Users className="mr-2 h-5 w-5" />}
-                    Generate Vouchers for All Families with Dues
-                </Button>
-            </div>
-
-        </CardContent>
-      </Card>
+                                </TableHeader>
+                                <TableBody>
+                                    {familiesWithDues.length > 0 ? familiesWithDues.map(family => (
+                                        <TableRow key={family.id}>
+                                            <TableCell>{family.id}</TableCell>
+                                            <TableCell className="font-medium">{family.fatherName}</TableCell>
+                                            <TableCell className="text-sm text-muted-foreground">{getStudentNamesForFamily(family.id)}</TableCell>
+                                        </TableRow>
+                                    )) : <TableRow><TableCell colSpan={3} className="text-center h-24">No families with unpaid dues.</TableCell></TableRow>}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+      </Tabs>
       
       <Card className="mt-6">
         <CardHeader><CardTitle>Voucher Settings</CardTitle></CardHeader>
@@ -180,3 +299,5 @@ export default function VouchersPage() {
     </div>
   );
 }
+
+    
