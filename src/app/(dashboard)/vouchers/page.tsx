@@ -217,6 +217,11 @@ export default function VouchersPage() {
     const printContent = renderToString(<FeeVoucherPrint allVouchersData={allVouchersData} settings={settings} />);
     openPrintWindow(printContent, 'Fee Vouchers');
     setIsLoading(false);
+
+    if (mode === 'single') {
+      setSearchQuery('');
+      setSearchedFamily(null);
+    }
   };
   
   const getStudentNamesForFamily = (familyId: string) => {
@@ -341,7 +346,7 @@ export default function VouchersPage() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <ScrollArea className="border rounded-md max-h-96">
+                        <ScrollArea className="border rounded-md h-96">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
