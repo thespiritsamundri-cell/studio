@@ -99,24 +99,9 @@ export interface Fee {
   year: number;
   paymentDate: string; // Only populated for 'Paid' records
   status: 'Paid' | 'Unpaid';
-  originalChallanId?: string; // Links a 'Paid' record to the original 'Unpaid' challan ID
   paymentMethod?: string; // e.g., 'Cash', 'Bank Transfer'
-  receiptId?: string; // Unique ID for the transaction
-  transactionFeeIds?: string[]; // IDs of all other fees paid in the same transaction
-}
-
-
-export interface Receipt {
-  id: string;
-  family: Family;
-  students: Student[];
-  paidFees: Fee[];
-  totalDues: number;
-  paidAmount: number;
-  remainingDues: number;
-  paymentMethod: string;
-  qrCodeDataUri: string;
-  createdAt: string;
+  receiptId?: string; // Links all fees paid in one transaction
+  discount?: number;
 }
 
 export interface Class {

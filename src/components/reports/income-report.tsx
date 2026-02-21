@@ -62,7 +62,9 @@ export const IncomePrintReport = React.forwardRef<HTMLDivElement, IncomePrintRep
                 <TableHead>Father's Name</TableHead>
                 <TableHead>Payment Date</TableHead>
                 <TableHead>Month/Year</TableHead>
-                <TableHead className="text-right">Amount (PKR)</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="text-right">Discount</TableHead>
+                <TableHead className="text-right">Net Income</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -73,12 +75,14 @@ export const IncomePrintReport = React.forwardRef<HTMLDivElement, IncomePrintRep
                   <TableCell>{fee.fatherName}</TableCell>
                   <TableCell>{fee.paymentDate && format(new Date(fee.paymentDate), 'PPP')}</TableCell>
                   <TableCell>{fee.month}, {fee.year}</TableCell>
-                  <TableCell className="text-right font-semibold text-green-600">{fee.amount.toLocaleString()}</TableCell>
+                  <TableCell className="text-right">{fee.amount.toLocaleString()}</TableCell>
+                  <TableCell className="text-right text-blue-600">{(fee.discount || 0).toLocaleString()}</TableCell>
+                  <TableCell className="text-right font-semibold text-green-600">{(fee.amount - (fee.discount || 0)).toLocaleString()}</TableCell>
                 </TableRow>
               ))}
                {fees.length === 0 && (
                 <TableRow>
-                    <TableCell colSpan={6} className='text-center py-10'>No income records found for the selected period.</TableCell>
+                    <TableCell colSpan={8} className='text-center py-10'>No income records found for the selected period.</TableCell>
                 </TableRow>
               )}
             </TableBody>
@@ -86,9 +90,9 @@ export const IncomePrintReport = React.forwardRef<HTMLDivElement, IncomePrintRep
         </main>
         
         <div className="flex justify-end mt-8">
-            <div className="w-full max-w-xs space-y-2 text-right">
+            <div className="w-full max-w-sm space-y-2 text-right">
                 <div className="flex justify-between text-lg font-bold">
-                    <span className="text-gray-800">Total Income:</span>
+                    <span className="text-gray-800">Total Net Income:</span>
                     <span>PKR {totalIncome.toLocaleString()}</span>
                 </div>
             </div>

@@ -7,13 +7,26 @@ service cloud.firestore {
       allow read, write: if request.auth.uid == userId;
     }
 
-    // Make receipts publicly readable
-    match /receipts/{receiptId} {
+    // --- Public Profile Rules ---
+    // These allow anyone to read specific documents needed for the public profiles.
+    match /students/{studentId} {
       allow get: if true;
-      allow list: if false; // Prevent listing all receipts
-      allow write: if request.auth != null; // Only authenticated users can create/update
+      allow list: if true; // For family profile page that queries students by familyId
     }
-    
+    match /alumni/{alumniId} {
+      allow get: if true;
+    }
+    match /families/{familyId} {
+      allow get: if true;
+    }
+     match /teachers/{teacherId} {
+      allow get: if true;
+    }
+     match /fees/{feeId} {
+      allow get: if true;
+      allow list: if true; // For family profile page that queries fees by familyId
+    }
+     
     // Allow logged-in users to read/write all other collections
     // This is a general rule and can be refined for more granular access control
     match /{document=**} {

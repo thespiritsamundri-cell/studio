@@ -100,7 +100,7 @@ export default function IncomePage() {
   }, [paidFeesWithDetails, dateRange, searchFilter]);
   
   const totalIncome = useMemo(() => {
-      return filteredFees.reduce((acc, fee) => acc + fee.amount, 0);
+      return filteredFees.reduce((acc, fee) => acc + (fee.amount - (fee.discount || 0)), 0);
   }, [filteredFees]);
 
   const handleOpenDialog = (fee: Fee | null) => {
@@ -118,6 +118,7 @@ export default function IncomePage() {
     const data = Object.fromEntries(formData.entries()) as {
         paymentDate: string;
         amount: string;
+        discount: string;
         paymentMethod: string;
     };
     
@@ -129,6 +130,7 @@ export default function IncomePage() {
     const feeData: Partial<Fee> = {
         paymentDate: data.paymentDate,
         amount: Number(data.amount),
+        discount: Number(data.discount) || 0,
         paymentMethod: data.paymentMethod,
     };
 
@@ -243,7 +245,9 @@ export default function IncomePage() {
                     <TableHead>Payment Date</TableHead>
                     <TableHead>Month/Year</TableHead>
                     <TableHead className="hidden md:table-cell">Method</TableHead>
-                    <TableHead className="text-right">Amount (PKR)</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead className="text-right">Discount</TableHead>
+                    <TableHead className="text-right">Net Income</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -256,7 +260,9 @@ export default function IncomePage() {
                         <TableCell>{fee.paymentDate && format(new Date(fee.paymentDate), 'PPP')}</TableCell>
                         <TableCell>{fee.month}, {fee.year}</TableCell>
                         <TableCell className="hidden md:table-cell">{fee.paymentMethod || 'N/A'}</TableCell>
-                        <TableCell className="text-right font-semibold text-green-600">{fee.amount.toLocaleString()}</TableCell>
+                        <TableCell className="text-right">{fee.amount.toLocaleString()}</TableCell>
+                        <TableCell className="text-right text-blue-600">{(fee.discount || 0).toLocaleString()}</TableCell>
+                        <TableCell className="text-right font-semibold text-green-600">{(fee.amount - (fee.discount || 0)).toLocaleString()}</TableCell>
                         <TableCell className="text-right">
                            {canManageIncome && (
                              <>
@@ -275,7 +281,7 @@ export default function IncomePage() {
                     ))}
                     {filteredFees.length === 0 && (
                     <TableRow>
-                        <TableCell colSpan={8} className='text-center py-10 text-muted-foreground'>No income records found for the selected filters.</TableCell>
+                        <TableCell colSpan={10} className='text-center py-10 text-muted-foreground'>No income records found for the selected filters.</TableCell>
                     </TableRow>
                     )}
                 </TableBody>
@@ -329,9 +335,15 @@ export default function IncomePage() {
                             <Input id="amount" name="amount" type="number" defaultValue={selectedFee?.amount} required/>
                         </div>
                     </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="paymentMethod">Payment Method</Label>
-                        <Input id="paymentMethod" name="paymentMethod" defaultValue={selectedFee?.paymentMethod} required />
+                     <div className="grid grid-cols-2 gap-4">
+                         <div className="space-y-2">
+                            <Label htmlFor="discount">Discount (PKR)</Label>
+                            <Input id="discount" name="discount" type="number" defaultValue={selectedFee?.discount || 0} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="paymentMethod">Payment Method</Label>
+                            <Input id="paymentMethod" name="paymentMethod" defaultValue={selectedFee?.paymentMethod} required />
+                        </div>
                     </div>
                 </div>
                 <DialogFooter>

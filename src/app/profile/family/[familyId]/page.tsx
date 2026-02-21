@@ -7,10 +7,10 @@ import { useSettings } from '@/context/settings-context';
 import type { Student, Family, Fee } from '@/lib/types';
 import { Loader2, School, User, Home, Phone, Hash, Users, Wallet, Calendar } from 'lucide-react';
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, doc, getDocs, getDoc, collection, query, where, orderBy } from 'firebase/firestore';
+import { getFirestore, doc, getDocs, getDoc, collection, query, where } from 'firebase/firestore';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
@@ -69,9 +69,23 @@ export default function PublicFamilyProfilePage() {
                 const studentsData = studentsSnapshot.docs.map(d => ({id: d.id, ...d.data()} as Student));
 
                 // Fetch all fees for this family
-                const feesQuery = query(collection(publicDb, "fees"), where("familyId", "==", id), orderBy("year", "desc"));
+                const feesQuery = query(collection(publicDb, "fees"), where("familyId", "==", id));
                 const feesSnapshot = await getDocs(feesQuery);
                 const allFamilyFees = feesSnapshot.docs.map(d => ({id: d.id, ...d.data()} as Fee));
+                
+                const monthOrder = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                allFamilyFees.sort((a, b) => {
+                    if (a.year !== b.year) {
+                        return a.year - b.year; // Sort by year ascending
+                    }
+                     if (a.month === 'Registration' || b.month === 'Registration') {
+                        return a.month === 'Registration' ? -1 : 1;
+                    }
+                    const aMonthIndex = monthOrder.indexOf(a.month);
+                    const bMonthIndex = monthOrder.indexOf(b.month);
+                    
+                    return aMonthIndex - bMonthIndex; // Sort by month ascending
+                });
                 
                 const studentsWithFees: FamilyStudent[] = studentsData.map(student => {
                     const studentFees = allFamilyFees.filter(fee => {
