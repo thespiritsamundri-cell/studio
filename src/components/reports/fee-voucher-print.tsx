@@ -1,37 +1,57 @@
-
 'use client';
 
 import React from 'react';
-import type { Student, Family } from '@/lib/types';
+import type { Student, Family, Fee } from '@/lib/types';
 import { School } from 'lucide-react';
 import Image from 'next/image';
 import type { SchoolSettings } from '@/context/settings-context';
 import { format, parseISO } from 'date-fns';
-import type { VoucherData } from '@/app/(dashboard)/vouchers/page';
 
 interface FeeVoucherPrintProps {
-  allVouchersData: { family: Family; students: Student[]; voucherData: VoucherData, qrCodeDataUri: string }[];
+  allVouchersData: {
+    family: Family;
+    students: Student[];
+    fees: Fee[];
+    totalAmount: number;
+    voucherId: string;
+    issueDate: string;
+    dueDate: string;
+    lateFee: number;
+    qrCodeDataUri: string;
+  }[];
   settings: SchoolSettings;
 }
 
-const VoucherSlip = ({ family, students, settings, voucherData, copyType, qrCodeDataUri }: { family: Family, students: Student[], settings: SchoolSettings, voucherData: VoucherData, copyType: string, qrCodeDataUri: string }) => {
-  const { issueDate, dueDate, feeMonths, feeItems, grandTotal } = voucherData;
-  const { admissionFee, monthlyFee, annualCharges, boardRegFee, pendingDues, lateFeeFine, concession } = feeItems;
+const VoucherSlip = ({ 
+    family, 
+    students, 
+    settings, 
+    fees, 
+    totalAmount,
+    voucherId,
+    issueDate,
+    dueDate,
+    lateFee,
+    copyType,
+    qrCodeDataUri 
+}: { 
+    family: Family, 
+    students: Student[], 
+    settings: SchoolSettings,
+    fees: Fee[],
+    totalAmount: number,
+    voucherId: string,
+    issueDate: string,
+    dueDate: string,
+    lateFee: number,
+    copyType: string, 
+    qrCodeDataUri: string 
+}) => {
 
   const student = students[0];
-  const parsedIssueDate = issueDate ? parseISO(issueDate) : new Date();
-  const parsedDueDate = dueDate ? parseISO(dueDate) : new Date();
-  
-  const amountAfterDueDate = grandTotal + lateFeeFine;
-
-  const FeeRow = ({ label, amount }: { label: string, amount: number }) => (
-    (amount !== 0) && ( // Also show concession if it's negative
-        <tr>
-            <td className="p-1">{label}</td>
-            <td className="p-1 text-right font-mono">{amount.toLocaleString()}</td>
-        </tr>
-    )
-  );
+  const parsedIssueDate = parseISO(issueDate);
+  const parsedDueDate = parseISO(dueDate);
+  const amountAfterDueDate = totalAmount + lateFee;
 
   return (
       <div className="bg-white text-black text-sm font-sans p-2 border-2 border-black">
@@ -57,9 +77,9 @@ const VoucherSlip = ({ family, students, settings, voucherData, copyType, qrCode
               <tbody>
                   <tr>
                       <td className="font-bold py-0 pr-2">Voucher #</td>
-                      <td className="py-0">{voucherData.voucherId}</td>
-                      <td className="font-bold py-0 pl-4 pr-2 text-left">Fee Month</td>
-                      <td className="py-0 text-left" colSpan={3}>{feeMonths || format(parsedIssueDate, 'MMMM')}</td>
+                      <td className="py-0">{voucherId}</td>
+                      <td className="font-bold py-0 pl-4 pr-2 text-left">Fee Month(s)</td>
+                      <td className="py-0 text-left" colSpan={3}>{fees.map(f => f.month).join(', ')}</td>
                   </tr>
                    <tr>
                       <td className="font-bold py-0 pr-2">Issue Date</td>
@@ -92,18 +112,18 @@ const VoucherSlip = ({ family, students, settings, voucherData, copyType, qrCode
                   </tr>
               </thead>
               <tbody>
-                  <FeeRow label="Tuition Fee" amount={monthlyFee} />
-                  <FeeRow label="Admission Fee" amount={admissionFee} />
-                  <FeeRow label="Annual Charges" amount={annualCharges} />
-                  <FeeRow label="Board Reg / Other" amount={boardRegFee} />
-                  <FeeRow label="Pending Dues" amount={pendingDues} />
-                  <FeeRow label="Concession" amount={-concession} />
+                  {fees.map(fee => (
+                      <tr key={fee.id}>
+                        <td className="p-1">{fee.month} {fee.year}</td>
+                        <td className="p-1 text-right font-mono">{fee.amount.toLocaleString()}</td>
+                      </tr>
+                  ))}
               </tbody>
           </table>
           <div className="text-sm py-1 border-t-2 border-black space-y-1">
               <div className="flex justify-between items-center font-bold">
                   <span>Payable within Due Date</span>
-                  <span className="font-mono">PKR {grandTotal.toLocaleString()}</span>
+                  <span className="font-mono">PKR {totalAmount.toLocaleString()}</span>
               </div>
               <div className="flex justify-between items-center">
                   <span>Payable after Due Date</span>
@@ -123,24 +143,10 @@ export const FeeVoucherPrint = React.forwardRef<HTMLDivElement, FeeVoucherPrintP
     
     return (
       <div ref={ref}>
-        {allVouchersData.map(({ family, students, voucherData, qrCodeDataUri }) => (
-            <div key={family.id} className="voucher-page w-[210mm] h-[297mm] bg-white mx-auto p-4 flex flex-col justify-around">
-                <VoucherSlip 
-                    family={family}
-                    students={students}
-                    settings={settings}
-                    voucherData={voucherData}
-                    copyType="Student Copy"
-                    qrCodeDataUri={qrCodeDataUri}
-                />
-                <VoucherSlip 
-                    family={family}
-                    students={students}
-                    settings={settings}
-                    voucherData={voucherData}
-                    copyType="School Office Copy"
-                    qrCodeDataUri={qrCodeDataUri}
-                />
+        {allVouchersData.map((voucher) => (
+            <div key={voucher.voucherId} className="voucher-page w-[210mm] h-[297mm] bg-white mx-auto p-4 flex flex-col justify-around">
+                <VoucherSlip {...voucher} copyType="Student Copy" />
+                <VoucherSlip {...voucher} copyType="School Office Copy" />
             </div>
         ))}
       </div>
