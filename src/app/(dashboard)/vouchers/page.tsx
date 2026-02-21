@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -19,7 +18,7 @@ import { generateQrCode } from '@/ai/flows/generate-qr-code';
 import { openPrintWindow } from '@/lib/print-helper';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
-
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 export default function VouchersPage() {
   const { families, students, fees } = useData();
@@ -34,11 +33,15 @@ export default function VouchersPage() {
   const [lateFee, setLateFee] = useState(settings.lateFeeFine || 100);
 
   // State for Single Family Generation
-  const [familySearchId, setFamilySearchId] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [searchedFamily, setSearchedFamily] = useState<Family | null>(null);
   const [familyStudents, setFamilyStudents] = useState<Student[]>([]);
   const [unpaidFees, setUnpaidFees] = useState<Fee[]>([]);
   const [selectedFeeIds, setSelectedFeeIds] = useState<string[]>([]);
+  
+  // State for student name search
+  const [studentSearchResults, setStudentSearchResults] = useState<Student[]>([]);
+  const [showSelectionDialog, setShowSelectionDialog] = useState(false);
   
   // Memo for All Families Tab
   const familiesWithDues = useMemo(() => {
@@ -79,19 +82,51 @@ export default function VouchersPage() {
     }
   }, [searchedFamily, students, fees]);
 
+  const processFamilySearch = (family: Family) => {
+    setSearchedFamily(family);
+    // The useEffect above will handle updating students and fees.
+  };
 
   const handleSearch = () => {
-    if (!familySearchId) {
-      setSearchedFamily(null);
+    if (!searchQuery) {
+      toast({ title: 'Please enter a Family ID or Student Name.', variant: 'destructive' });
       return;
     }
-    const family = families.find(f => f.id === familySearchId);
-    if (family) {
-      setSearchedFamily(family);
-    } else {
-      toast({ title: 'Family Not Found', variant: 'destructive' });
-      setSearchedFamily(null);
+    setSearchedFamily(null);
+    setStudentSearchResults([]);
+
+    const familyById = families.find(f => f.id.toLowerCase() === searchQuery.toLowerCase());
+    if (familyById) {
+      processFamilySearch(familyById);
+      return;
     }
+
+    const matchingStudents = students.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    if (matchingStudents.length === 0) {
+      toast({ title: 'Not Found', description: `No family or student found for "${searchQuery}".`, variant: 'destructive' });
+    } else if (matchingStudents.length === 1) {
+      const student = matchingStudents[0];
+      const family = families.find(f => f.id === student.familyId);
+      if (family) {
+        processFamilySearch(family);
+        setSearchQuery(family.id);
+      } else {
+        toast({ title: 'Family Not Found', description: `Could not find family for student ${student.name}.`, variant: 'destructive' });
+      }
+    } else {
+      setStudentSearchResults(matchingStudents);
+      setShowSelectionDialog(true);
+    }
+  };
+
+  const handleStudentSelect = (student: Student) => {
+    const family = families.find(f => f.id === student.familyId);
+    if (family) {
+      setSearchQuery(family.id);
+      processFamilySearch(family);
+    }
+    setShowSelectionDialog(false);
   };
 
   const handleFeeSelection = (feeId: string, checked: boolean) => {
@@ -175,10 +210,6 @@ export default function VouchersPage() {
     setIsLoading(false);
   };
   
-  const getStudentCountForFamily = (familyId: string) => {
-    return students.filter(student => student.familyId === familyId && student.status !== 'Archived').length;
-  };
-  
   const getStudentNamesForFamily = (familyId: string) => {
       return students.filter(s => s.familyId === familyId && s.status !== 'Archived').map(s => s.name).join(', ');
   }
@@ -188,7 +219,38 @@ export default function VouchersPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold font-headline">Fee Vouchers</h1>
       </div>
-
+        <Dialog open={showSelectionDialog} onOpenChange={setShowSelectionDialog}>
+            <DialogContent className="max-w-xl">
+                <DialogHeader>
+                    <DialogTitle>Multiple Students Found</DialogTitle>
+                    <DialogDescription>Select the correct student to generate their family's voucher.</DialogDescription>
+                </DialogHeader>
+                <div className="max-h-96 overflow-y-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Name</TableHead>
+                                <TableHead>Father's Name</TableHead>
+                                <TableHead>Class</TableHead>
+                                <TableHead>Action</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {studentSearchResults.map(student => (
+                                <TableRow key={student.id}>
+                                    <TableCell>{student.name}</TableCell>
+                                    <TableCell>{student.fatherName}</TableCell>
+                                    <TableCell>{student.class}</TableCell>
+                                    <TableCell>
+                                        <Button size="sm" onClick={() => handleStudentSelect(student)}>Select</Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+            </DialogContent>
+        </Dialog>
        <Tabs defaultValue="single" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="single">Single Family Voucher</TabsTrigger>
@@ -198,11 +260,11 @@ export default function VouchersPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle>Generate for a Single Family</CardTitle>
-                        <CardDescription>Search for a family, select their dues, and generate a consolidated voucher.</CardDescription>
+                        <CardDescription>Search for a family by ID or student name, select their dues, and generate a consolidated voucher.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="flex w-full max-w-sm items-center space-x-2">
-                            <Input placeholder="Enter Family ID" value={familySearchId} onChange={e => setFamilySearchId(e.target.value)} />
+                            <Input placeholder="Enter Family ID or Student Name" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} />
                             <Button onClick={handleSearch}><Search className="mr-2 h-4 w-4" />Search</Button>
                         </div>
                         {searchedFamily && (
@@ -299,5 +361,3 @@ export default function VouchersPage() {
     </div>
   );
 }
-
-    
