@@ -19,6 +19,7 @@ import { renderToString } from 'react-dom/server';
 import { YearlyFinancialPrintReport } from '@/components/reports/yearly-financial-report';
 import { YearlyAdmissionsPrintReport } from '@/components/reports/yearly-admissions-report';
 import { YearlyAcademicPrintReport } from '@/components/reports/yearly-academic-report';
+import { openPrintWindow } from '@/lib/print-helper';
 
 
 const chartColors = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
@@ -204,17 +205,7 @@ export default function YearbookPage() {
             printContent = renderToString(<YearlyAcademicPrintReport settings={settings} title={title} data={yearlyAcademicData} />);
         }
 
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.write(`
-                <html>
-                <head><title>${title}</title><script src="https://cdn.tailwindcss.com"></script></head>
-                <body>${printContent}</body>
-                </html>
-            `);
-            printWindow.document.close();
-            printWindow.focus();
-        }
+        openPrintWindow(printContent, title, '/print/reports.css');
     };
 
 
@@ -480,3 +471,5 @@ export default function YearbookPage() {
         </div>
     );
 }
+
+    

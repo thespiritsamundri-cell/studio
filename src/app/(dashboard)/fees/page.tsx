@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState } from 'react';
@@ -12,6 +11,7 @@ import type { Family, Student, Fee } from '@/lib/types';
 import { FeeDetailsCard } from '@/components/fees/fee-details-card';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/context/settings-context';
+
 
 export default function FeesPage() {
   const { families, students, fees: allFees, updateFee, addFee, deleteFee } = useData();
@@ -53,7 +53,10 @@ export default function FeesPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold font-headline">Fee Collection</h1>
+       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <h1 className="text-3xl font-bold font-headline">Fee Collection</h1>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle>Collect Fee</CardTitle>

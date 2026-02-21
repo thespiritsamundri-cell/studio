@@ -15,26 +15,6 @@ import { doc, getDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
 import Link from 'next/link';
 
-const FacebookIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
-    </svg>
-);
-
-const InstagramIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
-        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-        <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-    </svg>
-);
-
-const WhatsappIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-    </svg>
-);
-
 export default function LockPage() {
   const router = useRouter();
   const { settings } = useSettings();
@@ -215,23 +195,10 @@ export default function LockPage() {
                     <span>{settings.schoolPhone}</span>
                 </div>
                 <div className="mt-4 border-t w-full flex flex-col items-center gap-2 pt-4">
-                    <p className="text-xs text-muted-foreground">Developed by "Mian Mudassar"</p>
-                    <div className="flex items-center gap-4">
-                        <Link href="https://www.facebook.com/mianmudassar.in" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
-                            <FacebookIcon className="h-5 w-5" />
-                        </Link>
-                        <Link href="https://wa.link/j5f42q" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
-                            <WhatsappIcon className="h-5 w-5" />
-                        </Link>
-                        <Link href="https://www.instagram.com/mianmudassar_" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
-                            <InstagramIcon className="h-5 w-5" />
-                        </Link>
-                    </div>
+                    <p className="text-xs text-muted-foreground">Developed by SchoolUP</p>
                 </div>
             </CardFooter>
         </Card>
     </div>
   );
 }
-
-    

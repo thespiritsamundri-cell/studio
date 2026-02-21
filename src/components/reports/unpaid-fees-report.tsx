@@ -54,7 +54,7 @@ export const UnpaidFeesPrintReport = React.forwardRef<HTMLDivElement, UnpaidFees
                 <TableHead>Father's Name</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Students</TableHead>
-                <TableHead>Unpaid Months</TableHead>
+                <TableHead>Unpaid Fee Details</TableHead>
                 <TableHead className="text-right">Total Due (PKR)</TableHead>
               </TableRow>
             </TableHeader>
@@ -68,7 +68,9 @@ export const UnpaidFeesPrintReport = React.forwardRef<HTMLDivElement, UnpaidFees
                       {students.map(s => <div key={s.id}>{s.name} ({s.class})</div>)}
                   </TableCell>
                   <TableCell>
-                      {unpaidFees.map(f => <div key={f.id}>{f.month} {f.year}</div>)}
+                      {unpaidFees.map(f => (
+                        <div key={f.id} className="text-xs">{f.month} {f.year}: <span className="font-semibold">{f.amount.toLocaleString()}</span></div>
+                      ))}
                   </TableCell>
                   <TableCell className="text-right font-bold text-red-600">{totalDue.toLocaleString()}</TableCell>
                 </TableRow>

@@ -1,0 +1,30 @@
+@page {
+    size: A4 portrait;
+    margin: 0.25in;
+}
+
+.printable-page {
+    page-break-after: always;
+    display: flex;
+    flex-direction: column;
+    height: 98vh;
+    justify-content: space-between;
+    gap: 0.25in;
+}
+
+.printable-page:last-child {
+    page-break-after: auto;
+}
+
+.slip-wrapper {
+    height: 49%;
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.font-urdu {
+    font-family: "Jameel Noori Nastaleeq", "Noto Nastaliq Urdu", "Urdu Typesetting", sans-serif;
+}

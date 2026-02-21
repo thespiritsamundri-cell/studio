@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useRef } from 'react';
@@ -38,7 +39,7 @@ import { Label } from '@/components/ui/label';
 import { useData } from '@/context/data-context';
 import type { Family } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const professions = [
@@ -49,7 +50,10 @@ const professions = [
 export default function FamiliesPage() {
   const { families: allFamilies, students: allStudents, addFamily, updateFamily, updateStudent, addActivityLog } = useData();
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
+  const searchParams = useSearchParams();
+  const searchQueryFromQuery = searchParams.get('search');
+  
+  const [searchQuery, setSearchQuery] = useState(searchQueryFromQuery || '');
   const [filteredFamilies, setFilteredFamilies] = useState<Family[]>([]);
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
@@ -63,9 +67,26 @@ export default function FamiliesPage() {
   const importInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Filter out archived families
-    setFilteredFamilies(allFamilies.filter(f => f.status !== 'Archived'));
-  }, [allFamilies]);
+    if (searchQueryFromQuery) {
+        setSearchQuery(searchQueryFromQuery);
+    }
+  }, [searchQueryFromQuery]);
+
+  useEffect(() => {
+    const activeFamilies = allFamilies.filter(f => f.status !== 'Archived');
+    if (!searchQuery) {
+        setFilteredFamilies(activeFamilies);
+        return;
+    }
+    const lowercasedQuery = searchQuery.toLowerCase().replace(/-/g, '');
+    const filtered = activeFamilies.filter(
+        (family) =>
+            family.id.toLowerCase().includes(lowercasedQuery) ||
+            family.fatherName.toLowerCase().includes(lowercasedQuery) ||
+            (family.cnic && family.cnic.replace(/-/g, '').includes(lowercasedQuery))
+    );
+    setFilteredFamilies(filtered);
+  }, [searchQuery, allFamilies]);
   
    useEffect(() => {
     if (selectedFamily) {
@@ -76,28 +97,10 @@ export default function FamiliesPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    const activeFamilies = allFamilies.filter(f => f.status !== 'Archived');
-    if (!searchQuery) {
-        setFilteredFamilies(activeFamilies);
-        return;
-    }
-    const filtered = activeFamilies.filter(
-        (family) =>
-            family.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            family.fatherName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            family.cnic?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-    setFilteredFamilies(filtered);
+    // The useEffect now handles filtering, so this is mainly for pressing enter
+    // We can just let the useEffect do its job. The state update will trigger it.
+    router.push(`/families?search=${searchQuery}`);
   };
-  
-  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const query = e.target.value;
-    setSearchQuery(query);
-     const activeFamilies = allFamilies.filter(f => f.status !== 'Archived');
-    if (!query) {
-      setFilteredFamilies(activeFamilies);
-    }
-  }
 
   const handleAddFamily = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -366,7 +369,7 @@ export default function FamiliesPage() {
               placeholder="Search by Family ID, Name, or CNIC..." 
               className="flex-grow" 
               value={searchQuery}
-              onChange={handleSearchInputChange}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
             <Button type="submit">
               <Search className="h-4 w-4 mr-2" />

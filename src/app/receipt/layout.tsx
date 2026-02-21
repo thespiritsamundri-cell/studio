@@ -1,3 +1,4 @@
+
 'use client';
 
 import { SettingsProvider } from '@/context/settings-context';

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -9,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { DateRange } from 'react-day-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { CalendarIcon, Printer, Trash2, Edit, Save, PlusCircle, Search } from 'lucide-react';
+import { CalendarIcon, Printer, Trash2, Edit, Save, PlusCircle, Search, Download, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
@@ -31,6 +32,9 @@ import { useSettings } from '@/context/settings-context';
 import { IncomePrintReport } from '@/components/reports/income-report';
 import { renderToString } from 'react-dom/server';
 import { useSearchParams } from 'next/navigation';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { openPrintWindow } from '@/lib/print-helper';
 
 export default function IncomePage() {
   const { fees, families, updateFee, deleteFee, hasPermission } = useData();
@@ -41,6 +45,7 @@ export default function IncomePage() {
   
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [searchFilter, setSearchFilter] = useState('');
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     if (familyIdFromQuery) {
@@ -144,34 +149,57 @@ export default function IncomePage() {
     setOpenDeleteDialog(false);
   };
   
-  const triggerPrint = () => {
+  const getReportComponent = () => {
     const familyName = searchFilter && filteredFees.length > 0 ? filteredFees[0].fatherName : undefined;
-    const printContent = renderToString(
-      <IncomePrintReport fees={filteredFees} totalIncome={totalIncome} dateRange={dateRange} settings={settings} familyName={familyName} />
-    );
-    const printWindow = window.open('', '_blank');
-    if(printWindow) {
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Income Report</title>
-            <script src="https://cdn.tailwindcss.com"></script>
-          </head>
-          <body>
-            ${printContent}
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.focus();
+    return <IncomePrintReport fees={filteredFees} totalIncome={totalIncome} dateRange={dateRange} settings={settings} familyName={familyName} />;
+  }
+
+  const handlePrint = () => {
+    const printContent = renderToString(getReportComponent());
+    openPrintWindow(printContent, 'Income Report');
+  };
+  
+  const handleDownloadPdf = async () => {
+    setIsDownloading(true);
+    const reportComponent = getReportComponent();
+    
+    const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.innerHTML = renderToString(reportComponent);
+    document.body.appendChild(container);
+
+    try {
+        const canvas = await html2canvas(container.firstChild as HTMLElement, { scale: 2, useCORS: true });
+        const imgData = canvas.toDataURL('image/png');
+        
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        const ratio = Math.min(pdfWidth / canvas.width, pdfHeight / canvas.height);
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width * ratio, canvas.height * ratio);
+        pdf.save(`income-report.pdf`);
+    } catch (error) {
+        console.error("Error generating PDF:", error);
+        toast({ title: "Error Generating PDF", variant: "destructive" });
+    } finally {
+        document.body.removeChild(container);
+        setIsDownloading(false);
     }
   };
+
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h1 className="text-3xl font-bold font-headline">Income</h1>
-        <Button onClick={triggerPrint} variant="outline"><Printer className="mr-2 h-4 w-4"/> Print Report</Button>
+        <div className="flex items-center gap-2">
+            <Button onClick={handleDownloadPdf} variant="outline" disabled={isDownloading}>
+                {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Download className="mr-2 h-4 w-4" />}
+                PDF
+            </Button>
+            <Button onClick={handlePrint} variant="outline"><Printer className="mr-2 h-4 w-4"/> Print Report</Button>
+        </div>
       </div>
 
         <Card>
@@ -209,12 +237,12 @@ export default function IncomePage() {
                 <Table>
                 <TableHeader>
                     <TableRow>
-                    <TableHead>Challan ID</TableHead>
+                    <TableHead className="hidden lg:table-cell">Challan ID</TableHead>
                     <TableHead>Family ID</TableHead>
                     <TableHead>Father's Name</TableHead>
                     <TableHead>Payment Date</TableHead>
                     <TableHead>Month/Year</TableHead>
-                    <TableHead>Method</TableHead>
+                    <TableHead className="hidden md:table-cell">Method</TableHead>
                     <TableHead className="text-right">Amount (PKR)</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -222,12 +250,12 @@ export default function IncomePage() {
                 <TableBody>
                     {filteredFees.map((fee) => (
                     <TableRow key={fee.id}>
-                        <TableCell>{fee.id}</TableCell>
+                        <TableCell className="hidden lg:table-cell">{fee.id}</TableCell>
                         <TableCell className="font-medium">{fee.familyId}</TableCell>
                         <TableCell>{fee.fatherName}</TableCell>
                         <TableCell>{fee.paymentDate && format(new Date(fee.paymentDate), 'PPP')}</TableCell>
                         <TableCell>{fee.month}, {fee.year}</TableCell>
-                        <TableCell>{fee.paymentMethod || 'N/A'}</TableCell>
+                        <TableCell className="hidden md:table-cell">{fee.paymentMethod || 'N/A'}</TableCell>
                         <TableCell className="text-right font-semibold text-green-600">{fee.amount.toLocaleString()}</TableCell>
                         <TableCell className="text-right">
                            {canManageIncome && (

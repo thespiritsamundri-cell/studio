@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -14,7 +15,6 @@ import { FeeReceipt } from '../reports/fee-receipt';
 import { useToast } from '@/hooks/use-toast';
 import { Printer, Download, Loader2 } from 'lucide-react';
 import { renderToString } from 'react-dom/server';
-import { createRoot } from 'react-dom/client';
 import type { SchoolSettings } from '@/context/settings-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useData } from '@/context/data-context';
@@ -23,6 +23,8 @@ import html2canvas from 'html2canvas';
 import { generateQrCode } from '@/ai/flows/generate-qr-code';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import jsPDF from 'jspdf';
+import { openPrintWindow } from '@/lib/print-helper';
 
 
 interface FeeDetailsCardProps {
@@ -35,16 +37,13 @@ interface FeeDetailsCardProps {
     settings: SchoolSettings;
 }
 
-type PrintType = 'normal' | 'thermal';
-
 export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, onDeleteFee, settings }: FeeDetailsCardProps) {
     const { toast } = useToast();
     const { addActivityLog, addNotification } = useData();
 
     const [paidAmount, setPaidAmount] = useState<number>(0);
     const [paymentMethod, setPaymentMethod] = useState('By Hand');
-    const [printType, setPrintType] = useState<PrintType>('normal');
-    const [isDownloadingJpg, setIsDownloadingJpg] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
     
     const unpaidFees = useMemo(() => fees.filter(f => f.status === 'Unpaid'), [fees]);
     const totalDues = useMemo(() => unpaidFees.reduce((acc, fee) => acc + fee.amount, 0), [unpaidFees]);
@@ -54,57 +53,23 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
     }, [totalDues]);
 
     const remainingDues = totalDues - paidAmount;
-
-    const generateReceiptJpg = async (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, qrCodeDataUri?: string): Promise<string> => {
-        return new Promise((resolve, reject) => {
-            const container = document.createElement('div');
-            container.style.position = 'absolute';
-            container.style.left = '-9999px';
-            document.body.appendChild(container);
-
-            const receiptElement = (
-                <FeeReceipt
-                    family={family}
-                    students={students}
-                    fees={paidFeesForReceipt}
-                    totalDues={totalDues}
-                    paidAmount={collectedAmount}
-                    remainingDues={newRemainingDues}
-                    settings={settings}
-                    paymentMethod={method}
-                    printType={printType}
-                    receiptId={receiptId}
-                    qrCodeDataUri={qrCodeDataUri}
-                />
-            );
-            
-            const root = createRoot(container);
-            root.render(receiptElement);
-
-            setTimeout(async () => {
-                const receiptNode = container.firstChild as HTMLElement;
-                if (!receiptNode) {
-                    document.body.removeChild(container);
-                    return reject(new Error("Receipt element not found for canvas generation."));
-                }
-                
-                try {
-                    const canvas = await html2canvas(receiptNode, {
-                        useCORS: true,
-                        scale: 2
-                    });
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-                    resolve(dataUrl);
-                } catch (error) {
-                    reject(error);
-                } finally {
-                    root.unmount();
-                    document.body.removeChild(container);
-                }
-            }, 500);
-        });
+    
+    const generateReceiptContent = (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, qrCodeDataUri?: string) => {
+        return renderToString(
+            <FeeReceipt
+                family={family}
+                students={students}
+                fees={paidFeesForReceipt}
+                totalDues={totalDues}
+                paidAmount={collectedAmount}
+                remainingDues={newRemainingDues}
+                settings={settings}
+                paymentMethod={method}
+                receiptId={receiptId}
+                qrCodeDataUri={qrCodeDataUri}
+            />
+        );
     };
-
 
     const handleCollectFee = async () => {
         if (paidAmount <= 0) {
@@ -246,10 +211,9 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                     if (result.success) {
                         addActivityLog({ action: 'Send WhatsApp Message', description: 'Sent fee payment receipt to 1 recipient.', recipientCount: 1 });
                     } else {
-                        throw new Error(result.error);
+                        toast({ title: 'WhatsApp Failed', description: `Could not send payment receipt. Error: ${result.error}`, variant: 'destructive' });
                     }
                 } catch (error: any) {
-                    console.error("Failed to send payment receipt.", error);
                     toast({ title: 'WhatsApp Failed', description: `Could not send payment receipt. Error: ${error.message}`, variant: 'destructive' });
                 }
             }
@@ -262,59 +226,42 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
             return;
         }
         
-        const printContent = renderToString(
-            <FeeReceipt
-                family={family}
-                students={students}
-                fees={paidFeesForReceipt}
-                totalDues={totalDues}
-                paidAmount={collectedAmount}
-                remainingDues={newRemainingDues}
-                settings={settings}
-                paymentMethod={method}
-                printType={printType}
-                receiptId={receiptId}
-                qrCodeDataUri={qrCodeDataUri}
-            />
-        );
-        const printWindow = window.open('', '_blank');
-        if(printWindow) {
-            const bodyClass = printType === 'thermal' ? 'thermal-receipt-body' : '';
-            printWindow.document.write(`
-                <html>
-                    <head>
-                        <title>Fee Receipt - Family ${family.id}</title>
-                        <script src="https://cdn.tailwindcss.com"></script>
-                        <link rel="stylesheet" href="/print-styles.css">
-                    </head>
-                    <body class="${bodyClass}">
-                        ${printContent}
-                    </body>
-                </html>
-            `);
-            printWindow.document.close();
-            printWindow.focus();
-        }
+        const printContent = generateReceiptContent(paidFeesForReceipt, collectedAmount, newRemainingDues, method, receiptId, qrCodeDataUri);
+        openPrintWindow(printContent, `Fee Receipt - Family ${family.id}`);
     };
     
-     const triggerJpgDownload = async (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, qrCodeDataUri?: string) => {
+     const triggerPdfDownload = async (paidFeesForReceipt: Fee[], collectedAmount: number, newRemainingDues: number, method: string, receiptId: string, qrCodeDataUri?: string) => {
         if (collectedAmount === 0 && totalDues === 0) {
              return;
         }
 
-        setIsDownloadingJpg(true);
+        setIsDownloading(true);
+        const printContent = generateReceiptContent(paidFeesForReceipt, collectedAmount, newRemainingDues, method, receiptId, qrCodeDataUri);
+        
+        const container = document.createElement('div');
+        container.style.position = 'absolute';
+        container.style.left = '-9999px';
+        container.innerHTML = printContent;
+        document.body.appendChild(container);
+        
         try {
-            const jpgDataUri = await generateReceiptJpg(paidFeesForReceipt, collectedAmount, newRemainingDues, method, receiptId, qrCodeDataUri);
-            const link = document.createElement('a');
-            link.download = `${receiptId}.jpg`;
-            link.href = jpgDataUri;
-            link.click();
-            toast({ title: 'Download Started', description: `Fee receipt ${receiptId}.jpg is downloading.` });
+            const canvas = await html2canvas(container.firstChild as HTMLElement, { scale: 2, useCORS: true });
+            const imgData = canvas.toDataURL('image/png');
+            
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const ratio = Math.min(pdfWidth / canvas.width, pdfHeight / canvas.height);
+            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width * ratio, canvas.height * ratio);
+            pdf.save(`${receiptId}.pdf`);
+            
+            toast({ title: 'Download Started', description: `Fee receipt ${receiptId}.pdf is downloading.` });
         } catch (error) {
-            console.error('Error generating JPG:', error);
-            toast({ title: 'Download Failed', description: 'Could not generate the image file.', variant: 'destructive' });
+            console.error('Error generating PDF:', error);
+            toast({ title: 'Download Failed', description: 'Could not generate the PDF file.', variant: 'destructive' });
         } finally {
-            setIsDownloadingJpg(false);
+            document.body.removeChild(container);
+            setIsDownloading(false);
         }
     };
 
@@ -436,17 +383,9 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, onAddFee, 
                      </div>
                      <div className="flex justify-end gap-2">
                         <Button disabled={totalDues === 0 || paidAmount <= 0} onClick={handleCollectFee}>Collect Fee</Button>
-                        <Select value={printType} onValueChange={(value) => setPrintType(value as PrintType)}>
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Select Print Type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="normal">Normal (A4)</SelectItem>
-                                <SelectItem value="thermal">Thermal</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <Button variant="outline" onClick={() => triggerJpgDownload(unpaidFees, 0, totalDues, paymentMethod, `INV-${Date.now()}`)} disabled={isDownloadingJpg}>
-                            {isDownloadingJpg ? <Loader2 className="h-4 w-4 animate-spin"/> : <Download className="h-4 w-4" />}
+                        <Button variant="outline" onClick={() => triggerPdfDownload(unpaidFees, 0, totalDues, paymentMethod, `INV-${Date.now()}`)} disabled={isDownloading}>
+                            {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Download className="h-4 w-4 mr-2" />}
+                            PDF
                         </Button>
                         <Button variant="outline" onClick={() => triggerPrint(unpaidFees, 0, totalDues, paymentMethod, `INV-${Date.now()}`)}><Printer className="h-4 w-4" /></Button>
                      </div>

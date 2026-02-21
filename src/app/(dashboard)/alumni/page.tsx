@@ -11,6 +11,10 @@ import { Eye, Search, Medal } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
+const MALE_AVATAR_URL = 'https://i.postimg.cc/x1BZ31bs/male.png';
+const FEMALE_AVATAR_URL = 'https://i.postimg.cc/7hgPwR8W/1487318.png';
+const NEUTRAL_AVATAR_URL = 'https://i.postimg.cc/3Jp4JMfC/avatar-placeholder.png';
+
 export default function AlumniPage() {
   const { alumni: allAlumni } = useData();
   const [searchQuery, setSearchQuery] = useState('');
@@ -68,7 +72,7 @@ export default function AlumniPage() {
                       alt="Student image"
                       className="aspect-square rounded-md object-cover"
                       height="64"
-                      src={student.photoUrl || `https://picsum.photos/seed/${student.id}/64/64`}
+                      src={student.photoUrl || (student.gender === 'Male' ? MALE_AVATAR_URL : student.gender === 'Female' ? FEMALE_AVATAR_URL : NEUTRAL_AVATAR_URL)}
                       width="64"
                       data-ai-hint="student photo"
                     />

@@ -5,10 +5,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { db, auth } from '@/lib/firebase';
 import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, writeBatch, query, where, getDocs, setDoc, getDoc, runTransaction } from 'firebase/firestore';
-import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData, Attendance, Alumni, User, PermissionSet, AppNotification, Session } from '@/lib/types';
+import type { Student, Family, Fee, Teacher, TeacherAttendance, Class, Exam, ActivityLog, Expense, Timetable, TimetableData, Attendance, Alumni, User, PermissionSet, AppNotification, Session, SingleSubjectTest } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from './settings-context';
 import { createUserWithEmailAndPassword as createUserAuth, onAuthStateChanged } from 'firebase/auth';
+import { format, startOfMonth, endOfMonth, eachMonthOfInterval, getYear, getMonth, addMonths, subMonths } from 'date-fns';
 
 const defaultPermissions: PermissionSet = {
     dashboard: false, families: false, admissions: false, students: false, classes: false,
@@ -29,6 +30,7 @@ interface DataContextType {
   alumni: Alumni[];
   classes: Class[];
   exams: Exam[];
+  singleSubjectTests: SingleSubjectTest[];
   activityLog: ActivityLog[];
   expenses: Expense[];
   timetables: Timetable[];
@@ -49,6 +51,7 @@ interface DataContextType {
   addFee: (feeData: Omit<Fee, 'id'>) => Promise<string | undefined>;
   updateFee: (id: string, fee: Partial<Fee>) => Promise<void>;
   deleteFee: (id: string) => void;
+  generateMonthlyFees: () => Promise<number>;
   addTeacher: (teacher: Omit<Teacher, 'id'>) => Promise<void>;
   updateTeacher: (id: string, teacher: Partial<Teacher>) => Promise<void>;
   deleteTeacher: (id: string) => Promise<void>;
@@ -60,6 +63,9 @@ interface DataContextType {
   addExam: (exam: Exam) => Promise<void>;
   updateExam: (id: string, exam: Partial<Exam>) => Promise<void>;
   deleteExam: (id: string) => Promise<void>;
+  addSingleSubjectTest: (test: Omit<SingleSubjectTest, 'id'>) => Promise<string | undefined>;
+  updateSingleSubjectTest: (id: string, test: Partial<SingleSubjectTest>) => Promise<void>;
+  deleteSingleSubjectTest: (id: string) => Promise<void>;
   addActivityLog: (activity: Omit<ActivityLog, 'id' | 'timestamp' | 'user'>) => Promise<void>;
   clearActivityLog: () => Promise<void>;
   addExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
@@ -103,6 +109,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [classes, setClasses] = useState<Class[]>([]);
   const [alumni, setAlumni] = useState<Alumni[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
+  const [singleSubjectTests, setSingleSubjectTests] = useState<SingleSubjectTest[]>([]);
   const [activityLog, setActivityLog] = useState<ActivityLog[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [timetables, setTimetables] = useState<Timetable[]>([]);
@@ -113,6 +120,147 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [userPermissions, setUserPermissions] = useState<PermissionSet>(defaultPermissions);
   const [isDataInitialized, setIsDataInitialized] = useState(false);
   const [currentUserName, setCurrentUserName] = useState('System');
+
+  const addActivityLog = useCallback(async (activity: Omit<ActivityLog, 'id' | 'timestamp' | 'user'>) => {
+    try {
+        const newLogId = getDateTimeId();
+        const newLogEntry: ActivityLog = {
+            ...activity,
+            id: newLogId,
+            user: currentUserName,
+            timestamp: new Date().toISOString(),
+        };
+        await setDoc(doc(db, 'activityLog', newLogId), newLogEntry);
+    } catch(e) {
+        console.error("Error adding activity log: ", e);
+    }
+  }, [currentUserName]);
+
+  const addNotification = useCallback(async (notification: Omit<AppNotification, 'id' | 'timestamp' | 'isRead'>) => {
+      const superAdmin = users.find(u => u.role === 'super_admin');
+      if (!superAdmin) return;
+      try {
+          const newNotif: Omit<AppNotification, 'id'> = {
+              ...notification,
+              timestamp: new Date().toISOString(),
+              isRead: false,
+          };
+          await addDoc(collection(db, 'notifications'), newNotif);
+      } catch (e) {
+          console.error("Error adding notification:", e);
+      }
+  }, [users]);
+
+  const addFee = useCallback(async (feeData: Omit<Fee, 'id'>) => {
+    try {
+        const newDocRef = await addDoc(collection(db, "fees"), feeData);
+        if (userRole !== 'super_admin' && feeData.status === 'Paid') {
+            const family = families.find(f => f.id === feeData.familyId);
+            await addNotification({
+                title: 'Fee Collected',
+                description: `PKR ${feeData.amount.toLocaleString()} collected from ${family?.fatherName} (Family ID: ${feeData.familyId})`,
+                link: `/income?familyId=${feeData.familyId}`
+            });
+        }
+        return newDocRef.id;
+    } catch (e) {
+        console.error('Error adding fee:', e);
+        toast({ title: 'Error Adding Fee', variant: 'destructive' });
+    }
+  }, [toast, userRole, families, addNotification]);
+
+  const generateMonthlyFees = useCallback(async (): Promise<number> => {
+    const currentDate = new Date();
+    let generatedCount = 0;
+    const monthOrder = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+    try {
+        for (const family of families) {
+            const hasActiveStudents = students.some(s => s.familyId === family.id && s.status === 'Active');
+            if (!hasActiveStudents) continue;
+
+            const familyFees = fees.filter(f => f.familyId === family.id);
+            const lastTuitionFee = familyFees
+                .filter(f => !['Registration', 'Annual', 'Admission'].some(type => f.month.includes(type)))
+                .sort((a, b) => {
+                    const dateA = new Date(a.year, monthOrder.indexOf(a.month));
+                    const dateB = new Date(b.year, monthOrder.indexOf(b.month));
+                    return dateB.getTime() - dateA.getTime();
+                })[0];
+            
+            if (!lastTuitionFee) continue;
+
+            let nextFeeDate = new Date(lastTuitionFee.year, monthOrder.indexOf(lastTuitionFee.month));
+            nextFeeDate = addMonths(nextFeeDate, 1);
+            
+            while (nextFeeDate <= currentDate) {
+                const month = format(nextFeeDate, 'MMMM');
+                const year = getYear(nextFeeDate);
+
+                const feeAlreadyExists = familyFees.some(f => f.month === month && f.year === year);
+                if (!feeAlreadyExists) {
+                    await addFee({
+                        familyId: family.id,
+                        amount: lastTuitionFee.amount,
+                        month: month,
+                        year: year,
+                        status: 'Unpaid',
+                        paymentDate: ''
+                    });
+                    generatedCount++;
+                }
+                
+                nextFeeDate = addMonths(nextFeeDate, 1);
+            }
+        }
+        
+        if (generatedCount > 0) {
+            toast({ title: 'Fees Generated', description: `Automatically generated ${generatedCount} new monthly fee challans.`});
+            await addActivityLog({ action: 'Auto-Generate Fees', description: `Automatically generated ${generatedCount} new monthly fee challans.` });
+        }
+        return generatedCount;
+    } catch (error) {
+        console.error("Error during automatic fee generation:", error);
+        toast({ title: 'Fee Generation Failed', description: 'An error occurred during automatic fee generation.', variant: 'destructive' });
+        return 0;
+    }
+  }, [families, students, fees, addFee, addActivityLog, toast]);
+
+  const hasPermission = useCallback((permission: keyof PermissionSet) => {
+    if (userRole === 'super_admin') return true;
+    return userPermissions[permission] || false;
+  }, [userRole, userPermissions]);
+
+  useEffect(() => {
+    if (!isDataInitialized || !hasPermission('feeCollection')) return;
+
+    const runAutoFeeGeneration = async () => {
+      const today = new Date();
+      const isFirstDay = today.getDate() === 1;
+
+      if (!isFirstDay) {
+        return;
+      }
+      
+      const currentMonthKey = `feeGeneration-${format(today, 'yyyy-MM')}`;
+      const hasRunThisMonth = localStorage.getItem(currentMonthKey);
+
+      if (hasRunThisMonth) {
+        return;
+      }
+
+      console.log('Running automatic monthly fee generation...');
+      const count = await generateMonthlyFees();
+      
+      if (count >= 0) {
+        localStorage.setItem(currentMonthKey, 'true');
+      }
+    };
+
+    runAutoFeeGeneration();
+
+  }, [isDataInitialized, generateMonthlyFees, hasPermission]);
+
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
@@ -131,14 +279,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
                 const generalCollections = [
                     'students', 'families', 'fees', 'teachers', 'attendances', 
-                    'teacherAttendances', 'alumni', 'classes', 'exams', 'activityLog', 
+                    'teacherAttendances', 'alumni', 'classes', 'exams', 'singleSubjectTests', 'activityLog', 
                     'expenses', 'timetables', 'users', 'sessions'
                 ];
                 
                 const setterMap: { [key: string]: React.Dispatch<React.SetStateAction<any[]>> } = {
                     students: setStudents, families: setFamilies, fees: setFees, teachers: setTeachers,
                     attendances: setAttendances, teacherAttendances: setTeacherAttendances, alumni: setAlumni,
-                    classes: setClasses, exams: setExams, activityLog: setActivityLog, expenses: setExpenses,
+                    classes: setClasses, exams: setExams, singleSubjectTests: setSingleSubjectTests, activityLog: setActivityLog, expenses: setExpenses,
                     timetables: setTimetables, users: setUsers, sessions: setSessions, notifications: setNotifications
                 };
             
@@ -154,6 +302,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
                         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                         if (['activityLog', 'sessions'].includes(collectionName)) {
                             data.sort((a, b) => new Date(b.lastAccess || b.timestamp).getTime() - new Date(a.lastAccess || a.timestamp).getTime());
+                        }
+                        if (collectionName === 'singleSubjectTests') {
+                            data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
                         }
                         setter(data as any);
                     }, (error) => console.error(`Error fetching ${collectionName}:`, error));
@@ -187,35 +338,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
             setUserRole(null);
             setUserPermissions(defaultPermissions);
             setCurrentUserName('System');
-            [setStudents, setFamilies, setFees, setTeachers, setAttendances, setTeacherAttendances, setAlumni, setClasses, setExams, setActivityLog, setExpenses, setTimetables, setUsers, setSessions, setNotifications].forEach(setter => setter([]));
+            [setStudents, setFamilies, setFees, setTeachers, setAttendances, setTeacherAttendances, setAlumni, setClasses, setExams, setSingleSubjectTests, setActivityLog, setExpenses, setTimetables, setUsers, setSessions, setNotifications].forEach(setter => setter([]));
         }
     });
 
     return () => unsubscribeAuth();
   }, []);
   
-  const hasPermission = useCallback((permission: keyof PermissionSet) => {
-    if (userRole === 'super_admin') return true;
-    return userPermissions[permission] || false;
-  }, [userRole, userPermissions]);
-  
-
-  const addActivityLog = async (activity: Omit<ActivityLog, 'id' | 'timestamp' | 'user'>) => {
-    try {
-        const newLogId = getDateTimeId();
-        const newLogEntry: ActivityLog = {
-            ...activity,
-            id: newLogId,
-            user: currentUserName,
-            timestamp: new Date().toISOString(),
-        };
-        await setDoc(doc(db, 'activityLog', newLogId), newLogEntry);
-    } catch(e) {
-        console.error("Error adding activity log: ", e);
-    }
-  };
-  
-  const clearActivityLog = async () => {
+  const clearActivityLog = useCallback(async () => {
     try {
       const activityLogRef = collection(db, 'activityLog');
       const snapshot = await getDocs(activityLogRef);
@@ -230,19 +360,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
       console.error('Error clearing activity log: ', e);
       toast({ title: 'Error Clearing History', description: 'Could not clear the activity log.', variant: 'destructive' });
     }
-  };
+  }, [addActivityLog, toast]);
 
-  const updateDocFactory = <T extends {}>(collectionName: string, actionName: string, descriptionFn: (doc: T & {id: string}) => string) => async (id: string, docData: Partial<T>) => {
+  const updateDocFactory = useCallback((collectionName: string, actionName: string, descriptionFn: (doc: any) => string) => async (id: string, docData: Partial<any>) => {
      try {
         await setDoc(doc(db, collectionName, id), docData, { merge: true });
-        await addActivityLog({ action: actionName, description: descriptionFn({ ...docData, id } as T & {id: string}) });
+        await addActivityLog({ action: actionName, description: descriptionFn({ ...docData, id }) });
     } catch (e) {
         console.error(`Error updating ${collectionName}:`, e);
         toast({ title: `Error updating ${collectionName}`, variant: "destructive" });
     }
-  }
+  }, [addActivityLog, toast]);
   
-  const createUser = async (email: string, pass: string, name: string, permissions: PermissionSet) => {
+  const createUser = useCallback(async (email: string, pass: string, name: string, permissions: PermissionSet) => {
       try {
         const userCredential = await createUserAuth(auth, email, pass);
         const user = userCredential.user;
@@ -265,20 +395,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
          }
          throw new Error(error.message || 'An unknown error occurred during user creation.');
       }
-  };
-  const updateUser = updateDocFactory<User>('users', 'Update User Permissions', d => `Updated permissions for ${d.email}.`);
-  const signOutSession = async (sessionId: string) => {
+  }, [addActivityLog]);
+
+  const updateUser = useCallback(updateDocFactory<User>('users', 'Update User Permissions', d => `Updated permissions for ${d.email}.`), [updateDocFactory]);
+  
+  const signOutSession = useCallback(async (sessionId: string) => {
      try {
         await deleteDoc(doc(db, 'sessions', sessionId));
         await addActivityLog({ action: 'Sign Out Session', description: `Remotely signed out session ${sessionId}.` });
      } catch (e) {
         console.error("Error signing out session: ", e);
      }
-  }
+  }, [addActivityLog]);
 
 
   // --- STUDENT ---
-  const addStudent = async (student: Student) => {
+  const addStudent = useCallback(async (student: Student) => {
     try {
       await setDoc(doc(db, "students", student.id), student);
       if (userRole !== 'super_admin') {
@@ -292,9 +424,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       console.error('Error adding student:', e);
       toast({ title: 'Error Adding Student', description: 'Could not save the new student to the database.', variant: 'destructive' });
     }
-  };
+  }, [userRole, addNotification, toast]);
 
-  const updateStudent = async (id: string, studentData: Partial<Student>) => {
+  const updateStudent = useCallback(async (id: string, studentData: Partial<Student>) => {
     const studentRef = doc(db, 'students', id);
   
     if (studentData.status === 'Graduated') {
@@ -329,9 +461,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
         toast({ title: "Error updating student", variant: "destructive" });
       }
     }
-  };
+  }, [addActivityLog, toast]);
   
-  const deleteStudent = async (studentId: string) => {
+  const deleteStudent = useCallback(async (studentId: string) => {
     const studentToArchive = students.find((s) => s.id === studentId);
     if (!studentToArchive) return;
     try {
@@ -341,10 +473,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
         console.error("Error archiving student:", e);
         toast({ title: "Archive Failed", description: "Could not archive student.", variant: "destructive" });
     }
-  };
+  }, [students, addActivityLog, toast]);
 
   // --- ALUMNI ---
-    const updateAlumni = async (id: string, alumniData: Partial<Alumni & { status?: Student['status'] }>) => {
+    const updateAlumni = useCallback(async (id: string, alumniData: Partial<Alumni & { status?: Student['status'] }>) => {
     const alumniRef = doc(db, 'alumni', id);
 
     if (alumniData.status && alumniData.status !== 'Graduated') {
@@ -384,10 +516,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
         toast({ title: "Error updating alumnus", variant: "destructive" });
       }
     }
-  };
+  }, [addActivityLog, toast]);
 
   // --- FAMILY ---
-  const addFamily = async (family: Family) => {
+  const addFamily = useCallback(async (family: Family) => {
     try {
       await setDoc(doc(db, "families", family.id), family);
       await addActivityLog({ action: 'Add Family', description: `Added new family: ${family.fatherName} (ID: ${family.id}).` });
@@ -395,93 +527,72 @@ export function DataProvider({ children }: { children: ReactNode }) {
       console.error('Error adding family:', e);
       toast({ title: 'Error Adding Family', variant: 'destructive' });
     }
-  };
-  const updateFamily = updateDocFactory<Family>('families', 'Update Family', d => `Updated details for family: ${d.fatherName || ''} (ID: ${d.id}).`);
-  const deleteFamily = async (id: string) => {
+  }, [addActivityLog, toast]);
+
+  const updateFamily = useCallback(updateDocFactory<Family>('families', 'Update Family', d => `Updated details for family: ${d.fatherName || ''} (ID: ${d.id}).`), [updateDocFactory]);
+  
+  const deleteFamily = useCallback(async (id: string) => {
     try {
       const batch = writeBatch(db);
+      
+      // Delete family doc
       const familyRef = doc(db, 'families', id);
       batch.delete(familyRef);
+      
+      // Delete associated students
       const studentsQuery = query(collection(db, 'students'), where('familyId', '==', id));
       const studentsSnapshot = await getDocs(studentsQuery);
       studentsSnapshot.forEach((doc) => batch.delete(doc.ref));
+      
+      // Delete associated fees
       const feesQuery = query(collection(db, 'fees'), where('familyId', '==', id));
       const feesSnapshot = await getDocs(feesQuery);
       feesSnapshot.forEach((doc) => batch.delete(doc.ref));
+
       await batch.commit();
-      await addActivityLog({ action: 'Delete Family', description: `Deleted family ID: ${id} and associated records.`});
-      toast({ title: 'Family Deleted', description: 'The family and all associated records have been permanently deleted.' });
+      
+      await addActivityLog({ action: 'Delete Family', description: `Deleted family ID: ${id} and all associated records.`});
+      toast({ title: 'Family Deleted', description: 'The family and all associated student and fee records have been permanently deleted.' });
     } catch (e) {
       console.error('Error deleting family and associated data:', e);
       toast({ title: 'Error Deleting Family', variant: 'destructive' });
     }
-  };
+  }, [addActivityLog, toast]);
 
   // --- FEE ---
-  const addFee = async (feeData: Omit<Fee, 'id'>) => {
-    try {
-        const newDocRef = await addDoc(collection(db, "fees"), feeData);
-        if (userRole !== 'super_admin' && feeData.status === 'Paid') {
-            const family = families.find(f => f.id === feeData.familyId);
-            await addNotification({
-                title: 'Fee Collected',
-                description: `PKR ${feeData.amount.toLocaleString()} collected from ${family?.fatherName} (Family ID: ${feeData.familyId})`,
-                link: `/income?familyId=${feeData.familyId}`
-            });
-        }
-        return newDocRef.id;
-    } catch (e) {
-        console.error('Error adding fee:', e);
-        toast({ title: 'Error Adding Fee', variant: 'destructive' });
-    }
-  };
-  const updateFee = async (id: string, feeData: Partial<Fee>) => {
+  const updateFee = useCallback(async (id: string, feeData: Partial<Fee>) => {
     try { await setDoc(doc(db, 'fees', id), feeData, { merge: true }); } 
     catch(e) { console.error('Error updating fee', e); toast({ title: 'Error Updating Fee', variant: 'destructive' }); }
-  };
-    const deleteFee = async (id: string) => {
-    const feeToDelete = fees.find(f => f.id === id && f.status === 'Paid');
+  }, [toast]);
+    
+const deleteFee = useCallback(async (id: string) => {
+    const feeToDelete = fees.find(f => f.id === id);
     if (!feeToDelete) {
-        toast({ title: 'Error', description: 'Cannot reverse fee. Paid fee record not found.', variant: 'destructive' });
+        toast({ title: 'Fee record not found in local data.', variant: 'destructive' });
         return;
     }
+    
+    // This is for paid income records being reversed.
+    if (feeToDelete.status === 'Paid') {
+        try {
+            await runTransaction(db, async (transaction) => {
+                const paidFeeRef = doc(db, "fees", id);
+                const feeDoc = await transaction.get(paidFeeRef);
 
-    try {
-        await runTransaction(db, async (transaction) => {
-            const paidFeeRef = doc(db, 'fees', id);
-            
-            // 1. Get the paid fee doc to ensure it exists before proceeding
-            const paidFeeDoc = await transaction.get(paidFeeRef);
-            if (!paidFeeDoc.exists()) {
-                throw new Error("Paid fee document not found. It may have already been deleted.");
-            }
-            const paidFeeData = paidFeeDoc.data() as Fee;
-
-            // 2. Decide whether to update an existing challan or create a new one
-            if (paidFeeData.originalChallanId) {
-                const originalChallanRef = doc(db, 'fees', paidFeeData.originalChallanId);
-                const originalChallanDoc = await transaction.get(originalChallanRef);
-
-                if (originalChallanDoc.exists()) {
-                    // Original challan exists (was partially paid), add the amount back
-                    const currentAmount = originalChallanDoc.data().amount || 0;
-                    transaction.update(originalChallanRef, { amount: currentAmount + paidFeeData.amount });
-                } else {
-                    // Original challan does not exist, create a new unpaid record
-                    const newUnpaidFee: Omit<Fee, 'id'> = {
-                        familyId: paidFeeData.familyId,
-                        amount: paidFeeData.amount,
-                        month: paidFeeData.month,
-                        year: paidFeeData.year,
-                        status: 'Unpaid',
-                        paymentDate: '',
-                    };
-                    const newFeeRef = doc(collection(db, 'fees'));
-                    transaction.set(newFeeRef, newUnpaidFee);
+                if (!feeDoc.exists()) {
+                    // This is the "ghost" entry case. It's not in the DB, so we just inform the user.
+                    // The onSnapshot listener will automatically clear it from the UI upon its next refresh.
+                    console.warn(`Attempted to delete a non-existent paid fee record: ${id}. The UI will refresh.`);
+                    return; // Exit transaction gracefully
                 }
-            } else {
-                 // No original challan ID, so it was a direct payment or old record. Create a new unpaid fee.
-                 const newUnpaidFee: Omit<Fee, 'id'> = {
+                
+                const paidFeeData = feeDoc.data() as Fee;
+                if (!paidFeeData.familyId) {
+                     throw new Error("Cannot reverse fee: Family ID is missing from the paid record.");
+                }
+
+                // Re-create the unpaid fee.
+                const newUnpaidFee: Omit<Fee, 'id'> = {
                     familyId: paidFeeData.familyId,
                     amount: paidFeeData.amount,
                     month: paidFeeData.month,
@@ -491,24 +602,34 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 };
                 const newFeeRef = doc(collection(db, 'fees'));
                 transaction.set(newFeeRef, newUnpaidFee);
-            }
+                
+                // Delete the paid fee record.
+                transaction.delete(paidFeeRef);
+            });
 
-            // 3. Delete the 'Paid' fee record
-            transaction.delete(paidFeeRef);
-        });
-
-        toast({ title: "Income Reversed", description: `PKR ${feeToDelete.amount.toLocaleString()} has been added back to Family ${feeToDelete.familyId}'s dues.` });
-        await addActivityLog({ action: 'Reverse Income', description: `Reversed income of PKR ${feeToDelete.amount.toLocaleString()} for Family ID ${feeToDelete.familyId}.` });
-
-    } catch (e: any) {
-        console.error('Error reversing fee:', e);
-        toast({ title: 'Error Reversing Income', description: e.message || "An unknown error occurred.", variant: 'destructive' });
+            toast({ title: "Income Reversed", description: `PKR ${feeToDelete.amount.toLocaleString()} has been added back to Family ${feeToDelete.familyId}'s dues.` });
+            await addActivityLog({ action: 'Reverse Income', description: `Reversed income of PKR ${feeToDelete.amount.toLocaleString()} for Family ID ${feeToDelete.familyId}.` });
+        
+        } catch (error: any) {
+            console.error('Error reversing fee:', error);
+            toast({ title: "Error Reversing Income", description: error.message, variant: "destructive" });
+        }
+    } else {
+        // This handles deleting an "Unpaid" challan
+        try {
+            await deleteDoc(doc(db, 'fees', id));
+            toast({ title: "Challan Deleted", description: `Unpaid challan for Family ${feeToDelete.familyId} was deleted.` });
+            await addActivityLog({ action: 'Delete Challan', description: `Deleted unpaid challan ID ${id} for Family ${feeToDelete.familyId}.` });
+        } catch (e: any) {
+             console.error('Error deleting unpaid challan:', e);
+             toast({ title: 'Error Deleting Challan', description: e.message, variant: 'destructive' });
+        }
     }
-};
+}, [fees, addActivityLog, toast]);
 
   
   // --- TEACHER ---
-  const addTeacher = async (teacher: Omit<Teacher, 'id'>) => {
+  const addTeacher = useCallback(async (teacher: Omit<Teacher, 'id'>) => {
     try {
       const newId = `T${Date.now()}`;
       await setDoc(doc(db, "teachers", newId), { ...teacher, id: newId });
@@ -517,9 +638,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       console.error('Error adding teacher:', e);
       toast({ title: 'Error Adding Teacher', variant: 'destructive' });
     }
-  };
-  const updateTeacher = updateDocFactory<Teacher>('teachers', 'Update Teacher', d => `Updated details for teacher: ${d.name || ''} (ID: ${d.id}).`);
-  const deleteTeacher = async (id: string) => {
+  }, [addActivityLog, toast]);
+
+  const updateTeacher = useCallback(updateDocFactory<Teacher>('teachers', 'Update Teacher', d => `Updated details for teacher: ${d.name || ''} (ID: ${d.id}).`), [updateDocFactory]);
+
+  const deleteTeacher = useCallback(async (id: string) => {
     const teacherToDelete = teachers.find(t => t.id === id);
     if (!teacherToDelete) return;
     try {
@@ -529,10 +652,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       console.error('Error deleting teacher:', e);
       toast({ title: 'Error Deleting Teacher', variant: 'destructive' });
     }
-  };
+  }, [teachers, addActivityLog, toast]);
   
   // --- CLASS ---
-  const addClass = async (classData: Class) => {
+  const addClass = useCallback(async (classData: Class) => {
     try {
       await setDoc(doc(db, "classes", classData.id), classData);
       await addActivityLog({ action: 'Add Class', description: `Created new class: ${classData.name}.` });
@@ -540,9 +663,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       console.error('Error adding class:', e);
       toast({ title: 'Error Adding Class', variant: 'destructive' });
     }
-  };
-  const updateClass = updateDocFactory<Class>('classes', 'Update Class', d => `Updated class: ${d.name || ''}.`);
-  const deleteClass = async (id: string) => {
+  }, [addActivityLog, toast]);
+
+  const updateClass = useCallback(updateDocFactory<Class>('classes', 'Update Class', d => `Updated class: ${d.name || ''}.`), [updateDocFactory]);
+  
+  const deleteClass = useCallback(async (id: string) => {
     const classToDelete = classes.find(c => c.id === id);
     if (!classToDelete) return;
     try {
@@ -552,10 +677,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       console.error('Error deleting class:', e);
       toast({ title: 'Error Deleting Class', variant: 'destructive' });
     }
-  };
+  }, [classes, addActivityLog, toast]);
   
   // --- EXAM ---
-  const addExam = async (exam: Exam) => {
+  const addExam = useCallback(async (exam: Exam) => {
     try {
       await setDoc(doc(db, 'exams', exam.id), exam);
       await addActivityLog({ action: 'Create Exam', description: `Created exam "${exam.name}" for class ${exam.class}.` });
@@ -563,9 +688,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       console.error('Error adding exam:', e);
       toast({ title: 'Error Creating Exam', variant: 'destructive' });
     }
-  };
-  const updateExam = updateDocFactory<Exam>('exams', 'Save Exam Results', d => `Saved results for exam: ${d.name || ''} (${d.class || ''}).`);
-  const deleteExam = async (id: string) => {
+  }, [addActivityLog, toast]);
+
+  const updateExam = useCallback(updateDocFactory<Exam>('exams', 'Save Exam Results', d => `Saved results for exam: ${d.name || ''} (${d.class || ''}).`), [updateDocFactory]);
+  
+  const deleteExam = useCallback(async (id: string) => {
     const examToDelete = exams.find(e => e.id === id);
     if (!examToDelete) return;
     try {
@@ -575,13 +702,40 @@ export function DataProvider({ children }: { children: ReactNode }) {
       console.error('Error deleting exam:', e);
       toast({ title: 'Error Deleting Exam', variant: 'destructive' });
     }
-  };
+  }, [exams, addActivityLog, toast]);
   
-    // --- EXPENSE ---
-    const addExpense = async (expense: Omit<Expense, 'id'>) => {
+    // --- SINGLE SUBJECT TEST ---
+    const addSingleSubjectTest = useCallback(async (test: Omit<SingleSubjectTest, 'id'>) => {
         try {
-            const newId = `EXP-${Date.now()}`;
-            await setDoc(doc(db, "expenses", newId), { id: newId, ...expense });
+            const newDocRef = await addDoc(collection(db, "singleSubjectTests"), test);
+            await addActivityLog({ action: 'Create Single Subject Test', description: `Created test "${test.testName}" for class ${test.class}.` });
+            return newDocRef.id;
+        } catch (e) {
+            console.error('Error adding single subject test:', e);
+            toast({ title: 'Error Creating Test', variant: 'destructive' });
+        }
+    }, [addActivityLog, toast]);
+
+    const updateSingleSubjectTest = useCallback(updateDocFactory<SingleSubjectTest>('singleSubjectTests', 'Update Single Subject Test', d => `Updated results for test: ${d.testName}.`), [updateDocFactory]);
+    
+    const deleteSingleSubjectTest = useCallback(async (id: string) => {
+        const testToDelete = singleSubjectTests.find(t => t.id === id);
+        if (!testToDelete) return;
+        try {
+            await deleteDoc(doc(db, 'singleSubjectTests', id));
+            await addActivityLog({ action: 'Delete Single Subject Test', description: `Deleted test: ${testToDelete.testName}.` });
+        } catch (e) {
+            console.error('Error deleting single subject test:', e);
+            toast({ title: 'Error Deleting Test', variant: 'destructive' });
+        }
+    }, [singleSubjectTests, addActivityLog, toast]);
+
+    // --- EXPENSE ---
+    const addExpense = useCallback(async (expense: Omit<Expense, 'id'>) => {
+        try {
+            const docRef = await addDoc(collection(db, "expenses"), expense);
+            await updateDoc(docRef, { id: docRef.id });
+            
             if (userRole !== 'super_admin') {
                 await addNotification({
                     title: 'New Expense Added',
@@ -594,9 +748,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
             console.error('Error adding expense:', e);
             toast({ title: 'Error Adding Expense', variant: 'destructive' });
         }
-    };
+    }, [userRole, addNotification, addActivityLog, toast]);
 
-    const updateExpense = async (id: string, expenseData: Partial<Expense>) => {
+    const updateExpense = useCallback(async (id: string, expenseData: Partial<Expense>) => {
       try {
         const expenseRef = doc(db, 'expenses', id);
         await setDoc(expenseRef, expenseData, { merge: true });
@@ -605,53 +759,23 @@ export function DataProvider({ children }: { children: ReactNode }) {
         console.error(`Error updating expense:`, e);
         toast({ title: `Error updating expense`, variant: "destructive" });
       }
-    };
+    }, [addActivityLog, toast]);
     
-    const deleteExpense = async (id: string) => {
-    const expenseToDelete = expenses.find(exp => exp.id === id);
-    if (!expenseToDelete) {
-        toast({ title: 'Error', description: 'Could not find the expense to delete in local data.', variant: 'destructive' });
-        return;
-    }
-
-    try {
-        await runTransaction(db, async (transaction) => {
-            const expenseRef = doc(db, "expenses", id);
-            const expenseDoc = await transaction.get(expenseRef);
-
-            if (!expenseDoc.exists()) {
-                throw new Error("Expense document not found, cannot delete.");
-            }
-            const expenseData = expenseDoc.data() as Expense;
-
-            // Create reversal income record
-            const reversalFee: Omit<Fee, 'id'> = {
-                familyId: 'SYSTEM_REVERSAL',
-                amount: expenseData.amount,
-                month: `Expense Reversal: ${expenseData.description.substring(0, 20)}`,
-                year: new Date().getFullYear(),
-                paymentDate: new Date().toISOString(),
-                status: 'Paid',
-                paymentMethod: 'Adjustment',
-            };
-            const newFeeRef = doc(collection(db, "fees"));
-            transaction.set(newFeeRef, reversalFee);
-
-            // Delete the expense document
-            transaction.delete(expenseRef);
-        });
-
-        toast({ title: "Expense Deleted", description: "The expense has been deleted and the amount reversed into income." });
-        await addActivityLog({ action: 'Delete Expense', description: `Deleted and reversed expense ID: ${id}.` });
-
-    } catch (error: any) {
-        console.error("Error deleting expense:", error);
-        toast({ title: "Error Deleting Expense", description: error.message, variant: "destructive" });
-    }
-};
+    const deleteExpense = useCallback(async (id: string) => {
+        const expenseToDelete = expenses.find(exp => exp.id === id);
+        if (!expenseToDelete) return;
+        try {
+          await deleteDoc(doc(db, 'expenses', id));
+          await addActivityLog({ action: 'Delete Expense', description: `Deleted expense: ${expenseToDelete.description}.` });
+          toast({ title: 'Expense Deleted', description: 'The expense record has been deleted.' });
+        } catch (e) {
+          console.error('Error deleting expense:', e);
+          toast({ title: 'Error Deleting Expense', variant: 'destructive' });
+        }
+    }, [expenses, addActivityLog, toast]);
 
   // --- ATTENDANCE ---
-  const saveStudentAttendance = async (newAttendances: Attendance[], date: string, className: string) => {
+  const saveStudentAttendance = useCallback(async (newAttendances: Attendance[], date: string, className: string) => {
     if (!date || !className) return;
     try {
         const batch = writeBatch(db);
@@ -661,9 +785,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
         await batch.commit();
         await addActivityLog({ action: 'Save Student Attendance', description: `Saved attendance for class ${className} on date: ${date}.` });
     } catch (e) { console.error('Error saving student attendance: ', e); }
-};
+  }, [addActivityLog]);
 
-  const saveTeacherAttendance = async (newAttendances: TeacherAttendance[]) => {
+  const saveTeacherAttendance = useCallback(async (newAttendances: TeacherAttendance[]) => {
     const date = newAttendances[0]?.date;
     if (!date) return;
     try {
@@ -674,9 +798,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
         await batch.commit();
         await addActivityLog({ action: 'Save Teacher Attendance', description: `Saved teacher attendance for date: ${date}.` });
     } catch (e) { console.error('Error saving teacher attendance: ', e); }
-  };
+  }, [addActivityLog]);
   
-  const updateTimetable = async (classId: string, data: TimetableData, timeSlots?: string[], breakAfterPeriod?: number, breakDuration?: string) => {
+  const updateTimetable = useCallback(async (classId: string, data: TimetableData, timeSlots?: string[], breakAfterPeriod?: number, breakDuration?: string) => {
     try {
         const timetableRef = doc(db, 'timetables', classId);
         await setDoc(timetableRef, { classId, data, timeSlots, breakAfterPeriod, breakDuration }, { merge: true });
@@ -686,30 +810,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
         console.error('Error updating timetable', e);
         toast({ title: 'Error saving timetable', variant: 'destructive'});
     }
-  };
+  }, [classes, addActivityLog, toast]);
   
-  // --- NOTIFICATIONS ---
-  const addNotification = async (notification: Omit<AppNotification, 'id' | 'timestamp' | 'isRead'>) => {
-      const superAdmin = users.find(u => u.role === 'super_admin');
-      if (!superAdmin) return;
-      try {
-          const newNotif: Omit<AppNotification, 'id'> = {
-              ...notification,
-              timestamp: new Date().toISOString(),
-              isRead: false,
-          };
-          await addDoc(collection(db, 'notifications'), newNotif);
-      } catch (e) {
-          console.error("Error adding notification:", e);
-      }
-  };
-  const markNotificationAsRead = async (id: string) => {
+  const markNotificationAsRead = useCallback(async (id: string) => {
     try {
       await updateDoc(doc(db, 'notifications', id), { isRead: true });
     } catch (e) {
       console.error("Error marking notification as read:", e);
     }
-  };
+  }, []);
 
   const seedDatabase = async () => { console.log('seedDatabase called'); };
   const deleteAllData = async () => { console.log('deleteAllData called'); };
@@ -717,12 +826,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const contextValue = {
       students, families, fees, teachers, attendances, teacherAttendances, alumni,
-      classes, exams, activityLog, expenses, timetables, users, sessions, notifications,
+      classes, exams, singleSubjectTests, activityLog, expenses, timetables, users, sessions, notifications,
       userRole, userPermissions, isDataInitialized, hasPermission,
       addStudent, updateStudent, updateAlumni, deleteStudent, addFamily, updateFamily, 
-      deleteFamily, addFee, updateFee, deleteFee, addTeacher, updateTeacher,
+      deleteFamily, addFee, updateFee, deleteFee, generateMonthlyFees, addTeacher, updateTeacher,
       deleteTeacher, saveStudentAttendance, saveTeacherAttendance, addClass,
-      updateClass, deleteClass, addExam, updateExam, deleteExam, addActivityLog,
+      updateClass, deleteClass, addExam, updateExam, deleteExam, addSingleSubjectTest, updateSingleSubjectTest, deleteSingleSubjectTest, addActivityLog,
       clearActivityLog, addExpense, updateExpense, deleteExpense, updateTimetable,
       updateUser, createUser, signOutSession, addNotification, markNotificationAsRead,
       loadData, seedDatabase, deleteAllData,

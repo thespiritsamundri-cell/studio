@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useData } from '@/context/data-context';
 import type { Class, Student } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Edit, Trash2, X, GraduationCap, ArrowRight } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, X, GraduationCap, ArrowRight, BookCopy } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -189,7 +189,7 @@ export default function ClassesPage() {
   return (
     <div className="space-y-6">
       <div className="print:hidden">
-        <h1 className="text-3xl font-bold font-headline">Classes</h1>
+        <h1 className="text-3xl font-bold font-headline flex items-center gap-2"><BookCopy/> Classes Management</h1>
         
         <Card className="mt-6">
             <CardHeader className="flex flex-row items-center justify-between">
@@ -218,7 +218,7 @@ export default function ClassesPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {classes.sort((a, b) => a.name.localeCompare(b.name)).map(c => (
+                        {classes.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true})).map(c => (
                             <TableRow key={c.id}>
                                 <TableCell className="font-medium">{c.name}</TableCell>
                                 <TableCell>
@@ -270,20 +270,22 @@ export default function ClassesPage() {
                             placeholder="e.g., A" 
                             value={newSectionName} 
                             onChange={(e) => setNewSectionName(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleAddSection()}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddSection(); } }}
                         />
                         <Button type="button" onClick={handleAddSection}>Add</Button>
                     </div>
-                     <div className="flex flex-wrap gap-2 mt-2 min-h-16 rounded-md border p-2">
-                        {sections.map(s => (
-                            <Badge key={s} variant="secondary" className="flex items-center gap-1">
-                                {s}
-                                <button onClick={() => handleRemoveSection(s)} className="rounded-full hover:bg-muted-foreground/20 p-0.5">
-                                    <X className="h-3 w-3" />
-                                </button>
-                            </Badge>
-                        ))}
-                    </div>
+                     <ScrollArea className="h-32 mt-2">
+                        <div className="flex flex-wrap gap-2 rounded-md border p-2 min-h-[4rem]">
+                            {sections.map(s => (
+                                <Badge key={s} variant="secondary" className="flex items-center gap-1">
+                                    {s}
+                                    <button onClick={() => handleRemoveSection(s)} className="rounded-full hover:bg-muted-foreground/20 p-0.5">
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </Badge>
+                            ))}
+                        </div>
+                    </ScrollArea>
                 </div>
                  <div className="space-y-2">
                     <Label>Subjects</Label>
@@ -292,20 +294,22 @@ export default function ClassesPage() {
                             placeholder="e.g., English" 
                             value={newSubjectName} 
                             onChange={(e) => setNewSubjectName(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleAddSubject()}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddSubject(); } }}
                         />
                         <Button type="button" onClick={handleAddSubject}>Add</Button>
                     </div>
-                     <div className="flex flex-wrap gap-2 mt-2 min-h-16 rounded-md border p-2">
-                        {subjects.map(s => (
-                            <Badge key={s} variant="outline" className="flex items-center gap-1">
-                                {s}
-                                <button onClick={() => handleRemoveSubject(s)} className="rounded-full hover:bg-muted-foreground/20 p-0.5">
-                                    <X className="h-3 w-3" />
-                                </button>
-                            </Badge>
-                        ))}
-                    </div>
+                    <ScrollArea className="h-32 mt-2">
+                        <div className="flex flex-wrap gap-2 rounded-md border p-2 min-h-[4rem]">
+                            {subjects.map(s => (
+                                <Badge key={s} variant="outline" className="flex items-center gap-1">
+                                    {s}
+                                    <button onClick={() => handleRemoveSubject(s)} className="rounded-full hover:bg-muted-foreground/20 p-0.5">
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </Badge>
+                            ))}
+                        </div>
+                    </ScrollArea>
                 </div>
             </div>
           </div>
@@ -336,46 +340,45 @@ export default function ClassesPage() {
       
       {/* Student Promotion Dialog */}
       <Dialog open={openPromotionDialog} onOpenChange={setOpenPromotionDialog}>
-        <DialogContent className="sm:max-w-4xl">
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>Promote Students to Next Class</DialogTitle>
             <DialogDescription>
-              Select the source and destination classes, then choose the students to promote.
+              Select the source and destination classes, then choose which students to promote.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-              <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                      <div className="w-full space-y-2">
-                          <Label htmlFor="from-class">Promote From</Label>
-                           <Select onValueChange={handleFromClassChange}>
-                                <SelectTrigger id="from-class">
-                                    <SelectValue placeholder="Select source class" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {classes.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                      </div>
-                      <ArrowRight className="h-6 w-6 mt-8" />
-                      <div className="w-full space-y-2">
-                          <Label htmlFor="to-class">Promote To</Label>
-                           <Select value={toClass} onValueChange={setToClass}>
-                                <SelectTrigger id="to-class">
-                                    <SelectValue placeholder="Select destination class" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {classes.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                      </div>
+          <div className="space-y-6 py-4">
+              <div className="flex items-end gap-4">
+                  <div className="flex-1 space-y-2">
+                      <Label htmlFor="from-class">Promote From</Label>
+                       <Select onValueChange={handleFromClassChange} value={fromClass}>
+                            <SelectTrigger id="from-class">
+                                <SelectValue placeholder="Select source class" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {classes.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
                   </div>
-                   <div className="pt-4">
-                        <Label>Students in <span className="font-bold">{fromClass || "..."}</span></Label>
-                        <p className="text-sm text-muted-foreground">{selectedStudentsForPromotion.length} of {studentsToPromote.length} students selected.</p>
-                   </div>
+                  <ArrowRight className="h-6 w-6 text-muted-foreground" />
+                  <div className="flex-1 space-y-2">
+                      <Label htmlFor="to-class">Promote To</Label>
+                       <Select value={toClass} onValueChange={setToClass}>
+                            <SelectTrigger id="to-class">
+                                <SelectValue placeholder="Select destination class" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {classes.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                  </div>
               </div>
+              
               <div>
+                  <div className="flex justify-between items-center mb-2">
+                     <Label>Students in <span className="font-bold">{fromClass || "..."}</span></Label>
+                     <p className="text-sm text-muted-foreground">{selectedStudentsForPromotion.length} of {studentsToPromote.length} students selected.</p>
+                  </div>
                   <ScrollArea className="h-72 border rounded-md">
                       {fromClass ? (
                           <Table>
@@ -388,12 +391,17 @@ export default function ClassesPage() {
                               </TableHeader>
                               <TableBody>
                                  {studentsToPromote.map(student => (
-                                     <TableRow key={student.id}>
+                                     <TableRow key={student.id} data-state={selectedStudentsForPromotion.includes(student.id) && "selected"}>
                                          <TableCell><Checkbox onCheckedChange={(checked) => handleStudentSelectionChange(student.id, !!checked)} checked={selectedStudentsForPromotion.includes(student.id)}/></TableCell>
                                          <TableCell>{student.name}</TableCell>
                                          <TableCell>{student.id}</TableCell>
                                      </TableRow>
                                  ))}
+                                  {studentsToPromote.length === 0 && (
+                                     <TableRow>
+                                        <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">No active students in this class.</TableCell>
+                                     </TableRow>
+                                  )}
                               </TableBody>
                           </Table>
                       ) : (
@@ -411,3 +419,5 @@ export default function ClassesPage() {
     </div>
   );
 }
+
+    
