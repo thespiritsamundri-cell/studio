@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Printer, Loader2, Search, Users } from 'lucide-react';
+import { Printer, Loader2, Search, Users, X } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import { useSettings } from '@/context/settings-context';
 import { useToast } from '@/hooks/use-toast';
@@ -137,6 +137,11 @@ export default function VouchersPage() {
     }
     setShowSelectionDialog(false);
   };
+  
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setSearchedFamily(null);
+  };
 
   const handleFeeSelection = (feeId: string, checked: boolean) => {
     const feeIndex = unpaidFees.findIndex(f => f.id === feeId);
@@ -219,8 +224,7 @@ export default function VouchersPage() {
     setIsLoading(false);
 
     if (mode === 'single') {
-      setSearchQuery('');
-      setSearchedFamily(null);
+      handleClearSearch();
     }
   };
   
@@ -284,9 +288,12 @@ export default function VouchersPage() {
                         <CardDescription>Search for a family by ID or student name, select their dues, and generate a consolidated voucher.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                        <div className="flex w-full max-w-sm items-center space-x-2">
+                        <div className="flex w-full max-w-md items-center space-x-2">
                             <Input placeholder="Enter Family ID, Student, or Father's Name" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} />
                             <Button onClick={handleSearch}><Search className="mr-2 h-4 w-4" />Search</Button>
+                            <Button variant="ghost" size="icon" onClick={handleClearSearch} aria-label="Clear search">
+                                <X className="h-4 w-4" />
+                            </Button>
                         </div>
                         {searchedFamily && (
                             <div className="pt-4 border-t">
@@ -346,7 +353,7 @@ export default function VouchersPage() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <ScrollArea className="border rounded-md h-96">
+                        <ScrollArea className="h-96 border rounded-md">
                             <Table>
                                 <TableHeader>
                                     <TableRow>

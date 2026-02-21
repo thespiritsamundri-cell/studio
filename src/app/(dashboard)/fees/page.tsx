@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { useData } from '@/context/data-context';
 import type { Family, Student, Fee } from '@/lib/types';
 import { FeeDetailsCard } from '@/components/fees/fee-details-card';
@@ -90,6 +90,14 @@ export default function FeesPage() {
     }
     setShowSelectionDialog(false);
   }
+  
+  const handleClear = () => {
+      setSearchQuery('');
+      setSearchedFamily(null);
+      setFamilyStudents([]);
+      setFamilyFees([]);
+      setStudentSearchResults([]);
+  }
 
   return (
     <div className="space-y-6">
@@ -103,7 +111,7 @@ export default function FeesPage() {
           <CardDescription>Enter a family number or student name to view outstanding dues and collect fees.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex w-full max-w-sm items-center space-x-2">
+          <div className="flex w-full max-w-md items-center space-x-2">
             <Input
               type="text"
               placeholder="Family #, Student, or Father's Name"
@@ -114,6 +122,9 @@ export default function FeesPage() {
             <Button type="submit" onClick={handleSearch}>
               <Search className="h-4 w-4 mr-2" />
               Search
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleClear} aria-label="Clear search">
+                <X className="h-4 w-4" />
             </Button>
           </div>
         </CardContent>
