@@ -7,7 +7,7 @@ import { useSettings } from '@/context/settings-context';
 import type { Student, Family, Fee } from '@/lib/types';
 import { Loader2, School, User, Home, Phone, Hash, Users, Wallet, Calendar } from 'lucide-react';
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, doc, getDocs, getDoc, collection, query, where, orderBy } from 'firebase/firestore';
+import { getFirestore, doc, getDocs, getDoc, collection, query, where } from 'firebase/firestore';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table';
@@ -69,9 +69,24 @@ export default function PublicFamilyProfilePage() {
                 const studentsData = studentsSnapshot.docs.map(d => ({id: d.id, ...d.data()} as Student));
 
                 // Fetch all fees for this family
-                const feesQuery = query(collection(publicDb, "fees"), where("familyId", "==", id), orderBy("year", "desc"));
+                const feesQuery = query(collection(publicDb, "fees"), where("familyId", "==", id));
                 const feesSnapshot = await getDocs(feesQuery);
                 const allFamilyFees = feesSnapshot.docs.map(d => ({id: d.id, ...d.data()} as Fee));
+                
+                const monthOrder = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                allFamilyFees.sort((a, b) => {
+                    if (a.year !== b.year) {
+                        return b.year - a.year; // Sort by year descending
+                    }
+                    const aMonthIndex = monthOrder.indexOf(a.month);
+                    const bMonthIndex = monthOrder.indexOf(b.month);
+
+                    if (aMonthIndex === -1 && bMonthIndex > -1) return -1;
+                    if (aMonthIndex > -1 && bMonthIndex === -1) return 1;
+                    if (aMonthIndex === -1 && bMonthIndex === -1) return a.month.localeCompare(b.month);
+                    
+                    return bMonthIndex - aMonthIndex; // Sort by month descending
+                });
                 
                 const studentsWithFees: FamilyStudent[] = studentsData.map(student => {
                     const studentFees = allFamilyFees.filter(fee => {

@@ -11,7 +11,7 @@ service cloud.firestore {
     // These allow anyone to read specific documents needed for the public profiles.
     match /students/{studentId} {
       allow get: if true;
-      allow list: if false; 
+      allow list: if true; // For family profile page that queries students by familyId
     }
     match /alumni/{alumniId} {
       allow get: if true;
@@ -23,8 +23,8 @@ service cloud.firestore {
       allow get: if true;
     }
      match /fees/{feeId} {
-      allow get: if true; 
-      allow list: if false;
+      allow get: if true;
+      allow list: if true; // For family profile page that queries fees by familyId
     }
      
     // Allow logged-in users to read/write all other collections
