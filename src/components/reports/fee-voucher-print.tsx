@@ -49,7 +49,6 @@ const VoucherSlip = ({
     qrCodeDataUri: string 
 }) => {
 
-  const student = students[0];
   const parsedIssueDate = parseISO(issueDate);
   const parsedDueDate = parseISO(dueDate);
   const amountAfterDueDate = totalAmount + lateFee;
@@ -76,31 +75,31 @@ const VoucherSlip = ({
 
           <table className="w-full text-xs my-2">
               <tbody>
+                   <tr>
+                      <td className="font-bold py-0.5 pr-2">Voucher #:</td>
+                      <td className="py-0.5">{voucherId}</td>
+                      <td className="font-bold py-0.5 pl-4 pr-2 text-left">Fee Month(s):</td>
+                      <td className="py-0.5 text-left" colSpan={3}>{fees.map(f => f.month).join(', ')}</td>
+                  </tr>
+                   <tr>
+                      <td className="font-bold py-0.5 pr-2">Issue Date:</td>
+                      <td className="py-0.5">{format(parsedIssueDate, 'dd-MMM-yyyy')}</td>
+                      <td className="font-bold py-0.5 pl-4 pr-2 text-left">Due Date:</td>
+                      <td className="py-0.5 text-left font-bold">{format(parsedDueDate, 'dd-MMM-yyyy')}</td>
+                  </tr>
+                   <tr>
+                      <td className="font-bold py-0.5 pr-2 align-top">Student(s):</td>
+                      <td className="py-0.5 font-extrabold text-base" colSpan={3}>{students.map(s => s.name).join(', ')}</td>
+                  </tr>
+                   <tr>
+                        <td className="font-bold py-0.5 pr-2">Father's Name:</td>
+                        <td className="py-0.5 font-extrabold text-base" colSpan={3}>{family.fatherName}</td>
+                   </tr>
                   <tr>
-                      <td className="font-bold py-0 pr-2">Voucher #</td>
-                      <td className="py-0">{voucherId}</td>
-                      <td className="font-bold py-0 pl-4 pr-2 text-left">Fee Month(s)</td>
-                      <td className="py-0 text-left" colSpan={3}>{fees.map(f => f.month).join(', ')}</td>
-                  </tr>
-                   <tr>
-                      <td className="font-bold py-0 pr-2">Issue Date</td>
-                      <td className="py-0">{format(parsedIssueDate, 'dd-MMM-yyyy')}</td>
-                      <td className="font-bold py-0 pl-4 pr-2 text-left">Due Date</td>
-                      <td className="py-0 text-left font-bold">{format(parsedDueDate, 'dd-MMM-yyyy')}</td>
-                  </tr>
-                  <tr>
-                      <td className="font-bold py-0 pr-2">Student ID</td>
-                      <td className="py-0">{student.id}</td>
-                       <td className="font-bold py-0 pl-4 pr-2 text-left">Family ID</td>
-                      <td className="py-0 text-left">{family.id}</td>
-                  </tr>
-                   <tr>
-                      <td className="font-bold py-0 pr-2">Student Name</td>
-                      <td className="py-0" colSpan={3}>{students.map(s => `${s.name} (${s.class})`).join(', ')}</td>
-                  </tr>
-                   <tr>
-                      <td className="font-bold py-0 pr-2">Father's Name</td>
-                      <td className="py-0" colSpan={3}>{family.fatherName}</td>
+                      <td className="font-bold py-0.5 pr-2">Family ID:</td>
+                      <td className="py-0.5 font-extrabold text-base">{family.id}</td>
+                       <td className="font-bold py-0.5 pl-4 pr-2 text-left">Class(es):</td>
+                      <td className="py-0.5 text-left font-bold">{[...new Set(students.map(s => s.class))].join(', ')}</td>
                   </tr>
               </tbody>
           </table>

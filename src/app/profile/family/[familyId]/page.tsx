@@ -76,16 +76,15 @@ export default function PublicFamilyProfilePage() {
                 const monthOrder = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
                 allFamilyFees.sort((a, b) => {
                     if (a.year !== b.year) {
-                        return b.year - a.year; // Sort by year descending
+                        return a.year - b.year; // Sort by year ascending
+                    }
+                     if (a.month === 'Registration' || b.month === 'Registration') {
+                        return a.month === 'Registration' ? -1 : 1;
                     }
                     const aMonthIndex = monthOrder.indexOf(a.month);
                     const bMonthIndex = monthOrder.indexOf(b.month);
-
-                    if (aMonthIndex === -1 && bMonthIndex > -1) return -1;
-                    if (aMonthIndex > -1 && bMonthIndex === -1) return 1;
-                    if (aMonthIndex === -1 && bMonthIndex === -1) return a.month.localeCompare(b.month);
                     
-                    return bMonthIndex - aMonthIndex; // Sort by month descending
+                    return aMonthIndex - bMonthIndex; // Sort by month ascending
                 });
                 
                 const studentsWithFees: FamilyStudent[] = studentsData.map(student => {
