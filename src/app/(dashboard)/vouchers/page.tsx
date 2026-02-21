@@ -20,6 +20,7 @@ import { openPrintWindow } from '@/lib/print-helper';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function VouchersPage() {
   const { families, students, fees } = useData();
@@ -222,6 +223,13 @@ export default function VouchersPage() {
       return students.filter(s => s.familyId === familyId && s.status !== 'Archived').map(s => s.name).join(', ');
   }
 
+  const getTotalDuesForFamily = (familyId: string) => {
+    return fees
+      .filter(f => f.familyId === familyId && f.status === 'Unpaid')
+      .reduce((sum, fee) => sum + fee.amount, 0);
+  };
+
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -333,13 +341,14 @@ export default function VouchersPage() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="border rounded-md max-h-96 overflow-y-auto">
+                        <ScrollArea className="border rounded-md max-h-96">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Family ID</TableHead>
                                         <TableHead>Father's Name</TableHead>
                                         <TableHead>Students</TableHead>
+                                        <TableHead className="text-right">Total Dues</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -348,11 +357,12 @@ export default function VouchersPage() {
                                             <TableCell>{family.id}</TableCell>
                                             <TableCell className="font-medium">{family.fatherName}</TableCell>
                                             <TableCell className="text-sm text-muted-foreground">{getStudentNamesForFamily(family.id)}</TableCell>
+                                            <TableCell className="text-right font-bold text-destructive">PKR {getTotalDuesForFamily(family.id).toLocaleString()}</TableCell>
                                         </TableRow>
-                                    )) : <TableRow><TableCell colSpan={3} className="text-center h-24">No families with unpaid dues.</TableCell></TableRow>}
+                                    )) : <TableRow><TableCell colSpan={4} className="text-center h-24">No families with unpaid dues.</TableCell></TableRow>}
                                 </TableBody>
                             </Table>
-                        </div>
+                        </ScrollArea>
                     </CardContent>
                 </Card>
             </TabsContent>
