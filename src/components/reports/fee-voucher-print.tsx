@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -145,8 +146,8 @@ export const FeeVoucherPrint = React.forwardRef<HTMLDivElement, FeeVoucherPrintP
       <div ref={ref}>
         {allVouchersData.map((voucher) => (
             <div key={voucher.voucherId} className="voucher-page w-[210mm] h-[297mm] bg-white mx-auto p-4 flex flex-col justify-around">
-                <VoucherSlip {...voucher} copyType="Student Copy" />
-                <VoucherSlip {...voucher} copyType="School Office Copy" />
+                <VoucherSlip {...voucher} settings={settings} copyType="Student Copy" />
+                <VoucherSlip {...voucher} settings={settings} copyType="School Office Copy" />
             </div>
         ))}
       </div>
