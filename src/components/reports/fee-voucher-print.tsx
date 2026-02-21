@@ -95,7 +95,7 @@ const VoucherSlip = ({
                   </tr>
                    <tr>
                       <td className="font-bold py-0 pr-2">Student Name</td>
-                      <td className="py-0" colSpan={3}>{student.name}</td>
+                      <td className="py-0" colSpan={3}>{students.map(s => `${s.name} (${s.class})`).join(', ')}</td>
                   </tr>
                    <tr>
                       <td className="font-bold py-0 pr-2">Father's Name</td>
