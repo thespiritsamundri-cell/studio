@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -89,24 +90,31 @@ export default function VouchersPage() {
 
   const handleSearch = () => {
     if (!searchQuery) {
-      toast({ title: 'Please enter a Family ID or Student Name.', variant: 'destructive' });
+      toast({ title: "Please enter a Family ID, Student Name, or Father's Name.", variant: 'destructive' });
       return;
     }
     setSearchedFamily(null);
     setStudentSearchResults([]);
 
-    const familyById = families.find(f => f.id.toLowerCase() === searchQuery.toLowerCase());
+    const lowercasedQuery = searchQuery.toLowerCase();
+
+    const familyById = families.find(f => f.id.toLowerCase() === lowercasedQuery);
     if (familyById) {
       processFamilySearch(familyById);
       return;
     }
+    
+    const matchingStudentsByName = students.filter(s => s.name.toLowerCase().includes(lowercasedQuery));
+    
+    const matchingFamiliesByFatherName = families.filter(f => f.fatherName.toLowerCase().includes(lowercasedQuery));
+    const studentsFromMatchingFamilies = students.filter(s => matchingFamiliesByFatherName.some(f => f.id === s.familyId));
 
-    const matchingStudents = students.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    const allMatchingStudents = Array.from(new Map([...matchingStudentsByName, ...studentsFromMatchingFamilies].map(item => [item.id, item])).values());
 
-    if (matchingStudents.length === 0) {
-      toast({ title: 'Not Found', description: `No family or student found for "${searchQuery}".`, variant: 'destructive' });
-    } else if (matchingStudents.length === 1) {
-      const student = matchingStudents[0];
+    if (allMatchingStudents.length === 0) {
+      toast({ title: 'Not Found', description: `No family, student, or father found for "${searchQuery}".`, variant: 'destructive' });
+    } else if (allMatchingStudents.length === 1) {
+      const student = allMatchingStudents[0];
       const family = families.find(f => f.id === student.familyId);
       if (family) {
         processFamilySearch(family);
@@ -115,7 +123,7 @@ export default function VouchersPage() {
         toast({ title: 'Family Not Found', description: `Could not find family for student ${student.name}.`, variant: 'destructive' });
       }
     } else {
-      setStudentSearchResults(matchingStudents);
+      setStudentSearchResults(allMatchingStudents);
       setShowSelectionDialog(true);
     }
   };
@@ -222,7 +230,7 @@ export default function VouchersPage() {
         <Dialog open={showSelectionDialog} onOpenChange={setShowSelectionDialog}>
             <DialogContent className="max-w-xl">
                 <DialogHeader>
-                    <DialogTitle>Multiple Students Found</DialogTitle>
+                    <DialogTitle>Multiple Results Found</DialogTitle>
                     <DialogDescription>Select the correct student to generate their family's voucher.</DialogDescription>
                 </DialogHeader>
                 <div className="max-h-96 overflow-y-auto">
@@ -264,7 +272,7 @@ export default function VouchersPage() {
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="flex w-full max-w-sm items-center space-x-2">
-                            <Input placeholder="Enter Family ID or Student Name" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} />
+                            <Input placeholder="Enter Family ID, Student, or Father's Name" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} />
                             <Button onClick={handleSearch}><Search className="mr-2 h-4 w-4" />Search</Button>
                         </div>
                         {searchedFamily && (

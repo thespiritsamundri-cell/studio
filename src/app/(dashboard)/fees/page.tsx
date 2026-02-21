@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -37,7 +38,7 @@ export default function FeesPage() {
     if (!searchQuery) {
       toast({
         title: 'Error',
-        description: 'Please enter a Family ID or Student Name to search.',
+        description: "Please enter a Family ID, Student Name, or Father's Name to search.",
         variant: 'destructive',
       });
       return;
@@ -46,20 +47,28 @@ export default function FeesPage() {
     setSearchedFamily(null);
     setStudentSearchResults([]);
 
+    const lowercasedQuery = searchQuery.toLowerCase();
+
     // Try searching by family ID first
-    const familyById = families.find(f => f.id.toLowerCase() === searchQuery.toLowerCase());
+    const familyById = families.find(f => f.id.toLowerCase() === lowercasedQuery);
     if (familyById) {
         processFamilySearch(familyById);
         return;
     }
 
-    // If not found, search by student name
-    const matchingStudents = students.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    // If not found, search by student name OR father's name
+    const matchingStudentsByName = students.filter(s => s.name.toLowerCase().includes(lowercasedQuery));
 
-    if (matchingStudents.length === 0) {
-        toast({ title: 'Not Found', description: `No family or student found for "${searchQuery}".`, variant: 'destructive' });
-    } else if (matchingStudents.length === 1) {
-        const student = matchingStudents[0];
+    const matchingFamiliesByFatherName = families.filter(f => f.fatherName.toLowerCase().includes(lowercasedQuery));
+    const studentsFromMatchingFamilies = students.filter(s => matchingFamiliesByFatherName.some(f => f.id === s.familyId));
+
+    const allMatchingStudents = Array.from(new Map([...matchingStudentsByName, ...studentsFromMatchingFamilies].map(item => [item.id, item])).values());
+
+
+    if (allMatchingStudents.length === 0) {
+        toast({ title: 'Not Found', description: `No family, student, or father found for "${searchQuery}".`, variant: 'destructive' });
+    } else if (allMatchingStudents.length === 1) {
+        const student = allMatchingStudents[0];
         const family = families.find(f => f.id === student.familyId);
         if (family) {
             processFamilySearch(family);
@@ -68,7 +77,7 @@ export default function FeesPage() {
             toast({ title: 'Family Not Found', description: `Could not find the family for student ${student.name}.`, variant: 'destructive' });
         }
     } else {
-        setStudentSearchResults(matchingStudents);
+        setStudentSearchResults(allMatchingStudents);
         setShowSelectionDialog(true);
     }
   };
@@ -97,7 +106,7 @@ export default function FeesPage() {
           <div className="flex w-full max-w-sm items-center space-x-2">
             <Input
               type="text"
-              placeholder="Family # or Student Name"
+              placeholder="Family #, Student, or Father's Name"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -113,7 +122,7 @@ export default function FeesPage() {
       <Dialog open={showSelectionDialog} onOpenChange={setShowSelectionDialog}>
         <DialogContent className="max-w-xl">
             <DialogHeader>
-                <DialogTitle>Multiple Students Found</DialogTitle>
+                <DialogTitle>Multiple Results Found</DialogTitle>
                 <DialogDescription>Select the correct student to view their family's fees.</DialogDescription>
             </DialogHeader>
             <div className="max-h-96 overflow-y-auto">
