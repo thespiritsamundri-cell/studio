@@ -74,7 +74,7 @@ export default function LoginPage() {
                 </div>
              )}
           </div>
-          <CardTitle className="text-2xl font-bold font-headline">{settings.schoolName}</CardTitle>
+          <CardTitle className="text-2xl font-bold font-headline">THE SPIRIT SCHOOL SAMUNDRI</CardTitle>
           <CardDescription>Welcome back! Please login to your account.</CardDescription>
         </CardHeader>
         <CardContent>
