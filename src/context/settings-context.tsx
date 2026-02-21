@@ -59,8 +59,8 @@ export const defaultSettings: SchoolSettings = {
   schoolAddress: 'Housing Colony 2, Samundri Faisalabad',
   schoolPhone: '03438775425',
   schoolEmail: 'info@thespiritschool.edu.pk',
-  schoolLogo: 'https://i.postimg.cc/Xv35Y5XZ/The-Spirit.jpg',
-  favicon: 'https://i.postimg.cc/Xv35Y5XZ/The-Spirit.jpg',
+  schoolLogo: 'https://postimg.cc/ZBcJb0tb',
+  favicon: 'https://i.postimg.cc/R6RvSq5q/favicon-32x32.png',
   principalSignature: 'https://i.postimg.cc/XXXXXXX/signature.png',
   timezone: 'Asia/Karachi',
   
@@ -226,5 +226,3 @@ export const useSettings = () => {
   }
   return context;
 };
-
-    

@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState } from 'react';
@@ -9,7 +8,7 @@ import { BookOpenCheck, DollarSign, Users, CalendarIcon, Loader2, Printer, UserX
 import { useData } from '@/context/data-context';
 import { AllStudentsPrintReport } from '@/components/reports/all-students-report';
 import { IncomePrintReport } from '@/components/reports/income-report';
-import { AttendancePrintReport } from '@/components/reports/attendance-report';
+import { DailyAttendancePrintReport } from '@/components/reports/attendance-report';
 import { UnpaidFeesPrintReport } from '@/components/reports/unpaid-fees-report';
 import { StudentFinancialPrintReport, type StudentFinancialData } from '@/components/reports/student-financial-report';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -169,7 +168,7 @@ export default function ReportsPage() {
         });
 
         printContent = renderToString(
-          <AttendancePrintReport
+          <DailyAttendancePrintReport
             className={selectedClass}
             date={attendanceDate}
             students={classStudents}

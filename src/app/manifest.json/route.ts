@@ -29,16 +29,22 @@ export async function GET(request: Request) {
     theme_color: "#6a3fdc", // same as meta theme-color
     icons: [
       {
-        src: settings.schoolLogo || "https://i.postimg.cc/Xv35Y5XZ/The-Spirit.jpg",
+        src: "https://postimg.cc/Q9bj8VGK",
         sizes: "192x192",
         type: "image/png",
         purpose: "any maskable"
       },
       {
-        src: settings.schoolLogo || "https://i.postimg.cc/Xv35Y5XZ/The-Spirit.jpg",
+        src: "https://postimg.cc/ZBcJb0tb",
         sizes: "512x512",
         type: "image/png",
         purpose: "any maskable"
+      },
+      {
+        src: "https://i.postimg.cc/zbjqz3Zv/apple-touch-icon.png",
+        sizes: "180x180",
+        type: "image/png",
+        purpose: "any"
       }
     ],
   };
@@ -51,5 +57,3 @@ export async function GET(request: Request) {
     },
   });
 }
-
-    
