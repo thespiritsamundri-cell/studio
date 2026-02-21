@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -38,17 +39,43 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, settings }
 
     const [selectedFeeIds, setSelectedFeeIds] = useState<string[]>([]);
     const [paymentMethod, setPaymentMethod] = useState('By Hand');
-    
-    const unpaidFees = useMemo(() => fees.filter(f => f.status === 'Unpaid').sort((a,b) => new Date(a.year, Number(a.month)).getTime() - new Date(b.year, Number(b.month)).getTime()), [fees]);
+    const [discount, setDiscount] = useState<number>(0);
+
+    const unpaidFees = useMemo(() => {
+        const monthOrder = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        const specialFeeOrder = ['Registration', 'Admission', 'Annual'];
+        
+        return fees
+            .filter(f => f.status === 'Unpaid')
+            .sort((a, b) => {
+                const aIsSpecial = specialFeeOrder.some(prefix => a.month.startsWith(prefix));
+                const bIsSpecial = specialFeeOrder.some(prefix => b.month.startsWith(prefix));
+
+                if (aIsSpecial && !bIsSpecial) return -1;
+                if (!aIsSpecial && bIsSpecial) return 1;
+                if (aIsSpecial && bIsSpecial) {
+                    return specialFeeOrder.indexOf(a.month) - specialFeeOrder.indexOf(b.month);
+                }
+
+                // Both are regular month fees
+                const dateA = new Date(a.year, monthOrder.indexOf(a.month));
+                const dateB = new Date(b.year, monthOrder.indexOf(b.month));
+                return dateA.getTime() - dateB.getTime();
+            });
+    }, [fees]);
+
     const totalDues = useMemo(() => unpaidFees.reduce((acc, fee) => acc + fee.amount, 0), [unpaidFees]);
+    
     const selectedDues = useMemo(() => {
         return unpaidFees
             .filter(f => selectedFeeIds.includes(f.id))
             .reduce((acc, fee) => acc + fee.amount, 0);
     }, [unpaidFees, selectedFeeIds]);
     
+    const finalAmount = useMemo(() => Math.max(0, selectedDues - discount), [selectedDues, discount]);
+    
     useEffect(() => {
-        // Select all unpaid fees by default when the component loads or fees change
+        // Auto-select all unpaid fees when component loads or fees change
         setSelectedFeeIds(unpaidFees.map(f => f.id));
     }, [unpaidFees]);
 
@@ -59,38 +86,58 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, settings }
             return;
         }
 
+        if (discount > selectedDues) {
+            toast({ title: 'Invalid Discount', description: 'Discount cannot be greater than the selected dues.', variant: 'destructive'});
+            return;
+        }
+
         const feesToPay = unpaidFees.filter(f => selectedFeeIds.includes(f.id));
-        const collectedAmount = feesToPay.reduce((sum, fee) => sum + fee.amount, 0);
         const receiptId = `REC-${Date.now()}`;
 
-        for (const fee of feesToPay) {
+        for (let i = 0; i < feesToPay.length; i++) {
+            const fee = feesToPay[i];
+            const isLastFee = i === feesToPay.length - 1;
+            
             await onUpdateFee(fee.id, {
                 status: 'Paid',
                 paymentDate: new Date().toISOString().split('T')[0],
                 paymentMethod: paymentMethod,
-                receiptId: receiptId
+                receiptId: receiptId,
+                discount: isLastFee ? discount : 0,
             });
         }
         
         toast({
             title: 'Fee Collected',
-            description: `PKR ${collectedAmount.toLocaleString()} collected for Family ${family.id}.`,
+            description: `PKR ${finalAmount.toLocaleString()} collected for Family ${family.id}.`,
         });
 
-        addActivityLog({ action: 'Collect Fee', description: `Collected PKR ${collectedAmount.toLocaleString()} from family ${family.id} (${family.fatherName})`});
+        addActivityLog({ action: 'Collect Fee', description: `Collected PKR ${finalAmount.toLocaleString()} from family ${family.id} (${family.fatherName}) with a discount of PKR ${discount}.`});
         
         addNotification({
             title: 'Fee Collected',
-            description: `PKR ${collectedAmount.toLocaleString()} collected from ${family.fatherName} (Family ID: ${family.id})`,
+            description: `PKR ${finalAmount.toLocaleString()} collected from ${family.fatherName} (Family ID: ${family.id})`,
             link: `/income?familyId=${family.id}`
         });
-
-        if (settings.automatedMessages?.payment.enabled) {
-            // ... (WhatsApp notification logic remains the same)
-        }
         
-        // After payment, clear selections
+        // Reset selections and discount
         setSelectedFeeIds([]);
+        setDiscount(0);
+    };
+
+    const handleFeeSelection = (feeId: string, checked: boolean) => {
+        const feeIndex = unpaidFees.findIndex(f => f.id === feeId);
+        if (feeIndex === -1) return;
+    
+        if (checked) {
+            // When checking an item, also check all previous items
+            const idsToSelect = unpaidFees.slice(0, feeIndex + 1).map(f => f.id);
+            setSelectedFeeIds(prev => [...new Set([...prev, ...idsToSelect])]);
+        } else {
+            // When unchecking an item, also uncheck all subsequent items
+            const idsToDeselect = unpaidFees.slice(feeIndex).map(f => f.id);
+            setSelectedFeeIds(prev => prev.filter(id => !idsToDeselect.includes(id)));
+        }
     };
     
     return (
@@ -172,32 +219,39 @@ export function FeeDetailsCard({ family, students, fees, onUpdateFee, settings }
                 </div>
                 <Separator className="my-6" />
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-                     <div className="space-y-4 md:col-span-2">
-                         <h3 className="text-lg font-semibold">Payment Collection</h3>
-                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 items-end">
-                             <div className="space-y-2">
-                                 <Label>Selected Dues (PKR)</Label>
-                                 <Input value={selectedDues.toLocaleString()} disabled className="font-bold border-primary" />
-                             </div>
-                              <div className="space-y-2">
-                                 <Label htmlFor="payment-method">Payment Method</Label>
-                                 <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                                     <SelectTrigger id="payment-method">
-                                         <SelectValue placeholder="Select method" />
-                                     </SelectTrigger>
-                                     <SelectContent>
-                                         <SelectItem value="By Hand">By Hand</SelectItem>
-                                         <SelectItem value="Easypaisa">Easypaisa</SelectItem>
-                                         <SelectItem value="Jazz Cash">Jazz Cash</SelectItem>
-                                         <SelectItem value="Bank Account">Bank Account</SelectItem>
-                                     </SelectContent>
-                                 </Select>
-                             </div>
-                             <Button className="w-full" disabled={selectedDues <= 0} onClick={handleCollectFee}>Collect Fee (PKR {selectedDues.toLocaleString()})</Button>
-                         </div>
-                     </div>
-                     <div></div>
+                <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Payment Collection</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                        <div className="space-y-2">
+                            <Label>Selected Dues (PKR)</Label>
+                            <Input value={selectedDues.toLocaleString()} disabled />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="discount">Discount (PKR)</Label>
+                            <Input id="discount" type="number" value={discount === 0 ? '' : discount} onChange={(e) => setDiscount(Number(e.target.value) || 0)} placeholder="0" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Total to Collect</Label>
+                            <Input value={finalAmount.toLocaleString()} disabled className="font-bold border-primary" />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="payment-method">Payment Method</Label>
+                            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                                <SelectTrigger id="payment-method">
+                                    <SelectValue placeholder="Select method" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="By Hand">By Hand</SelectItem>
+                                    <SelectItem value="Easypaisa">Easypaisa</SelectItem>
+                                    <SelectItem value="Jazz Cash">Jazz Cash</SelectItem>
+                                    <SelectItem value="Bank Account">Bank Account</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                     <div className="flex justify-end">
+                        <Button className="w-full sm:w-auto" size="lg" disabled={selectedDues <= 0} onClick={handleCollectFee}>Collect Fee (PKR {finalAmount.toLocaleString()})</Button>
+                    </div>
                 </div>
 
             </CardContent>

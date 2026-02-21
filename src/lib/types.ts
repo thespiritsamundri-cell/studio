@@ -101,6 +101,7 @@ export interface Fee {
   status: 'Paid' | 'Unpaid';
   paymentMethod?: string; // e.g., 'Cash', 'Bank Transfer'
   receiptId?: string; // Links all fees paid in one transaction
+  discount?: number;
 }
 
 export interface Class {
