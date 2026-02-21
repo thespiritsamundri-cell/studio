@@ -155,7 +155,7 @@ export default function YearbookPage() {
             if (!student) return;
             const { totalMarks, obtainedMarks } = studentOverallPercentages[studentId];
             if (totalMarks > 0) {
-                const percentage = (obtainedMarks / totalMarks * 100) : 0;
+                const percentage = (obtainedMarks / totalMarks) * 100;
                 topStudents.push({ id: student.id, name: student.name, class: student.class, percentage });
                 if (percentage >= 40) {
                     classResults[student.class].pass++;
@@ -471,3 +471,5 @@ export default function YearbookPage() {
         </div>
     );
 }
+
+    
