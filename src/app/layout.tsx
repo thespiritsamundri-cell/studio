@@ -2,7 +2,7 @@ import './globals.css'
 import AppClientLayout from '@/app/app-client-layout'
 
 export const metadata = {
-  title: 'School Management System',
+  title: 'THE SPIRIT SCHOOL SAMUNDRI',
   description: 'A comprehensive school management system.',
 }
 
