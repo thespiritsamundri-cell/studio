@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -21,7 +20,7 @@ import { openPrintWindow } from '@/lib/print-helper';
 
 const MALE_AVATAR_URL = 'https://i.postimg.cc/x1BZ31bs/male.png';
 const FEMALE_AVATAR_URL = 'https://i.postimg.cc/7hgPwR8W/1487318.png';
-const NEUTRAL_AVATAR_URL = 'https://i.postimg.cc/3Jp4JMfC/avatar-placeholder.png';
+const NEUTRAL_AVATAR_URL = 'https://postimg.cc/nstCZpFF';
 
 export default function StudentDetailsPage() {
   const router = useRouter();
@@ -202,3 +201,5 @@ const InfoRow = ({ label, value }: { label: string, value: string | undefined })
       <TableCell className="text-base font-semibold p-2">{value || 'N/A'}</TableCell>
     </TableRow>
 );
+
+    

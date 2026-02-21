@@ -57,7 +57,7 @@ export const defaultSettings: SchoolSettings = {
   schoolName: 'THE SPIRIT SCHOOL SAMUNDRI',
   academicYear: '2025-2026',
   schoolAddress: 'Housing Colony 2, Samundri Faisalabad',
-  schoolPhone: '03438775425',
+  schoolPhone: '0300-0000000',
   schoolEmail: 'info@thespiritschool.edu.pk',
   schoolLogo: 'https://postimg.cc/ZBcJb0tb',
   favicon: 'https://i.postimg.cc/R6RvSq5q/favicon-32x32.png',
@@ -226,3 +226,5 @@ export const useSettings = () => {
   }
   return context;
 };
+
+    

@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -42,7 +41,7 @@ import { openPrintWindow } from '@/lib/print-helper';
 
 const MALE_AVATAR_URL = 'https://i.postimg.cc/x1BZ31bs/male.png';
 const FEMALE_AVATAR_URL = 'https://i.postimg.cc/7hgPwR8W/1487318.png';
-const NEUTRAL_AVATAR_URL = 'https://i.postimg.cc/3Jp4JMfC/avatar-placeholder.png';
+const NEUTRAL_AVATAR_URL = 'https://postimg.cc/nstCZpFF';
 
 export default function StudentsPage() {
   const { students: allStudents, families: allFamilies, classes, updateStudent } = useData();
@@ -350,3 +349,5 @@ export default function StudentsPage() {
     </div>
   );
 }
+
+    

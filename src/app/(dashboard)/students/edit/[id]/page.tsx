@@ -17,7 +17,7 @@ import { uploadFile } from '@/services/storage-service';
 
 const MALE_AVATAR_URL = 'https://i.postimg.cc/x1BZ31bs/male.png';
 const FEMALE_AVATAR_URL = 'https://i.postimg.cc/7hgPwR8W/1487318.png';
-const NEUTRAL_AVATAR_URL = 'https://i.postimg.cc/3Jp4JMfC/avatar-placeholder.png';
+const NEUTRAL_AVATAR_URL = 'https://postimg.cc/nstCZpFF';
 
 export default function EditStudentPage() {
   const router = useRouter();
@@ -245,3 +245,5 @@ export default function EditStudentPage() {
     </div>
   );
 }
+
+    
